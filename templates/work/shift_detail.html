@@ -5,7 +5,7 @@
   <div><p class="eyebrow">Work register</p><h1>Shift review</h1></div>
   <time datetime="{{ shift.work_date|date:'Y-m-d' }}">{{ shift.work_date|date:"j F Y" }}</time>
 </header>
-<p class="record-actions"><a class="button-link" href="{% url 'work:shift-edit' shift.pk %}">Edit shift</a></p>
+<p class="record-actions"><a class="button-link" href="{% url 'work:shift-edit' shift.pk %}">Edit shift</a> <a class="button-link" href="{% url 'work:shift-delete' shift.pk %}">Delete shift</a></p>
 <dl class="record-detail">
   <div><dt>Type</dt><dd>{{ shift.get_shift_type_display }}</dd></div>
   <div><dt>Worked hours</dt><dd class="mono">{{ shift.worked_hours }}</dd></div>

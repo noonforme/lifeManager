@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.db import DatabaseError, transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET, require_http_methods
 
 from .forms import ShiftForm
 from .models import Shift
@@ -78,3 +78,38 @@ def shift_edit(request: HttpRequest, pk: int) -> HttpResponse:
             "submit_label": "Save changes",
         },
     )
+
+
+@require_GET
+def register(request: HttpRequest) -> HttpResponse:
+    return render(
+        request,
+        "work/register.html",
+        {"selected_month": request.GET.get("month")},
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def shift_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    shift = get_object_or_404(Shift, pk=pk)
+    if request.method == "POST":
+        selected_month = f"{shift.work_date.year:04d}-{shift.work_date.month:02d}"
+        try:
+            with transaction.atomic():
+                shift.delete()
+        except DatabaseError as error:
+            logger.warning(
+                "Work shift delete failed (%s)",
+                type(error).__name__,
+            )
+            return render(
+                request,
+                "work/shift_confirm_delete.html",
+                {
+                    "shift": shift,
+                    "delete_error": "The shift could not be deleted. Please try again.",
+                },
+            )
+        messages.success(request, "Shift deleted.")
+        return redirect(f"{redirect('work:register').url}?month={selected_month}")
+    return render(request, "work/shift_confirm_delete.html", {"shift": shift})
