@@ -1,0 +1,37 @@
+# Python environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django runtime and generated files
+staticfiles/
+*.log
+
+# Local configuration
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+.impeccable/*.local.json
+
+# Personal and test databases
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.db
+*.db-shm
+*.db-wal
+var/
+
+# Browser tooling
+node_modules/
+test-results/
+playwright-report/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
