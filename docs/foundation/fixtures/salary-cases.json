@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "description": "Portable salary characterization cases. All intermediate values use exact decimal arithmetic. Only documented outputs are rounded with ROUND_HALF_UP to two decimal places.",
+  "rounding": {
+    "mode": "ROUND_HALF_UP",
+    "output_places": 2
+  },
+  "cases": [
+    {
+      "id": "ordinary-month",
+      "shifts": [{"type": "normal", "hours": "160.00", "overtime_hours": "10.00", "hourly_rate": "10.00"}],
+      "expected_normal_hours": "150.00",
+      "expected_mean_rate": "10.00",
+      "expected_gross": "1650.00",
+      "expected_gpm": "330.00",
+      "expected_vsd": "206.58",
+      "expected_psd": "115.17",
+      "expected_total_taxes": "651.75",
+      "expected_net": "998.25"
+    },
+    {
+      "id": "overtime-greater-than-worked",
+      "shifts": [{"type": "normal", "hours": "1.00", "overtime_hours": "2.00", "hourly_rate": "10.00"}],
+      "expected_normal_hours": "0.00",
+      "expected_mean_rate": "10.00",
+      "expected_gross": "30.00",
+      "expected_gpm": "6.00",
+      "expected_vsd": "3.76",
+      "expected_psd": "2.09",
+      "expected_total_taxes": "11.85",
+      "expected_net": "18.15"
+    },
+    {
+      "id": "unweighted-mean-rate",
+      "shifts": [
+        {"type": "normal", "hours": "8.00", "overtime_hours": "0.00", "hourly_rate": "10.00"},
+        {"type": "normal", "hours": "2.00", "overtime_hours": "1.00", "hourly_rate": "20.00"}
+      ],
+      "expected_normal_hours": "9.00",
+      "expected_mean_rate": "15.00",
+      "expected_gross": "157.50",
+      "expected_gpm": "31.50",
+      "expected_vsd": "19.72",
+      "expected_psd": "10.99",
+      "expected_total_taxes": "62.21",
+      "expected_net": "95.29"
+    },
+    {
+      "id": "normal-shift-type",
+      "shifts": [{"type": "normal", "hours": "8.00", "overtime_hours": "2.00", "hourly_rate": "15.00"}],
+      "expected_normal_hours": "6.00",
+      "expected_mean_rate": "15.00",
+      "expected_gross": "135.00",
+      "expected_gpm": "27.00",
+      "expected_vsd": "16.90",
+      "expected_psd": "9.42",
+      "expected_total_taxes": "53.32",
+      "expected_net": "81.68"
+    },
+    {
+      "id": "night-shift-type",
+      "shifts": [{"type": "night", "hours": "8.00", "overtime_hours": "2.00", "hourly_rate": "15.00"}],
+      "expected_normal_hours": "6.00",
+      "expected_mean_rate": "15.00",
+      "expected_gross": "135.00",
+      "expected_gpm": "27.00",
+      "expected_vsd": "16.90",
+      "expected_psd": "9.42",
+      "expected_total_taxes": "53.32",
+      "expected_net": "81.68"
+    },
+    {
+      "id": "holiday-shift-type",
+      "shifts": [{"type": "holiday", "hours": "8.00", "overtime_hours": "2.00", "hourly_rate": "15.00"}],
+      "expected_normal_hours": "6.00",
+      "expected_mean_rate": "15.00",
+      "expected_gross": "135.00",
+      "expected_gpm": "27.00",
+      "expected_vsd": "16.90",
+      "expected_psd": "9.42",
+      "expected_total_taxes": "53.32",
+      "expected_net": "81.68"
+    },
+    {
+      "id": "half-cent-output",
+      "shifts": [{"type": "normal", "hours": "0.05", "overtime_hours": "0.00", "hourly_rate": "0.50"}],
+      "expected_normal_hours": "0.05",
+      "expected_mean_rate": "0.50",
+      "expected_gross": "0.03",
+      "expected_gpm": "0.01",
+      "expected_vsd": "0.00",
+      "expected_psd": "0.00",
+      "expected_total_taxes": "0.01",
+      "expected_net": "0.02"
+    }
+  ]
+}

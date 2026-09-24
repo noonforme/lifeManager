@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "description": "Portable habit momentum cases. Completion dates are deduplicated and sorted before derivation. At each unique completion, momentum is round(previous * exp(-0.1 * elapsed_days) + 1, 2). The first completion uses one elapsed day, which is immaterial from zero. Same-day duplicates do not create a second completion.",
+  "rounding": {
+    "mode": "half-away-as-language-round-defined-for-positive-values",
+    "output_places": 2
+  },
+  "cases": [
+    {
+      "id": "first-completion",
+      "completion_dates": ["2026-01-01"],
+      "expected_unique_dates": ["2026-01-01"],
+      "expected_momentum": "1.00"
+    },
+    {
+      "id": "three-consecutive-dates",
+      "completion_dates": ["2026-01-01", "2026-01-02", "2026-01-03"],
+      "expected_unique_dates": ["2026-01-01", "2026-01-02", "2026-01-03"],
+      "expected_momentum": "2.72"
+    },
+    {
+      "id": "ten-day-gap",
+      "completion_dates": ["2026-01-01", "2026-01-11"],
+      "expected_unique_dates": ["2026-01-01", "2026-01-11"],
+      "expected_momentum": "1.37"
+    },
+    {
+      "id": "duplicate-date",
+      "completion_dates": ["2026-01-02", "2026-01-01", "2026-01-01"],
+      "expected_unique_dates": ["2026-01-01", "2026-01-02"],
+      "expected_momentum": "1.90"
+    },
+    {
+      "id": "monday-to-sunday",
+      "completion_dates": ["2026-08-03", "2026-08-09"],
+      "expected_unique_dates": ["2026-08-03", "2026-08-09"],
+      "expected_momentum": "1.55"
+    },
+    {
+      "id": "leap-sequence",
+      "completion_dates": ["2024-02-28", "2024-02-29", "2024-03-01"],
+      "expected_unique_dates": ["2024-02-28", "2024-02-29", "2024-03-01"],
+      "expected_momentum": "2.72"
+    },
+    {
+      "id": "year-rollover",
+      "completion_dates": ["2025-12-31", "2026-01-01"],
+      "expected_unique_dates": ["2025-12-31", "2026-01-01"],
+      "expected_momentum": "1.90"
+    }
+  ]
+}
