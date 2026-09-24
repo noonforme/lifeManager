@@ -1,7 +1,7 @@
-<section id="register-{{ register.key }}" data-register-state="{{ register.state }}" aria-labelledby="register-{{ register.key }}-title">
+<section class="register" id="register-{{ register.key }}" data-register="{{ register.key }}" data-register-state="{{ register.state }}" aria-labelledby="register-{{ register.key }}-title">
   <header>
-    <p>{{ register.state_label }}</p>
     <h2 id="register-{{ register.key }}-title">{{ register.title }}</h2>
+    <span class="state-label">{{ register.state_label }}</span>
   </header>
   <p>{{ register.description }}</p>
   {% if register.recovery_text %}<p>{{ register.recovery_text }}</p>{% endif %}

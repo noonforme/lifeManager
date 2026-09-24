@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Daily register · LifeOS{% endblock %}
 {% block content %}
-<header>
-  <p>Reconcile today</p>
-  <h1>Daily register</h1>
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Reconcile today</p>
+    <h1>Daily register</h1>
+  </div>
   <time datetime="{{ dashboard.today|date:'Y-m-d' }}">{{ dashboard.today|date:'j F Y' }}</time>
 </header>
-<div aria-label="Daily registers">
+<div class="registers" aria-label="Daily registers">
   {% for register in dashboard.registers %}{% include "core/register.html" with register=register only %}{% endfor %}
 </div>
 {% endblock %}

@@ -25,7 +25,7 @@ def test_dashboard_renders_semantic_ordered_registers(client: Client) -> None:
     assert html.count("<h1") == 1
     assert "Daily register" in html
     assert 'href="#main-content"' in html
-    assert '<nav aria-label="Primary">' in html
+    assert '<nav aria-label="Primary"' in html
     assert '<time datetime="2026-09-25">' in html
     positions = [html.index(f'id="register-{key}"') for key in ("work", "money", "habits")]
     assert positions == sorted(positions)
