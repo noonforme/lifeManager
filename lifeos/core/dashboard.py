@@ -8,11 +8,17 @@ from lifeos.core.clock import Clock, get_clock
 logger = logging.getLogger(__name__)
 
 RegisterKey = Literal["work", "money", "habits"]
-RegisterState = Literal["empty", "unavailable"]
+RegisterState = Literal["empty", "ready", "unavailable"]
 
 
 class SummaryUnavailable(RuntimeError):
     pass
+
+
+@dataclass(frozen=True, slots=True)
+class LabelledValue:
+    label: str
+    value: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +32,7 @@ class RegisterSummary:
     state: RegisterState
     state_label: str
     recovery_text: str | None = None
+    values: tuple[LabelledValue, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

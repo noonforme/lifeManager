@@ -5,6 +5,7 @@
   </header>
   <p>{{ register.description }}</p>
   {% if register.recovery_text %}<p>{{ register.recovery_text }}</p>{% endif %}
+  {% if register.values %}<dl class="register-values">{% for item in register.values %}<div><dt>{{ item.label }}</dt><dd class="mono">{{ item.value }}</dd></div>{% endfor %}</dl>{% endif %}
   {% if register.href %}<a href="{{ register.href }}">Open {{ register.title }}</a>{% endif %}
   {% if register.action_href %}<a href="{{ register.action_href }}">{{ register.action_label }}</a>{% endif %}
 </section>

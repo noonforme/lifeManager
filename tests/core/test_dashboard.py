@@ -3,7 +3,9 @@ from datetime import date
 
 import pytest
 
-from lifeos.core.dashboard import SummaryUnavailable, build_dashboard
+from lifeos.core.dashboard import LabelledValue, SummaryUnavailable, build_dashboard
+
+pytestmark = pytest.mark.django_db
 
 
 class FixedClock:
@@ -24,8 +26,17 @@ def test_dashboard_reads_date_once_and_orders_registers() -> None:
     assert [register.key for register in dashboard.registers] == ["work", "money", "habits"]
     assert [register.state_label for register in dashboard.registers] == ["Empty", "Empty", "Empty"]
     assert dashboard.registers[0].description == "No shifts recorded this month."
+    assert dashboard.registers[0].href == "/work/"
+    assert dashboard.registers[0].action_href == "/work/shifts/new/?date=2026-09-25"
+    assert dashboard.registers[0].values == ()
     assert dashboard.registers[1].description == "No transactions recorded this month."
     assert dashboard.registers[2].description == "No habits yet."
+
+
+def test_labelled_value_is_frozen() -> None:
+    value = LabelledValue("Shifts", "1")
+    with pytest.raises(AttributeError):
+        value.value = "2"
 
 
 def test_expected_domain_failure_is_isolated(monkeypatch, caplog: pytest.LogCaptureFixture) -> None:

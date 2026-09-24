@@ -4,6 +4,10 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib import messages
+from django.urls import reverse
+
+from lifeos.work.models import Shift
+from decimal import Decimal
 from django.db import DatabaseError
 from django.test import Client, RequestFactory
 
@@ -34,9 +38,28 @@ def test_dashboard_renders_semantic_ordered_registers(client: Client) -> None:
     assert html.count(">Empty<") == 3
     assert 'role="status"' in html
     assert 'role="alert"' in html
-    assert "/work/shifts/new/" not in html
+    assert 'href="/work/"' in html
+    assert 'href="/work/shifts/new/?date=2026-09-25"' in html
     assert "/money/transactions/new/" not in html
     assert "/habits/new/" not in html
+
+
+def test_dashboard_renders_ready_work_values_generically(client: Client) -> None:
+    Shift.objects.create(
+        work_date=date(2026, 9, 25),
+        shift_type="normal",
+        worked_hours=Decimal("8.00"),
+        overtime_hours=Decimal("1.00"),
+        hourly_rate=Decimal("20.00"),
+    )
+    with override_clock(FixedClock()):
+        response = client.get(reverse("core:dashboard"))
+    html = response.content.decode()
+    assert 'data-register-state="ready"' in html
+    assert 'class="register-values"' in html
+    assert "Estimated net" in html
+    assert "102.85" in html
+    assert html.count('data-register-state="empty"') == 2
 
 
 def test_messages_are_escaped_and_routed_by_level() -> None:
