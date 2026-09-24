@@ -7,8 +7,12 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods
 
+from lifeos.core.clock import get_clock
+
+from .calculations import SalaryInput, calculate_salary
 from .forms import ShiftForm
 from .models import Shift
+from .queries import select_month, shifts_for_month
 
 logger = logging.getLogger(__name__)
 
@@ -82,10 +86,40 @@ def shift_edit(request: HttpRequest, pk: int) -> HttpResponse:
 
 @require_GET
 def register(request: HttpRequest) -> HttpResponse:
+    today = get_clock().today()
+    selection = select_month(request.GET.get("month"), today=today)
+    try:
+        shifts = tuple(shifts_for_month(selection.month))
+    except DatabaseError as error:
+        logger.warning(
+            "Work register query failed (%s)",
+            type(error).__name__,
+        )
+        return render(
+            request,
+            "work/register_unavailable.html",
+            status=503,
+        )
+    salary = calculate_salary(
+        SalaryInput(
+            shift.worked_hours,
+            shift.overtime_hours,
+            shift.hourly_rate,
+            shift.shift_type,
+        )
+        for shift in shifts
+    )
     return render(
         request,
         "work/register.html",
-        {"selected_month": request.GET.get("month")},
+        {
+            "month": selection.month,
+            "month_error": selection.error,
+            "previous_month": selection.month.previous(),
+            "next_month": selection.month.next(),
+            "shifts": shifts,
+            "salary": salary,
+        },
     )
 
 
