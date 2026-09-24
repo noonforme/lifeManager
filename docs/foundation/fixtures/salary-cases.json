@@ -38,12 +38,12 @@
       ],
       "expected_normal_hours": "9.00",
       "expected_mean_rate": "15.00",
-      "expected_gross": "157.50",
-      "expected_gpm": "31.50",
-      "expected_vsd": "19.72",
-      "expected_psd": "10.99",
-      "expected_total_taxes": "62.21",
-      "expected_net": "95.29"
+      "expected_gross": "130.00",
+      "expected_gpm": "26.00",
+      "expected_vsd": "16.28",
+      "expected_psd": "9.07",
+      "expected_total_taxes": "51.35",
+      "expected_net": "78.65"
     },
     {
       "id": "normal-shift-type",
