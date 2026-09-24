@@ -10,6 +10,9 @@ htmlcov/
 staticfiles/
 *.log
 
+# Superpowers execution scratch
+.superpowers/
+
 # Local configuration
 .env
 .env.*
