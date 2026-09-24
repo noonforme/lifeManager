@@ -24,7 +24,7 @@ A shift contains:
 
 Overtime may exceed worked hours. Normal hours are `max(worked hours - overtime hours, 0)`. Overtime is paid at `1.5 × hourly rate`. In version one, shift type is descriptive and has no salary multiplier.
 
-For a selected month, the mean hourly rate is the unweighted arithmetic mean of rates for included shifts. Gross pay is the sum of `normal hours × rate + overtime hours × rate × 1.5` for each shift. Outputs are GPM, VSD, PSD, total taxes, and net pay according to the approved version-one payroll formula; implementation must satisfy `fixtures/salary-cases.json` and expose the formula and rounding to the user. Total taxes are the sum of displayed tax outputs, and net is displayed gross minus displayed total taxes.
+For a selected month, the mean hourly rate is the unweighted arithmetic mean of rates for included shifts. Gross pay is the sum of `normal hours × rate + overtime hours × rate × 1.5` for each shift. Version-one deductions use the characterized rates: GPM is `gross × 0.20`, VSD is `gross × 0.1252`, and PSD is `gross × 0.0698`. Each named output rounds half-up to two decimal places. Total taxes are the sum of displayed GPM, VSD, and PSD, and net is displayed gross minus displayed total taxes. Implementation must satisfy `fixtures/salary-cases.json` and expose the formula and rounding to the user.
 
 A shift is invalid when its date, type, decimal syntax, scale, or bounds are invalid. Domain policy must define practical upper bounds before accepting records; forms and models enforce the same constraints.
 

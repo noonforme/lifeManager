@@ -133,6 +133,14 @@ def test_salary_fixture_uses_decimal_strings_for_numeric_values() -> None:
             assert isinstance(value, str) and DECIMAL_PATTERN.fullmatch(value), (key, value)
 
 
+def test_domain_defines_exact_salary_rates() -> None:
+    text = read_document("DOMAIN.md")
+
+    assert "GPM is `gross × 0.20`" in text
+    assert "VSD is `gross × 0.1252`" in text
+    assert "PSD is `gross × 0.0698`" in text
+
+
 def test_habit_fixture_uses_strict_iso_dates_and_decimal_outputs() -> None:
     fixture = load_fixture("habit-momentum-cases.json")
 
