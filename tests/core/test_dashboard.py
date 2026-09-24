@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 
 import pytest
@@ -27,15 +28,18 @@ def test_dashboard_reads_date_once_and_orders_registers() -> None:
     assert dashboard.registers[2].description == "No habits yet."
 
 
-def test_expected_domain_failure_is_isolated(monkeypatch) -> None:
+def test_expected_domain_failure_is_isolated(monkeypatch, caplog: pytest.LogCaptureFixture) -> None:
     def unavailable(*, today: date):
         raise SummaryUnavailable("private record text")
 
     monkeypatch.setattr("lifeos.core.dashboard.money_summary.get_summary", unavailable)
-    dashboard = build_dashboard(clock=FixedClock(date(2026, 9, 25)))
+    with caplog.at_level(logging.WARNING, logger="lifeos.core.dashboard"):
+        dashboard = build_dashboard(clock=FixedClock(date(2026, 9, 25)))
     assert [register.state for register in dashboard.registers] == ["empty", "unavailable", "empty"]
     assert dashboard.registers[1].description == "Money summary is temporarily unavailable."
     assert "private record text" not in repr(dashboard.registers[1])
+    assert "private record text" not in caplog.text
+    assert "SummaryUnavailable" in caplog.text
 
 
 def test_unexpected_programming_error_propagates(monkeypatch) -> None:

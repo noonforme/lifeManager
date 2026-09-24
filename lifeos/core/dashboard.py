@@ -64,6 +64,6 @@ def build_dashboard(*, clock: Clock | None = None) -> DashboardView:
             registers.append(module.get_summary(today=today))
         except SummaryUnavailable as error:
             key = module.__name__.split(".")[-2]
-            logger.warning("Dashboard summary unavailable for %s (%s)", key, type(error).__name__, exc_info=True)
+            logger.warning("Dashboard summary unavailable for %s (%s)", key, type(error).__name__)
             registers.append(_unavailable(key))
     return DashboardView(today=today, registers=tuple(registers))

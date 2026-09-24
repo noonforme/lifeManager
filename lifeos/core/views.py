@@ -23,7 +23,7 @@ def ready(request: HttpRequest) -> HttpResponse:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()
-    except DatabaseError:
-        logger.exception("Readiness database check failed")
+    except DatabaseError as error:
+        logger.warning("Readiness database check failed (%s)", type(error).__name__)
         return HttpResponse("unavailable\n", content_type="text/plain", status=503)
     return HttpResponse("ready\n", content_type="text/plain")

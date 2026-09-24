@@ -29,6 +29,13 @@ def test_database_override_expands_user(tmp_path: Path, monkeypatch: pytest.Monk
     assert result == (tmp_path / "private/lifeos.sqlite3").resolve()
 
 
+def test_database_override_cannot_be_inside_repository() -> None:
+    repository_database = Path(__file__).parents[1] / "private-ledger.data"
+
+    with pytest.raises(ValueError, match="outside the repository"):
+        personal_database_path({"LIFEOS_DATABASE_PATH": str(repository_database)})
+
+
 def _import_test_settings(env: dict[str, str]) -> subprocess.CompletedProcess[str]:
     clean = os.environ.copy()
     for key in ("LIFEOS_TEST_ROOT", "LIFEOS_TEST_OWNER", "LIFEOS_TEST_DATABASE_PATH"):
@@ -54,6 +61,17 @@ def _owned_root(tmp_path: Path) -> tuple[Path, str]:
 
 def test_test_settings_require_ownership_variables() -> None:
     assert _import_test_settings({}).returncode != 0
+
+
+def test_test_settings_do_not_create_personal_data_directory(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    home.mkdir()
+    prospective_data = home / ".local" / "share" / "lifeos"
+
+    result = _import_test_settings({"HOME": str(home), "XDG_DATA_HOME": ""})
+
+    assert result.returncode != 0
+    assert not prospective_data.exists()
 
 
 def test_test_database_must_be_inside_owned_root(tmp_path: Path) -> None:

@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 from unittest.mock import patch
 
@@ -62,12 +63,24 @@ def test_readiness_success_is_minimal(client: Client) -> None:
     assert response.content == b"ready\n"
 
 
-def test_readiness_database_failure_is_safe(client: Client) -> None:
-    with patch("lifeos.core.views.connection.cursor", side_effect=DatabaseError("SELECT secret FROM /private/path")):
+def test_readiness_database_failure_is_safe(
+    client: Client,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with (
+        caplog.at_level(logging.WARNING, logger="lifeos.core.views"),
+        patch(
+            "lifeos.core.views.connection.cursor",
+            side_effect=DatabaseError("SELECT secret FROM /private/path"),
+        ),
+    ):
         response = client.get("/ready/")
     assert response.status_code == 503
     assert response.headers["Content-Type"].startswith("text/plain")
     assert response.content == b"unavailable\n"
+    assert "SELECT secret" not in caplog.text
+    assert "/private/path" not in caplog.text
+    assert "DatabaseError" in caplog.text
 
 
 def test_unexpected_host_is_rejected() -> None:

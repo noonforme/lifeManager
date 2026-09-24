@@ -17,7 +17,7 @@ uv sync --group test
 
 ## Database safety
 
-Runtime uses `lifeos.settings`. By default, the SQLite database is stored at `${XDG_DATA_HOME}/lifeos/lifeos.sqlite3`, falling back to `~/.local/share/lifeos/lifeos.sqlite3` when `XDG_DATA_HOME` is unset or empty. Set `LIFEOS_DATABASE_PATH` to an absolute path to override that location.
+Runtime uses `lifeos.settings`. By default, the SQLite database is stored at `${XDG_DATA_HOME}/lifeos/lifeos.sqlite3`, falling back to `~/.local/share/lifeos/lifeos.sqlite3` when `XDG_DATA_HOME` is unset or empty. Set `LIFEOS_DATABASE_PATH` to an absolute path outside the source repository to override that location.
 
 Do not inspect, print, probe, copy, or reset the personal database while setting up or testing. The test settings require an explicitly owned temporary database and fail closed if ownership cannot be proven.
 

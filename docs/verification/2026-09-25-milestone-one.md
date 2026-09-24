@@ -74,6 +74,19 @@ Verification found that `DOMAIN.md` named GPM, VSD, and PSD but did not state th
 | Same focused command after documentation correction | Exit 0; 1 passed. |
 | `uv run pytest -q` after reconciliation | Exit 0; 51 passed, no skips. |
 
+## Final review fix pass
+
+A fresh whole-milestone review identified four release-blocking defects. Each was reproduced with a failing test before correction:
+
+- importing test settings created the prospective personal-data directory before ownership validation;
+- expected dashboard and readiness exceptions serialized sensitive messages in logs;
+- the light global focus token lacked contrast on the dark rail;
+- an arbitrary database override inside the repository could evade extension-based ignore rules.
+
+The fix pass split side-effect-free common settings from runtime database initialization, rejects repository-contained runtime databases, logs only controlled exception-class metadata for expected failures, and uses surface-specific focus outlines on the rail and skip link. Focused review tests passed 28/28; the complete suite passed 58/58; ordinary Django and migration checks passed; and isolated startup on port 8765 passed again.
+
+The review declined to judge the manual browser/accessibility gaps listed below, visual fidelity without prohibited screenshot evidence, historical-source comparison, its own independent clean-checkout execution, and future domain workflows. Those are either explicitly deferred or honestly retained as unverified gaps rather than silently accepted behavior.
+
 ## Visual and assistive-technology boundary
 
 No visual browser tests were run by design. Milestone one contains no browser driver, screenshots, golden images, pixel comparisons, capture rounds, or visual-regression service.

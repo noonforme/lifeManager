@@ -8,7 +8,7 @@ The interface is server-rendered Django templates and forms over ordinary HTTP. 
 
 ## Persistence
 
-SQLite is the single source of truth. The default personal database is `${XDG_DATA_HOME:-~/.local/share}/lifeos/lifeos.sqlite3`; `LIFEOS_DATABASE_PATH` may explicitly select another absolute path. Runtime creates only the required parent directory. Source control, tests, checks, and documentation tooling must not discover or reuse the personal database.
+SQLite is the single source of truth. The default personal database is `${XDG_DATA_HOME:-~/.local/share}/lifeos/lifeos.sqlite3`; `LIFEOS_DATABASE_PATH` may explicitly select another absolute path outside the source repository. Runtime creates only the required parent directory. Source control, tests, checks, and documentation tooling must not discover or reuse the personal database. Test settings import only side-effect-free common settings, so they never resolve or create a runtime personal-data location.
 
 Each schema change ships as a Django migration. Multi-record state changes use `transaction.atomic`. Derived summaries are calculated from owned records rather than persisted as competing totals unless a later authority document explicitly defines a cache and its invalidation.
 

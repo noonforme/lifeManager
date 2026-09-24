@@ -21,10 +21,23 @@ def test_normal_text_tokens_meet_aa(foreground: str, background: str) -> None:
 
 @pytest.mark.parametrize(
     ("foreground", "background"),
-    [("#838c86", "#f4f1e8"), ("#171a18", "#f4f1e8"), ("#7c8b83", "#171d19"), ("#f4f1e8", "#171d19")],
+    [
+        ("#838c86", "#f4f1e8"),
+        ("#171a18", "#f4f1e8"),
+        ("#f4f1e8", "#202521"),
+        ("#ffffff", "#b73a22"),
+        ("#7c8b83", "#171d19"),
+        ("#f4f1e8", "#171d19"),
+        ("#f4f1e8", "#090c0a"),
+        ("#21100c", "#ff765c"),
+    ],
 )
 def test_boundary_and_focus_tokens_meet_non_text_contrast(foreground: str, background: str) -> None:
     assert contrast_ratio(foreground, background) >= 3.0
+
+
+def test_light_global_focus_token_fails_on_rail_background() -> None:
+    assert contrast_ratio("#171a18", "#202521") < 3.0
 
 
 def test_black_and_white_have_maximum_contrast() -> None:
