@@ -1,0 +1,24 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}LifeOS{% endblock %}</title>
+</head>
+<body>
+  <a href="#main-content">Skip to main content</a>
+  <header><a href="{% url 'core:dashboard' %}" aria-label="LifeOS home">LifeOS</a></header>
+  <nav aria-label="Primary">
+    <a href="{% url 'core:dashboard' %}" aria-current="page">Daily register</a>
+    <span>Work</span><span>Money</span><span>Habits</span>
+  </nav>
+  <div aria-label="Current context">Private · Local</div>
+  <div role="status" aria-live="polite">
+    {% for message in messages %}{% if message.level_tag != 'error' %}<p>{{ message }}</p>{% endif %}{% endfor %}
+  </div>
+  <div role="alert" aria-live="assertive">
+    {% for message in messages %}{% if message.level_tag == 'error' %}<p>{{ message }}</p>{% endif %}{% endfor %}
+  </div>
+  <main id="main-content" tabindex="-1">{% block content %}{% endblock %}</main>
+</body>
+</html>
