@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}New shift · LifeOS{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div><p class="eyebrow">Work register</p><h1>New shift</h1></div>
+</header>
+<form method="post" class="ledger-form" novalidate>
+  {% csrf_token %}
+  {% include "work/_shift_form.html" %}
+  <div class="form-actions"><button class="button" type="submit">Create shift</button></div>
+</form>
+{% endblock %}

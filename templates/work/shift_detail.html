@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Shift review · LifeOS{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div><p class="eyebrow">Work register</p><h1>Shift review</h1></div>
+  <time datetime="{{ shift.work_date|date:'Y-m-d' }}">{{ shift.work_date|date:"j F Y" }}</time>
+</header>
+<dl class="record-detail">
+  <div><dt>Type</dt><dd>{{ shift.get_shift_type_display }}</dd></div>
+  <div><dt>Worked hours</dt><dd class="mono">{{ shift.worked_hours }}</dd></div>
+  <div><dt>Overtime hours</dt><dd class="mono">{{ shift.overtime_hours }}</dd></div>
+  <div><dt>Hourly rate</dt><dd class="mono">{{ shift.hourly_rate }}</dd></div>
+  <div><dt>Note</dt><dd>{{ shift.note|default:"No note" }}</dd></div>
+</dl>
+{% endblock %}
