@@ -1,6 +1,37 @@
 {% extends "base.html" %}
 {% block title %}Money register · LifeOS{% endblock %}
 {% block content %}
-<header class="page-header"><div><p class="eyebrow">Register</p><h1>Money register</h1></div></header>
-<p>No monthly totals are available yet.</p>
+<header class="page-header money-header">
+  <div><p class="eyebrow">Money register</p><h1>{{ month.label }}</h1></div>
+  <a class="button-link" href="{% url 'money:transaction-create' %}">New transaction</a>
+</header>
+<nav class="month-navigation" aria-label="Month">
+  <a href="?month={{ previous_month.value }}">Previous month</a>
+  <span class="mono" aria-current="page">{{ month.value }}</span>
+  <a href="?month={{ next_month.value }}">Next month</a>
+</nav>
+{% if month_error %}<p class="field-error" role="alert">{{ month_error }}</p>{% endif %}
+<section aria-labelledby="movement-heading" class="movement-panel">
+  <p class="eyebrow">Monthly movement</p>
+  <h2 id="movement-heading">Money summary</h2>
+  <dl class="movement-grid">
+    <div><dt>Transactions</dt><dd class="mono">{{ movement.count }}</dd></div>
+    <div><dt>Inflow</dt><dd class="mono">{{ formatted_inflow }}</dd></div>
+    <div><dt>Outflow</dt><dd class="mono">{{ formatted_outflow }}</dd></div>
+    <div class="movement-net"><dt>Net movement</dt><dd class="mono">{{ formatted_net_movement }}</dd></div>
+  </dl>
+</section>
+{% if transactions %}
+<section aria-labelledby="transaction-list-heading">
+  <h2 id="transaction-list-heading">Transactions</h2>
+  <div class="horizontal-scroll" role="region" aria-label="Transactions for {{ month.label }}" tabindex="0">
+    <table class="transaction-table">
+      <thead><tr><th scope="col">Date</th><th scope="col">Direction</th><th scope="col">Category</th><th scope="col">Amount</th></tr></thead>
+      <tbody>{% for item, direction_label, formatted_amount in transaction_rows %}<tr><th scope="row"><a href="{% url 'money:transaction-detail' item.pk %}"><time datetime="{{ item.transaction_date|date:'Y-m-d' }}">{{ item.transaction_date|date:"j M Y" }}</time></a></th><td>{{ direction_label }}</td><td>{{ item.category }}</td><td class="mono">{{ formatted_amount }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+{% else %}
+<section class="empty-state money-state"><h2>No transactions recorded</h2><p>No transactions recorded for {{ month.label }}.</p><p><a class="button-link" href="{% url 'money:transaction-create' %}">Record a transaction</a></p></section>
+{% endif %}
 {% endblock %}

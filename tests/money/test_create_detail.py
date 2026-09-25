@@ -35,12 +35,10 @@ def test_money_routes_have_canonical_paths_and_names():
         assert resolve(path).url_name == name.removeprefix("money:")
 
 
-def test_register_shell_is_get_only_and_does_not_invent_totals(client):
+def test_register_route_is_get_only(client):
     response = client.get(reverse("money:register"))
-    content = response.content.decode()
     assert response.status_code == 200
-    assert "Money register" in content
-    assert "No monthly totals are available yet." in content
+    assert "Money register" in response.content.decode()
     assert client.post(reverse("money:register")).status_code == 405
 
 

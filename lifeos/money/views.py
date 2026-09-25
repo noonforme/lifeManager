@@ -8,9 +8,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 
-from .calculations import format_euros
+from lifeos.core.clock import get_clock
+
+from .calculations import TransactionAmountInput, calculate_monthly_movement, format_euros
 from .forms import TransactionForm
 from .models import Transaction
+from .queries import select_month, transaction_snapshot_for_month
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +40,36 @@ def _unavailable_response(request: HttpRequest) -> HttpResponse:
 
 @require_GET
 def register(request: HttpRequest) -> HttpResponse:
-    return render(request, "money/register.html")
+    today = get_clock().today()
+    selection = select_month(request.GET.get("month"), today=today)
+    try:
+        items = transaction_snapshot_for_month(selection.month)
+    except DatabaseError as error:
+        _log_database_failure("register query", error)
+        return _unavailable_response(request)
+    movement = calculate_monthly_movement(
+        TransactionAmountInput(item.direction, item.amount) for item in items
+    )
+    transaction_rows = tuple(
+        (item, item.get_direction_display(), format_euros(item.amount))
+        for item in items
+    )
+    return render(
+        request,
+        "money/register.html",
+        {
+            "month": selection.month,
+            "month_error": selection.error,
+            "previous_month": selection.month.previous(),
+            "next_month": selection.month.next(),
+            "transactions": items,
+            "transaction_rows": transaction_rows,
+            "movement": movement,
+            "formatted_inflow": format_euros(movement.inflow),
+            "formatted_outflow": format_euros(movement.outflow),
+            "formatted_net_movement": format_euros(movement.net_movement),
+        },
+    )
 
 
 @require_http_methods(["GET", "POST"])
