@@ -16,8 +16,12 @@
       <details class="nav-disclosure" open>
         <summary>Registers</summary>
         <nav aria-label="Primary" class="nav-links">
-          <a href="{% url 'core:dashboard' %}" aria-current="page">Daily register</a>
-          <a href="{% url 'work:register' %}">Work</a><span>Money</span><span>Habits</span>
+          {% with namespace=request.resolver_match.namespace url_name=request.resolver_match.url_name %}
+            <a href="{% url 'core:dashboard' %}"{% if namespace == "core" and url_name == "dashboard" %} aria-current="page"{% endif %}>Daily register</a>
+            <a href="{% url 'work:register' %}"{% if namespace == "work" %} aria-current="page"{% endif %}>Work</a>
+            <a href="{% url 'money:register' %}"{% if namespace == "money" %} aria-current="page"{% endif %}>Money</a>
+            <span>Habits</span>
+          {% endwith %}
         </nav>
       </details>
     </header>

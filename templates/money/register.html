@@ -7,7 +7,7 @@
 </header>
 <nav class="month-navigation" aria-label="Month">
   <a href="?month={{ previous_month.value }}">Previous month</a>
-  <span class="mono" aria-current="page">{{ month.value }}</span>
+  <span class="mono" aria-current="date">{{ month.value }}</span>
   <a href="?month={{ next_month.value }}">Next month</a>
 </nav>
 {% if month_error %}<p class="field-error" role="alert">{{ month_error }}</p>{% endif %}

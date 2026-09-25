@@ -30,6 +30,9 @@ def test_dashboard_reads_date_once_and_orders_registers() -> None:
     assert dashboard.registers[0].action_href == "/work/shifts/new/?date=2026-09-25"
     assert dashboard.registers[0].values == ()
     assert dashboard.registers[1].description == "No transactions recorded this month."
+    assert dashboard.registers[1].href == "/money/"
+    assert dashboard.registers[1].action_href == "/money/transactions/new/?date=2026-09-25"
+    assert dashboard.registers[1].values == ()
     assert dashboard.registers[2].description == "No habits yet."
 
 
