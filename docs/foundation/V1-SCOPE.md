@@ -21,7 +21,7 @@ Version one supports creating, reviewing, editing, and deleting shifts; classify
 
 ## Money workflow
 
-Version one supports creating, reviewing, editing, and deleting income and expense transactions; recording date, amount, direction, category, and optional note; deriving monthly inflow, outflow, and net movement; and ordering entries deterministically.
+Version one supports creating, reviewing, editing, and hard-deleting after confirmation income and expense transactions; recording date, positive exact amount, direction, required plain-text category, and optional plain-text note; deriving monthly count, inflow, outflow, and net movement from one selected-month snapshot; and ordering entries deterministically. It does not claim an account balance, budgeting, tax, forecasting, recurring transactions, bank import, managed categories, or multi-currency support.
 
 ## Habits workflow
 

@@ -141,15 +141,36 @@ def test_domain_defines_exact_salary_rates() -> None:
     assert "PSD is `gross × 0.0698`" in text
 
 
-def test_docs_describe_implemented_work_slice() -> None:
+def test_docs_describe_implemented_work_and_money_slices() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     start_here = read_document("START-HERE.md")
+    domain = read_document("DOMAIN.md")
+    architecture = read_document("ARCHITECTURE.md")
 
-    assert "/work/" in readme
-    for phrase in ["create", "review", "edit", "delete", "Estimated salary", "not tax advice"]:
+    for path in ["/work/", "/money/", "/money/transactions/new/"]:
+        assert path in readme
+    for phrase in [
+        "create",
+        "review",
+        "edit",
+        "delete",
+        "Inflow",
+        "Outflow",
+        "Net movement",
+        "not an account balance",
+    ]:
         assert phrase in readme
-    assert "persisted Work" in start_here
-    assert "Money and Habits remain honest empty summaries" in start_here
+    assert "persisted Work and Money" in start_here
+    assert "Habits remains an honest empty summary" in start_here
+    for phrase in [
+        "€0.01",
+        "€999,999,999.99",
+        "ROUND_HALF_UP",
+        "income",
+        "expense",
+    ]:
+        assert phrase in domain
+    assert "Money never imports Work" in architecture
 
 
 def test_domain_defines_exact_shift_validation() -> None:
@@ -164,9 +185,11 @@ def test_domain_defines_exact_shift_validation() -> None:
         assert phrase in text
 
 
-def test_engineering_retains_manual_and_visual_boundaries() -> None:
+def test_engineering_retains_money_privacy_and_manual_boundaries() -> None:
     text = read_document("ENGINEERING.md")
     for phrase in [
+        "owned disposable database",
+        "no visual browser tests",
         "320 CSS pixels",
         "200% browser zoom",
         "text-spacing override",
@@ -174,7 +197,6 @@ def test_engineering_retains_manual_and_visual_boundaries() -> None:
         "system/light/dark theme",
         "reduced-motion",
         "screen-reader smoke testing",
-        "no visual browser tests",
     ]:
         assert phrase in text
 

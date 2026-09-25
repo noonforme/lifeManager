@@ -28,7 +28,7 @@ The product serves its owner. It assumes a single trusted person using a local d
 
 ## Success
 
-Version one succeeds when the owner can reconcile shifts and pay, transactions and balances, and habits and momentum from one coherent daily entry point; can understand every derived value; and can back up or recover the local record without hidden state.
+Version one succeeds when the owner can reconcile shifts and pay, transactions and monthly movement, and habits and momentum from one coherent daily entry point; can understand every derived value; and can back up or recover the local record without hidden state. Monthly Money movement is not an account balance.
 
 ## Privacy
 

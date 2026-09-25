@@ -65,10 +65,10 @@ uv run pytest tests/work -q
 uv run pytest tests/core -q
 ```
 
-Work verification also applies migrations and exercises `/work/`, create, canonical review, edit, delete confirmation, and selected-month deletion redirect against an explicitly disposable absolute database. Verification output records only statuses and route markers, never personal fields or tokens.
+Work and Money verification also applies migrations and exercises `/work/`, `/money/`, create, canonical review, edit, delete confirmation, and selected-month deletion redirects against an explicitly owned disposable database at an absolute path. CSRF-enforced workflow verification output records only statuses and route markers, never personal fields, identifiers, tokens, or database paths.
 
 ## Browser testing boundary
 
-The Work slice has no visual browser tests. Do not add browser drivers, screenshots, snapshots, golden images, pixel comparison, capture rounds, or visual-regression services. Semantic response tests, static asset contracts, contrast calculations, and documented manual responsive checks provide the current evidence. Report unperformed visual or assistive-technology checks as manual gaps rather than implying automation.
+The Work and Money slices have no visual browser tests. Do not add browser drivers, screenshots, snapshots, golden images, pixel comparison, capture rounds, or visual-regression services. Semantic response tests, static asset contracts, contrast calculations, and documented manual responsive checks provide the current evidence. Report unperformed visual or assistive-technology checks as manual gaps rather than implying automation.
 
-The following remain explicit manual checks: actual layout at 320 CSS pixels; layout and operation at 200% browser zoom; a complete text-spacing override; keyboard traversal and visible focus; system/light/dark theme behavior including blocked storage; reduced-motion behavior; and screen-reader smoke testing of landmarks, forms, error feedback, state labels, tables, and message regions.
+The following remain explicit manual checks: actual layout at 320 CSS pixels; layout and operation at 200% browser zoom; a complete text-spacing override; keyboard traversal and visible focus; system/light/dark theme behavior including blocked storage; reduced-motion behavior; and screen-reader smoke testing of landmarks, forms, error feedback, state labels, transaction tables, navigation current-page semantics, and message regions.

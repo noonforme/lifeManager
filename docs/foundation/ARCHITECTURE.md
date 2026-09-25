@@ -18,6 +18,12 @@ Each schema change ships as a Django migration. Multi-record state changes use `
 
 The Work routes are server-rendered and namespaced beneath `/work/`. Derived salary values are calculated from selected Shift records and are never persisted as competing totals.
 
+## Money slice
+
+`lifeos.money.models` owns Transaction persistence and invariant validation. `calculations` owns pure immutable Decimal monthly-movement policy, `queries` owns Money's month selection and one-snapshot query semantics, `forms` owns strict lexical input parsing, `views` owns atomic HTTP workflows, and `summary` adapts Money results to core's immutable presentation boundary. Money never imports Work, and Core neither imports Transaction nor reproduces Money calculations.
+
+Money routes are server-rendered and namespaced beneath `/money/`. Register and detail are GET-only; create, edit, and confirmed hard delete use POST with CSRF and Post/Redirect/Get. Monthly values are derived from one materialized Transaction snapshot and never persisted as competing totals.
+
 ## Dates, time, and composition
 
 Stored timestamps are timezone-aware. User-facing calendar behavior uses the configured local timezone. The Daily Register obtains one date from the injected clock and passes that exact date to each domain summary in Work, Money, Habits order. This prevents midnight drift inside one response.

@@ -18,7 +18,7 @@ A persistent rail holds the LifeOS mark and native navigation disclosure. The wo
 
 ## Register components
 
-Work, Money, and Habits appear in deterministic order. Each register has a stable heading, domain accent, visible state label, concise summary, and—only when implemented—a clear primary link or action. Empty and unavailable panels remain full members of the layout rather than disappearing.
+Work, Money, and Habits appear in deterministic order. Each register has a stable heading, domain accent, visible state label, concise summary, and—only when implemented—a clear primary link or action. Empty and unavailable panels remain full members of the layout rather than disappearing. Money presents count, inflow, outflow, and net movement before a transaction table containing only Date, Direction, Category, and Amount; notes remain on canonical review pages rather than monthly rows.
 
 ## Forms
 

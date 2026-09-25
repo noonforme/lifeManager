@@ -36,12 +36,12 @@ A transaction contains:
 
 - local transaction date;
 - direction: `income` or `expense`;
-- positive decimal amount;
-- category as required plain text or an owned category reference;
-- optional plain-text note;
+- positive decimal amount from €0.01 through €999,999,999.99, with at most two decimal places;
+- trimmed required plain-text category from 1 through 80 characters;
+- trimmed optional plain-text note stored as `""` when blank, with a maximum length of 500 characters;
 - creation and update timestamps.
 
-Amount is always positive; direction supplies the sign. Monthly inflow is the sum of income amounts, outflow is the sum of expense amounts, and net movement is inflow minus outflow. Outputs round half-up to two decimal places. Editing or deleting a transaction immediately changes derived totals; totals are not independent records.
+Amount is stored unsigned and always positive; `income` or `expense` direction supplies financial meaning. Future transaction dates and identical transactions are allowed. Monthly count, inflow, outflow, and net movement are derived from one immutable selected-month snapshot: inflow sums income amounts, outflow sums expense amounts, and net movement is inflow minus outflow. Each named output independently uses `ROUND_HALF_UP` to two decimal places. Editing or deleting a transaction immediately changes derived totals; totals are not independent records. Net movement is not an account balance, budget, tax result, or forecast.
 
 ## Habits
 
