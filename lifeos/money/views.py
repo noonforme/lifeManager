@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.db import DatabaseError, transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 
 from .calculations import format_euros
@@ -125,4 +126,37 @@ def transaction_edit(request: HttpRequest, pk: int) -> HttpResponse:
 
 @require_http_methods(["GET", "POST"])
 def transaction_delete(request: HttpRequest, pk: int) -> HttpResponse:
-    return _unavailable_response(request)
+    try:
+        item = get_object_or_404(Transaction, pk=pk)
+    except DatabaseError as error:
+        _log_database_failure("transaction delete lookup", error)
+        return _unavailable_response(request)
+    selected_month = f"{item.transaction_date.year:04d}-{item.transaction_date.month:02d}"
+    identity = {
+        "item_pk": item.pk,
+        "transaction_date": item.transaction_date,
+        "direction_label": item.get_direction_display(),
+        "category": item.category,
+    }
+    if request.method == "POST":
+        original_pk = item.pk
+        delete_called = False
+        try:
+            with transaction.atomic():
+                delete_called = True
+                item.delete()
+        except DatabaseError as error:
+            _log_database_failure("transaction delete", error)
+            item.pk = original_pk
+            context = {
+                **identity,
+                "delete_error": "The transaction could not be deleted. Please try again.",
+            }
+            if delete_called:
+                context["recovery_text"] = (
+                    "The commit outcome is uncertain; inspect the Money register before retrying."
+                )
+            return render(request, "money/transaction_confirm_delete.html", context)
+        messages.success(request, "Transaction deleted.")
+        return redirect(f"{reverse('money:register')}?month={selected_month}")
+    return render(request, "money/transaction_confirm_delete.html", identity)

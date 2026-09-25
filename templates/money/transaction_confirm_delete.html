@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Delete transaction · LifeOS{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div><p class="eyebrow">Money register</p><h1>Delete transaction</h1></div>
+</header>
+<p>This permanently deletes the {{ direction_label }} transaction in {{ category }} from <time datetime="{{ transaction_date|date:'Y-m-d' }}">{{ transaction_date|date:"j F Y" }}</time>.</p>
+{% if delete_error %}<p class="field-error" role="alert">{{ delete_error }}</p>{% endif %}
+{% if recovery_text %}<p>{{ recovery_text }}</p>{% endif %}
+<p><a href="{% url 'money:transaction-detail' item_pk %}">Return to transaction review</a></p>
+<form method="post">
+  {% csrf_token %}
+  <button class="button" type="submit">Delete transaction</button>
+</form>
+{% endblock %}
