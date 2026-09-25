@@ -44,13 +44,16 @@ def test_register_defaults_to_canonical_month_and_empty_result(client):
     assert "No shifts recorded for September 2026." in response.content.decode()
 
 
-def test_invalid_month_visibly_falls_back_without_other_month_data(client):
+@pytest.mark.parametrize("raw_value", ["bad", "0000-01", "0001-01", "9999-12"])
+def test_invalid_month_visibly_falls_back_without_other_month_data(client, raw_value):
     create_shift(date(2026, 8, 31), note="other-month-private")
     with override_clock(FixedClock(date(2026, 9, 25))):
-        response = client.get(reverse("work:register"), {"month": "bad"})
+        response = client.get(reverse("work:register"), {"month": raw_value})
     content = response.content.decode()
+    assert response.status_code == 200
     assert response.context["month"].value == "2026-09"
     assert "Enter a month in YYYY-MM format." in content
+    assert raw_value not in content
     assert "other-month-private" not in content
 
 

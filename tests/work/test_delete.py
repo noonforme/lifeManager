@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from datetime import date
 from decimal import Decimal
 
@@ -50,6 +51,42 @@ def test_delete_post_hard_deletes_and_redirects_to_month(client):
 def test_missing_delete_returns_404(client, method):
     response = getattr(client, method)(reverse("work:shift-delete", args=[999]))
     assert response.status_code == 404
+
+
+def test_delete_lookup_database_failure_is_safe(client, monkeypatch, caplog):
+    shift = make_shift()
+
+    def fail_get(*args, **kwargs):
+        raise DatabaseError("private lookup 77.77 /private/delete")
+
+    monkeypatch.setattr("lifeos.work.views.get_object_or_404", fail_get)
+    response = client.get(reverse("work:shift-delete", args=[shift.pk]))
+    assert response.status_code == 503
+    assert "temporarily unavailable" in response.content.decode()
+    assert "DatabaseError" in caplog.text
+    assert "private lookup 77.77" not in caplog.text
+    assert "/private/delete" not in caplog.text
+
+
+def test_delete_commit_failure_renders_recovery_with_original_identifier(
+    client, monkeypatch, caplog
+):
+    shift = make_shift()
+    original_pk = shift.pk
+
+    @contextmanager
+    def fail_after_body():
+        yield
+        raise DatabaseError("private commit 77.77 /private/delete")
+
+    monkeypatch.setattr("lifeos.work.views.transaction.atomic", fail_after_body)
+    response = client.post(reverse("work:shift-delete", args=[original_pk]))
+    assert response.status_code == 200
+    assert reverse("work:shift-detail", args=[original_pk]) in response.content.decode()
+    assert "could not be deleted" in response.content.decode()
+    assert "DatabaseError" in caplog.text
+    assert "private commit 77.77" not in caplog.text
+    assert "/private/delete" not in caplog.text
 
 
 def test_delete_database_failure_rolls_back_safely(client, monkeypatch, caplog):

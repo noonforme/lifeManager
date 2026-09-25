@@ -6,7 +6,7 @@ from django.urls import reverse
 from lifeos.core.dashboard import LabelledValue, RegisterSummary, SummaryUnavailable
 
 from .calculations import SalaryInput, calculate_salary
-from .queries import CalendarMonth, nearest_shift, shifts_for_month
+from .queries import CalendarMonth, nearest_shift_from, shifts_for_month
 
 NEW_SHIFT_PATH = "/work/shifts/new/"
 
@@ -19,7 +19,7 @@ def get_summary(*, today: date) -> RegisterSummary:
     month = CalendarMonth(today.year, today.month)
     try:
         shifts = tuple(shifts_for_month(month))
-        nearest = nearest_shift(month=month, target=today) if shifts else None
+        nearest = nearest_shift_from(shifts, target=today)
     except DatabaseError as error:
         raise SummaryUnavailable("Work summary unavailable") from error
 

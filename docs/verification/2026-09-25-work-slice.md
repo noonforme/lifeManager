@@ -94,7 +94,20 @@ Pre-existing untracked `.claude/`, root `PRODUCT.md`, and other files beneath `d
 
 ## Whole-slice review and fix pass
 
-The required fresh whole-slice review follows the documentation commit. Its findings, severity rulings, regression tests, any fix commit, and the final post-review gate will be recorded here before the slice is declared complete.
+The requested Opus reviewer could not start because its provider quota was exhausted. A fresh fallback reviewer then examined the complete `f8f6699..62eeb7c` range, the approved spec and plan, the execution rulings, and current repository files. It reported no Critical findings, four Important findings, and two Minor findings.
+
+The single fix pass addressed all four Important findings through regressions observed RED before implementation:
+
+- edge-year month parameters now visibly fall back rather than raising during date or navigation construction;
+- expected database failures during form constraint validation and edit/delete lookup now receive controlled responses and class-only logging;
+- delete commit failure recovery retains the original identifier so its recovery page can render;
+- the Daily Register derives salary and nearest-shift information from one materialized month snapshot.
+
+The focused review regression run passed 10/10 after the fixes. Work tests passed 102/102, core tests passed 39/39, and the complete suite passed 165/165. The ordinary Django check and migration drift check passed.
+
+The two Minor findings were deferred: current-page navigation semantics on Work pages, and enforcing GET-only behavior on the canonical detail view. Both are recorded in the execution ledger and final handoff rather than silently treated as fixed.
+
+The reviewer declined the explicitly manual browser and assistive-technology checks, real-world tax-policy validity, internet-facing deployment security, the ledgered salary-fixture policy ruling, and runtime browser-tool execution. Those boundaries remain as documented rather than being represented as reviewed behavior.
 
 ## Visual and assistive-technology boundary
 

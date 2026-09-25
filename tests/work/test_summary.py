@@ -69,6 +69,26 @@ def test_summary_labels_nearest_shift(shift_date, label):
     assert label in values(summary)
 
 
+def test_summary_derives_nearest_shift_from_single_month_snapshot(monkeypatch):
+    shifts = (
+        create_shift(date(2026, 9, 24)),
+        create_shift(date(2026, 9, 26)),
+    )
+    calls = 0
+
+    def one_snapshot(month):
+        nonlocal calls
+        calls += 1
+        if calls > 1:
+            raise AssertionError("queried the month twice")
+        return shifts
+
+    monkeypatch.setattr("lifeos.work.summary.shifts_for_month", one_snapshot)
+    summary = get_summary(today=date(2026, 9, 25))
+    assert calls == 1
+    assert values(summary)["Next shift"] == "26 September 2026"
+
+
 def test_summary_translates_database_failure_without_private_text(monkeypatch):
     def fail_query(month):
         raise DatabaseError("private summary text")

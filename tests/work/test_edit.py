@@ -89,6 +89,38 @@ def test_missing_edit_returns_404(client, method):
     assert Shift.objects.count() == 0
 
 
+def test_edit_lookup_database_failure_is_safe(client, monkeypatch, caplog):
+    shift = make_shift()
+
+    def fail_get(*args, **kwargs):
+        raise DatabaseError("private lookup 88.88 /private/edit")
+
+    monkeypatch.setattr("lifeos.work.views.get_object_or_404", fail_get)
+    response = client.get(reverse("work:shift-edit", args=[shift.pk]))
+    assert response.status_code == 503
+    assert "temporarily unavailable" in response.content.decode()
+    assert "DatabaseError" in caplog.text
+    assert "private lookup 88.88" not in caplog.text
+    assert "/private/edit" not in caplog.text
+
+
+def test_edit_validation_database_failure_is_safe(client, monkeypatch, caplog):
+    shift = make_shift()
+
+    def fail_validation(self, *, exclude=None):
+        raise DatabaseError("private validation 88.88 /private/edit")
+
+    monkeypatch.setattr(Shift, "validate_constraints", fail_validation)
+    response = client.post(reverse("work:shift-edit", args=[shift.pk]), update_data())
+    shift.refresh_from_db()
+    assert response.status_code == 200
+    assert shift.note == "before"
+    assert "Please try again." in response.content.decode()
+    assert "DatabaseError" in caplog.text
+    assert "private validation 88.88" not in caplog.text
+    assert "/private/edit" not in caplog.text
+
+
 def test_edit_database_failure_rolls_back_safely(client, monkeypatch, caplog):
     shift = make_shift()
 

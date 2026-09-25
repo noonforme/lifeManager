@@ -94,6 +94,21 @@ def test_invalid_create_preserves_safe_values_and_commits_nothing(client, caplog
     assert "private-note-marker" not in caplog.text
 
 
+def test_create_validation_database_failure_is_safe(client, monkeypatch, caplog):
+    def fail_validation(self, *, exclude=None):
+        raise DatabaseError("private validation 99.99 /private/path")
+
+    monkeypatch.setattr(Shift, "validate_constraints", fail_validation)
+    response = client.post(reverse("work:shift-create"), VALID)
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert Shift.objects.count() == 0
+    assert "Please try again." in content
+    assert "DatabaseError" in caplog.text
+    assert "private validation 99.99" not in caplog.text
+    assert "/private/path" not in caplog.text
+
+
 def test_create_database_failure_is_safe(client, monkeypatch, caplog):
     def fail_save(self):
         raise DatabaseError("private 99.99 /private/path")

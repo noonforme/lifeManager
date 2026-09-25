@@ -56,8 +56,11 @@ def select_month(raw_value: str | None, *, today: date) -> MonthSelection:
     match = MONTH_PATTERN.fullmatch(raw_value)
     if match is None:
         return MonthSelection(fallback, MONTH_ERROR)
+    year = int(match["year"])
+    if not 2 <= year <= 9998:
+        return MonthSelection(fallback, MONTH_ERROR)
     return MonthSelection(
-        CalendarMonth(int(match["year"]), int(match["month"])),
+        CalendarMonth(year, int(match["month"])),
         None,
     )
 
@@ -81,8 +84,7 @@ def salary_inputs_for_month(month: CalendarMonth) -> tuple[SalaryInput, ...]:
     )
 
 
-def nearest_shift(*, month: CalendarMonth, target: date) -> Shift | None:
-    shifts = tuple(shifts_for_month(month))
+def nearest_shift_from(shifts: tuple[Shift, ...], *, target: date) -> Shift | None:
     if not shifts:
         return None
     return min(
@@ -94,3 +96,7 @@ def nearest_shift(*, month: CalendarMonth, target: date) -> Shift | None:
             -shift.pk,
         ),
     )
+
+
+def nearest_shift(*, month: CalendarMonth, target: date) -> Shift | None:
+    return nearest_shift_from(tuple(shifts_for_month(month)), target=target)

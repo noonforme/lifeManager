@@ -29,25 +29,33 @@ def _prefill_date(raw_value: str | None) -> date | None:
     return value
 
 
+def _log_database_failure(operation: str, error: DatabaseError) -> None:
+    logger.warning("Work %s failed (%s)", operation, type(error).__name__)
+
+
+def _unavailable_response(request: HttpRequest) -> HttpResponse:
+    return render(request, "work/register_unavailable.html", status=503)
+
+
 @require_http_methods(["GET", "POST"])
 def shift_create(request: HttpRequest) -> HttpResponse:
     initial = {}
     if prefill := _prefill_date(request.GET.get("date")):
         initial["work_date"] = prefill
     form = ShiftForm(request.POST or None, initial=initial)
-    if request.method == "POST" and form.is_valid():
+    if request.method == "POST":
         try:
-            with transaction.atomic():
-                shift = form.save()
+            is_valid = form.is_valid()
+            if is_valid:
+                with transaction.atomic():
+                    shift = form.save()
         except DatabaseError as error:
-            logger.warning(
-                "Work shift create failed (%s)",
-                type(error).__name__,
-            )
+            _log_database_failure("shift create", error)
             form.add_error(None, "The shift could not be saved. Please try again.")
         else:
-            messages.success(request, "Shift created.")
-            return redirect("work:shift-detail", pk=shift.pk)
+            if is_valid:
+                messages.success(request, "Shift created.")
+                return redirect("work:shift-detail", pk=shift.pk)
     return render(request, "work/shift_form.html", {"form": form})
 
 
@@ -58,21 +66,25 @@ def shift_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
 @require_http_methods(["GET", "POST"])
 def shift_edit(request: HttpRequest, pk: int) -> HttpResponse:
-    shift = get_object_or_404(Shift, pk=pk)
+    try:
+        shift = get_object_or_404(Shift, pk=pk)
+    except DatabaseError as error:
+        _log_database_failure("shift edit lookup", error)
+        return _unavailable_response(request)
     form = ShiftForm(request.POST or None, instance=shift)
-    if request.method == "POST" and form.is_valid():
+    if request.method == "POST":
         try:
-            with transaction.atomic():
-                shift = form.save()
+            is_valid = form.is_valid()
+            if is_valid:
+                with transaction.atomic():
+                    shift = form.save()
         except DatabaseError as error:
-            logger.warning(
-                "Work shift edit failed (%s)",
-                type(error).__name__,
-            )
+            _log_database_failure("shift edit", error)
             form.add_error(None, "The shift could not be saved. Please try again.")
         else:
-            messages.success(request, "Shift updated.")
-            return redirect("work:shift-detail", pk=shift.pk)
+            if is_valid:
+                messages.success(request, "Shift updated.")
+                return redirect("work:shift-detail", pk=shift.pk)
     return render(
         request,
         "work/shift_form.html",
@@ -91,15 +103,8 @@ def register(request: HttpRequest) -> HttpResponse:
     try:
         shifts = tuple(shifts_for_month(selection.month))
     except DatabaseError as error:
-        logger.warning(
-            "Work register query failed (%s)",
-            type(error).__name__,
-        )
-        return render(
-            request,
-            "work/register_unavailable.html",
-            status=503,
-        )
+        _log_database_failure("register query", error)
+        return _unavailable_response(request)
     salary = calculate_salary(
         SalaryInput(
             shift.worked_hours,
@@ -125,17 +130,20 @@ def register(request: HttpRequest) -> HttpResponse:
 
 @require_http_methods(["GET", "POST"])
 def shift_delete(request: HttpRequest, pk: int) -> HttpResponse:
-    shift = get_object_or_404(Shift, pk=pk)
+    try:
+        shift = get_object_or_404(Shift, pk=pk)
+    except DatabaseError as error:
+        _log_database_failure("shift delete lookup", error)
+        return _unavailable_response(request)
     if request.method == "POST":
         selected_month = f"{shift.work_date.year:04d}-{shift.work_date.month:02d}"
+        original_pk = shift.pk
         try:
             with transaction.atomic():
                 shift.delete()
         except DatabaseError as error:
-            logger.warning(
-                "Work shift delete failed (%s)",
-                type(error).__name__,
-            )
+            _log_database_failure("shift delete", error)
+            shift.pk = original_pk
             return render(
                 request,
                 "work/shift_confirm_delete.html",
