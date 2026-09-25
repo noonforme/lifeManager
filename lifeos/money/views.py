@@ -85,7 +85,42 @@ def transaction_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
 @require_http_methods(["GET", "POST"])
 def transaction_edit(request: HttpRequest, pk: int) -> HttpResponse:
-    return _unavailable_response(request)
+    try:
+        item = get_object_or_404(Transaction, pk=pk)
+    except DatabaseError as error:
+        _log_database_failure("transaction edit lookup", error)
+        return _unavailable_response(request)
+    form = TransactionForm(request.POST or None, instance=item)
+    if request.method == "POST":
+        is_valid = False
+        atomic_entered = False
+        try:
+            is_valid = form.is_valid()
+            if is_valid:
+                with transaction.atomic():
+                    atomic_entered = True
+                    item = form.save()
+        except DatabaseError as error:
+            _log_database_failure("transaction edit", error)
+            form.add_error(None, "The transaction could not be saved. Please try again.")
+            if atomic_entered:
+                form.add_error(
+                    None,
+                    "The commit outcome is uncertain; inspect the Money register before retrying.",
+                )
+        else:
+            if is_valid:
+                messages.success(request, "Transaction updated.")
+                return redirect("money:transaction-detail", pk=item.pk)
+    return render(
+        request,
+        "money/transaction_form.html",
+        {
+            "form": form,
+            "page_title": "Edit transaction",
+            "submit_label": "Save changes",
+        },
+    )
 
 
 @require_http_methods(["GET", "POST"])
