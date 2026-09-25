@@ -12,6 +12,12 @@ SQLite is the single source of truth. The default personal database is `${XDG_DA
 
 Each schema change ships as a Django migration. Multi-record state changes use `transaction.atomic`. Derived summaries are calculated from owned records rather than persisted as competing totals unless a later authority document explicitly defines a cache and its invalidation.
 
+## Work slice
+
+`lifeos.work.models` owns Shift persistence and invariant validation. `calculations` owns pure immutable Decimal salary policy, `queries` owns month and nearest-record semantics, `forms` owns input presentation, `views` owns transactions and HTTP workflows, and `summary` adapts Work results to core's immutable presentation boundary. Core does not import Work models or recalculate salary.
+
+The Work routes are server-rendered and namespaced beneath `/work/`. Derived salary values are calculated from selected Shift records and are never persisted as competing totals.
+
 ## Dates, time, and composition
 
 Stored timestamps are timezone-aware. User-facing calendar behavior uses the configured local timezone. The Daily Register obtains one date from the injected clock and passes that exact date to each domain summary in Work, Money, Habits order. This prevents midnight drift inside one response.

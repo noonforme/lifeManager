@@ -2,7 +2,7 @@
 
 LifeOS is a private, local-first personal reconciliation system. It brings Work, Money, and Habits into one Daily Register so the user can compare what happened with what they intended and leave a trustworthy record.
 
-Milestone one establishes the safe Django foundation and renders honest empty register states. It does not yet implement data-entry workflows. Milestone one has **no visual browser tests**; verification is deterministic Python and Django testing plus documented manual checks.
+The current build includes the safe Django foundation and the first persisted vertical slice: Work. Money and Habits remain honest empty register states. Work has **no visual browser tests**; verification is deterministic Python and Django testing plus documented manual checks.
 
 ## Requirements
 
@@ -35,7 +35,9 @@ Start the loopback-only development server:
 uv run python manage.py runserver 127.0.0.1:8000
 ```
 
-Open the Daily Register at `/`. The readiness endpoint is `/ready/`; it returns only `ready` or `unavailable` and never exposes database details.
+Open the Daily Register at `/`. Open the monthly Work register at `/work/`; from there you can create, review, edit, and delete shifts through server-rendered forms. The register derives an **Estimated salary** with its exact version-one formula, rounding, and deduction rates, and states that the result is not tax advice.
+
+The readiness endpoint is `/ready/`; it returns only `ready` or `unavailable` and never exposes database details.
 
 ## Verify
 

@@ -141,6 +141,44 @@ def test_domain_defines_exact_salary_rates() -> None:
     assert "PSD is `gross × 0.0698`" in text
 
 
+def test_docs_describe_implemented_work_slice() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    start_here = read_document("START-HERE.md")
+
+    assert "/work/" in readme
+    for phrase in ["create", "review", "edit", "delete", "Estimated salary", "not tax advice"]:
+        assert phrase in readme
+    assert "persisted Work" in start_here
+    assert "Money and Habits remain honest empty summaries" in start_here
+
+
+def test_domain_defines_exact_shift_validation() -> None:
+    text = read_document("DOMAIN.md")
+    for phrase in [
+        "greater than `0.00` and at most `24.00`",
+        "from `0.00` through `24.00`",
+        "from `0.00` through `10000.00`",
+        "at most two decimal places",
+        "maximum length of 500 characters",
+    ]:
+        assert phrase in text
+
+
+def test_engineering_retains_manual_and_visual_boundaries() -> None:
+    text = read_document("ENGINEERING.md")
+    for phrase in [
+        "320 CSS pixels",
+        "200% browser zoom",
+        "text-spacing override",
+        "keyboard traversal",
+        "system/light/dark theme",
+        "reduced-motion",
+        "screen-reader smoke testing",
+        "no visual browser tests",
+    ]:
+        assert phrase in text
+
+
 def test_habit_fixture_uses_strict_iso_dates_and_decimal_outputs() -> None:
     fixture = load_fixture("habit-momentum-cases.json")
 

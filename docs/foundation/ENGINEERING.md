@@ -58,6 +58,17 @@ Do not claim success from expected output, a partial run, or a hidden warning. R
 
 Fonts are fetched only through the repository script, which pins source URLs and SHA-256 values, writes through a temporary file, and rejects mismatches. Tests verify committed hashes, local references, theme behavior boundaries, contrast, and the absence of remote runtime assets.
 
+## Work-focused verification
+
+```bash
+uv run pytest tests/work -q
+uv run pytest tests/core -q
+```
+
+Work verification also applies migrations and exercises `/work/`, create, canonical review, edit, delete confirmation, and selected-month deletion redirect against an explicitly disposable absolute database. Verification output records only statuses and route markers, never personal fields or tokens.
+
 ## Browser testing boundary
 
-Milestone one has no visual browser tests. Do not add browser drivers, screenshots, snapshots, golden images, pixel comparison, capture rounds, or visual-regression services. Semantic response tests, static asset contracts, contrast calculations, and documented manual responsive checks provide the current evidence. Report unperformed visual or assistive-technology checks as manual gaps rather than implying automation.
+The Work slice has no visual browser tests. Do not add browser drivers, screenshots, snapshots, golden images, pixel comparison, capture rounds, or visual-regression services. Semantic response tests, static asset contracts, contrast calculations, and documented manual responsive checks provide the current evidence. Report unperformed visual or assistive-technology checks as manual gaps rather than implying automation.
+
+The following remain explicit manual checks: actual layout at 320 CSS pixels; layout and operation at 200% browser zoom; a complete text-spacing override; keyboard traversal and visible focus; system/light/dark theme behavior including blocked storage; reduced-motion behavior; and screen-reader smoke testing of landmarks, forms, error feedback, state labels, tables, and message regions.

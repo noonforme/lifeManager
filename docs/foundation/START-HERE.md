@@ -18,7 +18,7 @@ The approved restart specification under `docs/superpowers/specs/` records the d
 
 ## Current milestone
 
-Milestone one provides a safe Django foundation, a semantic Daily Register with honest empty or unavailable Work, Money, and Habits summaries, local Closing Ledger assets, theme controls, readiness, and deterministic tests. It does not create or mutate domain records.
+The current milestone preserves the safe Django foundation and adds persisted Work: shifts can be created, reviewed, edited, deleted after confirmation, and reconciled by month with a derived salary estimate. The Daily Register shows empty, ready, or unavailable Work. Money and Habits remain honest empty summaries. Local Closing Ledger assets, theme controls, readiness, and deterministic tests remain part of the foundation.
 
 ## How to work
 
