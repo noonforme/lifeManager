@@ -150,7 +150,9 @@ def test_edit_save_database_failure_is_safe(client, monkeypatch, caplog):
     item.refresh_from_db()
     assert response.status_code == 200
     assert item.category == "Before"
-    assert "Transaction updated." not in response.content.decode()
+    content = response.content.decode()
+    assert "Transaction updated." not in content
+    assert "inspect the Money register before retrying" not in content
     assert "DatabaseError" in caplog.text
     assert "private save" not in caplog.text
 

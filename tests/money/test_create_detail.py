@@ -178,7 +178,9 @@ def test_create_save_database_failure_is_safe(client, monkeypatch, caplog):
     response = client.post(reverse("money:transaction-create"), VALID)
     assert response.status_code == 200
     assert Transaction.objects.count() == 0
-    assert "The transaction could not be saved. Please try again." in response.content.decode()
+    content = response.content.decode()
+    assert "The transaction could not be saved. Please try again." in content
+    assert "inspect the Money register before retrying" not in content
     assert "DatabaseError" in caplog.text
     assert "private amount" not in caplog.text
     assert "/private/database" not in caplog.text

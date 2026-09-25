@@ -78,8 +78,10 @@ def test_delete_execution_database_failure_rolls_back(client, monkeypatch, caplo
     response = client.post(reverse("money:transaction-delete", args=[item.pk]))
     assert response.status_code == 200
     assert Transaction.objects.filter(pk=item.pk).exists()
-    assert "The transaction could not be deleted. Please try again." in response.content.decode()
-    assert "Transaction deleted." not in response.content.decode()
+    content = response.content.decode()
+    assert "The transaction could not be deleted. Please try again." in content
+    assert "Transaction deleted." not in content
+    assert "inspect the Money register before retrying" not in content
     assert "Money transaction delete failed (DatabaseError)" in caplog.text
     assert "private delete" not in caplog.text
     assert "/private/path" not in caplog.text

@@ -80,17 +80,17 @@ def transaction_create(request: HttpRequest) -> HttpResponse:
     form = TransactionForm(request.POST or None, initial=initial)
     if request.method == "POST":
         is_valid = False
-        atomic_entered = False
+        mutation_completed = False
         try:
             is_valid = form.is_valid()
             if is_valid:
                 with transaction.atomic():
-                    atomic_entered = True
                     item = form.save()
+                    mutation_completed = True
         except DatabaseError as error:
             _log_database_failure("transaction create", error)
             form.add_error(None, "The transaction could not be saved. Please try again.")
-            if atomic_entered:
+            if mutation_completed:
                 form.add_error(
                     None,
                     "The commit outcome is uncertain; inspect the Money register before retrying.",
@@ -126,17 +126,17 @@ def transaction_edit(request: HttpRequest, pk: int) -> HttpResponse:
     form = TransactionForm(request.POST or None, instance=item)
     if request.method == "POST":
         is_valid = False
-        atomic_entered = False
+        mutation_completed = False
         try:
             is_valid = form.is_valid()
             if is_valid:
                 with transaction.atomic():
-                    atomic_entered = True
                     item = form.save()
+                    mutation_completed = True
         except DatabaseError as error:
             _log_database_failure("transaction edit", error)
             form.add_error(None, "The transaction could not be saved. Please try again.")
-            if atomic_entered:
+            if mutation_completed:
                 form.add_error(
                     None,
                     "The commit outcome is uncertain; inspect the Money register before retrying.",
@@ -172,11 +172,11 @@ def transaction_delete(request: HttpRequest, pk: int) -> HttpResponse:
     }
     if request.method == "POST":
         original_pk = item.pk
-        delete_called = False
+        mutation_completed = False
         try:
             with transaction.atomic():
-                delete_called = True
                 item.delete()
+                mutation_completed = True
         except DatabaseError as error:
             _log_database_failure("transaction delete", error)
             item.pk = original_pk
@@ -184,7 +184,7 @@ def transaction_delete(request: HttpRequest, pk: int) -> HttpResponse:
                 **identity,
                 "delete_error": "The transaction could not be deleted. Please try again.",
             }
-            if delete_called:
+            if mutation_completed:
                 context["recovery_text"] = (
                     "The commit outcome is uncertain; inspect the Money register before retrying."
                 )
