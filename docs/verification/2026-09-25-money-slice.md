@@ -2,7 +2,7 @@
 
 ## Scope and revision
 
-This receipt covers the persisted Money vertical slice from specification commit `ec5b562` through implementation revision `cf58d03`. It covers Transaction persistence, exact monthly movement, Money-owned month queries, server-rendered create/review/edit/delete workflows, monthly register presentation, Daily Register integration, and route-identity navigation.
+This receipt covers the persisted Money vertical slice from specification commit `ec5b562` through whole-slice review fix revision `101d820`. It covers Transaction persistence, exact monthly movement, Money-owned month queries, server-rendered create/review/edit/delete workflows, monthly register presentation, Daily Register integration, route-identity navigation, and the final review disposition.
 
 ## Environment
 
@@ -71,7 +71,22 @@ A separate owned disposable absolute database was migrated. Django's test client
 
 ## Review disposition
 
-The fresh whole-slice review is pending after the documentation task commit. Its findings and the one permitted Critical/Important TDD fix pass, if any, will be recorded in a later final-verification update. No review finding is claimed resolved by this receipt.
+The final whole-slice review was a separate self-review because the approved execution direction was **no agents for now**. This is weaker than a fresh independent reviewer and is not represented as equivalent evidence.
+
+The review checked the specification, implementation plan review focus, ledger rulings, maintained foundation documents, migration, Money source and templates, integration boundaries, tests, and this receipt. It found no Critical finding and no deferred Minor finding.
+
+One Important finding was accepted: direct create/edit save failures and direct delete failures displayed uncertain-commit recovery guidance even though the exception occurred inside the atomic block and Django rolled the operation back. Uncertainty should be reserved for a failure raised while exiting the atomic block after the mutation returned. Regression assertions were written first and observed failing for all three mutation types. Revision `101d820` moves the completion marker until after `save()` or `delete()` returns, preserving uncertain-outcome guidance for atomic-exit failures while omitting it for definite direct failures.
+
+Focused RED–GREEN evidence:
+
+- direct create save failure, direct edit save failure, and direct delete failure — 3 expected failures before the correction;
+- those three direct-failure tests plus the three atomic-exit tests — 6 passed after the correction;
+- Money suite — 147 passed;
+- affected Core and Work suites — 141 passed;
+- foundation documentation contracts — 13 passed;
+- complete suite — 312 passed.
+
+Because the correction touched mutation views, the owned disposable migration/startup and complete CSRF-enforced HTTP workflow were repeated after the fix with the results recorded above. No second review was dispatched.
 
 ## Skipped and unverified checks
 
