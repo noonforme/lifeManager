@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Transaction review · LifeOS{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div><p class="eyebrow">Money register</p><h1>Transaction review</h1></div>
+  <time datetime="{{ item.transaction_date|date:'Y-m-d' }}">{{ item.transaction_date|date:"j F Y" }}</time>
+</header>
+<p class="record-actions"><a class="button-link" href="{% url 'money:transaction-edit' item.pk %}">Edit transaction</a> <a class="button-link" href="{% url 'money:transaction-delete' item.pk %}">Delete transaction</a></p>
+<dl class="record-detail">
+  <div><dt>Direction</dt><dd>{{ item.get_direction_display }}</dd></div>
+  <div><dt>Amount</dt><dd class="mono">{{ formatted_amount }}</dd></div>
+  <div><dt>Category</dt><dd>{{ item.category }}</dd></div>
+  <div><dt>Note</dt><dd>{{ item.note|default:"No note recorded." }}</dd></div>
+</dl>
+{% endblock %}
