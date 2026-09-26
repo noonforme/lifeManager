@@ -25,7 +25,7 @@ Version one supports creating, reviewing, editing, and hard-deleting after confi
 
 ## Habits workflow
 
-Version one supports creating, reviewing, editing, and archiving habits; recording a completion once per local date; removing an erroneous completion; deriving momentum from ordered unique completion dates; and presenting gaps without punitive language.
+Version one supports creating, reviewing, editing, archiving and restoring check, quantity, abstinence and scheduled-chore habits; structured recurrence with date exceptions and pauses; one factual result per local date; explicit one-off entry; correction and confirmed removal of erroneous evidence; due-based streaks and momentum from ordered unique successful dates; and non-punitive gaps. Reminder times are in-app presentation only. The bounded immutable event projection supports future composition but does not introduce calendar UI.
 
 ## Daily Register workflow
 

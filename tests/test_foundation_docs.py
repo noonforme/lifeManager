@@ -161,7 +161,7 @@ def test_docs_describe_implemented_work_and_money_slices() -> None:
     ]:
         assert phrase in readme
     assert "persisted Work and Money" in start_here
-    assert "Habits remains an honest empty summary" in start_here
+    assert "Persisted Habits supports four habit types" in start_here
     for phrase in [
         "€0.01",
         "€999,999,999.99",

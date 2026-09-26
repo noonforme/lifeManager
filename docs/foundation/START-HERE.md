@@ -18,7 +18,7 @@ The approved restart specification under `docs/superpowers/specs/` records the d
 
 ## Current milestone
 
-The current milestone preserves the safe Django foundation and includes persisted Work and Money. Shifts can be created, reviewed, edited, deleted after confirmation, and reconciled by month with a derived salary estimate. Transactions can be created, reviewed, edited, hard-deleted after confirmation, and reconciled by month through count, inflow, outflow, and net movement. The Daily Register shows empty, ready, or unavailable Work and Money while isolating expected failures. Habits remains an honest empty summary. Local Closing Ledger assets, theme controls, readiness, and deterministic tests remain part of the foundation.
+The current milestone preserves the safe Django foundation and includes persisted Work and Money. Shifts can be created, reviewed, edited, deleted after confirmation, and reconciled by month with a derived salary estimate. Transactions can be created, reviewed, edited, hard-deleted after confirmation, and reconciled by month through count, inflow, outflow, and net movement. The Daily Register shows empty, ready, or unavailable Work and Money while isolating expected failures. Persisted Habits supports four habit types, structured recurrence, dated factual outcomes, archive/restore and derived streaks/momentum. Its bounded summary isolates expected failures alongside Work and Money. Local Closing Ledger assets, theme controls, readiness, and deterministic tests remain part of the foundation.
 
 ## How to work
 

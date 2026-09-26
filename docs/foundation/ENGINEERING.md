@@ -67,6 +67,10 @@ uv run pytest tests/core -q
 
 Work and Money verification also applies migrations and exercises `/work/`, `/money/`, create, canonical review, edit, delete confirmation, and selected-month deletion redirects against an explicitly owned disposable database at an absolute path. CSRF-enforced workflow verification output records only statuses and route markers, never personal fields, identifiers, tokens, or database paths.
 
+## Habits verification
+
+Run `uv run pytest tests/habits -q` and affected Core/Work/Money tests before the full suite. Checks, migration drift, migration/startup and CSRF workflow verification must inherit `DJANGO_SETTINGS_MODULE=lifeos.test_settings` with an explicitly owned disposable root/database. The launcher `./app.sh` remains usable for startup and tests; fake-uv command tests supplement, rather than replace, real disposable startup. Verification includes habit create/review/edit/archive/restore and occurrence create/review/edit/remove. No personal database discovery is permitted.
+
 ## Browser testing boundary
 
 The Work and Money slices have no visual browser tests. Do not add browser drivers, screenshots, snapshots, golden images, pixel comparison, capture rounds, or visual-regression services. Semantic response tests, static asset contracts, contrast calculations, and documented manual responsive checks provide the current evidence. Report unperformed visual or assistive-technology checks as manual gaps rather than implying automation.

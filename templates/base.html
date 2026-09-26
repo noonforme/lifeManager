@@ -20,7 +20,7 @@
             <a href="{% url 'core:dashboard' %}"{% if namespace == "core" and url_name == "dashboard" %} aria-current="page"{% endif %}>Daily register</a>
             <a href="{% url 'work:register' %}"{% if namespace == "work" %} aria-current="page"{% endif %}>Work</a>
             <a href="{% url 'money:register' %}"{% if namespace == "money" %} aria-current="page"{% endif %}>Money</a>
-            <span>Habits</span>
+            <a href="{% url 'habits:register' %}"{% if namespace == "habits" %} aria-current="page"{% endif %}>Habits</a>
           {% endwith %}
         </nav>
       </details>

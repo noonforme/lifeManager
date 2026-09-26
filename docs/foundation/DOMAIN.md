@@ -49,6 +49,16 @@ Amount is stored unsigned and always positive; `income` or `expense` direction s
 
 A habit contains a stable identifier, non-empty name, active/archived state, creation timestamp, and optional archive timestamp. Names are displayed as plain text. Archiving preserves completions and removes the habit from active-entry choices without rewriting history.
 
+### Structured configuration and outcomes
+
+Habits have fixed check, quantity, abstinence and chore types. Names are trimmed 1–120 characters; descriptions 0–500; reminder text 0–160. Quantity units are 1–40 characters and targets/measurements are exact Decimal values from 0.00 through 999999999.99 with at most two places. Targets are at_least, at_most or inclusive range. Type changes are rejected once evidence exists.
+
+Recurrence supports daily, selected weekdays, anchored intervals (N 1–3650 days or weeks), monthly dates and first/second/third/fourth/last weekdays. Effective precedence is active range, archive suspension, pause, exclusion, addition, base recurrence. Missing monthly dates are skipped. Explicit one-off entry adds eligible dates atomically with evidence.
+
+One HabitOccurrence per habit/date stores completed/missed for check/chore, successful/lapse for abstinence, a quantity measurement or excused evidence. Notes are at most 500 and excuse reasons 250 characters; reasons apply only to excused results. Past due silence is Unknown, never an inferred abstinence success. Today awaits entry; future due dates are Pending. Excused neither extends nor breaks due-occurrence streaks. Historical records remain reviewable when schedules change.
+
+Archive periods start on archive day and end exclusively on restoration day. They remain distinct from user pauses and never fabricate outcomes. Needs attention covers the 90 calendar days before the selected date and excludes today/future dates. Streaks and momentum remain immutable derivations, not competing stored totals.
+
 ### Completion record
 
 A completion associates one habit with one local completion date. The pair `(habit, completion date)` is unique. Repeated submission for the same day must not create another completion. Removing a mistaken completion removes that date from derivation.

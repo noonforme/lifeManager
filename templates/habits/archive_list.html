@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<h1>Archived habits</h1>{% for item in items %}<article><h2><a href="{% url 'habits:habit-detail' item.pk %}">{{ item.name }}</a></h2><a href="{% url 'habits:habit-restore' item.pk %}">Review restoration</a></article>{% empty %}<p>No archived habits.</p>{% endfor %}{% endblock %}

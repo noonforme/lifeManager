@@ -42,7 +42,8 @@ def test_dashboard_renders_semantic_ordered_registers(client: Client) -> None:
     assert 'href="/work/shifts/new/?date=2026-09-25"' in html
     assert 'href="/money/"' in html
     assert 'href="/money/transactions/new/?date=2026-09-25"' in html
-    assert "/habits/new/" not in html
+    assert 'href="/habits/"' in html
+    assert 'href="/habits/new/"' in html
 
 
 def test_dashboard_renders_ready_work_values_generically(client: Client) -> None:
