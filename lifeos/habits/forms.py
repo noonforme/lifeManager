@@ -56,6 +56,27 @@ class HabitConfigurationForm(AccessibleForm, forms.ModelForm):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.fields["target_rule"].choices = [("","Not a quantity habit"),*Habit.TargetRule.choices]
+        self.fields["recurrence_kind"].choices = [("daily", "Every day"), ("weekly", "Selected weekdays"), ("interval", "Every N days or weeks"), ("monthly_dates", "Selected dates each month"), ("monthly_ordinal_weekdays", "First or last weekdays each month")]
+        hints = {
+            "name": "A short, recognizable name. Up to 120 characters.",
+            "description": "Optional context for your routine. Up to 500 characters.",
+            "habit_type": "Check: completion. Quantity: a measurement. Abstinence: success or lapse. Chore: a scheduled task.",
+            "start_date": "First eligible local date, including this day.",
+            "end_date": "Optional last eligible date, including this day.",
+            "unit": "Quantity only: steps, minutes, glasses, or another unit.",
+            "lower_target": "Quantity only: minimum for At least, or the lower end of a range.",
+            "upper_target": "Quantity only: maximum for At most, or the upper end of a range.",
+            "interval_n": "Interval only: 1–3650. Leave the default 1 for other schedules.",
+            "interval_unit": "Interval only: count days or weeks from the anchor.",
+            "anchor_date": "Interval only: the first date in the repeating sequence.",
+            "weekdays": "Weekly only. Select one or more weekdays.",
+            "month_days": "Monthly dates only. Dates absent from a month are skipped.",
+            "ordinal_weekdays": "Monthly ordinal weekdays only. Select one or more combinations.",
+            "reminder_time": "Optional local time, displayed in the app only.",
+            "reminder_text": "Optional reminder text. Up to 160 characters.",
+        }
+        for name, hint in hints.items():
+            self.fields[name].help_text = hint
         if self.instance.pk:
             for kind,field in (("weekday","weekdays"),("month_day","month_days"),("ordinal","ordinal_weekdays")):
                 self.initial[field] = [f"{c.ordinal}:{c.value}" if kind=="ordinal" else str(c.value) for c in self.instance.components.all() if c.kind==kind]
@@ -66,6 +87,17 @@ class HabitConfigurationForm(AccessibleForm, forms.ModelForm):
             if not field.help_text:
                 field.help_text = "Optional." if not field.required else "Required."
 
+    @property
+    def sections(self):
+        groups = (
+            ("Basics", "Choose the outcome you want to track. Type cannot change once recorded history exists.", ("name", "description", "habit_type", "start_date", "end_date")),
+            ("Quantity target", "For quantity habits only; leave these fields blank for other types. At least uses the lower target, at most uses the upper target, and a range uses both.", ("unit", "target_rule", "lower_target", "upper_target")),
+            ("Recurrence", "Daily needs no selections. Weekly uses weekdays; monthly dates uses month days; monthly ordinal weekdays uses first/last weekday selections. Interval uses number, unit and anchor. Clear selections that do not apply when changing recurrence.", ("recurrence_kind", "interval_n", "interval_unit", "anchor_date", "weekdays", "month_days", "ordinal_weekdays")),
+            ("Reminders", "Shown in LifeOS only; no notifications are sent.", ("reminder_time", "reminder_text")),
+            ("Optional exceptions", "Add individual dates, exclude dates, or suspend an inclusive period. Additions cannot override pauses, exclusions or the active date range.", ("additions", "exclusions", "pause_ranges")),
+        )
+        return tuple({"title": title, "instruction": instruction, "fields": tuple(self[name] for name in names)} for title, instruction, names in groups)
+
     def clean(self):
         data = super().clean()
         if self.errors:
@@ -74,6 +106,8 @@ class HabitConfigurationForm(AccessibleForm, forms.ModelForm):
         for field,owner in (("weekdays","weekly"),("month_days","monthly_dates"),("ordinal_weekdays","monthly_ordinal_weekdays")):
             if kind != owner and data.get(field):
                 self.add_error(field,"This component does not apply to the selected recurrence.")
+        if self.errors:
+            return data
         try:
             pauses = []
             for line in data["pause_ranges"].splitlines():
@@ -117,6 +151,20 @@ class OccurrenceForm(AccessibleForm, forms.ModelForm):
         super().__init__(*args,**kwargs)
         self.habit = habit
         self.instance.habit = habit
+        outcome = {"check": "completion", "chore": "chore outcome", "abstinence": "abstinence outcome", "quantity": "measurement"}[habit.habit_type]
+        self.title = f"{'Correct' if self.instance.pk else 'Record'} {outcome}"
+        self.instruction = {
+            "check": "Record completion, a missed result, or an excused outcome. No result is inferred from silence.",
+            "chore": "Record whether the scheduled chore was completed, missed, or excused.",
+            "abstinence": "Record a successful day, a lapse, or an excused outcome. Missing evidence is never counted as success.",
+            "quantity": "Enter the measured amount; LifeOS compares it with the configured target. Choose Excused instead when no measurement applies.",
+        }[habit.habit_type]
+        self.fields["occurrence_date"].help_text = "The local date this outcome belongs to. Corrections keep the original date."
+        self.fields["result"].label = "Outcome"
+        self.fields["result"].help_text = self.instruction
+        self.fields["value"].label = f"Amount ({habit.unit})" if habit.unit else "Amount"
+        self.fields["note"].help_text = "Optional factual context. Up to 500 characters."
+        self.fields["excuse_reason"].help_text = "Optional, only for an excused outcome. Up to 250 characters."
         allowed = {"check": ("completed","missed","excused"),"chore": ("completed","missed","excused"),"abstinence": ("successful","lapse","excused"),"quantity": ("","excused")}[habit.habit_type]
         self.fields["result"].choices = [(x,x.title() if x else "Measured quantity") for x in allowed]
         self.fields["result"].required = habit.habit_type != "quantity"

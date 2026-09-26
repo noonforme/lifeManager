@@ -1,1 +1,46 @@
-{% extends 'base.html' %}{% block title %}Habits register · LifeOS{% endblock %}{% block content %}<h1>Habits register</h1><p><a href="{% url 'habits:habit-create' %}">New habit</a> · <a href="{% url 'habits:archive-list' %}">Archived habits</a></p><form class="ledger-form" method="get"><label for="selected-date">Selected local date</label><input id="selected-date" name="date" type="date" value="{{ day|date:'Y-m-d' }}"><button class="button" type="submit">Review date</button></form>{% if date_error %}<p role="alert">{{ date_error }}</p>{% endif %}<nav aria-label="Date navigation">{% if previous %}<a href="?date={{ previous|date:'Y-m-d' }}">Previous day</a>{% endif %} {% if following %}<a href="?date={{ following|date:'Y-m-d' }}">Next day</a>{% endif %}</nav><h2>Due on {{ day }}</h2>{% for row in snapshot.due %}{% include 'habits/_row.html' %}{% empty %}<p>No habits due on this date.</p>{% endfor %}<h2>Needs attention</h2><p>Unrecorded past due occurrences in the 90 calendar days before the selected date. Today and future dates are excluded.</p>{% for row in snapshot.due %}{% if row.attention %}<p><a href="{% url 'habits:habit-detail' row.pk %}">{{ row.name }}</a>: {{ row.attention|length }} overdue Unknown occurrences.</p>{% endif %}{% endfor %}{% for row in snapshot.not_due %}{% if row.attention %}<p><a href="{% url 'habits:habit-detail' row.pk %}">{{ row.name }}</a>: {{ row.attention|length }} overdue Unknown occurrences.</p>{% endif %}{% endfor %}<h2>Active habits not due</h2>{% for row in snapshot.not_due %}{% include 'habits/_row.html' %}{% empty %}<p>No other active habits.</p>{% endfor %}{% if not snapshot.active_count %}<p>No active habits yet. Create a habit or review archived history.</p>{% endif %}{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Habits register · LifeOS{% endblock %}
+{% block content %}
+<header class="page-header habits-header">
+  <div><p class="eyebrow">Habits register</p><h1><time datetime="{{ day|date:'Y-m-d' }}">{{ day|date:'j M Y' }}</time></h1></div>
+  <div class="record-actions"><a class="button-link" href="{% url 'habits:habit-create' %}">New habit</a><a class="button-link" href="{% url 'habits:archive-list' %}">Archived habits</a></div>
+</header>
+<nav class="month-navigation habits-date-controls" aria-label="Date navigation">
+  {% if previous %}<a href="?date={{ previous|date:'Y-m-d' }}">Previous day</a>{% endif %}
+  <form method="get" class="habits-date-form">
+    <label for="selected-date">Selected local date</label>
+    <input id="selected-date" name="date" type="date" value="{{ day|date:'Y-m-d' }}">
+    <button class="button" type="submit">Review date</button>
+  </form>
+  {% if following %}<a href="?date={{ following|date:'Y-m-d' }}">Next day</a>{% endif %}
+</nav>
+{% if date_error %}<p class="field-error" role="alert">{{ date_error }}</p>{% endif %}
+{% if snapshot.active_count %}
+<section class="habits-summary" aria-labelledby="daily-review-heading">
+  <p class="eyebrow">Daily review</p><h2 id="daily-review-heading">Outcomes, not assumptions</h2>
+  <dl class="habits-metrics">
+    <div><dt>Due on this date</dt><dd class="mono">{{ snapshot.due|length }}</dd></div>
+    <div><dt>Successful outcomes</dt><dd class="mono">{{ snapshot.completed }}</dd></div>
+    <div><dt>Needs attention</dt><dd class="mono">{{ snapshot.attention_count }}</dd></div>
+    <div><dt>Active habits</dt><dd class="mono">{{ snapshot.active_count }}</dd></div>
+  </dl>
+</section>
+{% else %}
+<section class="empty-state habits-state"><h2>No active habits yet</h2><p>Create a habit or review archived history. Missing outcomes are never assumed to be successes.</p><a class="button-link" href="{% url 'habits:habit-create' %}">Create your first habit</a></section>
+{% endif %}
+<section class="habits-section" aria-labelledby="due-heading">
+  <h2 id="due-heading">Due on {{ day|date:'j M Y' }}</h2>
+  <div class="habits-list">{% for row in snapshot.due %}{% include 'habits/_row.html' %}{% empty %}<p class="field-hint">No habits due on this date.</p>{% endfor %}</div>
+</section>
+<section class="habits-section" aria-labelledby="attention-heading">
+  <h2 id="attention-heading">Needs attention</h2>
+  <p class="field-hint">Unrecorded past due occurrences in the 90 calendar days before the selected date. Today and future dates are excluded.</p>
+  {% if not snapshot.attention_count %}<p>No unresolved outcomes in this window.</p>{% endif %}
+  {% for row in snapshot.due %}{% include 'habits/_attention.html' %}{% endfor %}
+  {% for row in snapshot.not_due %}{% include 'habits/_attention.html' %}{% endfor %}
+</section>
+<section class="habits-section" aria-labelledby="not-due-heading">
+  <h2 id="not-due-heading">Active habits not due</h2>
+  <div class="habits-list">{% for row in snapshot.not_due %}{% include 'habits/_row.html' %}{% empty %}<p class="field-hint">No other active habits.</p>{% endfor %}</div>
+</section>
+{% endblock %}

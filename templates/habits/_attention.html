@@ -1,0 +1,7 @@
+{% if row.attention %}
+<details class="habit-attention">
+  <summary>{{ row.name }} · {{ row.attention|length }} overdue Unknown occurrences</summary>
+  <p>Record what actually happened, or leave the outcome Unknown.</p>
+  <ul class="habit-attention-dates">{% for missing_day in row.attention %}<li><a href="{% url 'habits:occurrence-create' row.pk %}?date={{ missing_day|date:'Y-m-d' }}"><time datetime="{{ missing_day|date:'Y-m-d' }}">{{ missing_day|date:'j M Y' }}</time></a></li>{% endfor %}</ul>
+</details>
+{% endif %}

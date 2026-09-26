@@ -1,1 +1,13 @@
-{% extends 'base.html' %}{% block content %}<h1>Record or correct an outcome</h1><p>{{ habit.name }}</p><p>A duplicate date must be corrected through its existing result, not overwritten.</p>{% if form.existing_occurrence %}<p><a href="{% url 'habits:occurrence-edit' habit.pk form.existing_occurrence.pk %}">Correct the existing result</a></p>{% endif %}<form class="ledger-form" method="post">{% csrf_token %}<fieldset><legend>Factual result</legend>{% include 'habits/_form.html' %}</fieldset><button class="button" type="submit">Save result</button></form>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}{{ form.title }} · LifeOS{% endblock %}
+{% block content %}
+<header class="page-header habits-header"><div><p class="eyebrow">{{ habit.name }} · Habits register</p><h1>{{ form.title }}</h1></div></header>
+<p>{{ form.instruction }}</p>
+{% if habit.habit_type == 'quantity' %}<p>Unit: {{ habit.unit }} · Target: {{ habit.get_target_rule_display }} {% if habit.lower_target != None %}{{ habit.lower_target }}{% endif %}{% if habit.upper_target != None %} {{ habit.upper_target }}{% endif %}</p>{% endif %}
+{% if form.existing_occurrence %}<p class="field-error">A duplicate date must be corrected through its existing result, not overwritten.</p><p><a class="button-link" href="{% url 'habits:occurrence-edit' habit.pk form.existing_occurrence.pk %}">Correct the existing result</a></p>{% endif %}
+<form class="ledger-form habits-form" method="post" novalidate>
+  {% csrf_token %}
+  {% include 'habits/_form.html' %}
+  <div class="form-actions"><button class="button" type="submit">{% if form.instance.pk %}Save correction{% else %}Save result{% endif %}</button><a class="button-link" href="{% url 'habits:habit-detail' habit.pk %}">Cancel</a></div>
+</form>
+{% endblock %}

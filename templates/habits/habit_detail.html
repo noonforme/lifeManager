@@ -1,3 +1,55 @@
 {% extends 'base.html' %}
 {% block title %}Habit review · LifeOS{% endblock %}
-{% block content %}<h1>Habit review</h1><h2>{{ item.name }}</h2><p>{{ item.description }}</p><p>{{ row.habit_type }} · {{ row.schedule }}</p><p>Active from {{ item.start_date }}{% if item.end_date %} through {{ item.end_date }}{% endif %}. {% if item.is_archived %}Archived{% else %}Active{% endif %}</p><p>{{ row.target }}</p>{% if row.reminder_time %}<p>Reminder time: {{ row.reminder_time }}. {{ row.reminder_text }} — in-app only.</p>{% endif %}<p>{{ row.state }}</p><p>Current: {{ row.current }} in a row. Longest: {{ row.longest }} in a row. Momentum: {{ row.momentum }}.</p><p>Streaks count consecutive due occurrences. Excused outcomes neither extend nor break a streak; past Unknown outcomes break it. Momentum is a descriptive signal derived from successful dates with elapsed-day decay, rounded at each success.</p><p>Next due: {% if row.next_date %}{{ row.next_date }}{% else %}No date found within the next 36,600 days.{% endif %}</p><p><a href="{% url 'habits:habit-edit' item.pk %}">Edit habit</a></p><p>{% if item.is_archived %}<a href="{% url 'habits:habit-restore' item.pk %}">Review restoration</a>{% else %}<a href="{% url 'habits:habit-archive' item.pk %}">Archive habit</a> · <a href="{% url 'habits:occurrence-create' item.pk %}">Record a result</a>{% endif %}</p><h2>Recorded outcomes</h2>{% for record in row.history %}<article><h3><a href="{% url 'habits:occurrence-detail' item.pk record.pk %}">{{ record.day }} — {{ record.label }}</a></h3>{% if record.retained %}<p>Retained historical record</p>{% endif %}<p>{{ record.note }}</p><p>{{ record.reason }}</p></article>{% empty %}<p>No outcomes recorded.</p>{% endfor %}<nav aria-label="Outcome history pages">{% if history_page.has_previous %}<a href="?page={{ history_page.previous_page_number }}">Previous history page</a>{% endif %} {% if history_page.has_next %}<a href="?page={{ history_page.next_page_number }}">Next history page</a>{% endif %}</nav>{% endblock %}
+{% block content %}
+<header class="page-header habits-header">
+  <div><p class="eyebrow">Habit review · {{ row.habit_type }}</p><h1>{{ item.name }}</h1></div>
+  <span class="state-label">{% if item.is_archived %}Archived{% else %}Active{% endif %}</span>
+</header>
+<div class="record-actions">
+  <a class="button-link" href="{% url 'habits:habit-edit' item.pk %}">Edit habit</a>
+  {% if item.is_archived %}<a class="button-link" href="{% url 'habits:habit-restore' item.pk %}">Review restoration</a>
+  {% else %}
+    {% if row.selected_occurrence_pk %}<a class="button-link" href="{% url 'habits:occurrence-edit' item.pk row.selected_occurrence_pk %}">{{ row.outcome_action }}</a>
+    {% else %}<a class="button-link" href="{% url 'habits:occurrence-create' item.pk %}">{{ row.outcome_action }}</a>{% endif %}
+    <a class="button-link" href="{% url 'habits:habit-archive' item.pk %}">Archive habit</a>
+  {% endif %}
+  <a class="button-link" href="{% url 'habits:register' %}">Habits register</a>
+</div>
+<section class="habits-summary" aria-labelledby="status-heading">
+  <p class="eyebrow">Today · {{ row.state }}</p><h2 id="status-heading">Current status</h2>
+  <dl class="habits-metrics">
+    <div><dt>Current streak</dt><dd>{{ row.current }} in a row</dd></div>
+    <div><dt>Longest streak</dt><dd>{{ row.longest }} in a row</dd></div>
+    <div><dt>Momentum</dt><dd class="mono">{{ row.momentum }}</dd></div>
+    <div><dt>Next due</dt><dd>{% if row.next_date %}<time datetime="{{ row.next_date|date:'Y-m-d' }}">{{ row.next_date|date:'j M Y' }}</time>{% else %}No date found within the next 36,600 days.{% endif %}</dd></div>
+  </dl>
+  <details class="habit-explanation"><summary>How these signals work</summary><p>Streaks count consecutive due occurrences. Excused outcomes neither extend nor break a streak; past Unknown outcomes break it. Momentum is a descriptive signal derived from successful dates with elapsed-day decay, rounded at each success.</p></details>
+</section>
+<section class="habits-section" aria-labelledby="configuration-heading">
+  <h2 id="configuration-heading">Configuration</h2>
+  <dl class="record-detail habits-state">
+    {% if item.description %}<div><dt>Description</dt><dd>{{ item.description|linebreaksbr }}</dd></div>{% endif %}
+    <div><dt>Type</dt><dd>{{ row.habit_type }}</dd></div>
+    <div><dt>Recurrence</dt><dd>{{ row.schedule }}</dd></div>
+    <div><dt>Active period</dt><dd>From <time datetime="{{ item.start_date|date:'Y-m-d' }}">{{ item.start_date }}</time>{% if item.end_date %} through <time datetime="{{ item.end_date|date:'Y-m-d' }}">{{ item.end_date }}</time>{% endif %}</dd></div>
+    {% if row.target %}<div><dt>Quantity target</dt><dd>{{ row.target }}</dd></div>{% endif %}
+    <div><dt>Reminder</dt><dd>{% if row.reminder_time %}{{ row.reminder_time }}{% if row.reminder_text %} · {{ row.reminder_text }}{% endif %} — in-app only.{% else %}No reminder time configured.{% endif %}</dd></div>
+  </dl>
+</section>
+<section class="habits-section" aria-labelledby="history-heading">
+  <h2 id="history-heading">Recorded outcomes</h2>
+  {% for record in row.history %}
+  <article class="habit-history-row">
+    <h3><a href="{% url 'habits:occurrence-detail' item.pk record.pk %}"><time datetime="{{ record.day|date:'Y-m-d' }}">{{ record.day|date:'j M Y' }}</time> — {{ record.label }}</a></h3>
+    {% if record.retained %}<p class="state-label">Retained historical record</p>{% endif %}
+    {% if record.note %}<p>{{ record.note|linebreaksbr }}</p>{% endif %}
+    {% if record.reason %}<p>Excuse reason: {{ record.reason }}</p>{% endif %}
+  </article>
+  {% empty %}<div class="empty-state habits-state"><p>No outcomes recorded.</p></div>{% endfor %}
+  <nav class="month-navigation" aria-label="Outcome history pages">
+    {% if history_page.has_previous %}<a href="?page={{ history_page.previous_page_number }}">Previous history page</a>{% endif %}
+    <span>Page {{ history_page.number }} of {{ history_page.paginator.num_pages }}</span>
+    {% if history_page.has_next %}<a href="?page={{ history_page.next_page_number }}">Next history page</a>{% endif %}
+  </nav>
+</section>
+{% endblock %}

@@ -1,1 +1,12 @@
-{% extends 'base.html' %}{% block content %}<h1>{{ title }}</h1><p>{{ item.name }}</p><p>History is preserved. Archiving suspends due dates starting today; restoring resumes today without creating outcomes for the archived period. User pauses remain unchanged.</p>{% if error %}<p role="alert">{{ error }}</p>{% endif %}<form class="ledger-form" method="post">{% csrf_token %}<button class="button" type="submit">Confirm {{ title|lower }}</button></form><a href="{% url 'habits:habit-detail' item.pk %}">Cancel</a>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}{{ title }} · LifeOS{% endblock %}
+{% block content %}
+<header class="page-header habits-header"><div><p class="eyebrow">Habits register · {{ item.name }}</p><h1>{{ title }}</h1></div></header>
+<form class="ledger-form habits-form" method="post">
+  {% csrf_token %}
+  <h2>History is preserved</h2>
+  <p>Archiving suspends due dates starting today; restoring resumes today without creating outcomes for the archived period. User pauses remain unchanged.</p>
+  {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
+  <div class="form-actions"><button class="button" type="submit">Confirm {{ title|lower }}</button><a class="button-link" href="{% url 'habits:habit-detail' item.pk %}">Cancel</a></div>
+</form>
+{% endblock %}

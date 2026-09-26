@@ -105,6 +105,9 @@ class HabitRow:
     history: tuple[OccurrenceRow, ...]
     unit: str
     target: str
+    selected_occurrence_pk: int | None
+    can_record: bool
+    outcome_action: str
 
 
 def row_for(h, *, selected_date, today):
@@ -135,7 +138,9 @@ def row_for(h, *, selected_date, today):
     target = ""
     if h.habit_type=="quantity":
         target = f"{h.get_target_rule_display()}: " + (f"{h.lower_target:.2f}–{h.upper_target:.2f}" if h.target_rule=="range" else f"{(h.lower_target if h.lower_target is not None else h.upper_target):.2f}") + f" {h.unit}"
-    return HabitRow(h.pk,h.name,h.get_habit_type_display(),describe_schedule(schedule),h.reminder_time,h.reminder_text,state,streak.current,streak.longest,momentum.value,following,attention,(),h.unit,target)
+    outcome = {"check": "completion", "chore": "chore outcome", "abstinence": "abstinence outcome", "quantity": "measurement"}[h.habit_type]
+    action = f"{'Correct' if item else 'Record'} {outcome}"
+    return HabitRow(h.pk,h.name,h.get_habit_type_display(),describe_schedule(schedule),h.reminder_time,h.reminder_text,state,streak.current,streak.longest,momentum.value,following,attention,(),h.unit,target,item.pk if item else None,not h.is_archived and is_due(schedule,selected_date),action)
 
 
 @dataclass(frozen=True, slots=True)
