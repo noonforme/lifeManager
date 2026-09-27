@@ -29,4 +29,12 @@
     button.addEventListener("click", () => applyTheme(button.dataset.themeChoice));
   });
   applyTheme(storedTheme());
+
+  const errors = document.querySelector(".shift-inspector .error-summary");
+  const heading = document.querySelector("#shift-inspector-heading");
+  const focusTarget = errors || (location.hash === "#shift-inspector" ? heading : null);
+  if (focusTarget) {
+    focusTarget.setAttribute("tabindex", "-1");
+    focusTarget.focus();
+  }
 })();

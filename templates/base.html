@@ -17,7 +17,7 @@
         <summary>Registers</summary>
         <nav aria-label="Primary" class="nav-links">
           {% with namespace=request.resolver_match.namespace url_name=request.resolver_match.url_name %}
-            <a href="{% url 'core:dashboard' %}"{% if namespace == "core" and url_name == "dashboard" %} aria-current="page"{% endif %}>Daily register</a>
+            <a href="{% url 'core:dashboard' %}"{% if namespace == "core" and url_name == "dashboard" %} aria-current="page"{% endif %}>Overview</a>
             <a href="{% url 'work:register' %}"{% if namespace == "work" %} aria-current="page"{% endif %}>Work</a>
             <a href="{% url 'money:register' %}"{% if namespace == "money" %} aria-current="page"{% endif %}>Money</a>
             <a href="{% url 'habits:register' %}"{% if namespace == "habits" %} aria-current="page"{% endif %}>Habits</a>

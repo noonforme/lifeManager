@@ -32,7 +32,7 @@ def test_ready_summary_has_exact_values_and_links():
     summary = get_summary(today=date(2026, 9, 25))
     assert summary.state == "ready"
     assert summary.state_label == "Ready"
-    assert summary.href == "/work/"
+    assert summary.href == "/work/?month=2026-09"
     assert summary.action_href == "/work/shifts/new/?date=2026-09-25"
     assert values(summary) == {
         "Shifts": "1",
@@ -48,7 +48,7 @@ def test_ready_summary_has_exact_values_and_links():
 def test_empty_summary_keeps_implemented_links_without_values():
     summary = get_summary(today=date(2026, 9, 25))
     assert summary.state == "empty"
-    assert summary.href == "/work/"
+    assert summary.href == "/work/?month=2026-09"
     assert summary.action_href == "/work/shifts/new/?date=2026-09-25"
     assert summary.values == ()
 

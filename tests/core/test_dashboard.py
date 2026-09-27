@@ -26,7 +26,7 @@ def test_dashboard_reads_date_once_and_orders_registers() -> None:
     assert [register.key for register in dashboard.registers] == ["work", "money", "habits"]
     assert [register.state_label for register in dashboard.registers] == ["Empty", "Empty", "Empty"]
     assert dashboard.registers[0].description == "No shifts recorded this month."
-    assert dashboard.registers[0].href == "/work/"
+    assert dashboard.registers[0].href == "/work/?month=2026-09"
     assert dashboard.registers[0].action_href == "/work/shifts/new/?date=2026-09-25"
     assert dashboard.registers[0].values == ()
     assert dashboard.registers[1].description == "No transactions recorded this month."

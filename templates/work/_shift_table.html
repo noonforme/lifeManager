@@ -1,0 +1,13 @@
+<section class="shift-register" aria-labelledby="shift-list-heading">
+  <header class="pane-header"><h2 id="shift-list-heading" tabindex="-1">Shifts</h2><a class="inspector-jump" href="#shift-inspector">Go to inspector</a></header>
+  {% if shifts %}
+  <div class="horizontal-scroll" role="region" aria-labelledby="shift-list-heading" tabindex="0">
+    <table class="shift-table">
+      <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Worked</th><th scope="col">Overtime</th><th scope="col">Rate</th></tr></thead>
+      <tbody>{% for shift in shifts %}<tr id="shift-{{ shift.pk }}"{% if selected_shift.pk == shift.pk %} class="is-selected"{% endif %}><th scope="row"><a href="{% url 'work:register' %}?month={{ month.value }}&amp;shift={{ shift.pk }}#shift-inspector" aria-label="Select shift on {{ shift.work_date|date:'j M Y' }}"{% if selected_shift.pk == shift.pk %} aria-current="true"{% endif %}><time datetime="{{ shift.work_date|date:'Y-m-d' }}">{{ shift.work_date|date:"j M Y" }}</time></a><a class="canonical-review" href="{% url 'work:shift-detail' shift.pk %}" aria-label="Full review of shift on {{ shift.work_date|date:'j M Y' }}">Review</a></th><td>{{ shift.get_shift_type_display }}</td><td class="mono">{{ shift.worked_hours }}</td><td class="mono">{{ shift.overtime_hours }}</td><td class="mono">{{ shift.hourly_rate }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><h3>No shifts recorded</h3><p>No shifts recorded for {{ month.label }}.</p><a class="button-link" href="{{ new_shift_url }}">Record a shift</a></div>
+  {% endif %}
+</section>

@@ -23,7 +23,7 @@ def get_summary(*, today: date) -> RegisterSummary:
     except DatabaseError as error:
         raise SummaryUnavailable("Work summary unavailable") from error
 
-    href = reverse("work:register")
+    href = f"{reverse('work:register')}?month={month.value}"
     action_href = f"{reverse('work:shift-create')}?date={today.isoformat()}"
     if not shifts:
         return RegisterSummary(

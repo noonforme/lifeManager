@@ -1,0 +1,96 @@
+{
+  "title": "LifeOS desktop workspace",
+  "question": "Choose the workspace character. All directions keep overview-first navigation and Work's table with an adjacent inspector; none copies VOLT.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Operations desk",
+      "kicker": "THE ROLL",
+      "lineage": "Scheduling and dispatch workstations",
+      "thesis": "An overview of actionable exceptions leads into a precise monthly working register.",
+      "palette": ["#e8edf1", "#ffffff", "#202b35", "#245b85"],
+      "materials": ["flat neutral panes", "clear pane dividers", "system-style controls"],
+      "viewport": "Labeled navigation at left; overview groups Work, Money, and Habits by actual state. Work keeps month controls and compact totals above a dominant table, with record inspection at right.",
+      "risk": "Overemphasizing exceptions could manufacture urgency; only existing factual states qualify.",
+      "raised": [
+        {"from": "Cloud quarry", "raise": "Each pane owns a complete job and a clear boundary; no nested decorative containers."},
+        {"from": "Cloud edge", "raise": "State distinctions stay precise without spreading accent color across ordinary data."},
+        {"from": "Night-flight instruments", "raise": "Overview summaries cross-check domain records and retain stable reading positions; no gauges or invented trends."},
+        {"from": "One-bit desktop", "raise": "Selection, focus, edit, and disabled states remain unmistakably different; no retro graphics."},
+        {"from": "Developer console", "raise": "Record actions belong to the pane they affect, with destructive actions isolated; no code-editor styling."},
+        {"from": "Star atlas", "raise": "Overview-to-record navigation preserves orientation and selected context; no spatial chart metaphor."}
+      ]
+    },
+    {
+      "id": "model-pick",
+      "label": "Native records workbench",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Professional desktop record-management applications",
+      "thesis": "A restrained, familiar application frame makes the records and their actions the center of attention.",
+      "palette": ["#eceff2", "#ffffff", "#24282d", "#315ea8"],
+      "materials": ["compact toolbars", "subtle inset work areas", "plain labeled controls"],
+      "viewport": "A compact overview offers meaningful domain summaries and direct entry points. Work opens into a month toolbar, numerical summary, large record table, and persistent inspector with explicit View and Edit states.",
+      "risk": "Familiar desktop grammar is deliberately conventional; poor execution could become a generic administration screen."
+    },
+    {
+      "id": "challenger-cloud-quarry", "label": "Cloud quarry", "verdict": "declined",
+      "thesis": "Treat domain records as discrete blocks that can be inspected and assembled.",
+      "palette": ["#f5f7f9", "#3286b9", "#4d5863"], "materials": ["white masses", "blue sectional gaps"],
+      "viewport": "Sectioned record blocks place summaries above source records.",
+      "case": "Loses audience identification and product clarity: constructive gestures do not match persisted record workflows.",
+      "kept": "Complete pane ownership and structural boundaries, not its imagery.", "risk": "A physical construction metaphor would obscure ordinary record actions."
+    },
+    {
+      "id": "challenger-cloud-edge", "label": "Cloud edge", "verdict": "declined",
+      "thesis": "Distinguish subtle evidence states through narrow spectral edges.",
+      "palette": ["#ffffff", "#44515d", "#a9c9bb", "#927bb3"], "materials": ["wide white margins", "spectral hairlines"],
+      "viewport": "An airy evidence comparison surrounds selected records.",
+      "case": "Loses both axes: expansive observation space and spectral states work against compact record operations.",
+      "kept": "Precise state distinction without excessive accent use.", "risk": "Would recreate the spacious website character the owner rejects."
+    },
+    {
+      "id": "challenger-night-flight", "label": "Night-flight instruments", "verdict": "declined",
+      "thesis": "Give each domain a stable instrument in a cross-check overview.",
+      "palette": ["#14181b", "#f1f4f2", "#9bbb84", "#c99743"], "materials": ["matte instrument panel", "luminous markings"],
+      "viewport": "Fixed instrument positions summarize domain state before opening records.",
+      "case": "Loses both axes: LifeOS is not live telemetry, and gauge geometry reduces space for records.",
+      "kept": "Stable positions and explicit reconciliation between summary and records.", "risk": "Would copy the control-room aesthetic rather than improve the working model."
+    },
+    {
+      "id": "challenger-one-bit", "label": "One-bit desktop", "verdict": "declined",
+      "thesis": "Use a literal early desktop with overlapping record windows.",
+      "palette": ["#ffffff", "#000000"], "materials": ["pixel chrome", "dither"],
+      "viewport": "Independent windows contain the overview, register, and selected record.",
+      "case": "Loses both axes: retro presentation and window management distract from the selected fixed-pane workflow.",
+      "kept": "Explicit selection and control states.", "risk": "A nostalgic skin would substitute style for professional utility."
+    },
+    {
+      "id": "challenger-console", "label": "Developer console", "verdict": "declined",
+      "thesis": "Use persistent graphite panels with local actions and isolated destructive controls.",
+      "palette": ["#24272c", "#30343a", "#e5e8ec", "#80a5d0"], "materials": ["graphite panes", "hairline seams"],
+      "viewport": "Navigation, record table, and inspector tile a dark working surface.",
+      "case": "Loses both axes against the task-specific desk: developer-tool identity is unrelated to personal reconciliation, and syntax-like signals add no clarity.",
+      "kept": "Pane-local actions and deliberate isolation of destructive operations.", "risk": "Could turn LifeOS into an IDE imitation instead of a personal tool."
+    },
+    {
+      "id": "challenger-star-atlas", "label": "Star atlas", "verdict": "declined",
+      "thesis": "Navigate linked records through matched overview and detail coordinates.",
+      "palette": ["#192b46", "#f2f4f6", "#c59156"], "materials": ["coordinate plates", "ranked point marks"],
+      "viewport": "A spatial overview links into selected detail plates.",
+      "case": "Loses both axes: shifts are calendar records, not spatial objects; pan-and-zoom adds an unnecessary navigation model.",
+      "kept": "Preserve orientation and selection across overview and detail.", "risk": "Would invent a visualization with no genuine task justification."
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "buildPath": {"value": "code", "toggle": false},
+  "canon": true,
+  "canonCard": {
+    "label": "Standard business dashboard",
+    "thesis": "Use conventional dashboard summaries and a familiar data-management workspace.",
+    "palette": ["#f3f4f6", "#ffffff", "#1f2937", "#2563eb"],
+    "materials": ["neutral panels", "standard application controls"],
+    "viewport": "Summary panels introduce domains; Work presents a toolbar, table, and adjacent inspector.",
+    "risk": "Generic dashboard patterns may preserve the website-like experience unless operational continuity is enforced."
+  },
+  "steer": true
+}

@@ -96,7 +96,7 @@ def test_summary_unexpected_error_propagates(monkeypatch):
 @pytest.mark.parametrize(
     ("url_name", "expected_text"),
     [
-        ("core:dashboard", "Daily register"),
+        ("core:dashboard", "Overview"),
         ("work:register", "Work"),
         ("work:shift-create", "Work"),
         ("money:register", "Money"),

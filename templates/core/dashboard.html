@@ -1,11 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Daily register · LifeOS{% endblock %}
+{% block title %}Overview · LifeOS{% endblock %}
 {% block content %}
 <header class="page-header">
-  <div>
-    <p class="eyebrow">Reconcile today</p>
-    <h1>Daily register</h1>
-  </div>
+  <h1>Overview</h1>
   <time datetime="{{ dashboard.today|date:'Y-m-d' }}">{{ dashboard.today|date:'j F Y' }}</time>
 </header>
 <div class="registers" aria-label="Daily registers">

@@ -1,19 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Work register · LifeOS{% endblock %}
+{% block title %}{{ month.label }} · Work · LifeOS{% endblock %}
 {% block content %}
 <header class="page-header work-header">
-  <div><p class="eyebrow">Work register</p><h1>{{ month.label }}</h1></div>
-  <a class="button-link" href="{% url 'work:shift-create' %}">New shift</a>
+  <h1>Work <span class="heading-context">{{ month.label }}</span></h1>
+  <a class="button-link" href="{{ new_shift_url }}">New shift</a>
 </header>
 <nav class="month-navigation" aria-label="Month">
-  <a href="?month={{ previous_month.value }}">Previous month</a>
+  <a href="{% url 'work:register' %}?month={{ previous_month.value }}">Previous month</a>
   <span class="mono" aria-current="date">{{ month.value }}</span>
-  <a href="?month={{ next_month.value }}">Next month</a>
+  <a href="{% url 'work:register' %}?month={{ next_month.value }}">Next month</a>
 </nav>
 {% if month_error %}<p class="field-error" role="alert">{{ month_error }}</p>{% endif %}
 {% if shifts %}
 <section aria-labelledby="salary-heading" class="salary-panel">
-  <p class="eyebrow">Reconciliation estimate</p>
   <h2 id="salary-heading">Estimated salary</h2>
   <dl class="salary-grid">
     <div><dt>Shifts</dt><dd class="mono">{{ salary.shift_count }}</dd></div>
@@ -28,23 +27,17 @@
     <div><dt>Total taxes</dt><dd class="mono">{{ salary.total_taxes }}</dd></div>
     <div class="salary-net"><dt>Estimated net</dt><dd class="mono">{{ salary.net }}</dd></div>
   </dl>
-  <div class="salary-explanation">
-    <h3>How this estimate works</h3>
+  <p class="estimate-qualification">Fixed version-one estimate · Not tax advice.</p>
+  <details class="salary-explanation">
+    <summary>How this estimate works</summary>
     <p>Normal pay is normal hours × hourly rate. Overtime pay is overtime hours × hourly rate × 1.5.</p>
     <p>The characterized deductions are GPM 20%, VSD 12.52%, and PSD 6.98%. Each named output uses ROUND_HALF_UP to two decimal places; total taxes sum the displayed deductions and net subtracts that displayed total from displayed gross.</p>
     <p>This is a fixed version-one characterization and not tax advice.</p>
-  </div>
+  </details>
 </section>
-<section aria-labelledby="shift-list-heading">
-  <h2 id="shift-list-heading">Shifts</h2>
-  <div class="horizontal-scroll">
-    <table class="shift-table">
-      <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Worked</th><th scope="col">Overtime</th><th scope="col">Rate</th></tr></thead>
-      <tbody>{% for shift in shifts %}<tr><th scope="row"><a href="{% url 'work:shift-detail' shift.pk %}"><time datetime="{{ shift.work_date|date:'Y-m-d' }}">{{ shift.work_date|date:"j M Y" }}</time></a></th><td>{{ shift.get_shift_type_display }}</td><td class="mono">{{ shift.worked_hours }}</td><td class="mono">{{ shift.overtime_hours }}</td><td class="mono">{{ shift.hourly_rate }}</td></tr>{% endfor %}</tbody>
-    </table>
-  </div>
-</section>
-{% else %}
-<section class="empty-state"><h2>No shifts recorded</h2><p>No shifts recorded for {{ month.label }}.</p><p><a class="button-link" href="{% url 'work:shift-create' %}">Record a shift</a></p></section>
 {% endif %}
+<div class="work-panes">
+  {% include "work/_shift_table.html" %}
+  {% include "work/_shift_inspector.html" %}
+</div>
 {% endblock %}
