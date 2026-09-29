@@ -70,4 +70,57 @@ final class Payslip {
   final Revision revision;
 
   bool get isEffective => state == PayslipState.effective;
+
+  Payslip voidedForCorrection({
+    required PayslipId replacementId,
+    required String voidReason,
+    required DateTime nowUtc,
+  }) {
+    return Payslip(
+      id: id,
+      periodId: periodId,
+      issuedDate: issuedDate,
+      paidDate: paidDate,
+      amount: amount,
+      basis: basis,
+      grossMinorUnits: grossMinorUnits,
+      netMinorUnits: netMinorUnits,
+      deductionMinorUnits: deductionMinorUnits,
+      reference: reference,
+      note: note,
+      state: PayslipState.voided,
+      voidReason: voidReason,
+      replacementPayslipId: replacementId,
+      replacedPayslipId: replacedPayslipId,
+      createdAtUtc: createdAtUtc,
+      updatedAtUtc: nowUtc,
+      revision: revision.next(),
+    );
+  }
+
+  Payslip replacement({
+    required PayslipId replacementId,
+    required DateTime nowUtc,
+  }) {
+    return Payslip(
+      id: replacementId,
+      periodId: periodId,
+      issuedDate: issuedDate,
+      paidDate: paidDate,
+      amount: amount,
+      basis: basis,
+      grossMinorUnits: grossMinorUnits,
+      netMinorUnits: netMinorUnits,
+      deductionMinorUnits: deductionMinorUnits,
+      reference: reference,
+      note: note,
+      state: PayslipState.effective,
+      voidReason: null,
+      replacementPayslipId: null,
+      replacedPayslipId: id,
+      createdAtUtc: nowUtc,
+      updatedAtUtc: nowUtc,
+      revision: const Revision(0),
+    );
+  }
 }

@@ -95,6 +95,55 @@ final class WorkShift {
       revision: revision.next(),
     );
   }
+
+  WorkShift voidedForCorrection({
+    required ShiftId replacementId,
+    required String voidReason,
+    required DateTime nowUtc,
+  }) {
+    return WorkShift(
+      id: id,
+      employmentId: employmentId,
+      agreementId: agreementId,
+      state: ShiftState.voided,
+      startUtc: startUtc,
+      endUtc: endUtc,
+      timezoneId: timezoneId,
+      localStartDate: localStartDate,
+      overtimeMinutes: overtimeMinutes,
+      note: note,
+      voidReason: voidReason,
+      replacementShiftId: replacementId,
+      replacedShiftId: replacedShiftId,
+      createdAtUtc: createdAtUtc,
+      updatedAtUtc: nowUtc,
+      revision: revision.next(),
+    );
+  }
+
+  WorkShift replacementDraft({
+    required ShiftId replacementId,
+    required DateTime nowUtc,
+  }) {
+    return WorkShift(
+      id: replacementId,
+      employmentId: employmentId,
+      agreementId: agreementId,
+      state: ShiftState.draft,
+      startUtc: startUtc,
+      endUtc: endUtc,
+      timezoneId: timezoneId,
+      localStartDate: localStartDate,
+      overtimeMinutes: overtimeMinutes,
+      note: note,
+      voidReason: null,
+      replacementShiftId: null,
+      replacedShiftId: id,
+      createdAtUtc: nowUtc,
+      updatedAtUtc: nowUtc,
+      revision: const Revision(0),
+    );
+  }
 }
 
 final class ShiftBreak {
