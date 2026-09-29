@@ -17,6 +17,39 @@ final class PayPeriod {
     required this.revision,
   });
 
+  factory PayPeriod.rehydrate({
+    required PayPeriodId id,
+    required EmploymentId employmentId,
+    required LocalDate start,
+    required LocalDate end,
+    required String? label,
+    required PayPeriodState state,
+    required DateTime createdAtUtc,
+    required DateTime updatedAtUtc,
+    required Revision revision,
+  }) {
+    if (end.compareTo(start) < 0) {
+      throw ArgumentError.value(end, 'end');
+    }
+    if (!createdAtUtc.isUtc) {
+      throw ArgumentError.value(createdAtUtc, 'createdAtUtc');
+    }
+    if (!updatedAtUtc.isUtc) {
+      throw ArgumentError.value(updatedAtUtc, 'updatedAtUtc');
+    }
+    return PayPeriod._(
+      id: id,
+      employmentId: employmentId,
+      start: start,
+      end: end,
+      label: label,
+      state: state,
+      createdAtUtc: createdAtUtc,
+      updatedAtUtc: updatedAtUtc,
+      revision: revision,
+    );
+  }
+
   factory PayPeriod.create({
     required PayPeriodId id,
     required EmploymentId employmentId,

@@ -1,31 +1,94 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/core/database/app_database.dart';
 import 'package:lifeos/core/database/database_config.dart';
 import 'package:lifeos/core/database/database_identity.dart';
 import 'package:lifeos/core/database/database_location.dart';
 import 'package:lifeos/core/database/database_service.dart';
 import 'package:lifeos/core/database/schema_versions.dart';
+import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 import '../../support/owned_test_root.dart';
 
 void main() {
-  test('released schema snapshot and fingerprints match version one', () async {
-    final snapshot = File('drift_schemas/schema_v1.json');
+  test(
+    'released schema snapshots and fingerprints match version two',
+    () async {
+      final observed = <int, String>{};
+      for (var version = 1; version <= currentSchemaVersion; version++) {
+        final snapshot = File('drift_schemas/schema_v$version.json');
+        expect(await snapshot.exists(), isTrue, reason: snapshot.path);
+        final document = jsonDecode(await snapshot.readAsString());
+        expect(document, isA<Map<String, Object?>>());
+        final map = document as Map<String, Object?>;
+        expect(map['_meta'], isA<Map<String, Object?>>());
+        expect(map['entities'], isA<List<Object?>>());
+        final checksum = await Process.run('sha256sum', [snapshot.path]);
+        expect(checksum.exitCode, 0);
+        observed[version] = (checksum.stdout as String)
+            .split(RegExp(r'\s+'))
+            .first;
+      }
 
-    expect(await snapshot.exists(), isTrue);
-    final document = jsonDecode(await snapshot.readAsString());
-    expect(document, isA<Map<String, Object?>>());
-    final map = document as Map<String, Object?>;
-    expect(map['_meta'], isA<Map<String, Object?>>());
-    expect(map['entities'], isA<List<Object?>>());
-    expect(currentSchemaVersion, 1);
-    final checksum = await Process.run('sha256sum', [snapshot.path]);
-    expect(checksum.exitCode, 0);
-    final digest = (checksum.stdout as String).split(RegExp(r'\s+')).first;
-    expect(releasedMigrationFingerprints, {1: digest});
-  });
+      expect(currentSchemaVersion, 2);
+      expect(releasedMigrationFingerprints, observed);
+    },
+  );
+
+  test(
+    'schema version one upgrades additively to Work schema version two',
+    () async {
+      final raw = sqlite.sqlite3.openInMemory();
+      raw.execute('''
+      CREATE TABLE core_metadata (
+        id INTEGER NOT NULL DEFAULT 1 PRIMARY KEY,
+        application_version TEXT,
+        snapshot_schema_version INTEGER,
+        snapshot_created_at_utc TEXT
+      )
+    ''');
+      raw.execute('INSERT INTO core_metadata (id) VALUES (1)');
+      raw.userVersion = 1;
+      final database = AppDatabase(NativeDatabase.opened(raw));
+      addTearDown(database.close);
+
+      await database.customSelect('SELECT 1').getSingle();
+
+      expect(raw.userVersion, 2);
+      expect(
+        raw
+            .select("SELECT name FROM sqlite_master WHERE type = 'table'")
+            .map((row) => row['name']),
+        containsAll(<String>{
+          'core_metadata',
+          'employments',
+          'pay_agreements',
+          'work_shifts',
+          'shift_breaks',
+          'pay_periods',
+          'payslips',
+        }),
+      );
+      expect(
+        raw
+            .select(
+              "SELECT name FROM sqlite_master WHERE type = 'index' "
+              "AND name = 'one_active_shift'",
+            )
+            .single['name'],
+        'one_active_shift',
+      );
+      expect(
+        raw
+            .select('SELECT COUNT(*) AS count FROM core_metadata')
+            .single['count'],
+        1,
+      );
+    },
+  );
 
   test('snapshot embeds metadata and validates read-only', () async {
     final root = await OwnedTestRoot.create();
