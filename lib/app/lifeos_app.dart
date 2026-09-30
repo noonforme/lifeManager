@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'app_theme.dart';
+import '../shared/workbench/lifeos_theme.dart';
 
 final class LifeOsApp extends StatelessWidget {
   const LifeOsApp({required this.router, super.key});
@@ -13,7 +13,8 @@ final class LifeOsApp extends StatelessWidget {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'LifeOS',
-      theme: buildLifeOsTheme(),
+      theme: buildLifeOSTheme(highContrast: false),
+      highContrastTheme: buildLifeOSTheme(highContrast: true),
       routerConfig: router,
     );
   }
