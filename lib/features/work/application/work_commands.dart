@@ -4,6 +4,7 @@ import '../../../core/time/timezone_service.dart';
 import '../data/work_write_store.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
+import '../domain/pay_period.dart';
 
 abstract interface class WorkCommandRepository {
   Future<T> transaction<T>(Future<T> Function(WorkWriteStore store) body);
@@ -72,6 +73,78 @@ final class CloseAgreementCommand {
   final EmploymentId employmentId;
   final LocalDate end;
   final Revision expectedRevision;
+}
+
+abstract interface class WorkEvidenceIdFactory {
+  PayPeriodId payPeriodId();
+
+  PayslipId payslipId();
+}
+
+final class CreatePayPeriodCommand {
+  const CreatePayPeriodCommand({
+    required this.employmentId,
+    required this.start,
+    required this.end,
+    required this.label,
+  });
+
+  final EmploymentId employmentId;
+  final LocalDate start;
+  final LocalDate end;
+  final String? label;
+}
+
+final class SetPayPeriodStateCommand {
+  const SetPayPeriodStateCommand({
+    required this.id,
+    required this.state,
+    required this.expectedRevision,
+  });
+
+  final PayPeriodId id;
+  final PayPeriodState state;
+  final Revision expectedRevision;
+}
+
+final class RecordPayslipCommand {
+  const RecordPayslipCommand({
+    required this.periodId,
+    required this.issuedDate,
+    required this.paidDate,
+    required this.amountMinorUnits,
+    required this.basis,
+    required this.grossMinorUnits,
+    required this.netMinorUnits,
+    required this.deductionMinorUnits,
+    required this.reference,
+    required this.note,
+  });
+
+  final PayPeriodId periodId;
+  final LocalDate issuedDate;
+  final LocalDate? paidDate;
+  final int amountMinorUnits;
+  final RateBasis basis;
+  final int? grossMinorUnits;
+  final int? netMinorUnits;
+  final int? deductionMinorUnits;
+  final String? reference;
+  final String? note;
+}
+
+final class CorrectPayslipCommand {
+  const CorrectPayslipCommand({
+    required this.originalId,
+    required this.replacementId,
+    required this.expectedRevision,
+    required this.voidReason,
+  });
+
+  final PayslipId originalId;
+  final PayslipId replacementId;
+  final Revision expectedRevision;
+  final String voidReason;
 }
 
 abstract interface class ShiftIdFactory {

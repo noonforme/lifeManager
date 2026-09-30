@@ -159,26 +159,18 @@ List<ReconciliationGroup> reconcilePeriod({
     ];
   }
 
-  final byCurrency = <CurrencyCode, List<_Evidence>>{};
+  final grouped = <(CurrencyCode, Type), List<_Evidence>>{};
   for (final item in evidence) {
-    byCurrency.putIfAbsent(item.money.currency, () => []).add(item);
+    grouped
+        .putIfAbsent((
+          item.money.currency,
+          item.basis.runtimeType,
+        ), () => <_Evidence>[])
+        .add(item);
   }
   final groups = <ReconciliationGroup>[];
-  for (final entry in byCurrency.entries) {
-    final bases = entry.value.map((item) => item.basis.runtimeType).toSet();
-    if (bases.length > 1) {
-      groups.add(
-        _group(
-          employmentId: employmentId,
-          periodId: period.id,
-          currency: entry.key,
-          status: const MixedBasis(),
-          evidence: entry.value,
-        ),
-      );
-      continue;
-    }
-
+  for (final entry in grouped.entries) {
+    final currency = entry.key.$1;
     final expected = entry.value.where((item) => item.isExpected).toList();
     final paid = entry.value.where((item) => !item.isExpected).toList();
     final expectedTotal = _sum(expected);
@@ -194,19 +186,19 @@ List<ReconciliationGroup> reconcilePeriod({
       _group(
         employmentId: employmentId,
         periodId: period.id,
-        currency: entry.key,
+        currency: currency,
         basis: entry.value.first.basis,
         status: status,
         evidence: entry.value,
         expected: expected.isEmpty
             ? null
-            : Money(minorUnits: expectedTotal, currency: entry.key),
+            : Money(minorUnits: expectedTotal, currency: currency),
         paid: paid.isEmpty
             ? null
-            : Money(minorUnits: paidTotal, currency: entry.key),
+            : Money(minorUnits: paidTotal, currency: currency),
         difference: expected.isEmpty || paid.isEmpty
             ? null
-            : Money(minorUnits: paidTotal - expectedTotal, currency: entry.key),
+            : Money(minorUnits: paidTotal - expectedTotal, currency: currency),
       ),
     );
   }

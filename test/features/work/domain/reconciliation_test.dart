@@ -39,7 +39,7 @@ void main() {
     expect(groups.single.status, isA<EmptyReconciliation>());
   });
 
-  test('keeps gross and net evidence separate without a difference', () {
+  test('keeps gross and net evidence in separate subtotals', () {
     final groups = reconcilePeriod(
       employmentId: employmentId,
       period: period(),
@@ -49,8 +49,16 @@ void main() {
       payslips: [payslip(basis: const NetBasis(), minorUnits: 16000)],
     );
 
-    expect(groups.single.status, isA<MixedBasis>());
-    expect(groups.single.difference, isNull);
+    expect(groups, hasLength(2));
+    expect(
+      groups.where((group) => group.basis == const GrossBasis()).single.status,
+      isA<MissingPayslip>(),
+    );
+    expect(
+      groups.where((group) => group.basis == const NetBasis()).single.status,
+      isA<UnmatchedPayslip>(),
+    );
+    expect(groups.every((group) => group.difference == null), isTrue);
   });
 
   test('reports balanced and difference for compatible evidence', () {

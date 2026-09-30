@@ -1,6 +1,9 @@
 import '../../../core/database/app_database.dart' show AppDatabase;
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../application/pay_period_service.dart';
+import '../application/payslip_service.dart';
 import '../application/work_commands.dart';
+import '../application/work_query_service.dart';
 import '../domain/agreement.dart';
 import '../domain/correction.dart';
 import '../domain/employment.dart';
@@ -20,7 +23,12 @@ import 'projections/work_register_projection.dart';
 import 'work_write_store.dart';
 
 final class DriftWorkRepository
-    implements WorkWriteStore, WorkCommandRepository {
+    implements
+        WorkWriteStore,
+        WorkCommandRepository,
+        PayPeriodRepository,
+        PayslipRepository,
+        WorkQueryRepository {
   DriftWorkRepository(this._database)
     : _employments = EmploymentDao(_database),
       _agreements = AgreementDao(_database),
@@ -95,6 +103,7 @@ final class DriftWorkRepository
   Future<List<PayPeriod>> periodsFor(EmploymentId id) =>
       _periods.forEmployment(id);
 
+  @override
   Future<MutationOutcome<PayPeriod>> createPeriod(PayPeriod value) {
     return _database.transaction(() async {
       final existing = await _periods.forEmployment(value.employmentId);
@@ -113,6 +122,7 @@ final class DriftWorkRepository
     });
   }
 
+  @override
   Future<MutationOutcome<PayPeriod>> setPeriodState(
     PayPeriodId id, {
     required PayPeriodState state,
@@ -131,10 +141,13 @@ final class DriftWorkRepository
     return Committed<PayPeriod>((await _periods.byId(id))!);
   }
 
+  @override
   Future<int> insertPayslip(Payslip value) => _payslips.insert(value);
 
+  @override
   Future<Payslip?> payslipById(PayslipId id) => _payslips.byId(id);
 
+  @override
   Future<MutationOutcome<Payslip>> correctPayslip(
     PayslipId originalId, {
     required Revision expected,
@@ -172,6 +185,7 @@ final class DriftWorkRepository
     }
   }
 
+  @override
   Stream<WorkRegisterProjection> watchRegister(WorkScope scope) async* {
     final employmentId = scope.employmentId;
     final temporal = scope.temporal;
@@ -247,6 +261,7 @@ final class DriftWorkRepository
     }
   }
 
+  @override
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) async* {
     if (id is PayslipId) {
       final value = await _payslips.byId(id);
