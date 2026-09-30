@@ -6,6 +6,23 @@ import '../../domain/ids.dart';
 import '../../domain/shift.dart' as domain;
 import '../work_converters.dart';
 
+final class ShiftRegisterRow {
+  const ShiftRegisterRow({
+    required this.id,
+    required this.localStartDate,
+    required this.startUtc,
+    required this.endUtc,
+    required this.state,
+  });
+
+  final ShiftId id;
+  final String localStartDate;
+  final DateTime startUtc;
+  final DateTime? endUtc;
+  final domain.ShiftState state;
+  String? get note => null;
+}
+
 final class ShiftDao {
   const ShiftDao(this.database);
 
@@ -44,6 +61,76 @@ final class ShiftDao {
     final rows =
         await (database.select(database.shiftBreaks)
               ..where((table) => table.shiftId.equals(shiftId.value))
+              ..orderBy([(table) => OrderingTerm.asc(table.startUtcMicros)]))
+            .get();
+    return rows.map(shiftBreakFromRow).toList(growable: false);
+  }
+
+  Future<List<domain.WorkShift>> finalizedForRange(
+    EmploymentId employmentId, {
+    required String start,
+    required String end,
+  }) async {
+    final rows =
+        await (database.select(database.workShifts)
+              ..where(
+                (table) =>
+                    table.employmentId.equals(employmentId.value) &
+                    table.state.equals('finalized') &
+                    table.localStartDate.isBiggerOrEqualValue(start) &
+                    table.localStartDate.isSmallerOrEqualValue(end),
+              )
+              ..orderBy([(table) => OrderingTerm.asc(table.startUtcMicros)]))
+            .get();
+    return rows.map(shiftFromRow).toList(growable: false);
+  }
+
+  Stream<List<ShiftRegisterRow>> watchRowsForRange(
+    EmploymentId employmentId, {
+    required String start,
+    required String end,
+  }) {
+    final query = database.selectOnly(database.workShifts)
+      ..addColumns([
+        database.workShifts.id,
+        database.workShifts.localStartDate,
+        database.workShifts.startUtcMicros,
+        database.workShifts.endUtcMicros,
+        database.workShifts.state,
+      ])
+      ..where(
+        database.workShifts.employmentId.equals(employmentId.value) &
+            database.workShifts.localStartDate.isBiggerOrEqualValue(start) &
+            database.workShifts.localStartDate.isSmallerOrEqualValue(end) &
+            database.workShifts.state.equals('finalized'),
+      )
+      ..orderBy([OrderingTerm.asc(database.workShifts.startUtcMicros)]);
+    return query.watch().map(
+      (rows) => rows
+          .map(
+            (row) => ShiftRegisterRow(
+              id: ShiftId(row.read(database.workShifts.id)!),
+              localStartDate: row.read(database.workShifts.localStartDate)!,
+              startUtc: DateTime.fromMicrosecondsSinceEpoch(
+                row.read(database.workShifts.startUtcMicros)!,
+                isUtc: true,
+              ),
+              endUtc: _nullableUtc(row.read(database.workShifts.endUtcMicros)),
+              state: domain.ShiftState.finalized,
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Future<List<domain.ShiftBreak>> breaksForShifts(
+    Iterable<ShiftId> shiftIds,
+  ) async {
+    final ids = shiftIds.map((id) => id.value).toList(growable: false);
+    if (ids.isEmpty) return const [];
+    final rows =
+        await (database.select(database.shiftBreaks)
+              ..where((table) => table.shiftId.isIn(ids))
               ..orderBy([(table) => OrderingTerm.asc(table.startUtcMicros)]))
             .get();
     return rows.map(shiftBreakFromRow).toList(growable: false);
@@ -166,3 +253,7 @@ final class ShiftDao {
     );
   }
 }
+
+DateTime? _nullableUtc(int? microseconds) => microseconds == null
+    ? null
+    : DateTime.fromMicrosecondsSinceEpoch(microseconds, isUtc: true);
