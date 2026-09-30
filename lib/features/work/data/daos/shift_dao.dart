@@ -213,6 +213,28 @@ final class ShiftDao {
     );
   }
 
+  Future<int> setOvertime(
+    ShiftId id, {
+    required int overtimeMinutes,
+    required Revision expected,
+    required DateTime updatedAtUtc,
+  }) {
+    return database.customUpdate(
+      '''
+      UPDATE work_shifts
+      SET overtime_minutes = ?, updated_at_utc_micros = ?
+      WHERE id = ? AND revision = ? AND state = 'draft'
+      ''',
+      variables: [
+        Variable(overtimeMinutes),
+        Variable(updatedAtUtc.microsecondsSinceEpoch),
+        Variable(id.value),
+        Variable(expected.value),
+      ],
+      updates: {database.workShifts},
+    );
+  }
+
   Future<int> finalize(domain.WorkShift value, {required Revision expected}) {
     return database.customUpdate(
       '''
