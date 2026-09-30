@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/time/local_date.dart';
+import '../features/work/presentation/work_route_state.dart';
 
 GoRouter createAppRouter({String initialLocation = '/work'}) {
   return GoRouter(
@@ -51,15 +51,22 @@ GoRouter createAppRouter({String initialLocation = '/work'}) {
 }
 
 Widget _workSurface(Uri uri) {
-  final from = uri.queryParameters['from'];
-  final to = uri.queryParameters['to'];
-  if ((from == null) != (to == null) ||
-      (from != null &&
-          (LocalDate.tryParse(from) == null ||
-              LocalDate.tryParse(to!) == null))) {
-    return const _UnavailableSurface(
-      title: 'Invalid Work scope',
-      message: 'Choose a valid start and end date to inspect Work records.',
+  final route = parseWorkRoute(uri);
+  if (route is InvalidWorkRoute) {
+    return _UnavailableSurface(
+      title: switch (route.reason) {
+        WorkRouteProblem.malformedId => 'Work record unavailable',
+        WorkRouteProblem.malformedScope => 'Invalid Work scope',
+        WorkRouteProblem.invalidMode => 'Invalid Work mode',
+      },
+      message: switch (route.reason) {
+        WorkRouteProblem.malformedId =>
+          'The requested Work record identifier is invalid.',
+        WorkRouteProblem.malformedScope =>
+          'Choose a valid period or date range to inspect Work records.',
+        WorkRouteProblem.invalidMode =>
+          'Choose a valid inspector mode to continue.',
+      },
     );
   }
   return const _WorkSkeleton();
