@@ -6,6 +6,8 @@ import '../domain/ids.dart';
 abstract interface class WorkWriteStore {
   Future<int> insertEmployment(Employment value);
 
+  Future<Employment?> employmentById(EmploymentId id);
+
   Future<int> updateEmployment(Employment value, {required Revision expected});
 
   Future<List<PayAgreement>> agreementsFor(EmploymentId id);

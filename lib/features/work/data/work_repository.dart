@@ -1,5 +1,6 @@
 import '../../../core/database/app_database.dart' show AppDatabase;
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../application/work_commands.dart';
 import '../domain/agreement.dart';
 import '../domain/correction.dart';
 import '../domain/employment.dart';
@@ -18,7 +19,8 @@ import 'projections/work_record_projection.dart';
 import 'projections/work_register_projection.dart';
 import 'work_write_store.dart';
 
-final class DriftWorkRepository implements WorkWriteStore {
+final class DriftWorkRepository
+    implements WorkWriteStore, WorkCommandRepository {
   DriftWorkRepository(this._database)
     : _employments = EmploymentDao(_database),
       _agreements = AgreementDao(_database),
@@ -34,6 +36,10 @@ final class DriftWorkRepository implements WorkWriteStore {
   final ShiftDao _shifts;
 
   @override
+  Future<T> transaction<T>(Future<T> Function(WorkWriteStore store) body) =>
+      _database.transaction(() => body(this));
+
+  @override
   Future<int> insertEmployment(Employment value) => _employments.insert(value);
 
   @override
@@ -42,6 +48,7 @@ final class DriftWorkRepository implements WorkWriteStore {
     required Revision expected,
   }) => _employments.update(value, expected);
 
+  @override
   Future<Employment?> employmentById(EmploymentId id) => _employments.byId(id);
 
   Stream<Employment?> watchEmployment(EmploymentId id) =>
