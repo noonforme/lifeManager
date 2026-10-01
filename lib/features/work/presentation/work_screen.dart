@@ -6,6 +6,7 @@ import '../../../shared/workbench/lifeos_frame.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../../../shared/workbench/system_rail.dart';
 import 'work_controller.dart';
+import 'work_inspector.dart';
 import 'work_register.dart';
 import 'work_route_state.dart';
 
@@ -111,10 +112,8 @@ final class _WorkScreenState extends State<WorkScreen> {
         title: 'Work record unavailable',
         message: 'The requested record is not available in this scope.',
       ),
-      WorkInspectorRecord() => const OperationalState(
-        kind: OperationalStateKind.loading,
-        title: 'Work record selected',
-        message: 'Record details are available for inspection.',
+      WorkInspectorRecord(:final record) => WorkInspector.fromRecord(
+        projection: record,
       ),
     };
   }

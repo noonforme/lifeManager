@@ -6,6 +6,7 @@ import '../../../shared/workbench/operational_state.dart';
 import '../data/daos/payslip_dao.dart';
 import '../data/daos/shift_dao.dart';
 import '../data/projections/work_register_projection.dart';
+import '../domain/facts.dart';
 import '../domain/pay.dart';
 import 'work_route_state.dart';
 
@@ -166,14 +167,6 @@ final class _Summary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final groups = projection.reconciliation?.groups ?? const [];
-    final expectedMinorUnits = groups.fold<int>(
-      0,
-      (total, group) => total + (group.expected?.minorUnits ?? 0),
-    );
-    final differenceMinorUnits = groups.fold<int>(
-      0,
-      (total, group) => total + (group.difference?.minorUnits ?? 0),
-    );
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: LifeOSColors.surface,
@@ -183,21 +176,43 @@ final class _Summary extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Wrap(
-          spacing: 28,
-          runSpacing: 8,
-          children: [
-            _SummaryValue(
-              label: 'Expected estimate',
-              value: _money(Money(minorUnits: expectedMinorUnits)),
-            ),
-            _SummaryValue(label: 'Paid', value: _money(projection.paid)),
-            _SummaryValue(
-              label: 'Difference',
-              value: _money(Money(minorUnits: differenceMinorUnits)),
-            ),
-          ],
-        ),
+        child: groups.isEmpty
+            ? _SummaryValue(
+                label: 'Paid evidence',
+                value: _money(projection.paid),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var index = 0; index < groups.length; index++) ...[
+                    if (index > 0) const Divider(height: 17),
+                    Text(
+                      '${_basis(groups[index].basis)} · ${groups[index].currency.value}',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 28,
+                      runSpacing: 8,
+                      children: [
+                        _SummaryValue(
+                          label: 'Expected under recorded agreement',
+                          value: _optionalMoney(groups[index].expected),
+                        ),
+                        _SummaryValue(
+                          label: 'Paid evidence',
+                          value: _optionalMoney(groups[index].paid),
+                        ),
+                        if (groups[index].difference != null)
+                          _SummaryValue(
+                            label: 'Difference',
+                            value: _money(groups[index].difference!),
+                          ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
       ),
     );
   }
@@ -276,6 +291,15 @@ String _duration(Duration duration) {
   final minutes = duration.inMinutes.remainder(60);
   return '$hours:${minutes.toString().padLeft(2, '0')}';
 }
+
+String _basis(RateBasis? basis) => switch (basis) {
+  GrossBasis() => 'Gross',
+  NetBasis() => 'Net',
+  null => 'Mixed basis',
+};
+
+String _optionalMoney(Money? money) =>
+    money == null ? 'Not recorded' : _money(money);
 
 String _money(Money money) {
   final negative = money.minorUnits < 0;

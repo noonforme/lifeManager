@@ -8,8 +8,11 @@ import '../data/projections/work_register_projection.dart';
 import '../domain/agreement.dart';
 import '../domain/employment.dart';
 import '../domain/ids.dart';
+import '../domain/pay_period.dart';
+import '../domain/payslip.dart';
 import '../domain/shift.dart';
 import 'employment_agreement_forms.dart';
+import 'period_payslip_forms.dart';
 import 'shift_forms.dart';
 import 'work_route_state.dart';
 
@@ -50,7 +53,38 @@ typedef FinalizeShift = Future<MutationOutcome<WorkShift>> Function(
 typedef SaveManualShift = Future<MutationOutcome<WorkShift>> Function(
   CreateManualShiftCommand command,
 );
+typedef CreatePayPeriod = Future<MutationOutcome<PayPeriod>> Function(
+  CreatePayPeriodCommand command,
+);
+typedef SetPayPeriodState = Future<MutationOutcome<PayPeriod>> Function(
+  SetPayPeriodStateCommand command,
+);
+typedef RecordPayslip = Future<MutationOutcome<Payslip>> Function(
+  RecordPayslipCommand command,
+);
+typedef CorrectPayslip = Future<MutationOutcome<Payslip>> Function(
+  CorrectPayslipCommand command,
+);
+typedef CorrectShift = Future<MutationOutcome<WorkShift>> Function(
+  CorrectShiftCommand command,
+);
 typedef ReplaceWorkRoute = void Function(WorkRouteState route);
+
+final createPayPeriodProvider = Provider<CreatePayPeriod>(
+  (ref) => throw StateError('CreatePayPeriod has not been provided.'),
+);
+final setPayPeriodStateProvider = Provider<SetPayPeriodState>(
+  (ref) => throw StateError('SetPayPeriodState has not been provided.'),
+);
+final recordPayslipProvider = Provider<RecordPayslip>(
+  (ref) => throw StateError('RecordPayslip has not been provided.'),
+);
+final correctPayslipProvider = Provider<CorrectPayslip>(
+  (ref) => throw StateError('CorrectPayslip has not been provided.'),
+);
+final correctShiftProvider = Provider<CorrectShift>(
+  (ref) => throw StateError('CorrectShift has not been provided.'),
+);
 
 final startShiftProvider = Provider<StartShift>(
   (ref) => throw StateError('StartShift has not been provided.'),
@@ -249,12 +283,120 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     );
   }
 
-  Future<MutationOutcome<WorkShift>> _replaceRouteOnCommit(
-    Future<MutationOutcome<WorkShift>> pending,
+  Future<MutationOutcome<PayPeriod>> createPayPeriod(PayPeriodDraft value) {
+    draft = value;
+    return _replacePayPeriodRouteOnCommit(
+      ref.read(createPayPeriodProvider)(
+        CreatePayPeriodCommand(
+          employmentId: value.employmentId,
+          start: value.start,
+          end: value.end,
+          label: _trimOptional(value.label),
+        ),
+      ),
+    );
+  }
+
+  Future<MutationOutcome<PayPeriod>> setPayPeriodState(
+    PayPeriod period,
+    PayPeriodState state,
+  ) => _replacePayPeriodRouteOnCommit(
+    ref.read(setPayPeriodStateProvider)(
+      SetPayPeriodStateCommand(
+        id: period.id,
+        state: state,
+        expectedRevision: period.revision,
+      ),
+    ),
+  );
+
+  Future<MutationOutcome<Payslip>> recordPayslip(PayslipDraft value) {
+    draft = value;
+    return _replacePayslipRouteOnCommit(
+      ref.read(recordPayslipProvider)(
+        RecordPayslipCommand(
+          periodId: value.periodId,
+          issuedDate: value.issuedDate,
+          paidDate: value.paidDate,
+          amountMinorUnits: value.amountMinorUnits,
+          basis: value.basis,
+          grossMinorUnits: value.grossMinorUnits,
+          netMinorUnits: value.netMinorUnits,
+          deductionMinorUnits: value.deductionMinorUnits,
+          reference: _trimOptional(value.reference),
+          note: _trimOptional(value.note),
+        ),
+      ),
+    );
+  }
+
+  Future<MutationOutcome<Payslip>> correctPayslip(
+    Payslip original, {
+    required PayslipId replacementId,
+    required String voidReason,
+  }) => _replacePayslipRouteOnCommit(
+    ref.read(correctPayslipProvider)(
+      CorrectPayslipCommand(
+        originalId: original.id,
+        replacementId: replacementId,
+        expectedRevision: original.revision,
+        voidReason: voidReason.trim(),
+      ),
+    ),
+  );
+
+  Future<MutationOutcome<WorkShift>> correctShift(
+    WorkShift original, {
+    required ShiftId replacementId,
+    required String voidReason,
+  }) => _replaceRouteOnCommit(
+    ref.read(correctShiftProvider)(
+      CorrectShiftCommand(
+        originalId: original.id,
+        replacementId: replacementId,
+        expectedRevision: original.revision,
+        voidReason: voidReason.trim(),
+      ),
+    ),
+    mode: WorkInspectorMode.edit,
+  );
+
+  Future<MutationOutcome<PayPeriod>> _replacePayPeriodRouteOnCommit(
+    Future<MutationOutcome<PayPeriod>> pending,
   ) async {
     final outcome = await pending;
+    if (outcome case Committed<PayPeriod>(:final value)) {
+      ref.read(replaceWorkRouteProvider)(routeForCommittedPayPeriod(value));
+    }
+    return outcome;
+  }
+
+  Future<MutationOutcome<Payslip>> _replacePayslipRouteOnCommit(
+    Future<MutationOutcome<Payslip>> pending,
+  ) async {
+    final outcome = await pending;
+    if (outcome case Committed<Payslip>(:final value)) {
+      final parsed = ref.read(workRouteProvider);
+      final employmentId = switch (parsed) {
+        ValidWorkRoute(:final state) => state.employmentId,
+        InvalidWorkRoute() => null,
+      };
+      ref.read(replaceWorkRouteProvider)(
+        routeForCommittedPayslip(value, employmentId: employmentId),
+      );
+    }
+    return outcome;
+  }
+
+  Future<MutationOutcome<WorkShift>> _replaceRouteOnCommit(
+    Future<MutationOutcome<WorkShift>> pending, {
+    WorkInspectorMode mode = WorkInspectorMode.inspect,
+  }) async {
+    final outcome = await pending;
     if (outcome case Committed<WorkShift>(:final value)) {
-      ref.read(replaceWorkRouteProvider)(routeForCommittedShift(value));
+      ref.read(replaceWorkRouteProvider)(
+        routeForCommittedShift(value, mode: mode),
+      );
     }
     return outcome;
   }

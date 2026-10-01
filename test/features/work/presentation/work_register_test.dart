@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/data/daos/shift_dao.dart';
+import 'package:lifeos/features/work/data/projections/reconciliation_projection.dart';
 import 'package:lifeos/features/work/data/projections/work_register_projection.dart';
+import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/pay.dart';
+import 'package:lifeos/features/work/domain/pay_period.dart';
+import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_register.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
@@ -53,19 +58,35 @@ void main() {
     expect(selected.single.id, _shiftId);
   });
 
-  testWidgets(
-    'summary amounts use tabular figures and label expected as estimate',
-    (tester) async {
-      await tester.pumpWidget(_TestWorkRegister(projection: _projection()));
+  testWidgets('summary labels expected and paid evidence truthfully', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _TestWorkRegister(projection: _reconciliationProjection()),
+    );
 
-      expect(find.text('Expected estimate'), findsOneWidget);
-      final paid = tester.widget<Text>(find.text('EUR 123.45'));
-      expect(
-        paid.style?.fontFeatures,
-        contains(const FontFeature.tabularFigures()),
-      );
-    },
-  );
+    expect(find.text('Expected under recorded agreement'), findsOneWidget);
+    expect(find.text('Paid evidence'), findsOneWidget);
+    final paid = tester.widget<Text>(find.text('EUR 95.00'));
+    expect(
+      paid.style?.fontFeatures,
+      contains(const FontFeature.tabularFigures()),
+    );
+  });
+
+  testWidgets('summary never combines gross and net differences', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _TestWorkRegister(projection: _mixedBasisProjection()),
+    );
+
+    expect(find.text('Gross · EUR'), findsOneWidget);
+    expect(find.text('Net · EUR'), findsOneWidget);
+    expect(find.text('Expected under recorded agreement'), findsNWidgets(2));
+    expect(find.text('Paid evidence'), findsNWidgets(2));
+    expect(find.text('Combined difference'), findsNothing);
+  });
 
   testWidgets('two-times text scale keeps all toolbar controls reachable', (
     tester,
@@ -119,6 +140,89 @@ final class _TestWorkRegister extends StatelessWidget {
   }
 }
 
+WorkRegisterProjection _reconciliationProjection() => WorkRegisterProjection(
+  scope: const WorkScope(
+    employmentId: _employmentId,
+    temporal: PayPeriodScope(_periodId),
+  ),
+  period: _period,
+  shiftRows: const [],
+  payslipRows: const [],
+  paid: const Money(minorUnits: 9500),
+  reconciliation: ReconciliationProjection(
+    period: _period,
+    shiftFacts: const [],
+    payslipEvidence: const [],
+    groups: [
+      _group(
+        basis: const GrossBasis(),
+        expected: 10000,
+        paid: 9500,
+        difference: -500,
+      ),
+    ],
+  ),
+);
+
+WorkRegisterProjection _mixedBasisProjection() => WorkRegisterProjection(
+  scope: const WorkScope(
+    employmentId: _employmentId,
+    temporal: PayPeriodScope(_periodId),
+  ),
+  period: _period,
+  shiftRows: const [],
+  payslipRows: const [],
+  paid: const Money(minorUnits: 16700),
+  reconciliation: ReconciliationProjection(
+    period: _period,
+    shiftFacts: const [],
+    payslipEvidence: const [],
+    groups: [
+      _group(
+        basis: const GrossBasis(),
+        expected: 10000,
+        paid: 9500,
+        difference: -500,
+      ),
+      _group(
+        basis: const NetBasis(),
+        expected: null,
+        paid: 7200,
+        difference: null,
+      ),
+    ],
+  ),
+);
+
+ReconciliationGroup _group({
+  required RateBasis basis,
+  required int? expected,
+  required int? paid,
+  required int? difference,
+}) => ReconciliationGroup(
+  employmentId: _employmentId,
+  periodId: _periodId,
+  currency: const CurrencyCode.eur(),
+  basis: basis,
+  regularPaidSeconds: 0,
+  overtimePaidSeconds: 0,
+  expected: expected == null ? null : Money(minorUnits: expected),
+  paid: paid == null ? null : Money(minorUnits: paid),
+  difference: difference == null ? null : Money(minorUnits: difference),
+  shiftIds: const [],
+  payslipIds: const [],
+  status: difference == null ? const UnmatchedPayslip() : const Difference(),
+);
+
+final _period = PayPeriod.create(
+  id: _periodId,
+  employmentId: _employmentId,
+  start: const LocalDate(2026, 9, 1),
+  end: const LocalDate(2026, 9, 30),
+  label: 'September',
+  nowUtc: DateTime.utc(2026, 9, 1),
+);
+
 WorkRegisterProjection _projection() => WorkRegisterProjection(
   scope: const WorkScope(employmentId: _employmentId, temporal: null),
   period: null,
@@ -137,4 +241,5 @@ WorkRegisterProjection _projection() => WorkRegisterProjection(
 );
 
 const _employmentId = EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11');
+const _periodId = PayPeriodId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c51');
 const _shiftId = ShiftId('00000000-0000-7000-8000-000000000001');

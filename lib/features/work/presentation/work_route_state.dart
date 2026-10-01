@@ -1,6 +1,8 @@
 import '../../../core/time/local_date.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/ids.dart';
+import '../domain/pay_period.dart';
+import '../domain/payslip.dart';
 import '../domain/shift.dart';
 
 enum WorkInspectorMode { inspect, create, edit, correct }
@@ -71,10 +73,30 @@ final class WorkRecordRef {
       id == null ? null : WorkRecordRef(kind: kind, id: id);
 }
 
-WorkRouteState routeForCommittedShift(WorkShift shift) => WorkRouteState(
+WorkRouteState routeForCommittedShift(
+  WorkShift shift, {
+  WorkInspectorMode mode = WorkInspectorMode.inspect,
+}) => WorkRouteState(
   employmentId: shift.employmentId,
   scope: DateRangeScope(start: shift.localStartDate, end: shift.localStartDate),
   record: WorkRecordRef(kind: WorkRecordKind.shift, id: shift.id),
+  mode: mode,
+);
+
+WorkRouteState routeForCommittedPayPeriod(PayPeriod period) => WorkRouteState(
+  employmentId: period.employmentId,
+  scope: PayPeriodScope(period.id),
+  record: WorkRecordRef(kind: WorkRecordKind.payPeriod, id: period.id),
+  mode: WorkInspectorMode.inspect,
+);
+
+WorkRouteState routeForCommittedPayslip(
+  Payslip payslip, {
+  EmploymentId? employmentId,
+}) => WorkRouteState(
+  employmentId: employmentId,
+  scope: PayPeriodScope(payslip.periodId),
+  record: WorkRecordRef(kind: WorkRecordKind.payslip, id: payslip.id),
   mode: WorkInspectorMode.inspect,
 );
 
