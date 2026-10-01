@@ -61,21 +61,30 @@ typedef SubmitPayslip = Future<MutationOutcome<Payslip>> Function(
 );
 
 final class PeriodInspector extends StatefulWidget {
-  const PeriodInspector({required this.period, this.onSetState, super.key})
-    : employmentId = null,
-      onSubmit = null;
+  const PeriodInspector({
+    required this.period,
+    this.onSetState,
+    this.onRecordPayslip,
+    this.reconciliation = const [],
+    super.key,
+  }) : employmentId = null,
+       onSubmit = null;
 
   const PeriodInspector.create({
     required this.employmentId,
     required this.onSubmit,
     super.key,
   }) : period = null,
-       onSetState = null;
+       onSetState = null,
+       onRecordPayslip = null,
+       reconciliation = const [];
 
   final PayPeriod? period;
   final EmploymentId? employmentId;
   final SubmitPayPeriod? onSubmit;
   final SetPayPeriodState? onSetState;
+  final VoidCallback? onRecordPayslip;
+  final List<ReconciliationGroup> reconciliation;
 
   @override
   State<PeriodInspector> createState() => _PeriodInspectorState();
@@ -162,6 +171,28 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
                       widget.onSetState!(period, PayPeriodState.reviewed),
                   child: const Text('Mark reviewed'),
                 ),
+            ],
+            if (widget.onRecordPayslip != null) ...[
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: widget.onRecordPayslip,
+                child: const Text('Record payslip'),
+              ),
+            ],
+            if (widget.reconciliation.isNotEmpty) ...[
+              const Divider(height: 33),
+              if (widget.reconciliation
+                      .map((group) => group.basis.runtimeType)
+                      .toSet()
+                      .length >
+                  1) ...[
+                const Text('Gross and net evidence cannot be combined.'),
+                const SizedBox(height: 16),
+              ],
+              for (final group in widget.reconciliation) ...[
+                _ReconciliationGroupView(group: group),
+                const SizedBox(height: 16),
+              ],
             ],
           ],
         ),

@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show TableUpdateQuery;
 import '../../../core/database/app_database.dart' show AppDatabase;
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../application/pay_period_service.dart';
@@ -190,8 +191,22 @@ final class DriftWorkRepository
   Stream<WorkRegisterProjection> watchRegister(WorkScope scope) async* {
     final employmentId = scope.employmentId;
     final temporal = scope.temporal;
-    if (employmentId == null || temporal == null) {
+    if (employmentId == null) {
       yield WorkRegisterProjection.empty(scope);
+      return;
+    }
+    if (temporal == null) {
+      await for (final periods in _periods.watchForEmployment(employmentId)) {
+        yield WorkRegisterProjection(
+          scope: scope,
+          period: null,
+          shiftRows: const [],
+          payslipRows: const [],
+          paid: const Money(minorUnits: 0),
+          reconciliation: null,
+          periodRows: periods,
+        );
+      }
       return;
     }
     if (temporal is DateRangeScope) {
@@ -264,27 +279,40 @@ final class DriftWorkRepository
 
   @override
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) async* {
+    // Re-read the selected record whenever any Work table commits, so the
+    // inspector reflects state changes without re-selection.
+    yield await _loadRecord(id);
+    await for (final _ in _database.tableUpdates(
+      TableUpdateQuery.onAllTables([
+        _database.employments,
+        _database.payPeriods,
+        _database.payslips,
+        _database.workShifts,
+        _database.shiftBreaks,
+      ]),
+    )) {
+      yield await _loadRecord(id);
+    }
+  }
+
+  Future<WorkRecordProjection?> _loadRecord(WorkRecordId id) async {
     if (id is PayslipId) {
       final value = await _payslips.byId(id);
-      yield value == null ? null : PayslipRecordProjection(value);
-      return;
+      return value == null ? null : PayslipRecordProjection(value);
     }
     if (id is PayPeriodId) {
       final value = await _periods.byId(id);
-      yield value == null ? null : PayPeriodRecordProjection(value);
-      return;
+      return value == null ? null : PayPeriodRecordProjection(value);
     }
     if (id is EmploymentId) {
       final value = await _employments.byId(id);
-      yield value == null ? null : EmploymentRecordProjection(value);
-      return;
+      return value == null ? null : EmploymentRecordProjection(value);
     }
     if (id is ShiftId) {
       final value = await _shifts.byId(id);
-      yield value == null ? null : await _shiftRecord(value);
-      return;
+      return value == null ? null : _shiftRecord(value);
     }
-    yield null;
+    return null;
   }
 
   @override

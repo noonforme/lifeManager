@@ -8,6 +8,7 @@ import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay.dart';
 import '../domain/payslip.dart';
+import '../domain/reconciliation.dart';
 import '../domain/shift.dart';
 import 'correction_confirmation.dart';
 import 'employment_agreement_forms.dart';
@@ -32,6 +33,8 @@ final class WorkInspector extends StatefulWidget {
     super.key,
   }) : projection = null,
        onSetPeriodState = null,
+       onRecordPayslip = null,
+       reconciliation = const [],
        onStartBreak = null,
        onEndBreak = null,
        onEndShift = null,
@@ -49,6 +52,8 @@ final class WorkInspector extends StatefulWidget {
     this.suggestedOvertimeMinutes,
     super.key,
   }) : onSetPeriodState = null,
+       onRecordPayslip = null,
+       reconciliation = const [],
        onCreateEmployment = null,
        onCreateAgreement = null,
        onStartShift = null,
@@ -57,6 +62,8 @@ final class WorkInspector extends StatefulWidget {
   const WorkInspector.fromRecord({
     required this.projection,
     this.onSetPeriodState,
+    this.onRecordPayslip,
+    this.reconciliation = const [],
     this.onStartBreak,
     this.onEndBreak,
     this.onEndShift,
@@ -75,6 +82,8 @@ final class WorkInspector extends StatefulWidget {
   final ValueChanged<EmploymentId>? onAddManualShift;
   final WorkRecordProjection? projection;
   final SetPayPeriodState? onSetPeriodState;
+  final VoidCallback? onRecordPayslip;
+  final List<ReconciliationGroup> reconciliation;
   final MutateShift? onStartBreak;
   final MutateBreak? onEndBreak;
   final MutateShift? onEndShift;
@@ -157,6 +166,8 @@ final class _WorkInspectorState extends State<WorkInspector> {
         PayPeriodRecordProjection(:final period) => PeriodInspector(
           period: period,
           onSetState: widget.onSetPeriodState,
+          onRecordPayslip: widget.onRecordPayslip,
+          reconciliation: widget.reconciliation,
         ),
         PayslipRecordProjection(:final payslip) => _PayslipDetail(
           payslip: payslip,

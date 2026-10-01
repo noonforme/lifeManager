@@ -7,12 +7,15 @@ import '../../../shared/workbench/lifeos_frame.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../../../shared/workbench/system_rail.dart';
 import '../data/projections/work_record_projection.dart';
+import '../data/projections/work_register_projection.dart';
 import '../domain/ids.dart';
+import '../domain/pay_period.dart';
 import '../domain/shift.dart';
 import 'correction_confirmation.dart';
 import 'employment_agreement_forms.dart';
+import 'period_payslip_forms.dart';
 import 'shift_forms.dart';
-import 'work_controller.dart';
+import 'work_controller.dart' hide SetPayPeriodState;
 import 'work_inspector.dart';
 import 'work_register.dart';
 import 'work_route_state.dart';
@@ -33,6 +36,9 @@ final class WorkScreen extends StatefulWidget {
     this.onOpenManualShift,
     this.onSaveManualShift,
     this.systemTimezoneId,
+    this.onCreatePayPeriod,
+    this.onSetPeriodState,
+    this.onRecordPayslip,
     super.key,
   });
 
@@ -59,6 +65,9 @@ final class WorkScreen extends StatefulWidget {
   final ValueChanged<EmploymentId>? onOpenManualShift;
   final SubmitManualShift? onSaveManualShift;
   final String? systemTimezoneId;
+  final SubmitPayPeriod? onCreatePayPeriod;
+  final SetPayPeriodState? onSetPeriodState;
+  final SubmitPayslip? onRecordPayslip;
 
   @override
   State<WorkScreen> createState() => _WorkScreenState();
@@ -67,8 +76,36 @@ final class WorkScreen extends StatefulWidget {
 final class _WorkScreenState extends State<WorkScreen> {
   bool _showRegister = false;
   MutationOutcome<WorkShift>? _startFailure;
+  MutationOutcome<PayPeriod>? _periodFailure;
+  bool _creatingPeriod = false;
+  PayPeriodId? _payslipPeriod;
 
   void _clearStartFailure() => setState(() => _startFailure = null);
+
+  void _clearPeriodFailure() => setState(() => _periodFailure = null);
+
+  void _openPayslip(PayPeriodId period) =>
+      setState(() => _payslipPeriod = period);
+
+  Future<MutationOutcome<PayPeriod>> _createPeriod(PayPeriodDraft draft) async {
+    final outcome = await widget.onCreatePayPeriod!(draft);
+    if (mounted && outcome is Committed<PayPeriod>) {
+      setState(() => _creatingPeriod = false);
+    }
+    return outcome;
+  }
+
+  Future<MutationOutcome<PayPeriod>> _setPeriodState(
+    PayPeriod period,
+    PayPeriodState state,
+  ) async {
+    final outcome = await widget.onSetPeriodState!(period, state);
+    if (!mounted) return outcome;
+    setState(() {
+      _periodFailure = outcome is Committed<PayPeriod> ? null : outcome;
+    });
+    return outcome;
+  }
 
   Future<void> _startShift(EmploymentId employment) async {
     final start = widget.onStartShift;
@@ -87,9 +124,13 @@ final class _WorkScreenState extends State<WorkScreen> {
     final newRecord = _selectedRecord(widget.state);
     if (oldRecord?.id != newRecord?.id) {
       _showRegister = false;
+      _periodFailure = null;
+      _creatingPeriod = false;
+      _payslipPeriod = null;
     }
     if (_routeMode(oldWidget.state) != _routeMode(widget.state)) {
       _startFailure = null;
+      _creatingPeriod = false;
     }
   }
 
@@ -100,7 +141,9 @@ final class _WorkScreenState extends State<WorkScreen> {
       AsyncLoading() || AsyncError() => null,
     };
     final routeRecord = ready is WorkReady ? ready.route.record : null;
-    final inspectorActive = routeRecord != null && !_showRegister;
+    final inspectorActive =
+        (routeRecord != null || _creatingPeriod || _payslipPeriod != null) &&
+        !_showRegister;
     return LifeOSFrame(
       rail: SystemRail(selectedPath: '/work', onNavigate: widget.onNavigate),
       register: _register(ready),
@@ -136,6 +179,12 @@ final class _WorkScreenState extends State<WorkScreen> {
         selectedRecord: route.record,
         onSelect: widget.onSelect,
         onPrimaryAction: widget.onPrimaryAction,
+        onNewPeriod: widget.onCreatePayPeriod == null || route.employmentId == null
+            ? null
+            : () => setState(() {
+                _creatingPeriod = true;
+                _showRegister = false;
+              }),
       ),
       null => const OperationalState(
         kind: OperationalStateKind.unavailable,
@@ -154,6 +203,20 @@ final class _WorkScreenState extends State<WorkScreen> {
       );
     }
     final route = state.route;
+    final employmentId = route.employmentId;
+    if (_creatingPeriod && employmentId != null) {
+      return PeriodInspector.create(
+        employmentId: employmentId,
+        onSubmit: _createPeriod,
+      );
+    }
+    final recordPayslip = widget.onRecordPayslip;
+    if (_payslipPeriod case final periodId? when recordPayslip != null) {
+      return PayslipInspector.create(
+        periodId: periodId,
+        onSubmit: recordPayslip,
+      );
+    }
     if (route.mode == WorkInspectorMode.create && route.record == null) {
       if (_startFailure case final failure?) {
         return _startOutcome(failure);
@@ -195,7 +258,10 @@ final class _WorkScreenState extends State<WorkScreen> {
         title: 'Work record unavailable',
         message: 'The requested record is not available in this scope.',
       ),
-      WorkInspectorRecord(:final record) => _recordInspector(record),
+      WorkInspectorRecord(:final record) => _recordInspector(
+        record,
+        state.register,
+      ),
     };
   }
 }
@@ -225,7 +291,47 @@ extension on _WorkScreenState {
     };
   }
 
-  Widget _recordInspector(WorkRecordProjection record) {
+  Widget _periodOutcome(MutationOutcome<PayPeriod> outcome) {
+    final dismiss = _clearPeriodFailure;
+    return switch (outcome) {
+      Invalid<PayPeriod>() => _rejected(
+        'The period state could not change. Review the period and try again.',
+        dismiss,
+        action: 'Back to period',
+      ),
+      Stale<PayPeriod>() => StaleConflictInspector(
+        draft: const SizedBox.shrink(),
+        onReload: dismiss,
+      ),
+      Missing<PayPeriod>() => const MissingRecordInspector(),
+      Unavailable<PayPeriod>(:final code) => UnavailableInspector(code: code),
+      Uncertain<PayPeriod>() => const UncertainOutcomeInspector(),
+      Committed<PayPeriod>() => const SizedBox.shrink(),
+    };
+  }
+
+  Widget _recordInspector(
+    WorkRecordProjection record,
+    WorkRegisterProjection register,
+  ) {
+    if (record is PayPeriodRecordProjection) {
+      if (_periodFailure case final failure?) {
+        return _periodOutcome(failure);
+      }
+      return WorkInspector.fromRecord(
+        key: ValueKey(record.id),
+        projection: record,
+        onSetPeriodState: widget.onSetPeriodState == null
+            ? null
+            : _setPeriodState,
+        onRecordPayslip: widget.onRecordPayslip == null
+            ? null
+            : () => _openPayslip(record.period.id),
+        reconciliation: register.period?.id == record.period.id
+            ? register.reconciliation?.groups ?? const []
+            : const [],
+      );
+    }
     final onEndBreak = widget.onEndBreak;
     final onFinalize = widget.onFinalize;
     final shift = record is ShiftRecordProjection ? record.shift : null;
@@ -252,11 +358,14 @@ WorkRecordRef? _selectedRecord(AsyncValue<WorkViewState> state) {
   return value is WorkReady ? value.route.record : null;
 }
 
-Widget _rejected(String message, VoidCallback onDismiss) =>
-    ValidationFailureInspector(
-      message: message,
-      child: _Rejected(message: message, onDismiss: onDismiss),
-    );
+Widget _rejected(
+  String message,
+  VoidCallback onDismiss, {
+  String action = 'Back to Record work',
+}) => ValidationFailureInspector(
+  message: message,
+  child: _Rejected(message: message, onDismiss: onDismiss, action: action),
+);
 
 WorkInspectorMode? _routeMode(AsyncValue<WorkViewState> state) {
   final value = switch (state) {
@@ -267,10 +376,15 @@ WorkInspectorMode? _routeMode(AsyncValue<WorkViewState> state) {
 }
 
 final class _Rejected extends StatelessWidget {
-  const _Rejected({required this.message, required this.onDismiss});
+  const _Rejected({
+    required this.message,
+    required this.onDismiss,
+    required this.action,
+  });
 
   final String message;
   final VoidCallback onDismiss;
+  final String action;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -282,7 +396,7 @@ final class _Rejected extends StatelessWidget {
         const SizedBox(height: 14),
         OutlinedButton(
           onPressed: onDismiss,
-          child: const Text('Back to Record work'),
+          child: Text(action),
         ),
       ],
     ),

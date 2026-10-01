@@ -10,12 +10,16 @@ import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/application/work_commands.dart';
 import 'package:lifeos/features/work/application/work_query_service.dart';
 import 'package:lifeos/features/work/data/daos/shift_dao.dart';
+import 'package:lifeos/features/work/data/projections/reconciliation_projection.dart';
 import 'package:lifeos/features/work/data/projections/work_record_projection.dart';
 import 'package:lifeos/features/work/data/projections/work_register_projection.dart';
 import 'package:lifeos/features/work/domain/employment.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/pay.dart';
+import 'package:lifeos/features/work/domain/pay_period.dart';
+import 'package:lifeos/features/work/domain/payslip.dart';
+import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
@@ -573,6 +577,230 @@ void main() {
     );
   });
 
+  testWidgets('selecting a pay period row scopes the register to it', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 760);
+    addTearDown(tester.view.reset);
+    final router = createAppRouter(
+      initialLocation: '/work?employment=${_employmentId.value}',
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _PeriodQueryRepository(),
+          ),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Pay period'));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/work?employment=${_employmentId.value}&period=${_periodId.value}'
+      '&record=payPeriod:${_periodId.value}&mode=inspect',
+    );
+  });
+
+  testWidgets('new pay period form creates and selects the period', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1000);
+    addTearDown(tester.view.reset);
+    CreatePayPeriodCommand? issued;
+    final router = createAppRouter(
+      initialLocation: '/work?employment=${_employmentId.value}',
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _PeriodQueryRepository(),
+          ),
+          createPayPeriodProvider.overrideWithValue((command) async {
+            issued = command;
+            return Committed(_openPeriod);
+          }),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('New pay period'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('period-start')),
+      '2026-09-01',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('period-end')),
+      '2026-09-30',
+    );
+    await tester.tap(find.text('Create period'));
+    await tester.pumpAndSettle();
+
+    expect(issued?.employmentId, _employmentId);
+    expect(issued?.start, const LocalDate(2026, 9, 1));
+    expect(issued?.end, const LocalDate(2026, 9, 30));
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/work?employment=${_employmentId.value}&period=${_periodId.value}'
+      '&record=payPeriod:${_periodId.value}&mode=inspect',
+    );
+  });
+
+  testWidgets('selected period is marked reviewed through the controller', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1000);
+    addTearDown(tester.view.reset);
+    SetPayPeriodStateCommand? issued;
+    final router = createAppRouter(initialLocation: _periodLocation);
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _PeriodQueryRepository(),
+          ),
+          setPayPeriodStateProvider.overrideWithValue((command) async {
+            issued = command;
+            return Committed(_openPeriod);
+          }),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Mark reviewed'));
+    await tester.pumpAndSettle();
+
+    expect(issued?.id, _periodId);
+    expect(issued?.state, PayPeriodState.reviewed);
+    expect(issued?.expectedRevision, _openPeriod.revision);
+  });
+
+  testWidgets('stale period review explains reload and keeps the route', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1000);
+    addTearDown(tester.view.reset);
+    final router = createAppRouter(initialLocation: _periodLocation);
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _PeriodQueryRepository(),
+          ),
+          setPayPeriodStateProvider.overrideWithValue(
+            (command) async => const Stale(),
+          ),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Mark reviewed'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Your record is out of date. Reload and review before trying again.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      _periodLocation,
+    );
+  });
+
+  testWidgets('selected period records a payslip and selects it', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1400);
+    addTearDown(tester.view.reset);
+    RecordPayslipCommand? issued;
+    final router = createAppRouter(initialLocation: _periodLocation);
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _PeriodQueryRepository(),
+          ),
+          recordPayslipProvider.overrideWithValue((command) async {
+            issued = command;
+            return Committed(_payslip);
+          }),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Record payslip'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('payslip-issued-date')),
+      '2026-09-30',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('payslip-amount')),
+      '950.00',
+    );
+    await tester.tap(find.text('Save payslip'));
+    await tester.pumpAndSettle();
+
+    expect(issued?.periodId, _periodId);
+    expect(issued?.amountMinorUnits, 95000);
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/work?employment=${_employmentId.value}&period=${_periodId.value}'
+      '&record=payslip:${_payslipId.value}&mode=inspect',
+    );
+  });
+
+  testWidgets('selected period explains its reconciliation', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1000);
+    addTearDown(tester.view.reset);
+    final router = createAppRouter(initialLocation: _periodLocation);
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _PeriodQueryRepository(),
+          ),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Paid evidence differs from the recorded agreement.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('safe top-level navigation remains available from Work', (
     tester,
   ) async {
@@ -762,3 +990,96 @@ final _closedBreak = ShiftBreak(
   updatedAtUtc: DateTime.utc(2026, 9, 29, 12, 30),
   revision: const Revision(1),
 );
+
+const _periodId = PayPeriodId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c51');
+const _payslipId = PayslipId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c61');
+final _periodLocation =
+    '/work?employment=${_employmentId.value}&period=${_periodId.value}'
+    '&record=payPeriod:${_periodId.value}&mode=inspect';
+
+final _openPeriod = PayPeriod.create(
+  id: _periodId,
+  employmentId: _employmentId,
+  start: const LocalDate(2026, 9, 1),
+  end: const LocalDate(2026, 9, 30),
+  label: null,
+  nowUtc: DateTime.utc(2026, 9, 1),
+);
+
+final _payslip = Payslip(
+  id: _payslipId,
+  periodId: _periodId,
+  issuedDate: const LocalDate(2026, 9, 30),
+  paidDate: null,
+  amount: const Money(minorUnits: 95000),
+  basis: const GrossBasis(),
+  grossMinorUnits: null,
+  netMinorUnits: null,
+  deductionMinorUnits: null,
+  reference: null,
+  note: null,
+  state: PayslipState.effective,
+  voidReason: null,
+  replacementPayslipId: null,
+  replacedPayslipId: null,
+  createdAtUtc: DateTime.utc(2026, 10, 1),
+  updatedAtUtc: DateTime.utc(2026, 10, 1),
+  revision: const Revision(0),
+);
+
+final class _PeriodQueryRepository implements WorkQueryRepository {
+  @override
+  Stream<WorkRegisterProjection> watchRegister(WorkScope scope) {
+    if (scope.temporal == null) {
+      return Stream.value(
+        WorkRegisterProjection(
+          scope: scope,
+          period: null,
+          shiftRows: const [],
+          payslipRows: const [],
+          paid: const Money(minorUnits: 0),
+          reconciliation: null,
+          periodRows: [_openPeriod],
+        ),
+      );
+    }
+    return Stream.value(
+      WorkRegisterProjection(
+        scope: scope,
+        period: _openPeriod,
+        shiftRows: const [],
+        payslipRows: const [],
+        paid: const Money(minorUnits: 9500),
+        reconciliation: ReconciliationProjection(
+          period: _openPeriod,
+          shiftFacts: const [],
+          payslipEvidence: const [],
+          groups: [
+            ReconciliationGroup(
+              employmentId: _employmentId,
+              periodId: _periodId,
+              currency: const CurrencyCode.eur(),
+              basis: const GrossBasis(),
+              regularPaidSeconds: 0,
+              overtimePaidSeconds: 0,
+              expected: const Money(minorUnits: 10000),
+              paid: const Money(minorUnits: 9500),
+              difference: const Money(minorUnits: -500),
+              shiftIds: const [],
+              payslipIds: const [],
+              status: const Difference(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) => Stream.value(
+    id == _periodId ? PayPeriodRecordProjection(_openPeriod) : null,
+  );
+
+  @override
+  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
+}

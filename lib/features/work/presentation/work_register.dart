@@ -8,6 +8,7 @@ import '../data/daos/shift_dao.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/facts.dart';
 import '../domain/pay.dart';
+import '../domain/pay_period.dart';
 import 'work_route_state.dart';
 
 final class WorkRegister extends StatelessWidget {
@@ -16,6 +17,7 @@ final class WorkRegister extends StatelessWidget {
     required this.selectedRecord,
     required this.onSelect,
     required this.onPrimaryAction,
+    this.onNewPeriod,
     super.key,
   });
 
@@ -23,6 +25,7 @@ final class WorkRegister extends StatelessWidget {
   final WorkRecordRef? selectedRecord;
   final ValueChanged<WorkRecordRef> onSelect;
   final VoidCallback onPrimaryAction;
+  final VoidCallback? onNewPeriod;
 
   @override
   Widget build(BuildContext context) {
@@ -47,13 +50,18 @@ final class WorkRegister extends StatelessWidget {
     }
 
     final rows = <_WorkRow>[
+      for (final period in value.periodRows) _WorkRow.period(period),
       for (final shift in value.shiftRows) _WorkRow.shift(shift),
       for (final payslip in value.payslipRows) _WorkRow.payslip(payslip),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Toolbar(projection: value, onPrimaryAction: onPrimaryAction),
+        _Toolbar(
+          projection: value,
+          onPrimaryAction: onPrimaryAction,
+          onNewPeriod: onNewPeriod,
+        ),
         _Summary(projection: value),
         Expanded(
           child: rows.isEmpty
@@ -102,10 +110,15 @@ final class WorkRegister extends StatelessWidget {
 }
 
 final class _Toolbar extends StatelessWidget {
-  const _Toolbar({required this.projection, required this.onPrimaryAction});
+  const _Toolbar({
+    required this.projection,
+    required this.onPrimaryAction,
+    required this.onNewPeriod,
+  });
 
   final WorkRegisterProjection projection;
   final VoidCallback onPrimaryAction;
+  final VoidCallback? onNewPeriod;
 
   @override
   Widget build(BuildContext context) {
@@ -132,6 +145,11 @@ final class _Toolbar extends StatelessWidget {
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Add shift'),
           ),
+          if (onNewPeriod != null)
+            OutlinedButton(
+              onPressed: onNewPeriod,
+              child: const Text('New pay period'),
+            ),
         ],
       ),
     );
@@ -263,6 +281,15 @@ final class _WorkRow {
       semanticLabel: 'Shift on ${row.localStartDate}',
     );
   }
+
+  factory _WorkRow.period(PayPeriod period) => _WorkRow(
+    record: WorkRecordRef(kind: WorkRecordKind.payPeriod, id: period.id),
+    date: period.start.toString(),
+    kindLabel: 'Pay period',
+    status: period.state == PayPeriodState.reviewed ? 'reviewed' : 'open',
+    value: '${period.start} – ${period.end}',
+    semanticLabel: 'Pay period from ${period.start} to ${period.end}',
+  );
 
   factory _WorkRow.payslip(PayslipRegisterRow row) => _WorkRow(
     record: WorkRecordRef(kind: WorkRecordKind.payslip, id: row.id),

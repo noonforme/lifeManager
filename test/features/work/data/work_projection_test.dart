@@ -209,6 +209,33 @@ void main() {
     expect(active?.breaks, isEmpty);
   });
 
+  test('selected period record refreshes after a committed state change', () async {
+    final updates = repository.watchRecord(_periodId).take(2).toList();
+    await Future<void>.delayed(Duration.zero);
+    await repository.setPeriodState(
+      _periodId,
+      state: PayPeriodState.reviewed,
+      expected: _period.revision,
+      nowUtc: DateTime.utc(2026, 10, 2),
+    );
+
+    final values = await updates.timeout(const Duration(seconds: 2));
+    expect(
+      (values.last! as PayPeriodRecordProjection).period.state,
+      PayPeriodState.reviewed,
+    );
+  });
+
+  test('employment scope without a period lists its pay periods', () async {
+    final register = await repository
+        .watchRegister(
+          const WorkScope(employmentId: _employmentId, temporal: null),
+        )
+        .first;
+
+    expect(register.periodRows.map((period) => period.id), [_periodId]);
+  });
+
   test('stale payslip correction rolls back replacement insertion', () async {
     await repository.insertPayslip(_original);
     final replacement = _payslip(

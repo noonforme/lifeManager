@@ -30,6 +30,13 @@ final class PayPeriodDao {
     return rows.map(payPeriodFromRow).toList(growable: false);
   }
 
+  Stream<List<domain.PayPeriod>> watchForEmployment(EmploymentId id) =>
+      (database.select(database.payPeriods)
+            ..where((table) => table.employmentId.equals(id.value))
+            ..orderBy([(table) => OrderingTerm.asc(table.start)]))
+          .watch()
+          .map((rows) => rows.map(payPeriodFromRow).toList(growable: false));
+
   Future<int> setState(
     PayPeriodId id, {
     required domain.PayPeriodState state,

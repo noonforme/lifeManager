@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/work/data/projections/work_register_projection.dart';
+import '../features/work/domain/ids.dart';
 import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_route_state.dart';
 import '../features/work/presentation/work_screen.dart';
@@ -106,7 +108,9 @@ final class _WorkRouteHost extends ConsumerWidget {
             ref.read(replaceWorkRouteProvider)(
               WorkRouteState(
                 employmentId: state.employmentId,
-                scope: state.scope,
+                scope: record.kind == WorkRecordKind.payPeriod
+                    ? PayPeriodScope(record.id as PayPeriodId)
+                    : state.scope,
                 record: record,
                 mode: WorkInspectorMode.inspect,
               ),
@@ -159,6 +163,15 @@ final class _WorkRouteHost extends ConsumerWidget {
             .read(workControllerProvider.notifier)
             .saveManualShift,
         systemTimezoneId: ref.read(currentTimezoneIdProvider)(),
+        onCreatePayPeriod: ref
+            .read(workControllerProvider.notifier)
+            .createPayPeriod,
+        onSetPeriodState: ref
+            .read(workControllerProvider.notifier)
+            .setPayPeriodState,
+        onRecordPayslip: ref
+            .read(workControllerProvider.notifier)
+            .recordPayslip,
       ),
     );
   }

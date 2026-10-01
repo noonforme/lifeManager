@@ -38,6 +38,7 @@ final class WorkRegisterProjection {
     required this.payslipRows,
     required this.paid,
     required this.reconciliation,
+    this.periodRows = const [],
   });
 
   final WorkScope scope;
@@ -46,6 +47,10 @@ final class WorkRegisterProjection {
   final List<PayslipRegisterRow> payslipRows;
   final Money paid;
   final ReconciliationProjection? reconciliation;
+
+  /// Pay periods of the selected employment, listed when no temporal scope is
+  /// chosen so the owner can pick one explicitly.
+  final List<PayPeriod> periodRows;
 
   factory WorkRegisterProjection.empty(WorkScope scope) =>
       WorkRegisterProjection(
