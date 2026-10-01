@@ -110,18 +110,18 @@ final class OfficeMachineSkin implements LifeOSSkin { /* spec 4.1–4.6 */ }
 
 Task 1 implements only `OfficeMachineSkin`, but every control built here must take its painting from `LifeOSSkin.painters` so Task 11 adds skins without touching widgets.
 
-- [ ] **Step 1: Write failing token tests.** For each palette, assert `contrastRatio` ≥ 4.5 for ink, muted, runInk, negative and positive on paper, band and chrome; for actionInk on actionFill; for headInk on head; and for each area key's ink on its fill. Assert ≥ 3.0 for signal on paper.
-- [ ] **Step 2: Run** `flutter test test/shared/workbench/lifeos_tokens_test.dart`. Expected: FAIL (no tokens).
-- [ ] **Step 3: Implement tokens** with the exact values from spec 4.2. Expose them through a `LifeOSTheme` `InheritedWidget` or `ThemeExtension`. Resolve `system` from `MediaQuery.platformBrightness` and `highContrast`.
-- [ ] **Step 4: Bundle fonts.** Add the font files and `OFL.txt`, declare the families in `pubspec.yaml`, and build text styles per spec 4.3. Figures use `FontFeature.tabularFigures()`.
-- [ ] **Step 5: Implement controls through `SkinPainters` and test them.**
+- [x] **Step 1: Write failing token tests.** For each palette, assert `contrastRatio` ≥ 4.5 for ink, muted, runInk, negative and positive on paper, band and chrome; for actionInk on actionFill; for headInk on head; and for each area key's ink on its fill. Assert ≥ 3.0 for signal on paper.
+- [x] **Step 2: Run** `flutter test test/shared/workbench/lifeos_tokens_test.dart`. Expected: FAIL (no tokens).
+- [x] **Step 3: Implement tokens** with the exact values from spec 4.2. Expose them through a `LifeOSTheme` `InheritedWidget` or `ThemeExtension`. Resolve `system` from `MediaQuery.platformBrightness` and `highContrast`.
+- [x] **Step 4: Bundle fonts.** Add the font files and `OFL.txt`, declare the families in `pubspec.yaml`, and build text styles per spec 4.3. Figures use `FontFeature.tabularFigures()`.
+- [x] **Step 5: Implement controls through `SkinPainters` and test them.**
   - `KeyButton` (primary, secondary, small) has a 2-pixel bottom edge and loses it when pressed.
   - `AreaKey` chip with letter and semantics label (for example "Work").
   - `CountBadge`.
   - `SegmentedTabs`.
   - Widget tests: the focus ring is distinct from selection, the pressed state removes the edge, and 200% text scale does not overflow.
-- [ ] **Step 6: Run** `flutter test test/shared/workbench && flutter analyze`. Expected: PASS.
-- [ ] **Step 7: Commit** `feat: add Office Machine tokens, fonts and key controls`.
+- [x] **Step 6: Run** `flutter test test/shared/workbench && flutter analyze`. Expected: PASS.
+- [x] **Step 7: Commit** `feat: add Office Machine tokens, fonts and key controls`.
 
 ### Task 2: Shell frame, tree, menus, toolbar and status line
 

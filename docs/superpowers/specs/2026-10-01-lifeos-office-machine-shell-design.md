@@ -91,17 +91,17 @@ Contrast ratios are against the surface each token sits on. Text pairs meet 4.5:
 | `rule` | Row and cell separators | `#dcded9` | `#383936` | `#7a7d77` |
 | `band` | Alternate row band, column headers | `#ebede8` | `#2b2c29` | `#f0f1ee` |
 | `chrome` | Menu bar, toolbar, tab strip | `#e2e4df` | `#1d1e1c` | `#e2e4df` |
-| `chromeLine` | Pane and control borders | `#a9aca5` | `#454642` | `#3d3f3b` |
+| `chromeLine` | Pane dividers (control outlines use `muted`) | `#a9aca5` | `#454642` | `#3d3f3b` |
 | `head` | Tile headers, status line, active segment | `#2b2c2a` | `#0f100e` | `#000000` |
 | `headInk` | Text on `head` | `#f4f5f2` | `#ecebe6` | `#ffffff` |
 | `signal` | Indicators: running dot, budget bars, selection outline | `#e8590c` | `#ff6a1a` | `#a83600` |
 | `actionFill` | Primary button fill | `#c2410c` | `#ff6a1a` | `#a83600` |
 | `actionInk` | Text on `actionFill` | `#ffffff` | `#161715` | `#ffffff` |
-| `runInk` | Running-state text | `#c2410c` | `#ff6a1a` | `#a83600` |
+| `runInk` | Running-state text | `#b03a0a` | `#ff8a4c` | `#a83600` |
 | `selWash` | Selected row fill | `#fde3d2` | `#4a2b18` | `#ffd9c2` |
 | `selInk` | Text on `selWash` | `#1d1d1b` | `#ecebe6` | `#000000` |
-| `negative` | Over budget, short paid, negative amounts | `#c22a1e` | `#ff7d70` | `#a0150b` |
-| `positive` | Under budget, positive amounts | `#2f7d32` | `#94d394` | `#1f5e22` |
+| `negative` | Over budget, short paid, negative amounts | `#b8261b` | `#ff7d70` | `#a0150b` |
+| `positive` | Under budget, positive amounts | `#2a6f2d` | `#94d394` | `#1f5e22` |
 | `focus` | Keyboard focus ring | `#1d1d1b` | `#ecebe6` | `#000000` |
 
 Area keys (chip fill / chip text):
@@ -113,7 +113,7 @@ Area keys (chip fill / chip text):
 | Tracking | `#3f7a2e` / `#ffffff` | `#7cbf62` / `#161715` |
 | Knowledge | `#7b5ea7` / `#ffffff` | `#a98bd2` / `#161715` |
 
-`signal` (`#e8590c`) is too light for small white text, so filled buttons use `actionFill` (`#c2410c`, 5.2:1 with white). A unit test computes the contrast of every listed text pair and fails below the threshold.
+`signal` (`#e8590c`) is too light for small white text, so filled buttons use `actionFill` (`#c2410c`, 5.2:1 with white). `chromeLine` is too faint to outline a control in the night palette, so button and segment outlines use `muted`, which meets 3:1 everywhere. `runInk`, `negative` and `positive` are darker than `signal` so they also meet 4.5:1 on row bands and selected rows. A unit test (`test/shared/workbench/lifeos_tokens_test.dart`) computes the contrast of every text pair on every surface it can sit on and fails below the threshold.
 
 ### 4.3 Type
 
