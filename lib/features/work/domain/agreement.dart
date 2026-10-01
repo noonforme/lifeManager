@@ -1,6 +1,21 @@
 import '../../../core/time/local_date.dart';
 import 'facts.dart';
 import 'ids.dart';
+import 'lithuanian_holidays.dart';
+
+export 'lithuanian_holidays.dart' show HolidayCalendar;
+
+/// How premiums combine when several apply to the same paid time.
+enum PremiumStacking {
+  /// The largest active multiplier.
+  highest,
+
+  /// 1 plus the sum of each active multiplier's extra.
+  additive,
+
+  /// The product of every active multiplier.
+  multiplicative,
+}
 
 final class RationalMultiplier {
   const RationalMultiplier({required this.numerator, required this.denominator})
@@ -18,6 +33,35 @@ final class RationalMultiplier {
 
   @override
   int get hashCode => Object.hash(numerator, denominator);
+
+  /// Whether this multiplier is at least ×1.
+  bool get isAtLeastOne => numerator >= denominator;
+
+  @override
+  String toString() => '$numerator/$denominator';
+}
+
+/// Defaults for a new agreement: the minimums of the Lithuanian Labour Code
+/// (Article 144). LifeOS labels them as defaults, not legal advice.
+abstract final class AgreementDefaults {
+  static const overtimeThresholdMinutes = 480;
+  static const overtimeMultiplier = RationalMultiplier(
+    numerator: 3,
+    denominator: 2,
+  );
+  static const nightEnabled = true;
+  static const nightStartMinute = 22 * 60;
+  static const nightEndMinute = 6 * 60;
+  static const nightMultiplier = RationalMultiplier(
+    numerator: 3,
+    denominator: 2,
+  );
+  static const holidayCalendar = HolidayCalendar.lithuania;
+  static const holidayMultiplier = RationalMultiplier(
+    numerator: 2,
+    denominator: 1,
+  );
+  static const premiumStacking = PremiumStacking.highest;
 }
 
 final class PayAgreement {
@@ -36,6 +80,13 @@ final class PayAgreement {
     required this.createdAtUtc,
     required this.revision,
     required this.usedByFinalizedShift,
+    this.nightEnabled = AgreementDefaults.nightEnabled,
+    this.nightStartMinute = AgreementDefaults.nightStartMinute,
+    this.nightEndMinute = AgreementDefaults.nightEndMinute,
+    this.nightMultiplier = AgreementDefaults.nightMultiplier,
+    this.holidayCalendar = AgreementDefaults.holidayCalendar,
+    this.holidayMultiplier = AgreementDefaults.holidayMultiplier,
+    this.premiumStacking = AgreementDefaults.premiumStacking,
   }) {
     if (version <= 0) throw ArgumentError.value(version, 'version');
     if (hourlyRateMicroEur <= 0) {
@@ -47,9 +98,26 @@ final class PayAgreement {
         'overtimeThresholdMinutes',
       );
     }
-    if (overtimeMultiplier.numerator <= 0 ||
-        overtimeMultiplier.denominator <= 0) {
-      throw ArgumentError.value(overtimeMultiplier, 'overtimeMultiplier');
+    for (final (name, multiplier) in [
+      ('overtimeMultiplier', overtimeMultiplier),
+      ('nightMultiplier', nightMultiplier),
+      ('holidayMultiplier', holidayMultiplier),
+    ]) {
+      if (multiplier.numerator <= 0 ||
+          multiplier.denominator <= 0 ||
+          !multiplier.isAtLeastOne) {
+        throw ArgumentError.value(multiplier, name);
+      }
+    }
+    for (final (name, minute) in [
+      ('nightStartMinute', nightStartMinute),
+      ('nightEndMinute', nightEndMinute),
+    ]) {
+      if (minute < 0 || minute > 1439) throw ArgumentError.value(minute, name);
+    }
+    // The window is kept even when night pay is off, so it must stay valid.
+    if (nightStartMinute == nightEndMinute) {
+      throw ArgumentError.value(nightEndMinute, 'nightEndMinute');
     }
     if (effectiveEnd != null && effectiveEnd!.compareTo(effectiveStart) < 0) {
       throw ArgumentError.value(effectiveEnd, 'effectiveEnd');
@@ -74,6 +142,18 @@ final class PayAgreement {
   final Revision revision;
   final bool usedByFinalizedShift;
 
+  /// Night pay applies to paid time inside the local window
+  /// [nightStartMinute] (inclusive) to [nightEndMinute] (exclusive). A
+  /// start after the end crosses midnight. The window is kept when night pay
+  /// is off, so switching it back on restores it.
+  final bool nightEnabled;
+  final int nightStartMinute;
+  final int nightEndMinute;
+  final RationalMultiplier nightMultiplier;
+  final HolidayCalendar holidayCalendar;
+  final RationalMultiplier holidayMultiplier;
+  final PremiumStacking premiumStacking;
+
   bool isEffectiveOn(LocalDate date) =>
       effectiveStart.compareTo(date) <= 0 &&
       (effectiveEnd == null || effectiveEnd!.compareTo(date) >= 0);
@@ -97,6 +177,13 @@ final class PayAgreement {
       createdAtUtc: createdAtUtc,
       revision: revision.next(),
       usedByFinalizedShift: false,
+      nightEnabled: nightEnabled,
+      nightStartMinute: nightStartMinute,
+      nightEndMinute: nightEndMinute,
+      nightMultiplier: nightMultiplier,
+      holidayCalendar: holidayCalendar,
+      holidayMultiplier: holidayMultiplier,
+      premiumStacking: premiumStacking,
     );
   }
 }

@@ -100,13 +100,13 @@ enum PremiumStacking { highest, additive, multiplicative }
 abstract final class AgreementDefaults { /* the values above, plus overtime 480 min and 3/2 */ }
 ```
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Night minutes must be 0–1439 and the start and end must differ.
   - Every multiplier, including overtime, must be at least 1.
   - The threshold stays above 0.
   - Window fields are kept when night pay is off.
-- [ ] **Step 2: Run, implement, run.** Expected: FAIL, then PASS. Update every `PayAgreement` construction in `lib` and `test` to pass the new fields. Tests use a shared synthetic builder.
-- [ ] **Step 3: Commit** `feat: add night, holiday and stacking fields to agreements`.
+- [x] **Step 2: Run, implement, run.** Expected: FAIL, then PASS. Update every `PayAgreement` construction in `lib` and `test` to pass the new fields. Tests use a shared synthetic builder.
+- [x] **Step 3: Commit** `feat: add night, holiday and stacking fields to agreements`.
 
 ### Task 3: Segmentation and expected pay
 
