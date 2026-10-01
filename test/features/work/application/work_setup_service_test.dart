@@ -364,6 +364,58 @@ void main() {
       expect(agreementRecord.inUse, isTrue);
     });
 
+    test('the sheets derive break, paid, pay and period totals', () async {
+      final agreement = await createAgreement();
+      await database
+          .into(database.workShifts)
+          .insert(shiftToCompanion(_finalizedShift(agreement.id)));
+      await database
+          .into(database.shiftBreaks)
+          .insert(
+            shiftBreakToCompanion(
+              ShiftBreak(
+                id: const ShiftBreakId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c41'),
+                shiftId: const ShiftId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c31'),
+                startUtc: DateTime.utc(2026, 9, 10, 9),
+                endUtc: DateTime.utc(2026, 9, 10, 9, 30),
+                createdAtUtc: DateTime.utc(2026, 9, 10),
+                updatedAtUtc: DateTime.utc(2026, 9, 10),
+                revision: const Revision(0),
+              ),
+            ),
+          );
+      await repository.createPeriod(_period());
+
+      final projection = await setup();
+      final row = projection.shiftSheet.single;
+      expect(row.breakSeconds, 1800);
+      expect(row.paidSeconds, 7 * 3600 + 1800);
+      expect(row.period?.id, _period().id);
+      // 7:30 at EUR 18.40/h.
+      expect(row.pay?.amount.minorUnits, 13800);
+
+      final period = projection.periodSheet.single;
+      expect(period.shiftCount, 1);
+      expect(period.group?.expected?.minorUnits, 13800);
+      expect(period.group?.paid, isNull);
+      expect(projection.agreementSheet.single.finishedShifts, 1);
+      expect(projection.payslipSheet, isEmpty);
+
+      final outside = await repository
+          .watchRegister(
+            WorkScope(
+              employmentId: _employmentId,
+              temporal: DateRangeScope(
+                start: const LocalDate(2026, 10, 1),
+                end: const LocalDate(2026, 10, 31),
+              ),
+            ),
+          )
+          .first;
+      expect(outside.shiftSheet, isEmpty);
+      expect(outside.periodSheet, hasLength(1));
+    });
+
     test('history blocks delete and use locks the agreement', () async {
       final agreement = await createAgreement();
       await database

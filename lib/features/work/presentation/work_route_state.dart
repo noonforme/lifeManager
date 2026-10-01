@@ -106,12 +106,35 @@ final class WorkRouteState {
     required this.scope,
     required this.record,
     required this.mode,
+    this.sheet = WorkSheet.shifts,
+    this.showVoid = false,
   });
 
   final EmploymentId? employmentId;
   final WorkTemporalScope? scope;
   final WorkRecordRef? record;
   final WorkInspectorMode mode;
+
+  /// The sheet on the desk; Shifts unless the route names another.
+  final WorkSheet sheet;
+
+  /// Whether voided rows are listed; they are hidden by default.
+  final bool showVoid;
+
+  WorkRouteState copyWith({
+    WorkTemporalScope? Function()? scope,
+    WorkRecordRef? Function()? record,
+    WorkInspectorMode? mode,
+    WorkSheet? sheet,
+    bool? showVoid,
+  }) => WorkRouteState(
+    employmentId: employmentId,
+    scope: scope == null ? this.scope : scope(),
+    record: record == null ? this.record : record(),
+    mode: mode ?? this.mode,
+    sheet: sheet ?? this.sheet,
+    showVoid: showVoid ?? this.showVoid,
+  );
 }
 
 Uri workRouteUri(WorkRouteState state) {
@@ -127,6 +150,10 @@ Uri workRouteUri(WorkRouteState state) {
       parameters.add('to=$end');
     case null:
   }
+  if (state.sheet != WorkSheet.shifts) {
+    parameters.add('sheet=${state.sheet.name}');
+  }
+  if (state.showVoid) parameters.add('void=1');
   if (state.record case final record?) {
     parameters.add('record=${record.kind.name}:${record.id.value}');
   }
@@ -174,6 +201,15 @@ WorkRouteParseResult parseWorkRoute(Uri uri) {
     return const InvalidWorkRoute(WorkRouteProblem.malformedScope);
   }
 
+  final sheetText = uri.queryParameters['sheet'];
+  final sheet = sheetText == null
+      ? WorkSheet.shifts
+      : WorkSheet.values.where((value) => value.name == sheetText).firstOrNull;
+  final voidText = uri.queryParameters['void'];
+  if (sheet == null || (voidText != null && voidText != '1')) {
+    return const InvalidWorkRoute(WorkRouteProblem.malformedScope);
+  }
+
   final scope = period != null
       ? PayPeriodScope(period)
       : from != null && to != null
@@ -185,6 +221,8 @@ WorkRouteParseResult parseWorkRoute(Uri uri) {
       scope: scope,
       record: record,
       mode: mode,
+      sheet: sheet,
+      showVoid: voidText == '1',
     ),
   );
 }

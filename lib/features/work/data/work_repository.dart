@@ -19,6 +19,7 @@ import '../domain/pay.dart';
 import '../domain/pay_period.dart';
 import '../domain/pay_premiums.dart';
 import '../domain/payslip.dart';
+import '../domain/reconciliation.dart';
 import '../domain/shift.dart';
 import 'daos/agreement_dao.dart';
 import 'daos/employment_dao.dart';
@@ -320,7 +321,6 @@ final class DriftWorkRepository
   @override
   Stream<WorkRegisterProjection> watchRegister(WorkScope scope) async* {
     final employmentId = scope.employmentId;
-    final temporal = scope.temporal;
     if (employmentId == null) {
       yield WorkRegisterProjection.empty(
         scope,
@@ -336,120 +336,210 @@ final class DriftWorkRepository
       }
       return;
     }
-    if (temporal == null) {
-      // Re-read on setup changes too, so a new agreement moves the selected
-      // employment out of setup without re-selection.
-      Future<WorkRegisterProjection> load() async {
-        final agreements = await _agreements.forEmployment(employmentId);
-        final employment = await _employments.byId(employmentId);
-        return WorkRegisterProjection(
-          scope: scope,
-          period: null,
-          shiftRows: const [],
-          payslipRows: const [],
-          paid: const Money(minorUnits: 0),
-          reconciliation: null,
-          periodRows: await _periods.forEmployment(employmentId),
-          employment: employment,
-          hasAgreement: agreements.isNotEmpty,
-          currentAgreement: agreements.isEmpty
-              ? null
-              : agreements.reduce(
-                  (a, b) =>
-                      a.effectiveStart.compareTo(b.effectiveStart) >= 0 ? a : b,
-                ),
-          canDeleteEmployment:
-              employment != null &&
-              !await _employments.hasHistory(employmentId),
-          availableEmployments: await _employments.active(),
-        );
-      }
+    // Every sheet derives from several tables, so any Work commit re-reads.
+    yield await _loadRegister(scope, employmentId);
+    await for (final _ in _database.tableUpdates(
+      TableUpdateQuery.onAllTables([
+        _database.employments,
+        _database.payAgreements,
+        _database.payPeriods,
+        _database.workShifts,
+        _database.shiftBreaks,
+        _database.payslips,
+      ]),
+    )) {
+      yield await _loadRegister(scope, employmentId);
+    }
+  }
 
-      yield await load();
-      await for (final _ in _database.tableUpdates(
-        TableUpdateQuery.onAllTables([
-          _database.employments,
-          _database.payAgreements,
-          _database.payPeriods,
-          _database.workShifts,
-          _database.payslips,
-        ]),
-      )) {
-        yield await load();
-      }
-      return;
-    }
-    if (temporal is DateRangeScope) {
-      await for (final rows in _shifts.watchRowsForRange(
-        employmentId,
-        start: temporal.start.toString(),
-        end: temporal.end.toString(),
-      )) {
-        yield WorkRegisterProjection(
-          scope: scope,
-          period: null,
-          shiftRows: rows,
-          payslipRows: const [],
-          paid: const Money(minorUnits: 0),
-          reconciliation: null,
-          employment: await _employments.byId(employmentId),
-          availableEmployments: await _employments.active(),
-        );
-      }
-      return;
-    }
-    if (temporal is! PayPeriodScope) {
-      yield WorkRegisterProjection.empty(scope);
-      return;
-    }
-    final period = await _periods.byId(temporal.periodId);
-    if (period == null || period.employmentId != employmentId) {
-      yield WorkRegisterProjection.empty(scope);
-      return;
-    }
-    await for (final rows in _payslips.watchEffectiveRows(period.id)) {
-      final paidMinorUnits = rows.fold(
-        0,
-        (total, row) => total + row.amount.minorUnits,
-      );
-      final shifts = await _shifts.finalizedForRange(
-        employmentId,
-        start: period.start.toString(),
-        end: period.end.toString(),
-      );
-      final breaks = await _shifts.breaksForShifts(
-        shifts.map((shift) => shift.id),
-      );
-      final agreements = await _agreements.forEmployment(employmentId);
-      final payslips = await _payslips.forPeriod(period.id);
-      yield WorkRegisterProjection(
-        scope: scope,
-        period: period,
-        shiftRows: [
-          for (final shift in shifts)
-            ShiftRegisterRow(
-              id: shift.id,
-              localStartDate: shift.localStartDate.toString(),
-              startUtc: shift.startUtc,
-              endUtc: shift.endUtc,
-              state: shift.state,
-            ),
-        ],
-        payslipRows: rows,
-        paid: Money(minorUnits: paidMinorUnits),
-        reconciliation: projectReconciliation(
-          employmentId: employmentId,
+  Future<WorkRegisterProjection> _loadRegister(
+    WorkScope scope,
+    EmploymentId employmentId,
+  ) async {
+    final temporal = scope.temporal;
+    final employment = await _employments.byId(employmentId);
+    final agreements = await _agreements.forEmployment(employmentId);
+    final periods = await _periods.forEmployment(employmentId);
+    final shifts = await _shifts.forEmployment(employmentId);
+    final breaks = await _shifts.breaksForShifts(shifts.map((s) => s.id));
+    final payslips = await _payslips.forEmployment(employmentId);
+    final agreementsById = {for (final a in agreements) a.id: a};
+
+    PayPeriod? periodOf(WorkShift shift) => periods
+        .where((period) => period.contains(shift.localStartDate))
+        .firstOrNull;
+    bool inScope(WorkShift shift) => switch (temporal) {
+      null => true,
+      DateRangeScope(:final start, :final end) =>
+        shift.localStartDate.compareTo(start) >= 0 &&
+            shift.localStartDate.compareTo(end) <= 0,
+      PayPeriodScope(:final periodId) => periodOf(shift)?.id == periodId,
+    };
+
+    final shiftSheet = [
+      for (final shift in shifts)
+        if (inScope(shift))
+          _shiftSheetRow(
+            shift,
+            breaks.where((item) => item.shiftId == shift.id).toList(),
+            agreementsById,
+            periodOf(shift),
+          ),
+    ];
+    final periodSheet = [
+      for (final period in periods)
+        PeriodSheetRow(
           period: period,
-          shifts: shifts,
-          breaks: breaks,
-          agreements: agreements,
-          payslips: payslips,
-          zoneClocks: _zoneClocks,
+          shiftCount: shifts
+              .where(
+                (shift) =>
+                    shift.state == ShiftState.finalized &&
+                    period.contains(shift.localStartDate),
+              )
+              .length,
+          groups: reconcilePeriod(
+            employmentId: employmentId,
+            period: period,
+            shifts: shifts,
+            breaks: breaks,
+            agreements: agreements,
+            payslips: payslips,
+            zoneClocks: _zoneClocks,
+          ),
         ),
-        employment: await _employments.byId(employmentId),
-        availableEmployments: await _employments.active(),
-      );
-    }
+    ];
+    final agreementSheet = [
+      for (final agreement in agreements)
+        AgreementSheetRow(
+          agreement: agreement,
+          finishedShifts: await _agreements.finishedShiftCount(agreement.id),
+        ),
+    ];
+
+    final selectedPeriod = switch (temporal) {
+      PayPeriodScope(:final periodId) =>
+        periods.where((period) => period.id == periodId).firstOrNull,
+      _ => null,
+    };
+    final effectivePayslips = selectedPeriod == null
+        ? const <Payslip>[]
+        : payslips
+              .where(
+                (value) =>
+                    value.periodId == selectedPeriod.id && value.isEffective,
+              )
+              .toList();
+    final scopedFinalized = [
+      for (final row in shiftSheet)
+        if (row.shift.state == ShiftState.finalized) row.shift,
+    ];
+
+    return WorkRegisterProjection(
+      scope: scope,
+      period: selectedPeriod,
+      shiftRows:
+          temporal == null ||
+              (temporal is PayPeriodScope && selectedPeriod == null)
+          ? const []
+          : [
+              for (final shift in scopedFinalized)
+                ShiftRegisterRow(
+                  id: shift.id,
+                  localStartDate: shift.localStartDate.toString(),
+                  startUtc: shift.startUtc,
+                  endUtc: shift.endUtc,
+                  state: shift.state,
+                ),
+            ],
+      payslipRows: [
+        for (final value in effectivePayslips)
+          PayslipRegisterRow(
+            id: value.id,
+            periodId: value.periodId,
+            issuedDate: value.issuedDate.toString(),
+            amount: value.amount,
+            basis: value.basis,
+            state: value.state,
+          ),
+      ],
+      paid: Money(
+        minorUnits: effectivePayslips.fold(
+          0,
+          (total, value) => total + value.amount.minorUnits,
+        ),
+      ),
+      reconciliation: selectedPeriod == null
+          ? null
+          : projectReconciliation(
+              employmentId: employmentId,
+              period: selectedPeriod,
+              shifts: scopedFinalized,
+              breaks: breaks,
+              agreements: agreements,
+              payslips: payslips.where(
+                (value) => value.periodId == selectedPeriod.id,
+              ),
+              zoneClocks: _zoneClocks,
+            ),
+      periodRows: temporal == null ? periods : const [],
+      employment: employment,
+      hasAgreement: agreements.isNotEmpty,
+      currentAgreement: agreements.isEmpty
+          ? null
+          : agreements.reduce(
+              (a, b) =>
+                  a.effectiveStart.compareTo(b.effectiveStart) >= 0 ? a : b,
+            ),
+      canDeleteEmployment:
+          employment != null && !await _employments.hasHistory(employmentId),
+      availableEmployments: await _employments.active(),
+      shiftSheet: shiftSheet,
+      periodSheet: periodSheet,
+      payslipSheet: payslips,
+      agreementSheet: agreementSheet,
+    );
+  }
+
+  ShiftSheetRow _shiftSheetRow(
+    WorkShift shift,
+    List<ShiftBreak> breaks,
+    Map<AgreementId, PayAgreement> agreements,
+    PayPeriod? period,
+  ) {
+    int second(DateTime utc) => utc.microsecondsSinceEpoch ~/ 1000000;
+    final breakSeconds = breaks.fold(
+      0,
+      (total, item) => item.endUtc == null
+          ? total
+          : total + second(item.endUtc!) - second(item.startUtc),
+    );
+    final end = shift.endUtc;
+    final paidSeconds = end == null
+        ? null
+        : second(end) - second(shift.startUtc) - breakSeconds;
+    final agreement = agreements[shift.agreementId];
+    final facts =
+        (shift.state == ShiftState.finalized ||
+                shift.state == ShiftState.voided) &&
+            agreement != null
+        ? validateFinalization(
+            shift: shift,
+            breaks: breaks,
+            agreements: [agreement],
+          ).facts
+        : null;
+    final clock = _zoneClocks(shift.timezoneId);
+    return ShiftSheetRow(
+      shift: shift,
+      breakSeconds: breakSeconds,
+      paidSeconds: paidSeconds,
+      period: period,
+      facts: facts,
+      pay: facts?.expectedPay(
+        toLocal: clock.toLocal,
+        toInstants: clock.toInstants,
+      ),
+    );
   }
 
   @override

@@ -113,12 +113,11 @@ final class _WorkRouteHost extends ConsumerWidget {
           final parsed = ref.read(workRouteProvider);
           if (parsed case ValidWorkRoute(:final state)) {
             ref.read(replaceWorkRouteProvider)(
-              WorkRouteState(
-                employmentId: state.employmentId,
-                scope: record.kind == WorkRecordKind.payPeriod
+              state.copyWith(
+                scope: () => record.kind == WorkRecordKind.payPeriod
                     ? PayPeriodScope(record.id as PayPeriodId)
                     : state.scope,
-                record: record,
+                record: () => record,
                 mode: WorkInspectorMode.inspect,
               ),
             );
@@ -128,10 +127,8 @@ final class _WorkRouteHost extends ConsumerWidget {
           final parsed = ref.read(workRouteProvider);
           if (parsed case ValidWorkRoute(:final state)) {
             ref.read(replaceWorkRouteProvider)(
-              WorkRouteState(
-                employmentId: state.employmentId,
-                scope: state.scope,
-                record: null,
+              state.copyWith(
+                record: () => null,
                 mode: WorkInspectorMode.create,
               ),
             );
@@ -208,14 +205,7 @@ final class _WorkRouteHost extends ConsumerWidget {
 void _replaceMode(WidgetRef ref, WorkInspectorMode mode) {
   final parsed = ref.read(workRouteProvider);
   if (parsed case ValidWorkRoute(:final state)) {
-    ref.read(replaceWorkRouteProvider)(
-      WorkRouteState(
-        employmentId: state.employmentId,
-        scope: state.scope,
-        record: state.record,
-        mode: mode,
-      ),
-    );
+    ref.read(replaceWorkRouteProvider)(state.copyWith(mode: mode));
   }
 }
 
