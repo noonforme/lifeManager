@@ -77,7 +77,7 @@ components:
 
 LifeOS is implemented as a desktop-first operations desk: cool-gray surfaces, flat bounded panes, compact system typography, and tabular values place truthful monthly records and their correction ahead of decorative staging. The Work workspace keeps the monthly table visible while an adjacent inspector handles the selected record; at narrower widths the panes stack without removing either workflow.
 
-System, light, and dark themes are implemented. Theme choice is an optional JavaScript convenience stored locally; Django-rendered navigation, forms, and records remain authoritative without scripts. This record is code-derived and makes no claim of visual approval because desktop and mobile screenshots were not inspected.
+The native Flutter workbench implements the light theme with a high-contrast variant. This record makes no claim of visual approval until the release visual review is complete.
 
 **Key Characteristics:**
 - Light cool-neutral shell with graphite dark-mode counterpart.
@@ -186,7 +186,6 @@ The form language is almost square. Inputs and button-like controls use a 2px ra
 - **Do** use flat surface panes with 1px boundary lines and restrained hover/confirmed washes.
 - **Do** keep controls at least 44px and retain the 2px, 3px-offset focus outline.
 - **Do** use system UI for interface language and monospaced tabular figures for inspectable values.
-- **Do** keep theme controls progressive and local; server-rendered Django behavior remains authoritative.
 
 ### Don't:
 - **Don't** add large editorial headings, paper-ledger styling, display fonts, or ornamental animation; the implemented world is a compact system-UI operations desk.

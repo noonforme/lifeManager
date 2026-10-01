@@ -4,9 +4,9 @@
 
 ## Platform
 
-web
+desktop
 
-LifeOS is desktop-first in its operating model. The owner's reference to Qt describes professional desktop-tool behavior and structure, not a confirmed migration to a native toolkit. Narrow-screen access remains supported without making an enlarged tablet interface the desktop default.
+LifeOS is a native Linux desktop application built with Flutter. Narrow windows remain usable without making an enlarged tablet interface the desktop default.
 
 ## Users
 
@@ -40,21 +40,14 @@ Desktop use is the primary interaction context. The dashboard is a working entry
 
 ## Capabilities and Constraints
 
-- The current stack is a Django modular monolith with SQLite, server-rendered Django templates and forms, and local styles, scripts, and fonts.
-- Core owns the shell, composition, clock, and shared presentation boundaries. Work, Money, and Habits own their records, validation, calculations, queries, and routes.
-- SQLite is the single source of truth. Authoritative validation, calculations, and persisted decisions remain on the server.
-- Core reading and mutation workflows work without JavaScript. Mutations use POST, CSRF protection, validation, and Post/Redirect/Get.
-- Derived views do not become a second source of truth or competing persisted totals.
-- Work salary estimates retain their explicit version-one formula, rounding, and deduction rates. They are not tax advice.
-- Money reports selected-month movement, not an account balance, budget, forecast, tax result, or bank-import claim.
-- Habits supports check, quantity, abstinence, and scheduled-chore routines with structured recurrence and factual outcomes. Missing evidence does not imply success. Archive periods preserve history.
-- Habit reminders are in-app display and ordering only, not notifications. The read-only calendar projection is not a shipped calendar UI.
-- Knowledge is a possible future domain, not a current shipped capability.
-- Personal records stay under the owner's control. The product does not require an account, cloud synchronization, telemetry, advertising, or third-party analytics.
-- Personal content must not appear in logs, readiness responses, test fixtures, screenshots, or source control. Development and verification must not discover or reuse the personal database.
-- The development server is loopback-only. Deployment beyond loopback requires a separately designed security configuration.
-- Runtime pages do not depend on remote CDNs.
-- Version one excludes public sharing, real-time collaboration, mobile-native distribution, plugin systems, and client-side application state.
+- The stack is a native Flutter desktop application with a local SQLite database through Drift, Riverpod state, and GoRouter structural routes.
+- Work is the shipped domain: employment, versioned pay agreements, live and manual shifts, pay periods, payslip evidence, reconciliation, and void-and-replace correction. Today, Money, and Habits are honest unavailable destinations until their native domains are designed.
+- SQLite is the single source of truth. Derived views do not become a second source of truth or competing persisted totals.
+- Mutations report explicit outcomes (committed, invalid, stale, missing, unavailable, uncertain); nothing is retried or overwritten silently.
+- Personal records stay under the owner's control. The product does not require an account, cloud synchronization, telemetry, advertising, remote assets, or third-party analytics.
+- Personal content must not appear in logs, test fixtures, screenshots, or source control. Development and verification use guarded disposable roots and synthetic data only.
+- Earlier prototypes are not migrated; their data is never read or imported.
+- Version one excludes public sharing, collaboration, mobile distribution, and plugin systems.
 
 ## Brand Commitments
 
@@ -67,24 +60,7 @@ Desktop use is the primary interaction context. The dashboard is a working entry
 
 ## Evidence on Hand
 
-- README.md and docs/foundation/PRODUCT.md, ARCHITECTURE.md, DOMAIN.md, and V1-SCOPE.md record the current product and implementation boundaries.
-- The repository contains a Django foundation and persisted Work, Money, and Habits vertical slices, with deterministic Python/Django tests and documented verification.
-- docs/foundation/DESIGN.md records the incumbent Closing Ledger interface. It is implementation evidence, not owner approval of the current visual direction; the desktop-tool commitment above supersedes conflicting aesthetic intent.
+- README.md and docs/superpowers/specs/2026-09-29-lifeos-native-foundation-work-design.md record the current product and implementation boundaries.
+- The repository contains the native Flutter foundation and the Work domain with deterministic unit, widget, and end-to-end synthetic tests.
 - app.sh provides local startup, tests, and project checks.
 - No testimonials, external customer claims, benchmark claims, pricing, or marketing proof are established and none should be fabricated.
-
-## Product Principles
-
-1. Truth before motivation: represent empty, unavailable, incomplete, and confirmed states honestly.
-2. Useful tools before decoration: make recurring capture, comparison, correction, and action practical on desktop.
-3. Records before dashboards: derived views explain owned records rather than compete with them.
-4. Local and private by default: protect the owner's data and keep authoritative behavior explicit.
-5. Calm, complete workflows: avoid gamified pressure, artificial urgency, and hidden state; deliver trustworthy slices end to end.
-
-## Accessibility & Inclusion
-
-Preserve complete keyboard operation, semantic structure, visible focus, labeled controls and states, sufficient text and non-text contrast in light and dark themes, accessible feedback, reduced-motion support, text spacing, zoom, and narrow reflow. Desktop-first must not mean mouse-only or inaccessible at smaller widths.
-
-## Open Product Decisions
-
-The owner has identified inadequate functionality but has not yet specified which workflows or capabilities are missing. Future feature work must establish those gaps rather than infer a feature roadmap from dissatisfaction with the current interface.
