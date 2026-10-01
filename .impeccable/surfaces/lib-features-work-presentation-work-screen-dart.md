@@ -2,12 +2,12 @@
 version: 1
 slug: "lib-features-work-presentation-work-screen-dart"
 primary_target: "lib/features/work/presentation/work_screen.dart"
-related_targets: ["lib/shared/shell/shell_frame.dart","lib/shared/workbench/lifeos_tokens.dart","lib/app/app_router.dart","lib/features/work/presentation/work_inspector.dart"]
+related_targets: ["lib/shared/shell/shell_frame.dart","lib/shared/workbench/lifeos_tokens.dart","lib/shared/workbench/lifeos_skin.dart","lib/app/app_router.dart","lib/features/work/presentation/work_inspector.dart"]
 ---
 
 ## Scope
 
-Mode: Operate. The LifeOS desktop shell and Work, its first surface. Later areas (Finance, Tracking, Knowledge) live inside the same shell.
+Mode: Operate. The LifeOS desktop shell and Work, its first surface. Later areas (Finance, Tracking, Knowledge) live inside the same shell. Two optional appearances, Millennium (2001 desktop) and One-bit (1984 black and white), reskin the same shell without changing structure or behaviour (spec 4.7); Office Machine stays the default.
 
 ## Direction contract
 

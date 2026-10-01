@@ -20,6 +20,7 @@ Phase A of the employments and premiums spec must land before Task 6. Task 6 ren
 - Add no dependencies beyond bundled font assets. Do not add Freezed, code-generated Riverpod, BLoC or mocking frameworks.
 - Fonts are bundled under `assets/fonts/` with their OFL licence files. Never fetch fonts at runtime.
 - Colour tokens come only from `LifeOSTokens`. No widget uses a literal colour.
+- Every shell widget paints through the active `LifeOSSkin`. No widget branches on a skin's name, and switching skins never changes layout, behaviour, copy or data.
 - Routes still carry only structural state. Desks, tiles and views are referenced by UUID; filter values in views are IDs, states and dates only.
 - `record_events` is written in the same transaction as the mutation it records. A failed, stale or uncertain mutation writes no event.
 - The Journal and tree values are derived on read. Do not add summary tables.
@@ -35,12 +36,15 @@ Phase A of the employments and premiums spec must land before Task 6. Task 6 ren
 3. **Formula bar agrees with the cell:** an explanation is built from the same result object as the value it explains, with no second calculation. Tested in Task 4.
 4. **History is transactional:** a stale or failed command appends no event, and a committed one appends exactly one. Tested in Task 5.
 5. **Derived Journal:** Journal rows come from facts and events, and a voided shift appears as voided with its replacement, never twice as effective. Tested in Task 9.
+6. **Skins change paint only:** the same widget tree, semantics and hit targets exist under Office Machine, Millennium and One-bit, and One-bit states remain readable without grey or colour. Tested in Task 11.
 
 ---
 
 ## File responsibilities
 
 - `lib/shared/workbench/lifeos_tokens.dart`: Office Machine tokens for day, night and high contrast; area keys; contrast helper.
+- `lib/shared/workbench/lifeos_skin.dart`: `LifeOSSkin` (tokens, typography, painters) and the appearance registry.
+- `lib/shared/workbench/skins/millennium_skin.dart`, `skins/one_bit_skin.dart`: the optional appearances (spec 4.7).
 - `lib/shared/workbench/lifeos_theme.dart`: builds `ThemeData` behaviour substrate from tokens; text styles; reduced motion.
 - `lib/shared/workbench/office_controls.dart`: `KeyButton`, `KeyChip`, `AreaKey`, `CountBadge`, `SegmentedTabs`.
 - `lib/shared/shell/shell_frame.dart`: regions and width behaviour (spec 5.1–5.2).
@@ -53,12 +57,13 @@ Phase A of the employments and premiums spec must land before Task 6. Task 6 ren
 - `lib/features/journal/`: journal projection, controller and sheet.
 - `lib/features/work/presentation/`: Work sheets, toolbar controls, inspector Record tab, quick-add entries.
 - `lib/features/work/application/work_explanations.dart`: Work explanations from `ExpectedPay`, reconciliation and paid-time results.
-- `assets/fonts/`: Archivo and Azeret Mono files plus `OFL.txt`.
+- `assets/fonts/`: Archivo, Azeret Mono, Pixelify Sans, VT323 and the chosen Millennium face, each with its licence file.
 
 ### Task 1: Office Machine tokens, fonts and controls
 
 **Files:**
 - Create: `lib/shared/workbench/lifeos_tokens.dart`
+- Create: `lib/shared/workbench/lifeos_skin.dart`
 - Modify: `lib/shared/workbench/lifeos_theme.dart`
 - Create: `lib/shared/workbench/office_controls.dart`
 - Modify: `pubspec.yaml` (fonts)
@@ -88,13 +93,28 @@ final class LifeOSTokens {
 }
 
 double contrastRatio(Color a, Color b);
+
+enum AreaMarkerStyle { colour, pattern }
+
+abstract interface class LifeOSSkin {
+  String get name;                       // "Office Machine", "Millennium", "One-bit"
+  LifeOSTokens tokensFor(Brightness system, {required bool highContrast});
+  LifeOSTypography typographyFor(double textScale);
+  AreaMarkerStyle get areaMarkers;
+  SkinPainters get painters;             // buttons, tabs, tile headers, tree, formula bar,
+                                         // progress, selection, focus, status line
+}
+
+final class OfficeMachineSkin implements LifeOSSkin { /* spec 4.1–4.6 */ }
 ```
+
+Task 1 implements only `OfficeMachineSkin`, but every control built here must take its painting from `LifeOSSkin.painters` so Task 11 adds skins without touching widgets.
 
 - [ ] **Step 1: Write failing token tests.** For each palette, assert `contrastRatio` ≥ 4.5 for ink, muted, runInk, negative and positive on paper, band and chrome; for actionInk on actionFill; for headInk on head; and for each area key's ink on its fill. Assert ≥ 3.0 for signal on paper.
 - [ ] **Step 2: Run** `flutter test test/shared/workbench/lifeos_tokens_test.dart`. Expected: FAIL (no tokens).
 - [ ] **Step 3: Implement tokens** with the exact values from spec 4.2. Expose them through a `LifeOSTheme` `InheritedWidget` or `ThemeExtension`. Resolve `system` from `MediaQuery.platformBrightness` and `highContrast`.
 - [ ] **Step 4: Bundle fonts.** Add the font files and `OFL.txt`, declare the families in `pubspec.yaml`, and build text styles per spec 4.3. Figures use `FontFeature.tabularFigures()`.
-- [ ] **Step 5: Implement controls and test them.**
+- [ ] **Step 5: Implement controls through `SkinPainters` and test them.**
   - `KeyButton` (primary, secondary, small) has a 2-pixel bottom edge and loses it when pressed.
   - `AreaKey` chip with letter and semantics label (for example "Work").
   - `CountBadge`.
@@ -384,7 +404,28 @@ final class DeskTile { /* id, position, sheetRef, viewId */ }
 - [ ] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
 - [ ] **Step 3: Commit** `feat: save filtered sheets as named views`.
 
-### Task 11: Verification, finish review and documentation
+### Task 11: Millennium and One-bit appearances
+
+**Files:**
+- Create: `lib/shared/workbench/skins/millennium_skin.dart`, `lib/shared/workbench/skins/one_bit_skin.dart`
+- Modify: `lib/shared/workbench/lifeos_skin.dart` (registry), `lib/shared/shell/menu_bar.dart` (View › Appearance), preferences (appearance value)
+- Modify: `pubspec.yaml` and `assets/fonts/` (Pixelify Sans, VT323, the Millennium face after licence review)
+- Create: `test/shared/workbench/skins_test.dart`, goldens under `test/goldens/skins_*`
+
+- [ ] **Step 1: Write failing tests.**
+  - Every text pair in each skin meets 4.5:1, and every indicator 3:1 (spec 4.7).
+  - The semantics tree and hit-test regions of the 1280 × 800 shell are identical under all three skins.
+  - Under One-bit, every state in spec 4.5 is identifiable from its word, mark or pattern. A test renders with colour stripped and checks the labels.
+  - At 150% text scale, One-bit uses Archivo and Azeret Mono.
+  - With the system high-contrast flag on, Millennium falls back to the Office Machine high-contrast tokens.
+  - Choosing an appearance persists it as a preference and restores it on restart.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Choose and bundle the Millennium face.** Review candidate Tahoma-metric faces' licences, and bundle one with its notice, or fall back to Noto Sans. Record the decision and licence in `assets/fonts/README.md`.
+- [ ] **Step 4: Implement both skins** with the tokens and painting rules from spec 4.7. Use no Microsoft or Apple names, logos, icons, wallpapers or sounds.
+- [ ] **Step 5: Run** the skin tests, the full suite and analysis. Expected: PASS.
+- [ ] **Step 6: Commit** `feat: add Millennium and One-bit appearances`.
+
+### Task 12: Verification, finish review and documentation
 
 **Files:**
 - Create: `test/goldens/shell_*` (day, night, high contrast; synthetic data)
@@ -392,7 +433,7 @@ final class DeskTile { /* id, position, sheetRef, viewId */ }
 - Modify: `app.sh` (only if commands changed), `README.md`, `DESIGN.md`, `.impeccable/design.json`
 
 - [ ] **Step 1: Add the integration flow from spec 10.** Fresh install → Today → create employment from Needs you → agreement with defaults → start shift → end → finalize. Then check the formula bar explanation, four History events and the Journal row.
-- [ ] **Step 2: Add goldens** at 1280 × 800 and 960 × 760 for day, night and high contrast.
+- [ ] **Step 2: Add goldens** at 1280 × 800 and 960 × 760 for every appearance: Office Machine day, night and high contrast; Millennium; One-bit; One-bit inverted.
 - [ ] **Step 3: Run** `dart format --set-exit-if-changed lib test tool`, `flutter analyze`, `flutter test`, and the integration test against a guarded disposable root. Expected: all PASS.
 - [ ] **Step 4: Run the bounded Impeccable finish.** One batched capture of the shipped device classes, the finish reviewer against the direction contract, one batch of fixes and at most one confirmation pass.
 - [ ] **Step 5: Rewrite `DESIGN.md` and `.impeccable/design.json` from the built shell** using the Impeccable documenter. Remove the superseded-direction note at the top of `DESIGN.md`.
@@ -412,11 +453,12 @@ final class DeskTile { /* id, position, sheetRef, viewId */ }
 - Section 6.7 → Task 8.
 - Sections 6.4, 6.5 and 8 (desks) → Task 9.
 - Section 6.9 → Task 10.
-- Sections 9 and 10 → Tasks 1–11, closed in Task 11.
+- Section 4.7 → Task 11.
+- Sections 9 and 10 → Tasks 1–12, closed in Task 12.
 
 Each Review Focus item names its task.
 
-**Ordering:** Tasks 1–5 are independent of the premiums prerequisite. Task 6 needs it. Tasks 7–10 build on Tasks 2–3. Task 11 closes the phase.
+**Ordering:** Tasks 1–5 are independent of the premiums prerequisite. Task 6 needs it. Tasks 7–10 build on Tasks 2–3. Task 11 needs only Tasks 1–3, so it can run in parallel with 4–10. Task 12 closes the phase.
 
 **Privacy:**
 - Routes, view filters and tile references are structural.

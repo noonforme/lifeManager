@@ -33,6 +33,7 @@ Phases 0 and 1 succeed when the owner can:
 | Topic | Decision |
 |---|---|
 | Visual world | Office Machine (section 4). Day and night palettes and a high-contrast variant. Default follows the system; the owner can pin day or night |
+| Appearances | Two optional skins over the same shell: **Millennium** (inspired by the 2001 Windows XP desktop) and **One-bit** (inspired by the 1984 Macintosh), chosen under View › Appearance. Structure and behaviour do not change between skins (section 4.7) |
 | Fonts | Archivo for the interface, Azeret Mono for figures, both bundled as assets under the SIL Open Font License. No runtime font download |
 | Navigation | Book tree on the left replaces the system rail. It is always reachable: at narrow widths it collapses to a **Books** button |
 | Work area | Desks (tabs) hold one sheet full size or several tiles. Starter desks: Today, Weekly review, Month close |
@@ -49,6 +50,7 @@ Phases 0 and 1 succeed when the owner can:
 ### 3.1 Included
 
 - Office Machine theme: tokens, fonts, components and states
+- Skin architecture, plus the Millennium and One-bit appearances (section 4.7)
 - Shell frame: menu bar, toolbar, formula bar, book tree, desk tabs, desk, inspector, status line
 - Register v2: typed columns, group and subtotal rows, entry row, cell selection, row states, right-click menu
 - Work moved into the shell, with the gaps listed in section 7.1 fixed
@@ -66,6 +68,7 @@ Phases 0 and 1 succeed when the owner can:
 - Attachment store, receipts and media (phase 2 and 4)
 - Agreement versions, archive and schedules (later phases of the premiums spec)
 - Free-form tile resizing by dragging (tiles use fixed layouts in this phase; see 6.4)
+- Floating, overlapping windows for the One-bit skin; tray balloons and other operating-system chrome (taskbar, desktop icons) for any skin
 
 ## 4. Visual System: Office Machine
 
@@ -96,6 +99,7 @@ Contrast ratios are against the surface each token sits on. Text pairs meet 4.5:
 | `actionInk` | Text on `actionFill` | `#ffffff` | `#161715` | `#ffffff` |
 | `runInk` | Running-state text | `#c2410c` | `#ff6a1a` | `#a83600` |
 | `selWash` | Selected row fill | `#fde3d2` | `#4a2b18` | `#ffd9c2` |
+| `selInk` | Text on `selWash` | `#1d1d1b` | `#ecebe6` | `#000000` |
 | `negative` | Over budget, short paid, negative amounts | `#c22a1e` | `#ff7d70` | `#a0150b` |
 | `positive` | Under budget, positive amounts | `#2f7d32` | `#94d394` | `#1f5e22` |
 | `focus` | Keyboard focus ring | `#1d1d1b` | `#ecebe6` | `#000000` |
@@ -129,7 +133,7 @@ Sizes are logical pixels at 100% text scale. Every layout must work at 200%.
 - **Spacing:** 4-pixel base. Steps are 4, 6, 8, 10, 12, 14 and 16.
 - **Radius:** 4 pixels for keys (buttons, chips, tabs, tiles). Registers, panes and the tree are square.
 - **Key edge:** buttons carry a 2-pixel bottom border in a darker shade of their fill. When pressed they lose the edge and move down 1 pixel, which is the only depth in the system.
-- **No shadows, blur, gradients or glow.**
+- **No shadows, blur, gradients or glow** in Office Machine. Section 4.7 lists the only exceptions, each limited to one optional skin.
 - **Heights:** toolbar buttons 30, small buttons 26, register rows 25, tree rows 23, desk tabs 26 (29 when active). Every target is at least 24 × 24.
 
 ### 4.5 States
@@ -149,6 +153,96 @@ Sizes are logical pixels at 100% text scale. Every layout must work at 200%.
 ### 4.6 Motion
 
 Panes and inspector content change immediately, or with a 120 ms cross-fade. With reduced motion the duration is zero. Nothing pulses, and the running dot is static.
+
+### 4.7 Appearances
+
+Every visible part of the shell is a LifeOS-owned widget, and each widget paints through a `LifeOSSkin`. A skin supplies three things:
+
+- a token set (the same names as 4.2)
+- typography
+- painters for buttons, tabs, tile headers, the tree, the formula bar, progress bars, selection, focus, area markers and the status line
+
+Layout, regions, width behaviour, menus, copy, states and data are identical in every skin. Changing appearance never moves a control, and it never changes what a control does.
+
+Shipped skin names are Office Machine, Millennium and One-bit. The skins borrow the conventions of their eras but use no Microsoft or Apple names, logos, icons, wallpapers or system sounds.
+
+#### Millennium (inspired by the 2001 Windows XP desktop)
+
+A friendly, glossy office PC. It is the most visibly clickable skin.
+
+| Token | Value | Notes |
+|---|---|---|
+| `ground` | `#ece9d8` | Window face behind tiles |
+| `paper` | `#ffffff` | |
+| `ink` | `#000000` | |
+| `muted` | `#555555` | |
+| `rule` | `#ecebe5` | |
+| `band` | `#f1efe2` | Column headers, painted as a light vertical gradient |
+| `chrome` | `#ece9d8` | Menu bar and toolbar (toolbar has a light gradient) |
+| `chromeLine` | `#c5c2b2` | |
+| `head` | `#0046d5` | Group-box titles and the first task-pane header |
+| `headInk` | `#ffffff` | |
+| `signal` | `#e8590c` | Running indicator |
+| `actionFill` | `#ffffff` | Painted as a white-to-face gradient. The primary (default) button carries a blue inner ring |
+| `actionInk` | `#000000` | |
+| `runInk` | `#c2410c` | |
+| `selWash` | `#316ac5` | Selection blue |
+| `selInk` | `#ffffff` | |
+| `negative` | `#cc0000` | |
+| `positive` | `#2f7d32` | |
+| `focus` | `#000000` | Dotted focus rectangle |
+| extra: `link` | `#1c50b0` | Task-pane links (5.5:1 on the pane body) |
+| extra: `paneTop` / `paneBottom` | `#7ba2e7` / `#6375d6` | Book-tree background gradient |
+| extra: `paneBody` | `#d6dff7` | Task-pane group body |
+| extra: `tabAccent` | `#ffc83c` | Top edge of the active desk tab |
+| extra: `progress` | `#2fbf2f` | Block progress bars |
+
+Painting rules:
+- **Book tree:** a task pane with collapsible groups: Record tasks (the "from last time" templates as links), Books, and Details for the selected record.
+- **Formula bar:** an address-bar field with a green **Go to source** button.
+- **Desk tabs:** property-sheet tabs.
+- **Tiles:** group boxes with blue titles.
+- **Progress bars:** green block bars.
+- **Status line:** sunken status panels.
+- **Area markers:** glossy squares using the Office Machine day area keys.
+- **Gradients:** permitted in this skin only, for chrome and controls, never on data rows.
+- **Night palette:** none. Choosing Millennium follows its own palette regardless of system brightness.
+
+Fonts: the interface needs a free, Tahoma-metric face. Choose one at implementation after a licence review; an LGPL-2.1 face may be bundled with its notice. If none passes, use Noto Sans (SIL OFL). Figures use the same face with tabular figures where available.
+
+#### One-bit (inspired by the 1984 Macintosh)
+
+Black and white only. It is calm and exact.
+
+| Token | One-bit | One-bit inverted |
+|---|---|---|
+| `ground` | 50% dither pattern | 50% dither pattern |
+| `paper`, `chrome`, `actionFill` | `#ffffff` | `#000000` |
+| `ink`, `muted`, `rule`, `chromeLine`, `signal`, `runInk`, `negative`, `positive`, `focus`, `actionInk` | `#000000` | `#ffffff` |
+| `selWash` | `#000000` | `#ffffff` |
+| `selInk` | `#ffffff` | `#000000` |
+| `band` | 25% dither pattern | 25% dither pattern |
+| `head` / `headInk` | `#ffffff` / `#000000`; the focused tile's title bar has horizontal stripes | inverted |
+
+Painting rules:
+- **Shape:** 2-pixel borders everywhere. Tiles cast a hard 4-pixel offset shadow; this is the only shadow in any skin.
+- **Tiles:** window chrome, with a close box and a striped title bar on the focused tile.
+- **Buttons:** rounded rectangles with a 10-pixel radius. The primary button has a thick outer ring.
+- **Selection:** inversion.
+- **Disabled controls:** dithered rather than grey.
+- **Desk tabs:** boxed labels in a row. The **Desk** menu also lists every desk.
+- **Status line:** its segments move to the right end of the menu bar.
+- **Secondary text:** told apart by size and weight, never by grey.
+- **Negative amounts:** carry the minus sign and the word ("over", "short").
+- **Area markers:** patterns. Work is solid, Finance a 50% dither, Tracking diagonal stripes, Knowledge an outline.
+
+Fonts: Pixelify Sans for the interface and VT323 for figures, both SIL OFL and bundled. At 150% text scale and above, One-bit switches to Archivo and Azeret Mono to stay legible, keeping its borders, patterns and inversion.
+
+#### Contrast and accessibility per skin
+
+- Every text pair in every skin meets 4.5:1, and every indicator 3:1. The One-bit skins are pure black and white, so their ratio is 21:1.
+- The high-contrast setting from the operating system wins over any skin: when it is on, LifeOS uses the Office Machine high-contrast tokens unless the chosen skin is One-bit.
+- The focus ring stays distinct from selection in every skin: an outline in Office Machine, a dotted rectangle in Millennium and One-bit.
 
 ## 5. Shell Layout
 
@@ -179,7 +273,7 @@ Navigation is never removed at any width. The page body never scrolls horizontal
 |---|---|
 | File | Backup and export… (opens the existing System Files route), Quit |
 | Edit | Copy cell, Copy row, Copy explanation (from the formula bar) |
-| View | Appearance: System / Day / Night / High contrast, Show book tree, Show inspector, Show formula bar |
+| View | Appearance: System / Office Machine Day / Office Machine Night / High contrast / Millennium / One-bit / One-bit inverted, Show book tree, Show inspector, Show formula bar |
 | Desk | New desk, Add sheet to desk ▸, Layout ▸ (single, two columns, main and side), Rename desk, Reset starter desk |
 | Record | + Add ▸ (types), Open in its sheet, Void and replace…, Show history |
 | Window | Back, Forward, Today, Journal |
@@ -356,7 +450,7 @@ The schema is unreleased, so these tables join the reset schema history the prem
 
 ## 10. Testing
 
-**Theme:** contrast test over every token pair in 4.2. Golden tests for the shell at 1280 × 800 in day, night and high contrast, using synthetic data only.
+**Theme:** contrast test over every token pair in 4.2 and 4.7, for every appearance. Golden tests for the shell at 1280 × 800 in each appearance (Office Machine day, night and high contrast; Millennium; One-bit; One-bit inverted), using synthetic data only. A One-bit test asserts that every state in 4.5 is readable from its word, mark or pattern alone. A text-scale test asserts that One-bit switches to the smooth fallback faces at 150%.
 
 **Shell:**
 - Tree navigation opens sheets on the current desk.
