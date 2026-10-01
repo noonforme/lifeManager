@@ -5,6 +5,7 @@ import '../../../shared/workbench/inspector_pane.dart';
 import '../../../shared/workbench/lifeos_frame.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../../../shared/workbench/system_rail.dart';
+import 'employment_agreement_forms.dart';
 import 'work_controller.dart';
 import 'work_inspector.dart';
 import 'work_register.dart';
@@ -15,6 +16,8 @@ final class WorkScreen extends StatefulWidget {
     required this.state,
     required this.onSelect,
     required this.onPrimaryAction,
+    required this.onCreateEmployment,
+    required this.onCreateAgreement,
     required this.onNavigate,
     super.key,
   });
@@ -22,6 +25,8 @@ final class WorkScreen extends StatefulWidget {
   final AsyncValue<WorkViewState> state;
   final ValueChanged<WorkRecordRef> onSelect;
   final VoidCallback onPrimaryAction;
+  final SubmitEmployment onCreateEmployment;
+  final SubmitAgreement onCreateAgreement;
   final ValueChanged<String> onNavigate;
 
   @override
@@ -99,6 +104,13 @@ final class _WorkScreenState extends State<WorkScreen> {
         kind: OperationalStateKind.empty,
         title: 'Select a Work record',
         message: 'The selected record will remain beside the register.',
+      );
+    }
+    if (state.route.mode == WorkInspectorMode.create &&
+        state.route.record == null) {
+      return WorkInspector(
+        onCreateEmployment: widget.onCreateEmployment,
+        onCreateAgreement: widget.onCreateAgreement,
       );
     }
     return switch (state.inspector) {

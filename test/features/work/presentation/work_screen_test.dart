@@ -118,6 +118,8 @@ final class _TestScreen extends StatelessWidget {
           state: state,
           onSelect: (_) {},
           onPrimaryAction: () {},
+          onCreateEmployment: (_) async => throw UnimplementedError(),
+          onCreateAgreement: (_) async => throw UnimplementedError(),
           onNavigate: (_) {},
         ),
       ),

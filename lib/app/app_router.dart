@@ -113,7 +113,25 @@ final class _WorkRouteHost extends ConsumerWidget {
             );
           }
         },
-        onPrimaryAction: () {},
+        onPrimaryAction: () {
+          final parsed = ref.read(workRouteProvider);
+          if (parsed case ValidWorkRoute(:final state)) {
+            ref.read(replaceWorkRouteProvider)(
+              WorkRouteState(
+                employmentId: state.employmentId,
+                scope: state.scope,
+                record: null,
+                mode: WorkInspectorMode.create,
+              ),
+            );
+          }
+        },
+        onCreateEmployment: ref
+            .read(workControllerProvider.notifier)
+            .submitEmployment,
+        onCreateAgreement: ref
+            .read(workControllerProvider.notifier)
+            .submitAgreement,
         onNavigate: context.go,
       ),
     );

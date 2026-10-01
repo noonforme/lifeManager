@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/app/app_router.dart';
 import 'package:lifeos/app/lifeos_app.dart';
+import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/features/work/application/work_query_service.dart';
 import 'package:lifeos/features/work/data/daos/shift_dao.dart';
 import 'package:lifeos/features/work/data/projections/work_record_projection.dart';
 import 'package:lifeos/features/work/data/projections/work_register_projection.dart';
+import 'package:lifeos/features/work/domain/employment.dart';
+import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/pay.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
@@ -92,6 +95,62 @@ void main() {
     expect(find.text('Create an employment to begin.'), findsOneWidget);
     expect(find.text('Work records will appear here.'), findsNothing);
   });
+
+  testWidgets(
+    'empty Work primary action opens setup through safe route state',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1280, 760);
+      addTearDown(tester.view.reset);
+      final router = createAppRouter(initialLocation: '/work');
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            workQueryRepositoryProvider.overrideWithValue(
+              _EmptyWorkQueryRepository(),
+            ),
+            createEmploymentProvider.overrideWithValue(
+              (_) async => Committed(_employment),
+            ),
+          ],
+          child: LifeOsApp(router: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Create employment'));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routeInformationProvider.value.uri.toString(),
+        '/work?mode=create',
+      );
+      expect(
+        find.text(
+          'Create an employment and an agreement before recording paid work.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.descendant(
+          of: find.bySemanticsLabel('Record inspector'),
+          matching: find.text('Create employment'),
+        ),
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('employment-name')),
+        'Synthetic studio',
+      );
+      await tester.tap(find.text('Save employment'));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Create agreement'), findsOneWidget);
+    },
+  );
 
   testWidgets('selecting a Work row writes only safe structural route state', (
     tester,
@@ -237,3 +296,12 @@ final class _ShiftWorkQueryRepository implements WorkQueryRepository {
 
 const _employmentId = EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11');
 const _shiftId = ShiftId('00000000-0000-7000-8000-000000000001');
+final _employment = Employment(
+  id: _employmentId,
+  name: 'Synthetic studio',
+  legalLabel: null,
+  status: EmploymentStatus.active,
+  createdAtUtc: DateTime.utc(2026, 10, 1),
+  updatedAtUtc: DateTime.utc(2026, 10, 1),
+  revision: const Revision(0),
+);

@@ -206,6 +206,8 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      final subscription = container.listen(workControllerProvider, (_, _) {});
+      addTearDown(subscription.close);
       await container.read(workControllerProvider.future);
       final controller = container.read(workControllerProvider.notifier);
 
