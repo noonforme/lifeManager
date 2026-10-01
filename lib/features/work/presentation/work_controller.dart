@@ -1,12 +1,32 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/outcomes/mutation_outcome.dart';
+import '../application/work_commands.dart';
 import '../application/work_query_service.dart';
 import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
+import '../domain/agreement.dart';
+import '../domain/employment.dart';
+import 'employment_agreement_forms.dart';
 import 'work_route_state.dart';
 
 final workQueryRepositoryProvider = Provider<WorkQueryRepository>(
   (ref) => throw StateError('WorkQueryRepository has not been provided.'),
+);
+
+typedef CreateEmployment = Future<MutationOutcome<Employment>> Function(
+  CreateEmploymentCommand command,
+);
+typedef CreateAgreement = Future<MutationOutcome<PayAgreement>> Function(
+  CreateAgreementCommand command,
+);
+
+final createEmploymentProvider = Provider<CreateEmployment>(
+  (ref) => throw StateError('CreateEmployment has not been provided.'),
+);
+
+final createAgreementProvider = Provider<CreateAgreement>(
+  (ref) => throw StateError('CreateAgreement has not been provided.'),
 );
 
 final workRouteProvider = Provider<WorkRouteParseResult>(
@@ -68,6 +88,35 @@ final class WorkInspectorUnavailable extends WorkInspectorState {
 final class WorkController extends AsyncNotifier<WorkViewState> {
   Object? draft;
 
+  Future<MutationOutcome<Employment>> submitEmployment(EmploymentDraft value) {
+    draft = value;
+    return ref.read(createEmploymentProvider)(
+      CreateEmploymentCommand(
+        name: value.name.trim(),
+        legalLabel: _trimOptional(value.legalLabel),
+      ),
+    );
+  }
+
+  Future<MutationOutcome<PayAgreement>> submitAgreement(AgreementDraft value) {
+    draft = value;
+    return ref.read(createAgreementProvider)(
+      CreateAgreementCommand(
+        employmentId: value.employmentId,
+        version: 1,
+        effectiveStart: value.effectiveStart,
+        effectiveEnd: value.effectiveEnd,
+        hourlyRateMicroEur: value.hourlyRateMicroEur,
+        basis: value.basis,
+        overtimeThresholdMinutes: value.overtimeThresholdMinutes,
+        overtimeMultiplierNumerator: value.multiplierNumerator,
+        overtimeMultiplierDenominator: value.multiplierDenominator,
+        label: _trimOptional(value.label),
+        note: _trimOptional(value.note),
+      ),
+    );
+  }
+
   @override
   Future<WorkViewState> build() async {
     final parsed = ref.watch(workRouteProvider);
@@ -93,4 +142,10 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     }
     return WorkReady(register: register, route: route, inspector: inspector);
   }
+}
+
+String? _trimOptional(String? value) {
+  if (value == null) return null;
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }
