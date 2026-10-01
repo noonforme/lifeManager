@@ -93,6 +93,7 @@ Given a finalized shift, its breaks, and the resolved agreement:
    - every night window start and end, when night pay is enabled
    - the overtime start instant, which is the instant when cumulative paid seconds reach `overtimeThresholdMinutes × 60`
 3. Convert local times to instants with the shift's `timezoneId` through the existing timezone service. On a daylight-saving gap, a local boundary that does not exist resolves to the first valid instant after it. On an overlap, each boundary instant is used once.
+   The instants where the UTC offset changes are boundaries too, so an hour repeated by fall-back that re-enters the night window gets its own segment.
 4. Split the paid intervals at the boundaries into segments. Each segment carries its seconds and three flags: `night`, `holiday` and `overtime`.
 
 Each flag is set by checking the segment's start instant in local time:

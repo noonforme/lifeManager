@@ -23,7 +23,7 @@ void main() {
   );
 
   test('calculates regular and overtime amounts without floating point', () {
-    final result = calculateExpectedPay(
+    final result = calculateManualOvertimePay(
       const ExpectedPayInput(
         hourlyRateMicroEur: 20000000,
         paidSeconds: 3600,
@@ -39,7 +39,7 @@ void main() {
   });
 
   test('rounds once after combining regular and overtime rational amounts', () {
-    final result = calculateExpectedPay(
+    final result = calculateManualOvertimePay(
       const ExpectedPayInput(
         hourlyRateMicroEur: 1000000,
         paidSeconds: 54,
@@ -61,15 +61,15 @@ void main() {
       currency: CurrencyCode.eur(),
     );
     expect(
-      () => calculateExpectedPay(valid.copyWith(paidSeconds: 0)),
+      () => calculateManualOvertimePay(valid.copyWith(paidSeconds: 0)),
       throwsArgumentError,
     );
     expect(
-      () => calculateExpectedPay(valid.copyWith(overtimeMinutes: -1)),
+      () => calculateManualOvertimePay(valid.copyWith(overtimeMinutes: -1)),
       throwsArgumentError,
     );
     expect(
-      () => calculateExpectedPay(valid.copyWith(overtimeMinutes: 61)),
+      () => calculateManualOvertimePay(valid.copyWith(overtimeMinutes: 61)),
       throwsArgumentError,
     );
   });

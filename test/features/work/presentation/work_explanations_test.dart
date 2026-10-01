@@ -21,7 +21,7 @@ void main() {
   group('expected pay', () {
     test('the result reads exactly like the cell, from the same result', () {
       final facts = _facts(overtimeMinutes: 15);
-      final pay = calculateExpectedPay(facts.toExpectedPayInput());
+      final pay = calculateManualOvertimePay(facts.toExpectedPayInput());
       final explanation = explainExpectedPay(facts, pay);
 
       final result = explanation.tokens.whereType<ResultToken>().single;
@@ -37,7 +37,7 @@ void main() {
 
     test('a shift without overtime shows regular time only', () {
       final facts = _facts(overtimeMinutes: 0);
-      final pay = calculateExpectedPay(facts.toExpectedPayInput());
+      final pay = calculateManualOvertimePay(facts.toExpectedPayInput());
       final explanation = explainExpectedPay(facts, pay);
 
       expect(explanation.plainText, isNot(contains('overtime')));
@@ -64,7 +64,7 @@ void main() {
 
   test('operand routes carry only structural state', () {
     final facts = _facts(overtimeMinutes: 15);
-    final pay = calculateExpectedPay(facts.toExpectedPayInput());
+    final pay = calculateManualOvertimePay(facts.toExpectedPayInput());
     final explanations = [
       explainExpectedPay(facts, pay),
       explainPaidTime(facts, zones),

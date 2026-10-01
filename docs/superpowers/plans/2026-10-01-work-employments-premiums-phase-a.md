@@ -30,7 +30,7 @@
 ## Review Focus
 
 1. **Daylight saving:** a night window across the Europe/Vilnius changes (gap and overlap) counts each paid second exactly once. Tested in Task 3.
-2. **Stacking:** a night hour on a holiday that is also overtime gives ×2, ×2.5 and ×3 for highest, additive and multiplicative. Tested in Task 3.
+2. **Stacking:** a night hour on a holiday gives ×2, ×2.5 and ×3 for highest, additive and multiplicative; with overtime too, ×2, ×3 and ×4.5. Tested in Task 3.
 3. **Overtime start:** the instant at which cumulative paid seconds reach the threshold, skipping breaks. Tested in Task 3.
 4. **Delete with history:** blocked by any shift, pay period or payslip, and the cascade removes only unused agreements, in one transaction. Tested in Task 5.
 5. **No leftover manual overtime:** a repository-wide scan finds no `overtimeMinutes` field, column or form. Tested in Task 4.
@@ -112,6 +112,7 @@ abstract final class AgreementDefaults { /* the values above, plus overtime 480 
 
 **Files:**
 - Create: `lib/features/work/domain/pay_premiums.dart`
+- Create: `lib/core/time/wall_clock.dart` (`ZoneWallClock`, whose `toLocal` and `toInstants` tear-offs fit the typedefs), `test/core/time/wall_clock_test.dart`
 - Modify: `lib/features/work/domain/pay.dart`
 - Create: `test/features/work/domain/pay_premiums_test.dart`
 - Modify: `test/features/work/domain/pay_test.dart`
@@ -122,9 +123,10 @@ abstract final class AgreementDefaults { /* the values above, plus overtime 480 
 /// Local wall-clock view of an instant in the shift's zone.
 typedef ToLocal = ({LocalDate date, int minuteOfDay}) Function(DateTime utc);
 
-/// The first valid instant at or after a local wall-clock time in the shift's
-/// zone (a time inside a daylight-saving gap resolves forward).
-typedef ToInstant = DateTime Function(LocalDate date, int minuteOfDay);
+/// Every instant at which the shift's zone reads a local wall-clock time:
+/// one normally, two in a daylight-saving overlap, and the first valid
+/// instant after a gap.
+typedef ToInstants = List<DateTime> Function(LocalDate date, int minuteOfDay);
 
 final class PaySegment {
   const PaySegment({required this.startUtc, required this.seconds,
@@ -135,7 +137,7 @@ List<PaySegment> segmentPaidTime({
   required List<({DateTime start, DateTime end})> paidIntervals, // shift minus breaks, UTC, ordered
   required PayAgreement agreement,
   required ToLocal toLocal,
-  required ToInstant toInstant,
+  required ToInstants toInstants,
 });
 
 RationalMultiplier segmentMultiplier(PaySegment segment, PayAgreement agreement);
@@ -155,18 +157,18 @@ ExpectedPay calculateExpectedPay({
 });
 ```
 
-- [ ] **Step 1: Write failing segmentation tests**, using fixed-offset `ToLocal`/`ToInstant` for the plain cases and the real Europe/Vilnius zone for the daylight-saving cases:
+- [x] **Step 1: Write failing segmentation tests**, using fixed-offset `ToLocal`/`ToInstants` for the plain cases and the real Europe/Vilnius zone for the daylight-saving cases:
   - an 8-hour day shift with no premiums
   - a 12-hour night shift from 18:00 to 06:00 with an 8-hour threshold, where the last 4 hours are overtime and partly night
   - a shift crossing midnight into 24 December (holiday from 00:00)
   - a night shift across the Europe/Vilnius spring-forward and fall-back changes; every paid second is counted once
   - breaks removed from night time
   - night pay disabled, and holiday calendar `none`
-- [ ] **Step 2: Write failing multiplier and amount tests.**
-  - Each stacking mode with night, holiday and overtime overlapping gives ×2, ×2.5 and ×3 (night 1.5, holiday 2, overtime 1.5).
+- [x] **Step 2: Write failing multiplier and amount tests.**
+  - Night on a holiday gives ×2, ×2.5 and ×3 under highest, additive and multiplicative (night 1.5, holiday 2); adding overtime 1.5 gives ×2, ×3 and ×4.5.
   - Rounding is half-up once, at the end only. An amount that rounds differently per segment must round correctly in total.
-- [ ] **Step 3: Run, implement, run.** Expected: FAIL, then PASS. Boundaries are local midnights, night window start and end, and the overtime start instant. Each flag is read at the segment's start instant (start inclusive, end exclusive).
-- [ ] **Step 4: Commit** `feat: derive expected pay with night, holiday and overtime premiums`.
+- [x] **Step 3: Run, implement, run.** Expected: FAIL, then PASS. Boundaries are local midnights, night window start and end (every occurrence, so a repeated hour counts on both passes), the overtime start instant and any change of UTC offset. Each flag is read at the segment's start instant (start inclusive, end exclusive).
+- [x] **Step 4: Commit** `feat: derive expected pay with night, holiday and overtime premiums`.
 
 ### Task 4: Remove manual overtime and reset the schema
 
@@ -191,7 +193,7 @@ Removing the overtime field touches the domain, the schema, the services and the
   - **Earlier-build database:** a database with `user_version` 2 fails with `SafeFailureCode.databaseFromEarlierBuild`. The recovery screen shows "This database was made by an earlier development build of LifeOS and can't be opened. Close LifeOS, remove <path>, then start it again." The path is the database's own location; no record content is shown.
 - [ ] **Step 2: Implement.**
   - Remove `WorkShift.overtimeMinutes`, its validation, `suggestedOvertimeMinutes` and the overtime confirmation inspector.
-  - `FinalizationFacts` exposes the paid intervals plus `expectedPay(ToLocal, ToInstant)`, and reconciliation reads the new breakdown.
+  - `FinalizationFacts` exposes the paid intervals plus `expectedPay(ToLocal, ToInstants)`, and reconciliation reads the new breakdown. Delete the interim `calculateManualOvertimePay` and `ExpectedPayInput`.
   - Add the agreement columns and CHECKs from spec section 6, and drop `overtime_minutes`.
   - Set `currentSchemaVersion = 1`. `onCreate` builds everything, and `onUpgrade` only accepts the current version.
   - Regenerate Drift output and the snapshot: `dart run build_runner build --delete-conflicting-outputs`, then `dart run drift_dev schema dump lib/core/database/app_database.dart drift_schemas/schema_v1.json`. Update the fingerprints with `sha256sum`.

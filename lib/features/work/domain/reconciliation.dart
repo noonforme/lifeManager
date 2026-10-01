@@ -108,7 +108,9 @@ List<ReconciliationGroup> reconcilePeriod({
         unavailable = true;
         continue;
       }
-      final expectedPay = calculateExpectedPay(facts.toExpectedPayInput());
+      final expectedPay = calculateManualOvertimePay(
+        facts.toExpectedPayInput(),
+      );
       evidence.add(
         _Evidence.expected(
           basis: agreement.basis,
