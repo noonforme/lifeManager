@@ -177,13 +177,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    // The book tree also watches the unscoped employment list.
+    // The book tree also watches the unscoped employment list, and
+    // "from last time" watches the employment's records.
     expect(
       repository.requestedScopes
           .where((scope) => scope.employmentId != null)
-          .single
-          .employmentId,
-      _employmentId,
+          .map((scope) => scope.employmentId)
+          .toSet(),
+      {_employmentId},
     );
 
     await tester.tap(find.text('2026-09-29'));

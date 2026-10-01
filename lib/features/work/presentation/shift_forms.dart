@@ -4,6 +4,7 @@ import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/local_time.dart';
 import '../../../core/time/timezone_service.dart';
+import '../application/work_templates.dart';
 import '../domain/ids.dart';
 import '../domain/shift.dart';
 
@@ -86,6 +87,28 @@ final class ShiftFormPrefill {
       note: shift.note,
     );
   }
+
+  /// A new shift shaped like [template] on [day]. The note stays empty.
+  factory ShiftFormPrefill.fromTemplate(
+    ShiftTemplate template,
+    LocalDate day,
+  ) => ShiftFormPrefill(
+    startDate: day,
+    startTime: template.start,
+    endDate: ShiftTemplate.shift(day, template.endDayOffset),
+    endTime: template.end,
+    timezoneId: template.timezoneId,
+    breaks: [
+      for (final item in template.breaks)
+        ManualBreakDraft(
+          startDate: ShiftTemplate.shift(day, item.startDayOffset),
+          start: item.start,
+          endDate: ShiftTemplate.shift(day, item.endDayOffset),
+          end: item.end,
+        ),
+    ],
+    note: null,
+  );
 
   final LocalDate startDate;
   final LocalTime startTime;

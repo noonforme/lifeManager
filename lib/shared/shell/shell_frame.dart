@@ -5,6 +5,7 @@ import '../workbench/lifeos_skin.dart';
 import '../workbench/office_controls.dart';
 import 'formula_bar.dart';
 import 'navigation_history.dart';
+import 'quick_add.dart';
 
 /// Fixed shell geometry (spec 5.1–5.2).
 abstract final class ShellMetrics {
@@ -82,10 +83,18 @@ final class ShellChrome extends InheritedWidget {
     required this.title,
     required this.onNavigate,
     required super.child,
+    this.quickAdd = const [],
+    this.fromLastTime = const [],
     super.key,
   });
 
   final Widget menuBar;
+
+  /// The toolbar's **+ Add** entries.
+  final List<QuickAddEntry> quickAdd;
+
+  /// "From last time" buttons beside + Add, at most four.
+  final List<QuickAddEntry> fromLastTime;
 
   /// Opens a route, for example an operand's source from the formula bar.
   final ValueChanged<String> onNavigate;
@@ -105,7 +114,9 @@ final class ShellChrome extends InheritedWidget {
       tree != oldWidget.tree ||
       status != oldWidget.status ||
       title != oldWidget.title ||
-      onNavigate != oldWidget.onNavigate;
+      onNavigate != oldWidget.onNavigate ||
+      quickAdd != oldWidget.quickAdd ||
+      fromLastTime != oldWidget.fromLastTime;
 }
 
 /// The Office Machine shell: menu bar, toolbar, formula bar, book tree,
@@ -230,6 +241,8 @@ final class _ShellFrameState extends State<ShellFrame> {
                   showBooks: treeFolded,
                   booksOpen: _treeOpen,
                   onBooks: _toggleTree,
+                  quickAdd: chrome?.quickAdd ?? const [],
+                  fromLastTime: chrome?.fromLastTime ?? const [],
                 ),
               ),
               if (view.showFormulaBar)
@@ -298,9 +311,13 @@ final class _Toolbar extends StatelessWidget {
     required this.showBooks,
     required this.booksOpen,
     required this.onBooks,
+    required this.quickAdd,
+    required this.fromLastTime,
   });
 
   final String title;
+  final List<QuickAddEntry> quickAdd;
+  final List<QuickAddEntry> fromLastTime;
   final bool showBooks;
   final bool booksOpen;
   final VoidCallback onBooks;
@@ -337,6 +354,16 @@ final class _Toolbar extends StatelessWidget {
             ),
             const SizedBox(width: 10),
           ],
+          if (quickAdd.isNotEmpty) ...[
+            QuickAddMenu(entries: quickAdd),
+            const SizedBox(width: 6),
+          ],
+          for (final entry in fromLastTime.take(4)) ...[
+            KeyButton(label: entry.label, onPressed: entry.open),
+            const SizedBox(width: 6),
+          ],
+          if (quickAdd.isNotEmpty || fromLastTime.isNotEmpty)
+            const SizedBox(width: 4),
           if (showBooks) ...[
             KeyButton(
               label: booksOpen ? 'Close books' : 'Books',

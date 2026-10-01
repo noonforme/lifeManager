@@ -8,6 +8,7 @@ import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../application/work_commands.dart';
 import '../application/work_query_service.dart';
+import '../application/work_templates.dart';
 import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/agreement.dart';
@@ -154,6 +155,22 @@ final recordEventsProvider = StreamProvider.autoDispose
           .watch(recordHistoryProvider)
           .watch(record.kind.name, record.id.value),
     );
+
+/// "From last time": the employment's latest finalized shift as a
+/// template, computed from the current records; null when there is none.
+final lastShiftTemplateProvider = StreamProvider.autoDispose
+    .family<ShiftTemplate?, EmploymentId>((ref, employment) {
+      final zones = ref.watch(timezoneServiceProvider);
+      return ref
+          .watch(workQueryRepositoryProvider)
+          .watchRegister(WorkScope(employmentId: employment, temporal: null))
+          .map(
+            (register) => shiftTemplateFromLast([
+              for (final row in register.shiftSheet)
+                (shift: row.shift, breaks: row.breaks),
+            ], zones),
+          );
+    });
 
 /// Today's local date, the default start of a new agreement.
 final todayProvider = Provider<LocalDate Function()>(
@@ -305,15 +322,26 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     return outcome;
   }
 
-  Future<MutationOutcome<PayAgreement>> submitAgreement(AgreementDraft value) {
+  /// Saves a new agreement. One added from + Add returns to the
+  /// employment; during setup the route moves on by itself.
+  Future<MutationOutcome<PayAgreement>> submitAgreement(
+    AgreementDraft value,
+  ) async {
     draft = value;
-    return ref.read(createAgreementProvider)(
+    final outcome = await ref.read(createAgreementProvider)(
       CreateAgreementCommand(
         employmentId: value.employmentId,
-        version: 1,
+        version: _nextAgreementVersion(),
         terms: value.terms,
       ),
     );
+    final parsed = ref.read(workRouteProvider);
+    if (outcome is Committed<PayAgreement> &&
+        parsed is ValidWorkRoute &&
+        parsed.state.adding == WorkAddKind.agreement) {
+      _showEmployment(value.employmentId);
+    }
+    return outcome;
   }
 
   /// Renames an employment and returns to its header.
@@ -375,6 +403,18 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       _showEmployment(current.employmentId);
     }
     return outcome;
+  }
+
+  /// One past the highest version the selected employment has.
+  int _nextAgreementVersion() {
+    final ready = state.value;
+    if (ready is! WorkReady) return 1;
+    return ready.register.agreementSheet.fold(
+          0,
+          (highest, row) =>
+              row.agreement.version > highest ? row.agreement.version : highest,
+        ) +
+        1;
   }
 
   void _showEmployment(EmploymentId id) => ref.read(replaceWorkRouteProvider)(
@@ -662,7 +702,8 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     final unselected =
         route.record == null &&
         route.scope == null &&
-        route.mode == WorkInspectorMode.inspect;
+        route.mode == WorkInspectorMode.inspect &&
+        route.adding == null;
     var restoring = false;
     if (unselected) {
       final active = await _valueOf(

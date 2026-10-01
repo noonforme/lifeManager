@@ -58,4 +58,31 @@ void main() {
     expect(next.sheet, WorkSheet.agreements);
     expect(next.mode, WorkInspectorMode.create);
   });
+
+  test('add and template round-trip without touching the date range', () {
+    const state = WorkRouteState(
+      employmentId: employment,
+      scope: null,
+      record: null,
+      mode: WorkInspectorMode.edit,
+      adding: WorkAddKind.payslip,
+      fromLast: true,
+    );
+    final uri = workRouteUri(state);
+    expect(uri.query, contains('add=payslip'));
+    expect(uri.query, contains('template=last'));
+    final parsed = (parseWorkRoute(uri) as ValidWorkRoute).state;
+    expect(parsed.adding, WorkAddKind.payslip);
+    expect(parsed.fromLast, isTrue);
+    expect(parsed.scope, isNull);
+
+    expect(
+      parseWorkRoute(Uri.parse('/work?add=invoice')),
+      isA<InvalidWorkRoute>(),
+    );
+    expect(
+      parseWorkRoute(Uri.parse('/work?template=first')),
+      isA<InvalidWorkRoute>(),
+    );
+  });
 }

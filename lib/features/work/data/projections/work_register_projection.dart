@@ -39,11 +39,13 @@ final class ShiftSheetRow {
     required this.breakSeconds,
     required this.paidSeconds,
     required this.period,
+    this.breaks = const [],
     this.facts,
     this.pay,
   });
 
   final WorkShift shift;
+  final List<ShiftBreak> breaks;
   final int breakSeconds;
 
   /// Null while the shift is still running.

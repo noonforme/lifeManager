@@ -9,6 +9,9 @@ enum WorkInspectorMode { inspect, create, edit, correct }
 
 enum WorkRouteProblem { malformedId, malformedScope, invalidMode }
 
+/// A create form opened by route, for example from + Add.
+enum WorkAddKind { payPeriod, payslip, agreement }
+
 enum WorkRecordKind {
   employment,
   agreement,
@@ -108,6 +111,8 @@ final class WorkRouteState {
     required this.mode,
     this.sheet = WorkSheet.shifts,
     this.showVoid = false,
+    this.adding,
+    this.fromLast = false,
   });
 
   final EmploymentId? employmentId;
@@ -121,12 +126,20 @@ final class WorkRouteState {
   /// Whether voided rows are listed; they are hidden by default.
   final bool showVoid;
 
+  /// The create form the inspector shows, when opened by route.
+  final WorkAddKind? adding;
+
+  /// Whether the manual shift form is prefilled from the last shift.
+  final bool fromLast;
+
   WorkRouteState copyWith({
     WorkTemporalScope? Function()? scope,
     WorkRecordRef? Function()? record,
     WorkInspectorMode? mode,
     WorkSheet? sheet,
     bool? showVoid,
+    WorkAddKind? Function()? adding,
+    bool? fromLast,
   }) => WorkRouteState(
     employmentId: employmentId,
     scope: scope == null ? this.scope : scope(),
@@ -134,6 +147,8 @@ final class WorkRouteState {
     mode: mode ?? this.mode,
     sheet: sheet ?? this.sheet,
     showVoid: showVoid ?? this.showVoid,
+    adding: adding == null ? this.adding : adding(),
+    fromLast: fromLast ?? this.fromLast,
   );
 }
 
@@ -154,6 +169,8 @@ Uri workRouteUri(WorkRouteState state) {
     parameters.add('sheet=${state.sheet.name}');
   }
   if (state.showVoid) parameters.add('void=1');
+  if (state.adding case final adding?) parameters.add('add=${adding.name}');
+  if (state.fromLast) parameters.add('template=last');
   if (state.record case final record?) {
     parameters.add('record=${record.kind.name}:${record.id.value}');
   }
@@ -206,7 +223,15 @@ WorkRouteParseResult parseWorkRoute(Uri uri) {
       ? WorkSheet.shifts
       : WorkSheet.values.where((value) => value.name == sheetText).firstOrNull;
   final voidText = uri.queryParameters['void'];
-  if (sheet == null || (voidText != null && voidText != '1')) {
+  final addText = uri.queryParameters['add'];
+  final adding = addText == null
+      ? null
+      : WorkAddKind.values.where((value) => value.name == addText).firstOrNull;
+  final templateText = uri.queryParameters['template'];
+  if (sheet == null ||
+      (voidText != null && voidText != '1') ||
+      (addText != null && adding == null) ||
+      (templateText != null && templateText != 'last')) {
     return const InvalidWorkRoute(WorkRouteProblem.malformedScope);
   }
 
@@ -223,6 +248,8 @@ WorkRouteParseResult parseWorkRoute(Uri uri) {
       mode: mode,
       sheet: sheet,
       showVoid: voidText == '1',
+      adding: adding,
+      fromLast: templateText == 'last',
     ),
   );
 }

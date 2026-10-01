@@ -340,16 +340,20 @@ final class QuickAddEntry {
   final LifeOSArea area; final String label; final VoidCallback open;
 }
 
-ManualShiftDraft? manualShiftFromLastTime(ShiftRecordProjection? last, LocalDate today);
+// As built: the application layer cannot depend on presentation drafts, so
+// the template is a wall-clock shape and the form builds its prefill.
+ShiftTemplate? shiftTemplateFromLast(Iterable<({WorkShift shift, List<ShiftBreak> breaks})> shifts, TimezoneService zones);
+factory ShiftFormPrefill.fromTemplate(ShiftTemplate template, LocalDate day);
 ```
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - "+ Add" lists the six Phase 0–1 record types.
   - "Manual shift from last time" uses the last shift's employment, local start and end times, break pattern and timezone on today's date.
   - With no previous shift, the button is absent.
   - Prefill never sets a value the owner did not enter before.
-- [ ] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
-- [ ] **Step 3: Commit** `feat: add quick add and prefilled Work templates`.
+- [x] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
+- [x] **Step 3: Commit** `feat: add quick add and prefilled Work templates`.
+- Also built: Work routes gain `add=` (payPeriod, payslip, agreement) and `template=last`, so every + Add entry is route-addressable; a new agreement takes the next free version.
 
 ### Task 9: Journal, desks and starter desks
 

@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../features/work/data/projections/work_register_projection.dart';
 import '../features/work/domain/employment.dart';
+import '../features/work/domain/ids.dart';
 import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_route_state.dart';
 import '../shared/shell/book_tree.dart';
 import '../shared/shell/menu_bar.dart';
+import '../shared/shell/quick_add.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/shell/status_line.dart';
 import '../shared/workbench/lifeos_tokens.dart';
@@ -160,8 +162,120 @@ final class ShellChromeHost extends ConsumerWidget {
       status: StatusLine(snapshot: StatusSnapshot(runningShift: running)),
       title: _title(location.path, employmentName),
       onNavigate: context.go,
+      quickAdd: _quickAdd(context, employments, employmentId),
+      fromLastTime: _fromLastTime(context, ref, employments, employmentId),
       child: child,
     );
+  }
+
+  /// The employment + Add files records under: the open one, otherwise the
+  /// first active one.
+  static EmploymentId? _target(
+    List<Employment> employments,
+    String? employmentId,
+  ) =>
+      employments
+          .where((value) => value.id.value == employmentId)
+          .map((value) => value.id)
+          .firstOrNull ??
+      employments.map((value) => value.id).firstOrNull;
+
+  List<QuickAddEntry> _quickAdd(
+    BuildContext context,
+    List<Employment> employments,
+    String? employmentId,
+  ) {
+    final target = _target(employments, employmentId);
+    final period = location.path == '/work'
+        ? location.queryParameters['period']
+        : null;
+    VoidCallback? go(
+      WorkInspectorMode mode, {
+      WorkAddKind? adding,
+      bool needsEmployment = true,
+    }) {
+      if (needsEmployment && target == null) return null;
+      return () => context.go(
+        workRouteUri(
+          WorkRouteState(
+            employmentId: needsEmployment ? target : null,
+            scope: adding == WorkAddKind.payslip && period != null
+                ? PayPeriodScope(PayPeriodId(period))
+                : null,
+            record: null,
+            mode: mode,
+            adding: adding,
+          ),
+        ).toString(),
+      );
+    }
+
+    return [
+      QuickAddEntry(
+        area: LifeOSArea.work,
+        label: 'Start shift',
+        open: go(WorkInspectorMode.create),
+      ),
+      QuickAddEntry(
+        area: LifeOSArea.work,
+        label: 'Manual shift',
+        open: go(WorkInspectorMode.edit),
+      ),
+      QuickAddEntry(
+        area: LifeOSArea.work,
+        label: 'Pay period',
+        open: go(WorkInspectorMode.inspect, adding: WorkAddKind.payPeriod),
+      ),
+      QuickAddEntry(
+        area: LifeOSArea.work,
+        label: 'Payslip',
+        open: go(WorkInspectorMode.inspect, adding: WorkAddKind.payslip),
+      ),
+      QuickAddEntry(
+        area: LifeOSArea.work,
+        label: 'Employment',
+        open: go(WorkInspectorMode.create, needsEmployment: false),
+      ),
+      QuickAddEntry(
+        area: LifeOSArea.work,
+        label: 'Agreement',
+        open: go(WorkInspectorMode.inspect, adding: WorkAddKind.agreement),
+      ),
+    ];
+  }
+
+  /// "From last time" buttons: a manual shift shaped like the last one,
+  /// shown only when there is a last one.
+  List<QuickAddEntry> _fromLastTime(
+    BuildContext context,
+    WidgetRef ref,
+    List<Employment> employments,
+    String? employmentId,
+  ) {
+    final target = _target(employments, employmentId);
+    if (target == null) return const [];
+    final template = switch (ref.watch(lastShiftTemplateProvider(target))) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
+    if (template == null) return const [];
+    return [
+      QuickAddEntry(
+        area: LifeOSArea.work,
+        label: 'Manual shift from last time',
+        open: () => context.go(
+          workRouteUri(
+            WorkRouteState(
+              employmentId: target,
+              scope: null,
+              record: null,
+              mode: WorkInspectorMode.edit,
+              fromLast: true,
+            ),
+          ).toString(),
+        ),
+      ),
+    ];
   }
 
   static String _title(String path, String? employmentName) => switch (path) {

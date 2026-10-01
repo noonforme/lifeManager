@@ -7,6 +7,7 @@ import '../../../core/time/timezone_service.dart';
 import '../../../shared/shell/shell_frame.dart';
 import '../../../shared/workbench/lifeos_theme.dart';
 import '../../../shared/workbench/operational_state.dart';
+import '../application/work_templates.dart';
 import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/agreement.dart';
@@ -54,6 +55,7 @@ final class WorkScreen extends StatefulWidget {
     this.onDeleteEmployment,
     this.onUpdateAgreement,
     this.today,
+    this.lastShiftTemplate,
     super.key,
   });
 
@@ -111,6 +113,9 @@ final class WorkScreen extends StatefulWidget {
 
   /// Today's local date for new agreements; the device date when null.
   final LocalDate? today;
+
+  /// The selected employment's last finalized shift, for "from last time".
+  final ShiftTemplate? lastShiftTemplate;
 
   @override
   State<WorkScreen> createState() => _WorkScreenState();
@@ -204,7 +209,9 @@ final class _WorkScreenState extends State<WorkScreen> {
     };
     final routeRecord = ready is WorkReady ? ready.route.record : null;
     final creating =
-        ready is WorkReady && ready.route.mode == WorkInspectorMode.create;
+        ready is WorkReady &&
+        (ready.route.mode != WorkInspectorMode.inspect ||
+            ready.route.adding != null);
     final inspectorActive =
         (routeRecord != null ||
             creating ||
@@ -321,6 +328,10 @@ final class _WorkScreenState extends State<WorkScreen> {
         onSubmit: widget.onCreateAgreement,
       );
     }
+    if (route.record == null && employmentId != null) {
+      final added = _added(route.adding, state.register, employmentId);
+      if (added != null) return added;
+    }
     if (_creatingPeriod && employmentId != null) {
       return PeriodInspector.create(
         employmentId: employmentId,
@@ -359,9 +370,20 @@ final class _WorkScreenState extends State<WorkScreen> {
         route.record == null &&
         route.employmentId != null &&
         save != null) {
+      final template = route.fromLast ? widget.lastShiftTemplate : null;
       return ShiftEditInspector(
+        key: ValueKey(('manual-shift', template != null)),
         employmentId: route.employmentId!,
         initialTimezoneId: widget.systemTimezoneId,
+        title: template == null
+            ? 'Manual shift'
+            : 'Manual shift from last time',
+        prefill: template == null
+            ? null
+            : ShiftFormPrefill.fromTemplate(
+                template,
+                widget.today ?? _deviceToday(),
+              ),
         onSubmit: save,
       );
     }
@@ -401,7 +423,52 @@ final class _WorkScreenState extends State<WorkScreen> {
   }
 }
 
+LocalDate _deviceToday() {
+  final now = DateTime.now();
+  return LocalDate(now.year, now.month, now.day);
+}
+
 extension on _WorkScreenState {
+  /// The create form a route's `add=` opens (shell spec 6.7).
+  Widget? _added(
+    WorkAddKind? adding,
+    WorkRegisterProjection register,
+    EmploymentId employmentId,
+  ) {
+    switch (adding) {
+      case WorkAddKind.payPeriod when widget.onCreatePayPeriod != null:
+        return PeriodInspector.create(
+          employmentId: employmentId,
+          onSubmit: _createPeriod,
+        );
+      case WorkAddKind.payslip when widget.onRecordPayslip != null:
+        final period =
+            register.period ??
+            register.periodSheet.map((row) => row.period).lastOrNull;
+        if (period == null) {
+          return const OperationalState(
+            kind: OperationalStateKind.empty,
+            title: 'No pay period yet',
+            message: 'Add a pay period first, then record its payslip.',
+          );
+        }
+        return PayslipInspector.create(
+          key: ValueKey(('add-payslip', period.id)),
+          periodId: period.id,
+          onSubmit: widget.onRecordPayslip!,
+        );
+      case WorkAddKind.agreement:
+        return AgreementForm(
+          key: ValueKey(('add-agreement', employmentId)),
+          employmentId: employmentId,
+          today: widget.today,
+          onSubmit: widget.onCreateAgreement,
+        );
+      case WorkAddKind.payPeriod || WorkAddKind.payslip || null:
+        return null;
+    }
+  }
+
   void _go(WorkRouteState route) =>
       widget.onNavigate(workRouteUri(route).toString());
 

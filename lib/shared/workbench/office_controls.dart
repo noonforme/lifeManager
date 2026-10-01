@@ -158,13 +158,16 @@ final class _FocusRing extends StatelessWidget {
 
 /// The keycap that marks a record's area. Announced by the area's name.
 final class AreaKey extends StatelessWidget {
-  const AreaKey({required this.area, super.key});
+  const AreaKey({required this.area, this.skin, super.key});
 
   final LifeOSArea area;
 
+  /// The skin to paint with where no scope is above, such as in a popup.
+  final LifeOSSkinData? skin;
+
   @override
   Widget build(BuildContext context) {
-    final skin = LifeOSSkinScope.of(context);
+    final skin = this.skin ?? LifeOSSkinScope.of(context);
     return Semantics(
       label: area.label,
       excludeSemantics: true,

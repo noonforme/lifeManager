@@ -531,6 +531,7 @@ final class DriftWorkRepository
     final clock = _zoneClocks(shift.timezoneId);
     return ShiftSheetRow(
       shift: shift,
+      breaks: breaks,
       breakSeconds: breakSeconds,
       paidSeconds: paidSeconds,
       period: period,
