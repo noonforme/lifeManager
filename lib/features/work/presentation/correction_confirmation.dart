@@ -172,7 +172,8 @@ final class UnavailableInspector extends StatelessWidget {
       SafeFailureCode.storageUnavailable =>
         'Local storage is unavailable. Your draft has been kept.',
       SafeFailureCode.databaseIdentityMismatch => 'The local database identity could not be verified. Your draft has been kept.',
-      SafeFailureCode.migrationFailed =>
+      SafeFailureCode.migrationFailed ||
+      SafeFailureCode.databaseFromEarlierBuild =>
         'The local database could not be prepared. Your draft has been kept.',
       SafeFailureCode.invalidTimezone =>
         'The recorded timezone is unavailable. Your draft has been kept.',

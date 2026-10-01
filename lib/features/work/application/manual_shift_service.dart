@@ -82,7 +82,6 @@ final class ManualShiftService {
         endUtc: end.utc,
         timezoneId: command.timezoneId,
         localStartDate: command.localStartDate,
-        overtimeMinutes: command.overtimeMinutes,
         note: _trimOptional(command.note),
         voidReason: null,
         replacementShiftId: null,
@@ -184,7 +183,6 @@ final class ShiftDraftRevisionService {
         ),
         timezoneId: command.timezoneId,
         localStartDate: command.localStartDate,
-        overtimeMinutes: command.overtimeMinutes,
         note: _trimOptional(command.note),
         updatedAtUtc: nowUtc,
       );

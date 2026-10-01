@@ -148,38 +148,36 @@ void main() {
     expect(shiftDetail.breaks, isEmpty);
   });
 
-  test(
-    'ended draft shift detail carries the agreement overtime suggestion',
-    () async {
-      final draft = _draftShift(
-        _insideShiftId,
-        start: DateTime.utc(2026, 9, 10, 6),
-        end: DateTime.utc(2026, 9, 10, 15, 30),
-      );
-      await database.into(database.workShifts).insert(shiftToCompanion(draft));
-      await database
-          .into(database.shiftBreaks)
-          .insert(
-            shiftBreakToCompanion(
-              ShiftBreak(
-                id: _breakId,
-                shiftId: _insideShiftId,
-                startUtc: DateTime.utc(2026, 9, 10, 11),
-                endUtc: DateTime.utc(2026, 9, 10, 11, 30),
-                createdAtUtc: DateTime.utc(2026, 9, 10, 11),
-                updatedAtUtc: DateTime.utc(2026, 9, 10, 11, 30),
-                revision: const Revision(1),
-              ),
+  test('ended draft shift detail carries its closed breaks', () async {
+    final draft = _draftShift(
+      _insideShiftId,
+      start: DateTime.utc(2026, 9, 10, 6),
+      end: DateTime.utc(2026, 9, 10, 15, 30),
+    );
+    await database.into(database.workShifts).insert(shiftToCompanion(draft));
+    await database
+        .into(database.shiftBreaks)
+        .insert(
+          shiftBreakToCompanion(
+            ShiftBreak(
+              id: _breakId,
+              shiftId: _insideShiftId,
+              startUtc: DateTime.utc(2026, 9, 10, 11),
+              endUtc: DateTime.utc(2026, 9, 10, 11, 30),
+              createdAtUtc: DateTime.utc(2026, 9, 10, 11),
+              updatedAtUtc: DateTime.utc(2026, 9, 10, 11, 30),
+              revision: const Revision(1),
             ),
-          );
+          ),
+        );
 
-      final detail =
-          await repository.watchRecord(_insideShiftId).first
-              as ShiftRecordProjection;
+    final detail =
+        await repository.watchRecord(_insideShiftId).first
+            as ShiftRecordProjection;
 
-      expect(detail.suggestedOvertimeMinutes, 60);
-    },
-  );
+    expect(detail.shift.endUtc, DateTime.utc(2026, 9, 10, 15, 30));
+    expect(detail.breaks.single.id, _breakId);
+  });
 
   test('active shift projection follows the single running shift', () async {
     final running = WorkShift(
@@ -191,7 +189,6 @@ void main() {
       endUtc: null,
       timezoneId: 'Europe/Berlin',
       localStartDate: const LocalDate(2026, 9, 10),
-      overtimeMinutes: 0,
       note: null,
       voidReason: null,
       replacementShiftId: null,
@@ -319,7 +316,6 @@ WorkShift _finalizedShift(ShiftId id, LocalDate date) => WorkShift(
   endUtc: DateTime.utc(date.year, date.month, date.day, 16),
   timezoneId: 'Europe/Berlin',
   localStartDate: date,
-  overtimeMinutes: 0,
   note: 'Private shift note',
   voidReason: null,
   replacementShiftId: null,
@@ -368,7 +364,6 @@ WorkShift _draftShift(
   endUtc: end,
   timezoneId: 'Europe/Berlin',
   localStartDate: LocalDate(start.year, start.month, start.day),
-  overtimeMinutes: 0,
   note: null,
   voidReason: null,
   replacementShiftId: null,

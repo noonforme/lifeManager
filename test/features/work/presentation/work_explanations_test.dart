@@ -11,6 +11,8 @@ import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_explanations.dart';
 import 'package:lifeos/features/work/presentation/work_formats.dart';
 
+import '../../../support/zone_clocks.dart';
+
 const _employment = EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11');
 const _shiftId = ShiftId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c31');
 const _periodId = PayPeriodId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c51');
@@ -20,8 +22,8 @@ void main() {
 
   group('expected pay', () {
     test('the result reads exactly like the cell, from the same result', () {
-      final facts = _facts(overtimeMinutes: 15);
-      final pay = calculateManualOvertimePay(facts.toExpectedPayInput());
+      final facts = _facts();
+      final pay = _pay(facts);
       final explanation = explainExpectedPay(facts, pay);
 
       final result = explanation.tokens.whereType<ResultToken>().single;
@@ -36,8 +38,8 @@ void main() {
     });
 
     test('a shift without overtime shows regular time only', () {
-      final facts = _facts(overtimeMinutes: 0);
-      final pay = calculateManualOvertimePay(facts.toExpectedPayInput());
+      final facts = _facts(end: DateTime.utc(2026, 9, 29, 13, 30));
+      final pay = _pay(facts);
       final explanation = explainExpectedPay(facts, pay);
 
       expect(explanation.plainText, isNot(contains('overtime')));
@@ -49,7 +51,7 @@ void main() {
   });
 
   test('paid time reads end − start − breaks in the shift timezone', () {
-    final facts = _facts(overtimeMinutes: 15);
+    final facts = _facts();
     final explanation = explainPaidTime(facts, zones);
 
     expect(
@@ -63,8 +65,8 @@ void main() {
   });
 
   test('operand routes carry only structural state', () {
-    final facts = _facts(overtimeMinutes: 15);
-    final pay = calculateManualOvertimePay(facts.toExpectedPayInput());
+    final facts = _facts();
+    final pay = _pay(facts);
     final explanations = [
       explainExpectedPay(facts, pay),
       explainPaidTime(facts, zones),
@@ -144,7 +146,15 @@ void main() {
   });
 }
 
-FinalizationFacts _facts({required int overtimeMinutes}) {
+ExpectedPay _pay(FinalizationFacts facts) {
+  final clock = testZoneClocks(facts.shift.timezoneId);
+  return facts.expectedPay(
+    toLocal: clock.toLocal,
+    toInstants: clock.toInstants,
+  );
+}
+
+FinalizationFacts _facts({DateTime? end}) {
   final shift = WorkShift(
     id: _shiftId,
     employmentId: _employment,
@@ -152,10 +162,9 @@ FinalizationFacts _facts({required int overtimeMinutes}) {
     state: ShiftState.draft,
     // 07:00 to 15:45 in Berlin (UTC+2) with a 30-minute break.
     startUtc: DateTime.utc(2026, 9, 29, 5),
-    endUtc: DateTime.utc(2026, 9, 29, 13, 45),
+    endUtc: end ?? DateTime.utc(2026, 9, 29, 13, 45),
     timezoneId: 'Europe/Berlin',
     localStartDate: LocalDate.parse('2026-09-29'),
-    overtimeMinutes: overtimeMinutes,
     note: null,
     voidReason: null,
     replacementShiftId: null,

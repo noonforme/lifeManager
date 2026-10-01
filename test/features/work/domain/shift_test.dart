@@ -5,6 +5,8 @@ import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 
+import '../../../support/zone_clocks.dart';
+
 void main() {
   test('finalizes only a closed non-overlapping break set within bounds', () {
     final outcome = validateFinalization(
@@ -105,43 +107,62 @@ void main() {
     );
   });
 
-  test(
-    'rejects nonpositive paid duration and overtime beyond whole minutes',
-    () {
-      final allBreak = closedBreak(
-        '2026-10-26T08:00:00Z',
-        '2026-10-26T12:00:00Z',
-      );
-      expect(
-        validateFinalization(
-          shift: candidate(),
-          breaks: [allBreak],
-          agreements: [effectiveAgreement()],
-        ).issues.map((issue) => issue.code),
-        contains('shift.paidDurationNotPositive'),
-      );
-      expect(
-        validateFinalization(
-          shift: candidate(overtimeMinutes: 241),
-          breaks: const [],
-          agreements: [effectiveAgreement()],
-        ).issues.map((issue) => issue.code),
-        contains('shift.overtimeExceedsPaidMinutes'),
-      );
-    },
-  );
+  test('rejects nonpositive paid duration', () {
+    final allBreak = closedBreak(
+      '2026-10-26T08:00:00Z',
+      '2026-10-26T12:00:00Z',
+    );
+    expect(
+      validateFinalization(
+        shift: candidate(),
+        breaks: [allBreak],
+        agreements: [effectiveAgreement()],
+      ).issues.map((issue) => issue.code),
+      contains('shift.paidDurationNotPositive'),
+    );
+  });
 
-  test('finalization facts convert to exact expected-pay input', () {
+  test('finalization facts give paid intervals and premium expected pay', () {
+    // 09:00 to 19:00 in Berlin (CET), with a 30-minute break.
     final facts = validateFinalization(
-      shift: candidate(overtimeMinutes: 30),
-      breaks: const [],
+      shift: candidate(end: '2026-10-26T18:00:00Z'),
+      breaks: [closedBreak('2026-10-26T12:00:00Z', '2026-10-26T12:30:00Z')],
       agreements: [effectiveAgreement()],
     ).facts!;
 
-    final input = facts.toExpectedPayInput();
-    expect(input.paidSeconds, 14400);
-    expect(input.overtimeMinutes, 30);
-    expect(input.hourlyRateMicroEur, 20000000);
+    expect(facts.paidSeconds, 9 * 3600 + 1800);
+    expect(facts.breakSeconds, 1800);
+    expect(facts.paidIntervals, [
+      (
+        start: DateTime.utc(2026, 10, 26, 8),
+        end: DateTime.utc(2026, 10, 26, 12),
+      ),
+      (
+        start: DateTime.utc(2026, 10, 26, 12, 30),
+        end: DateTime.utc(2026, 10, 26, 18),
+      ),
+    ]);
+    final pay = facts.expectedPay(
+      toLocal: testZoneClocks('Europe/Berlin').toLocal,
+      toInstants: testZoneClocks('Europe/Berlin').toInstants,
+    );
+    expect(pay.totalPaidSeconds, facts.paidSeconds);
+    expect(pay.overtimePaidSeconds, 3600 + 1800);
+    // 8h × 20 + 1:30 × 20 × 1.5 = EUR 205.
+    expect(pay.amount.minorUnits, 20500);
+  });
+
+  test('sub-second instants are paid in whole seconds', () {
+    final facts = validateFinalization(
+      shift: candidate(
+        start: '2026-10-26T08:00:00.700Z',
+        end: '2026-10-26T12:00:00.200Z',
+      ),
+      breaks: const [],
+      agreements: [effectiveAgreement()],
+    ).facts!;
+    expect(facts.paidSeconds, 4 * 3600);
+    expect(facts.paidIntervals.single.start, DateTime.utc(2026, 10, 26, 8));
   });
 }
 
@@ -149,7 +170,6 @@ WorkShift candidate({
   String start = '2026-10-26T08:00:00Z',
   String? end = '2026-10-26T12:00:00Z',
   String localStart = '2026-10-26',
-  int overtimeMinutes = 0,
 }) {
   return WorkShift(
     id: const ShiftId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c31'),
@@ -160,7 +180,6 @@ WorkShift candidate({
     endUtc: end == null ? null : DateTime.parse(end),
     timezoneId: 'Europe/Berlin',
     localStartDate: LocalDate.parse(localStart),
-    overtimeMinutes: overtimeMinutes,
     note: null,
     voidReason: null,
     replacementShiftId: null,

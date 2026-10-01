@@ -62,11 +62,7 @@ final class WorkScreen extends StatefulWidget {
   )?
   onEndBreak;
   final MutateShift? onEndShift;
-  final Future<MutationOutcome<WorkShift>> Function(
-    WorkShift shift,
-    int overtimeMinutes,
-  )?
-  onFinalize;
+  final MutateShift? onFinalize;
   final Future<MutationOutcome<WorkShift>> Function(EmploymentId employment)?
   onStartShift;
   final ValueChanged<EmploymentId>? onOpenManualShift;
@@ -455,7 +451,6 @@ extension on _WorkScreenState {
       );
     }
     final onEndBreak = widget.onEndBreak;
-    final onFinalize = widget.onFinalize;
     final shift = record is ShiftRecordProjection ? record.shift : null;
     return WorkInspector.fromRecord(
       key: ValueKey(record.id),
@@ -465,9 +460,7 @@ extension on _WorkScreenState {
           ? null
           : (value) => onEndBreak(shift, value),
       onEndShift: widget.onEndShift,
-      onFinalize: onFinalize == null || shift == null
-          ? null
-          : (minutes) => onFinalize(shift, minutes),
+      onFinalize: widget.onFinalize,
       onCorrect: widget.onOpenCorrection,
     );
   }

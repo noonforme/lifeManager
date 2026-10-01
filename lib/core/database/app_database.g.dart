@@ -944,6 +944,126 @@ class $PayAgreementsTable extends PayAgreements
         type: DriftSqlType.int,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _nightEnabledMeta = const VerificationMeta(
+    'nightEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> nightEnabled = GeneratedColumn<bool>(
+    'night_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("night_enabled" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _nightStartMinuteMeta = const VerificationMeta(
+    'nightStartMinute',
+  );
+  @override
+  late final GeneratedColumn<int> nightStartMinute = GeneratedColumn<int>(
+    'night_start_minute',
+    aliasedName,
+    false,
+    check: () =>
+        const CustomExpression<bool>('night_start_minute BETWEEN 0 AND 1439'),
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nightEndMinuteMeta = const VerificationMeta(
+    'nightEndMinute',
+  );
+  @override
+  late final GeneratedColumn<int> nightEndMinute = GeneratedColumn<int>(
+    'night_end_minute',
+    aliasedName,
+    false,
+    check: () =>
+        const CustomExpression<bool>('night_end_minute BETWEEN 0 AND 1439'),
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nightMultiplierNumeratorMeta =
+      const VerificationMeta('nightMultiplierNumerator');
+  @override
+  late final GeneratedColumn<int> nightMultiplierNumerator =
+      GeneratedColumn<int>(
+        'night_multiplier_numerator',
+        aliasedName,
+        false,
+        check: () =>
+            const CustomExpression<bool>('night_multiplier_numerator > 0'),
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _nightMultiplierDenominatorMeta =
+      const VerificationMeta('nightMultiplierDenominator');
+  @override
+  late final GeneratedColumn<int> nightMultiplierDenominator =
+      GeneratedColumn<int>(
+        'night_multiplier_denominator',
+        aliasedName,
+        false,
+        check: () =>
+            const CustomExpression<bool>('night_multiplier_denominator > 0'),
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _holidayCalendarMeta = const VerificationMeta(
+    'holidayCalendar',
+  );
+  @override
+  late final GeneratedColumn<String> holidayCalendar = GeneratedColumn<String>(
+    'holiday_calendar',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>(
+      "holiday_calendar IN ('none', 'lithuania')",
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _holidayMultiplierNumeratorMeta =
+      const VerificationMeta('holidayMultiplierNumerator');
+  @override
+  late final GeneratedColumn<int> holidayMultiplierNumerator =
+      GeneratedColumn<int>(
+        'holiday_multiplier_numerator',
+        aliasedName,
+        false,
+        check: () =>
+            const CustomExpression<bool>('holiday_multiplier_numerator > 0'),
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _holidayMultiplierDenominatorMeta =
+      const VerificationMeta('holidayMultiplierDenominator');
+  @override
+  late final GeneratedColumn<int> holidayMultiplierDenominator =
+      GeneratedColumn<int>(
+        'holiday_multiplier_denominator',
+        aliasedName,
+        false,
+        check: () =>
+            const CustomExpression<bool>('holiday_multiplier_denominator > 0'),
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _premiumStackingMeta = const VerificationMeta(
+    'premiumStacking',
+  );
+  @override
+  late final GeneratedColumn<String> premiumStacking = GeneratedColumn<String>(
+    'premium_stacking',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>(
+      "premium_stacking IN ('highest', 'additive', 'multiplicative')",
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _labelMeta = const VerificationMeta('label');
   @override
   late final GeneratedColumn<String> label = GeneratedColumn<String>(
@@ -996,6 +1116,15 @@ class $PayAgreementsTable extends PayAgreements
     overtimeThresholdMinutes,
     overtimeMultiplierNumerator,
     overtimeMultiplierDenominator,
+    nightEnabled,
+    nightStartMinute,
+    nightEndMinute,
+    nightMultiplierNumerator,
+    nightMultiplierDenominator,
+    holidayCalendar,
+    holidayMultiplierNumerator,
+    holidayMultiplierDenominator,
+    premiumStacking,
     label,
     note,
     createdAtUtcMicros,
@@ -1109,6 +1238,105 @@ class $PayAgreementsTable extends PayAgreements
     } else if (isInserting) {
       context.missing(_overtimeMultiplierDenominatorMeta);
     }
+    if (data.containsKey('night_enabled')) {
+      context.handle(
+        _nightEnabledMeta,
+        nightEnabled.isAcceptableOrUnknown(
+          data['night_enabled']!,
+          _nightEnabledMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nightEnabledMeta);
+    }
+    if (data.containsKey('night_start_minute')) {
+      context.handle(
+        _nightStartMinuteMeta,
+        nightStartMinute.isAcceptableOrUnknown(
+          data['night_start_minute']!,
+          _nightStartMinuteMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nightStartMinuteMeta);
+    }
+    if (data.containsKey('night_end_minute')) {
+      context.handle(
+        _nightEndMinuteMeta,
+        nightEndMinute.isAcceptableOrUnknown(
+          data['night_end_minute']!,
+          _nightEndMinuteMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nightEndMinuteMeta);
+    }
+    if (data.containsKey('night_multiplier_numerator')) {
+      context.handle(
+        _nightMultiplierNumeratorMeta,
+        nightMultiplierNumerator.isAcceptableOrUnknown(
+          data['night_multiplier_numerator']!,
+          _nightMultiplierNumeratorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nightMultiplierNumeratorMeta);
+    }
+    if (data.containsKey('night_multiplier_denominator')) {
+      context.handle(
+        _nightMultiplierDenominatorMeta,
+        nightMultiplierDenominator.isAcceptableOrUnknown(
+          data['night_multiplier_denominator']!,
+          _nightMultiplierDenominatorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nightMultiplierDenominatorMeta);
+    }
+    if (data.containsKey('holiday_calendar')) {
+      context.handle(
+        _holidayCalendarMeta,
+        holidayCalendar.isAcceptableOrUnknown(
+          data['holiday_calendar']!,
+          _holidayCalendarMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_holidayCalendarMeta);
+    }
+    if (data.containsKey('holiday_multiplier_numerator')) {
+      context.handle(
+        _holidayMultiplierNumeratorMeta,
+        holidayMultiplierNumerator.isAcceptableOrUnknown(
+          data['holiday_multiplier_numerator']!,
+          _holidayMultiplierNumeratorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_holidayMultiplierNumeratorMeta);
+    }
+    if (data.containsKey('holiday_multiplier_denominator')) {
+      context.handle(
+        _holidayMultiplierDenominatorMeta,
+        holidayMultiplierDenominator.isAcceptableOrUnknown(
+          data['holiday_multiplier_denominator']!,
+          _holidayMultiplierDenominatorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_holidayMultiplierDenominatorMeta);
+    }
+    if (data.containsKey('premium_stacking')) {
+      context.handle(
+        _premiumStackingMeta,
+        premiumStacking.isAcceptableOrUnknown(
+          data['premium_stacking']!,
+          _premiumStackingMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_premiumStackingMeta);
+    }
     if (data.containsKey('label')) {
       context.handle(
         _labelMeta,
@@ -1189,6 +1417,42 @@ class $PayAgreementsTable extends PayAgreements
         DriftSqlType.int,
         data['${effectivePrefix}overtime_multiplier_denominator'],
       )!,
+      nightEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}night_enabled'],
+      )!,
+      nightStartMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}night_start_minute'],
+      )!,
+      nightEndMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}night_end_minute'],
+      )!,
+      nightMultiplierNumerator: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}night_multiplier_numerator'],
+      )!,
+      nightMultiplierDenominator: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}night_multiplier_denominator'],
+      )!,
+      holidayCalendar: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}holiday_calendar'],
+      )!,
+      holidayMultiplierNumerator: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}holiday_multiplier_numerator'],
+      )!,
+      holidayMultiplierDenominator: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}holiday_multiplier_denominator'],
+      )!,
+      premiumStacking: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}premium_stacking'],
+      )!,
       label: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}label'],
@@ -1225,6 +1489,15 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
   final int overtimeThresholdMinutes;
   final int overtimeMultiplierNumerator;
   final int overtimeMultiplierDenominator;
+  final bool nightEnabled;
+  final int nightStartMinute;
+  final int nightEndMinute;
+  final int nightMultiplierNumerator;
+  final int nightMultiplierDenominator;
+  final String holidayCalendar;
+  final int holidayMultiplierNumerator;
+  final int holidayMultiplierDenominator;
+  final String premiumStacking;
   final String? label;
   final String? note;
   final int createdAtUtcMicros;
@@ -1240,6 +1513,15 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
     required this.overtimeThresholdMinutes,
     required this.overtimeMultiplierNumerator,
     required this.overtimeMultiplierDenominator,
+    required this.nightEnabled,
+    required this.nightStartMinute,
+    required this.nightEndMinute,
+    required this.nightMultiplierNumerator,
+    required this.nightMultiplierDenominator,
+    required this.holidayCalendar,
+    required this.holidayMultiplierNumerator,
+    required this.holidayMultiplierDenominator,
+    required this.premiumStacking,
     this.label,
     this.note,
     required this.createdAtUtcMicros,
@@ -1264,6 +1546,21 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
     map['overtime_multiplier_denominator'] = Variable<int>(
       overtimeMultiplierDenominator,
     );
+    map['night_enabled'] = Variable<bool>(nightEnabled);
+    map['night_start_minute'] = Variable<int>(nightStartMinute);
+    map['night_end_minute'] = Variable<int>(nightEndMinute);
+    map['night_multiplier_numerator'] = Variable<int>(nightMultiplierNumerator);
+    map['night_multiplier_denominator'] = Variable<int>(
+      nightMultiplierDenominator,
+    );
+    map['holiday_calendar'] = Variable<String>(holidayCalendar);
+    map['holiday_multiplier_numerator'] = Variable<int>(
+      holidayMultiplierNumerator,
+    );
+    map['holiday_multiplier_denominator'] = Variable<int>(
+      holidayMultiplierDenominator,
+    );
+    map['premium_stacking'] = Variable<String>(premiumStacking);
     if (!nullToAbsent || label != null) {
       map['label'] = Variable<String>(label);
     }
@@ -1289,6 +1586,15 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
       overtimeThresholdMinutes: Value(overtimeThresholdMinutes),
       overtimeMultiplierNumerator: Value(overtimeMultiplierNumerator),
       overtimeMultiplierDenominator: Value(overtimeMultiplierDenominator),
+      nightEnabled: Value(nightEnabled),
+      nightStartMinute: Value(nightStartMinute),
+      nightEndMinute: Value(nightEndMinute),
+      nightMultiplierNumerator: Value(nightMultiplierNumerator),
+      nightMultiplierDenominator: Value(nightMultiplierDenominator),
+      holidayCalendar: Value(holidayCalendar),
+      holidayMultiplierNumerator: Value(holidayMultiplierNumerator),
+      holidayMultiplierDenominator: Value(holidayMultiplierDenominator),
+      premiumStacking: Value(premiumStacking),
       label: label == null && nullToAbsent
           ? const Value.absent()
           : Value(label),
@@ -1320,6 +1626,23 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
       overtimeMultiplierDenominator: serializer.fromJson<int>(
         json['overtimeMultiplierDenominator'],
       ),
+      nightEnabled: serializer.fromJson<bool>(json['nightEnabled']),
+      nightStartMinute: serializer.fromJson<int>(json['nightStartMinute']),
+      nightEndMinute: serializer.fromJson<int>(json['nightEndMinute']),
+      nightMultiplierNumerator: serializer.fromJson<int>(
+        json['nightMultiplierNumerator'],
+      ),
+      nightMultiplierDenominator: serializer.fromJson<int>(
+        json['nightMultiplierDenominator'],
+      ),
+      holidayCalendar: serializer.fromJson<String>(json['holidayCalendar']),
+      holidayMultiplierNumerator: serializer.fromJson<int>(
+        json['holidayMultiplierNumerator'],
+      ),
+      holidayMultiplierDenominator: serializer.fromJson<int>(
+        json['holidayMultiplierDenominator'],
+      ),
+      premiumStacking: serializer.fromJson<String>(json['premiumStacking']),
       label: serializer.fromJson<String?>(json['label']),
       note: serializer.fromJson<String?>(json['note']),
       createdAtUtcMicros: serializer.fromJson<int>(json['createdAtUtcMicros']),
@@ -1346,6 +1669,23 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
       'overtimeMultiplierDenominator': serializer.toJson<int>(
         overtimeMultiplierDenominator,
       ),
+      'nightEnabled': serializer.toJson<bool>(nightEnabled),
+      'nightStartMinute': serializer.toJson<int>(nightStartMinute),
+      'nightEndMinute': serializer.toJson<int>(nightEndMinute),
+      'nightMultiplierNumerator': serializer.toJson<int>(
+        nightMultiplierNumerator,
+      ),
+      'nightMultiplierDenominator': serializer.toJson<int>(
+        nightMultiplierDenominator,
+      ),
+      'holidayCalendar': serializer.toJson<String>(holidayCalendar),
+      'holidayMultiplierNumerator': serializer.toJson<int>(
+        holidayMultiplierNumerator,
+      ),
+      'holidayMultiplierDenominator': serializer.toJson<int>(
+        holidayMultiplierDenominator,
+      ),
+      'premiumStacking': serializer.toJson<String>(premiumStacking),
       'label': serializer.toJson<String?>(label),
       'note': serializer.toJson<String?>(note),
       'createdAtUtcMicros': serializer.toJson<int>(createdAtUtcMicros),
@@ -1364,6 +1704,15 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
     int? overtimeThresholdMinutes,
     int? overtimeMultiplierNumerator,
     int? overtimeMultiplierDenominator,
+    bool? nightEnabled,
+    int? nightStartMinute,
+    int? nightEndMinute,
+    int? nightMultiplierNumerator,
+    int? nightMultiplierDenominator,
+    String? holidayCalendar,
+    int? holidayMultiplierNumerator,
+    int? holidayMultiplierDenominator,
+    String? premiumStacking,
     Value<String?> label = const Value.absent(),
     Value<String?> note = const Value.absent(),
     int? createdAtUtcMicros,
@@ -1382,6 +1731,19 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
         overtimeMultiplierNumerator ?? this.overtimeMultiplierNumerator,
     overtimeMultiplierDenominator:
         overtimeMultiplierDenominator ?? this.overtimeMultiplierDenominator,
+    nightEnabled: nightEnabled ?? this.nightEnabled,
+    nightStartMinute: nightStartMinute ?? this.nightStartMinute,
+    nightEndMinute: nightEndMinute ?? this.nightEndMinute,
+    nightMultiplierNumerator:
+        nightMultiplierNumerator ?? this.nightMultiplierNumerator,
+    nightMultiplierDenominator:
+        nightMultiplierDenominator ?? this.nightMultiplierDenominator,
+    holidayCalendar: holidayCalendar ?? this.holidayCalendar,
+    holidayMultiplierNumerator:
+        holidayMultiplierNumerator ?? this.holidayMultiplierNumerator,
+    holidayMultiplierDenominator:
+        holidayMultiplierDenominator ?? this.holidayMultiplierDenominator,
+    premiumStacking: premiumStacking ?? this.premiumStacking,
     label: label.present ? label.value : this.label,
     note: note.present ? note.value : this.note,
     createdAtUtcMicros: createdAtUtcMicros ?? this.createdAtUtcMicros,
@@ -1413,6 +1775,33 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
       overtimeMultiplierDenominator: data.overtimeMultiplierDenominator.present
           ? data.overtimeMultiplierDenominator.value
           : this.overtimeMultiplierDenominator,
+      nightEnabled: data.nightEnabled.present
+          ? data.nightEnabled.value
+          : this.nightEnabled,
+      nightStartMinute: data.nightStartMinute.present
+          ? data.nightStartMinute.value
+          : this.nightStartMinute,
+      nightEndMinute: data.nightEndMinute.present
+          ? data.nightEndMinute.value
+          : this.nightEndMinute,
+      nightMultiplierNumerator: data.nightMultiplierNumerator.present
+          ? data.nightMultiplierNumerator.value
+          : this.nightMultiplierNumerator,
+      nightMultiplierDenominator: data.nightMultiplierDenominator.present
+          ? data.nightMultiplierDenominator.value
+          : this.nightMultiplierDenominator,
+      holidayCalendar: data.holidayCalendar.present
+          ? data.holidayCalendar.value
+          : this.holidayCalendar,
+      holidayMultiplierNumerator: data.holidayMultiplierNumerator.present
+          ? data.holidayMultiplierNumerator.value
+          : this.holidayMultiplierNumerator,
+      holidayMultiplierDenominator: data.holidayMultiplierDenominator.present
+          ? data.holidayMultiplierDenominator.value
+          : this.holidayMultiplierDenominator,
+      premiumStacking: data.premiumStacking.present
+          ? data.premiumStacking.value
+          : this.premiumStacking,
       label: data.label.present ? data.label.value : this.label,
       note: data.note.present ? data.note.value : this.note,
       createdAtUtcMicros: data.createdAtUtcMicros.present
@@ -1437,6 +1826,17 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
           ..write(
             'overtimeMultiplierDenominator: $overtimeMultiplierDenominator, ',
           )
+          ..write('nightEnabled: $nightEnabled, ')
+          ..write('nightStartMinute: $nightStartMinute, ')
+          ..write('nightEndMinute: $nightEndMinute, ')
+          ..write('nightMultiplierNumerator: $nightMultiplierNumerator, ')
+          ..write('nightMultiplierDenominator: $nightMultiplierDenominator, ')
+          ..write('holidayCalendar: $holidayCalendar, ')
+          ..write('holidayMultiplierNumerator: $holidayMultiplierNumerator, ')
+          ..write(
+            'holidayMultiplierDenominator: $holidayMultiplierDenominator, ',
+          )
+          ..write('premiumStacking: $premiumStacking, ')
           ..write('label: $label, ')
           ..write('note: $note, ')
           ..write('createdAtUtcMicros: $createdAtUtcMicros, ')
@@ -1446,7 +1846,7 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     employmentId,
     version,
@@ -1457,11 +1857,20 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
     overtimeThresholdMinutes,
     overtimeMultiplierNumerator,
     overtimeMultiplierDenominator,
+    nightEnabled,
+    nightStartMinute,
+    nightEndMinute,
+    nightMultiplierNumerator,
+    nightMultiplierDenominator,
+    holidayCalendar,
+    holidayMultiplierNumerator,
+    holidayMultiplierDenominator,
+    premiumStacking,
     label,
     note,
     createdAtUtcMicros,
     revision,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1478,6 +1887,16 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
               this.overtimeMultiplierNumerator &&
           other.overtimeMultiplierDenominator ==
               this.overtimeMultiplierDenominator &&
+          other.nightEnabled == this.nightEnabled &&
+          other.nightStartMinute == this.nightStartMinute &&
+          other.nightEndMinute == this.nightEndMinute &&
+          other.nightMultiplierNumerator == this.nightMultiplierNumerator &&
+          other.nightMultiplierDenominator == this.nightMultiplierDenominator &&
+          other.holidayCalendar == this.holidayCalendar &&
+          other.holidayMultiplierNumerator == this.holidayMultiplierNumerator &&
+          other.holidayMultiplierDenominator ==
+              this.holidayMultiplierDenominator &&
+          other.premiumStacking == this.premiumStacking &&
           other.label == this.label &&
           other.note == this.note &&
           other.createdAtUtcMicros == this.createdAtUtcMicros &&
@@ -1495,6 +1914,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
   final Value<int> overtimeThresholdMinutes;
   final Value<int> overtimeMultiplierNumerator;
   final Value<int> overtimeMultiplierDenominator;
+  final Value<bool> nightEnabled;
+  final Value<int> nightStartMinute;
+  final Value<int> nightEndMinute;
+  final Value<int> nightMultiplierNumerator;
+  final Value<int> nightMultiplierDenominator;
+  final Value<String> holidayCalendar;
+  final Value<int> holidayMultiplierNumerator;
+  final Value<int> holidayMultiplierDenominator;
+  final Value<String> premiumStacking;
   final Value<String?> label;
   final Value<String?> note;
   final Value<int> createdAtUtcMicros;
@@ -1511,6 +1939,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
     this.overtimeThresholdMinutes = const Value.absent(),
     this.overtimeMultiplierNumerator = const Value.absent(),
     this.overtimeMultiplierDenominator = const Value.absent(),
+    this.nightEnabled = const Value.absent(),
+    this.nightStartMinute = const Value.absent(),
+    this.nightEndMinute = const Value.absent(),
+    this.nightMultiplierNumerator = const Value.absent(),
+    this.nightMultiplierDenominator = const Value.absent(),
+    this.holidayCalendar = const Value.absent(),
+    this.holidayMultiplierNumerator = const Value.absent(),
+    this.holidayMultiplierDenominator = const Value.absent(),
+    this.premiumStacking = const Value.absent(),
     this.label = const Value.absent(),
     this.note = const Value.absent(),
     this.createdAtUtcMicros = const Value.absent(),
@@ -1528,6 +1965,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
     required int overtimeThresholdMinutes,
     required int overtimeMultiplierNumerator,
     required int overtimeMultiplierDenominator,
+    required bool nightEnabled,
+    required int nightStartMinute,
+    required int nightEndMinute,
+    required int nightMultiplierNumerator,
+    required int nightMultiplierDenominator,
+    required String holidayCalendar,
+    required int holidayMultiplierNumerator,
+    required int holidayMultiplierDenominator,
+    required String premiumStacking,
     this.label = const Value.absent(),
     this.note = const Value.absent(),
     required int createdAtUtcMicros,
@@ -1542,6 +1988,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
        overtimeThresholdMinutes = Value(overtimeThresholdMinutes),
        overtimeMultiplierNumerator = Value(overtimeMultiplierNumerator),
        overtimeMultiplierDenominator = Value(overtimeMultiplierDenominator),
+       nightEnabled = Value(nightEnabled),
+       nightStartMinute = Value(nightStartMinute),
+       nightEndMinute = Value(nightEndMinute),
+       nightMultiplierNumerator = Value(nightMultiplierNumerator),
+       nightMultiplierDenominator = Value(nightMultiplierDenominator),
+       holidayCalendar = Value(holidayCalendar),
+       holidayMultiplierNumerator = Value(holidayMultiplierNumerator),
+       holidayMultiplierDenominator = Value(holidayMultiplierDenominator),
+       premiumStacking = Value(premiumStacking),
        createdAtUtcMicros = Value(createdAtUtcMicros),
        revision = Value(revision);
   static Insertable<PayAgreement> custom({
@@ -1555,6 +2010,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
     Expression<int>? overtimeThresholdMinutes,
     Expression<int>? overtimeMultiplierNumerator,
     Expression<int>? overtimeMultiplierDenominator,
+    Expression<bool>? nightEnabled,
+    Expression<int>? nightStartMinute,
+    Expression<int>? nightEndMinute,
+    Expression<int>? nightMultiplierNumerator,
+    Expression<int>? nightMultiplierDenominator,
+    Expression<String>? holidayCalendar,
+    Expression<int>? holidayMultiplierNumerator,
+    Expression<int>? holidayMultiplierDenominator,
+    Expression<String>? premiumStacking,
     Expression<String>? label,
     Expression<String>? note,
     Expression<int>? createdAtUtcMicros,
@@ -1576,6 +2040,19 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
         'overtime_multiplier_numerator': overtimeMultiplierNumerator,
       if (overtimeMultiplierDenominator != null)
         'overtime_multiplier_denominator': overtimeMultiplierDenominator,
+      if (nightEnabled != null) 'night_enabled': nightEnabled,
+      if (nightStartMinute != null) 'night_start_minute': nightStartMinute,
+      if (nightEndMinute != null) 'night_end_minute': nightEndMinute,
+      if (nightMultiplierNumerator != null)
+        'night_multiplier_numerator': nightMultiplierNumerator,
+      if (nightMultiplierDenominator != null)
+        'night_multiplier_denominator': nightMultiplierDenominator,
+      if (holidayCalendar != null) 'holiday_calendar': holidayCalendar,
+      if (holidayMultiplierNumerator != null)
+        'holiday_multiplier_numerator': holidayMultiplierNumerator,
+      if (holidayMultiplierDenominator != null)
+        'holiday_multiplier_denominator': holidayMultiplierDenominator,
+      if (premiumStacking != null) 'premium_stacking': premiumStacking,
       if (label != null) 'label': label,
       if (note != null) 'note': note,
       if (createdAtUtcMicros != null)
@@ -1596,6 +2073,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
     Value<int>? overtimeThresholdMinutes,
     Value<int>? overtimeMultiplierNumerator,
     Value<int>? overtimeMultiplierDenominator,
+    Value<bool>? nightEnabled,
+    Value<int>? nightStartMinute,
+    Value<int>? nightEndMinute,
+    Value<int>? nightMultiplierNumerator,
+    Value<int>? nightMultiplierDenominator,
+    Value<String>? holidayCalendar,
+    Value<int>? holidayMultiplierNumerator,
+    Value<int>? holidayMultiplierDenominator,
+    Value<String>? premiumStacking,
     Value<String?>? label,
     Value<String?>? note,
     Value<int>? createdAtUtcMicros,
@@ -1616,6 +2102,19 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
           overtimeMultiplierNumerator ?? this.overtimeMultiplierNumerator,
       overtimeMultiplierDenominator:
           overtimeMultiplierDenominator ?? this.overtimeMultiplierDenominator,
+      nightEnabled: nightEnabled ?? this.nightEnabled,
+      nightStartMinute: nightStartMinute ?? this.nightStartMinute,
+      nightEndMinute: nightEndMinute ?? this.nightEndMinute,
+      nightMultiplierNumerator:
+          nightMultiplierNumerator ?? this.nightMultiplierNumerator,
+      nightMultiplierDenominator:
+          nightMultiplierDenominator ?? this.nightMultiplierDenominator,
+      holidayCalendar: holidayCalendar ?? this.holidayCalendar,
+      holidayMultiplierNumerator:
+          holidayMultiplierNumerator ?? this.holidayMultiplierNumerator,
+      holidayMultiplierDenominator:
+          holidayMultiplierDenominator ?? this.holidayMultiplierDenominator,
+      premiumStacking: premiumStacking ?? this.premiumStacking,
       label: label ?? this.label,
       note: note ?? this.note,
       createdAtUtcMicros: createdAtUtcMicros ?? this.createdAtUtcMicros,
@@ -1663,6 +2162,41 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
         overtimeMultiplierDenominator.value,
       );
     }
+    if (nightEnabled.present) {
+      map['night_enabled'] = Variable<bool>(nightEnabled.value);
+    }
+    if (nightStartMinute.present) {
+      map['night_start_minute'] = Variable<int>(nightStartMinute.value);
+    }
+    if (nightEndMinute.present) {
+      map['night_end_minute'] = Variable<int>(nightEndMinute.value);
+    }
+    if (nightMultiplierNumerator.present) {
+      map['night_multiplier_numerator'] = Variable<int>(
+        nightMultiplierNumerator.value,
+      );
+    }
+    if (nightMultiplierDenominator.present) {
+      map['night_multiplier_denominator'] = Variable<int>(
+        nightMultiplierDenominator.value,
+      );
+    }
+    if (holidayCalendar.present) {
+      map['holiday_calendar'] = Variable<String>(holidayCalendar.value);
+    }
+    if (holidayMultiplierNumerator.present) {
+      map['holiday_multiplier_numerator'] = Variable<int>(
+        holidayMultiplierNumerator.value,
+      );
+    }
+    if (holidayMultiplierDenominator.present) {
+      map['holiday_multiplier_denominator'] = Variable<int>(
+        holidayMultiplierDenominator.value,
+      );
+    }
+    if (premiumStacking.present) {
+      map['premium_stacking'] = Variable<String>(premiumStacking.value);
+    }
     if (label.present) {
       map['label'] = Variable<String>(label.value);
     }
@@ -1696,6 +2230,17 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
           ..write(
             'overtimeMultiplierDenominator: $overtimeMultiplierDenominator, ',
           )
+          ..write('nightEnabled: $nightEnabled, ')
+          ..write('nightStartMinute: $nightStartMinute, ')
+          ..write('nightEndMinute: $nightEndMinute, ')
+          ..write('nightMultiplierNumerator: $nightMultiplierNumerator, ')
+          ..write('nightMultiplierDenominator: $nightMultiplierDenominator, ')
+          ..write('holidayCalendar: $holidayCalendar, ')
+          ..write('holidayMultiplierNumerator: $holidayMultiplierNumerator, ')
+          ..write(
+            'holidayMultiplierDenominator: $holidayMultiplierDenominator, ',
+          )
+          ..write('premiumStacking: $premiumStacking, ')
           ..write('label: $label, ')
           ..write('note: $note, ')
           ..write('createdAtUtcMicros: $createdAtUtcMicros, ')
@@ -1802,18 +2347,6 @@ class $WorkShiftsTable extends WorkShifts
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _overtimeMinutesMeta = const VerificationMeta(
-    'overtimeMinutes',
-  );
-  @override
-  late final GeneratedColumn<int> overtimeMinutes = GeneratedColumn<int>(
-    'overtime_minutes',
-    aliasedName,
-    false,
-    check: () => const CustomExpression<bool>('overtime_minutes >= 0'),
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _noteMeta = const VerificationMeta('note');
   @override
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
@@ -1904,7 +2437,6 @@ class $WorkShiftsTable extends WorkShifts
     endUtcMicros,
     timezoneId,
     localStartDate,
-    overtimeMinutes,
     note,
     voidReason,
     replacementShiftId,
@@ -1996,17 +2528,6 @@ class $WorkShiftsTable extends WorkShifts
       );
     } else if (isInserting) {
       context.missing(_localStartDateMeta);
-    }
-    if (data.containsKey('overtime_minutes')) {
-      context.handle(
-        _overtimeMinutesMeta,
-        overtimeMinutes.isAcceptableOrUnknown(
-          data['overtime_minutes']!,
-          _overtimeMinutesMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_overtimeMinutesMeta);
     }
     if (data.containsKey('note')) {
       context.handle(
@@ -2109,10 +2630,6 @@ class $WorkShiftsTable extends WorkShifts
         DriftSqlType.string,
         data['${effectivePrefix}local_start_date'],
       )!,
-      overtimeMinutes: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}overtime_minutes'],
-      )!,
       note: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}note'],
@@ -2159,7 +2676,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
   final int? endUtcMicros;
   final String timezoneId;
   final String localStartDate;
-  final int overtimeMinutes;
   final String? note;
   final String? voidReason;
   final String? replacementShiftId;
@@ -2176,7 +2692,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
     this.endUtcMicros,
     required this.timezoneId,
     required this.localStartDate,
-    required this.overtimeMinutes,
     this.note,
     this.voidReason,
     this.replacementShiftId,
@@ -2200,7 +2715,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
     }
     map['timezone_id'] = Variable<String>(timezoneId);
     map['local_start_date'] = Variable<String>(localStartDate);
-    map['overtime_minutes'] = Variable<int>(overtimeMinutes);
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
@@ -2233,7 +2747,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
           : Value(endUtcMicros),
       timezoneId: Value(timezoneId),
       localStartDate: Value(localStartDate),
-      overtimeMinutes: Value(overtimeMinutes),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       voidReason: voidReason == null && nullToAbsent
           ? const Value.absent()
@@ -2264,7 +2777,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
       endUtcMicros: serializer.fromJson<int?>(json['endUtcMicros']),
       timezoneId: serializer.fromJson<String>(json['timezoneId']),
       localStartDate: serializer.fromJson<String>(json['localStartDate']),
-      overtimeMinutes: serializer.fromJson<int>(json['overtimeMinutes']),
       note: serializer.fromJson<String?>(json['note']),
       voidReason: serializer.fromJson<String?>(json['voidReason']),
       replacementShiftId: serializer.fromJson<String?>(
@@ -2288,7 +2800,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
       'endUtcMicros': serializer.toJson<int?>(endUtcMicros),
       'timezoneId': serializer.toJson<String>(timezoneId),
       'localStartDate': serializer.toJson<String>(localStartDate),
-      'overtimeMinutes': serializer.toJson<int>(overtimeMinutes),
       'note': serializer.toJson<String?>(note),
       'voidReason': serializer.toJson<String?>(voidReason),
       'replacementShiftId': serializer.toJson<String?>(replacementShiftId),
@@ -2308,7 +2819,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
     Value<int?> endUtcMicros = const Value.absent(),
     String? timezoneId,
     String? localStartDate,
-    int? overtimeMinutes,
     Value<String?> note = const Value.absent(),
     Value<String?> voidReason = const Value.absent(),
     Value<String?> replacementShiftId = const Value.absent(),
@@ -2325,7 +2835,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
     endUtcMicros: endUtcMicros.present ? endUtcMicros.value : this.endUtcMicros,
     timezoneId: timezoneId ?? this.timezoneId,
     localStartDate: localStartDate ?? this.localStartDate,
-    overtimeMinutes: overtimeMinutes ?? this.overtimeMinutes,
     note: note.present ? note.value : this.note,
     voidReason: voidReason.present ? voidReason.value : this.voidReason,
     replacementShiftId: replacementShiftId.present
@@ -2360,9 +2869,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
       localStartDate: data.localStartDate.present
           ? data.localStartDate.value
           : this.localStartDate,
-      overtimeMinutes: data.overtimeMinutes.present
-          ? data.overtimeMinutes.value
-          : this.overtimeMinutes,
       note: data.note.present ? data.note.value : this.note,
       voidReason: data.voidReason.present
           ? data.voidReason.value
@@ -2394,7 +2900,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
           ..write('endUtcMicros: $endUtcMicros, ')
           ..write('timezoneId: $timezoneId, ')
           ..write('localStartDate: $localStartDate, ')
-          ..write('overtimeMinutes: $overtimeMinutes, ')
           ..write('note: $note, ')
           ..write('voidReason: $voidReason, ')
           ..write('replacementShiftId: $replacementShiftId, ')
@@ -2416,7 +2921,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
     endUtcMicros,
     timezoneId,
     localStartDate,
-    overtimeMinutes,
     note,
     voidReason,
     replacementShiftId,
@@ -2437,7 +2941,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
           other.endUtcMicros == this.endUtcMicros &&
           other.timezoneId == this.timezoneId &&
           other.localStartDate == this.localStartDate &&
-          other.overtimeMinutes == this.overtimeMinutes &&
           other.note == this.note &&
           other.voidReason == this.voidReason &&
           other.replacementShiftId == this.replacementShiftId &&
@@ -2456,7 +2959,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
   final Value<int?> endUtcMicros;
   final Value<String> timezoneId;
   final Value<String> localStartDate;
-  final Value<int> overtimeMinutes;
   final Value<String?> note;
   final Value<String?> voidReason;
   final Value<String?> replacementShiftId;
@@ -2474,7 +2976,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
     this.endUtcMicros = const Value.absent(),
     this.timezoneId = const Value.absent(),
     this.localStartDate = const Value.absent(),
-    this.overtimeMinutes = const Value.absent(),
     this.note = const Value.absent(),
     this.voidReason = const Value.absent(),
     this.replacementShiftId = const Value.absent(),
@@ -2493,7 +2994,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
     this.endUtcMicros = const Value.absent(),
     required String timezoneId,
     required String localStartDate,
-    required int overtimeMinutes,
     this.note = const Value.absent(),
     this.voidReason = const Value.absent(),
     this.replacementShiftId = const Value.absent(),
@@ -2508,7 +3008,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
        startUtcMicros = Value(startUtcMicros),
        timezoneId = Value(timezoneId),
        localStartDate = Value(localStartDate),
-       overtimeMinutes = Value(overtimeMinutes),
        createdAtUtcMicros = Value(createdAtUtcMicros),
        updatedAtUtcMicros = Value(updatedAtUtcMicros),
        revision = Value(revision);
@@ -2521,7 +3020,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
     Expression<int>? endUtcMicros,
     Expression<String>? timezoneId,
     Expression<String>? localStartDate,
-    Expression<int>? overtimeMinutes,
     Expression<String>? note,
     Expression<String>? voidReason,
     Expression<String>? replacementShiftId,
@@ -2540,7 +3038,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
       if (endUtcMicros != null) 'end_utc_micros': endUtcMicros,
       if (timezoneId != null) 'timezone_id': timezoneId,
       if (localStartDate != null) 'local_start_date': localStartDate,
-      if (overtimeMinutes != null) 'overtime_minutes': overtimeMinutes,
       if (note != null) 'note': note,
       if (voidReason != null) 'void_reason': voidReason,
       if (replacementShiftId != null)
@@ -2564,7 +3061,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
     Value<int?>? endUtcMicros,
     Value<String>? timezoneId,
     Value<String>? localStartDate,
-    Value<int>? overtimeMinutes,
     Value<String?>? note,
     Value<String?>? voidReason,
     Value<String?>? replacementShiftId,
@@ -2583,7 +3079,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
       endUtcMicros: endUtcMicros ?? this.endUtcMicros,
       timezoneId: timezoneId ?? this.timezoneId,
       localStartDate: localStartDate ?? this.localStartDate,
-      overtimeMinutes: overtimeMinutes ?? this.overtimeMinutes,
       note: note ?? this.note,
       voidReason: voidReason ?? this.voidReason,
       replacementShiftId: replacementShiftId ?? this.replacementShiftId,
@@ -2621,9 +3116,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
     }
     if (localStartDate.present) {
       map['local_start_date'] = Variable<String>(localStartDate.value);
-    }
-    if (overtimeMinutes.present) {
-      map['overtime_minutes'] = Variable<int>(overtimeMinutes.value);
     }
     if (note.present) {
       map['note'] = Variable<String>(note.value);
@@ -2663,7 +3155,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
           ..write('endUtcMicros: $endUtcMicros, ')
           ..write('timezoneId: $timezoneId, ')
           ..write('localStartDate: $localStartDate, ')
-          ..write('overtimeMinutes: $overtimeMinutes, ')
           ..write('note: $note, ')
           ..write('voidReason: $voidReason, ')
           ..write('replacementShiftId: $replacementShiftId, ')
@@ -5631,6 +6122,15 @@ typedef $$PayAgreementsTableCreateCompanionBuilder =
       required int overtimeThresholdMinutes,
       required int overtimeMultiplierNumerator,
       required int overtimeMultiplierDenominator,
+      required bool nightEnabled,
+      required int nightStartMinute,
+      required int nightEndMinute,
+      required int nightMultiplierNumerator,
+      required int nightMultiplierDenominator,
+      required String holidayCalendar,
+      required int holidayMultiplierNumerator,
+      required int holidayMultiplierDenominator,
+      required String premiumStacking,
       Value<String?> label,
       Value<String?> note,
       required int createdAtUtcMicros,
@@ -5649,6 +6149,15 @@ typedef $$PayAgreementsTableUpdateCompanionBuilder =
       Value<int> overtimeThresholdMinutes,
       Value<int> overtimeMultiplierNumerator,
       Value<int> overtimeMultiplierDenominator,
+      Value<bool> nightEnabled,
+      Value<int> nightStartMinute,
+      Value<int> nightEndMinute,
+      Value<int> nightMultiplierNumerator,
+      Value<int> nightMultiplierDenominator,
+      Value<String> holidayCalendar,
+      Value<int> holidayMultiplierNumerator,
+      Value<int> holidayMultiplierDenominator,
+      Value<String> premiumStacking,
       Value<String?> label,
       Value<String?> note,
       Value<int> createdAtUtcMicros,
@@ -5752,6 +6261,51 @@ class $$PayAgreementsTableFilterComposer
 
   ColumnFilters<int> get overtimeMultiplierDenominator => $composableBuilder(
     column: $table.overtimeMultiplierDenominator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get nightEnabled => $composableBuilder(
+    column: $table.nightEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nightStartMinute => $composableBuilder(
+    column: $table.nightStartMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nightEndMinute => $composableBuilder(
+    column: $table.nightEndMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nightMultiplierNumerator => $composableBuilder(
+    column: $table.nightMultiplierNumerator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nightMultiplierDenominator => $composableBuilder(
+    column: $table.nightMultiplierDenominator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get holidayCalendar => $composableBuilder(
+    column: $table.holidayCalendar,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get holidayMultiplierNumerator => $composableBuilder(
+    column: $table.holidayMultiplierNumerator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get holidayMultiplierDenominator => $composableBuilder(
+    column: $table.holidayMultiplierDenominator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get premiumStacking => $composableBuilder(
+    column: $table.premiumStacking,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5878,6 +6432,51 @@ class $$PayAgreementsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get nightEnabled => $composableBuilder(
+    column: $table.nightEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get nightStartMinute => $composableBuilder(
+    column: $table.nightStartMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get nightEndMinute => $composableBuilder(
+    column: $table.nightEndMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get nightMultiplierNumerator => $composableBuilder(
+    column: $table.nightMultiplierNumerator,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get nightMultiplierDenominator => $composableBuilder(
+    column: $table.nightMultiplierDenominator,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get holidayCalendar => $composableBuilder(
+    column: $table.holidayCalendar,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get holidayMultiplierNumerator => $composableBuilder(
+    column: $table.holidayMultiplierNumerator,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get holidayMultiplierDenominator => $composableBuilder(
+    column: $table.holidayMultiplierDenominator,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get premiumStacking => $composableBuilder(
+    column: $table.premiumStacking,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get label => $composableBuilder(
     column: $table.label,
     builder: (column) => ColumnOrderings(column),
@@ -5967,6 +6566,51 @@ class $$PayAgreementsTableAnnotationComposer
 
   GeneratedColumn<int> get overtimeMultiplierDenominator => $composableBuilder(
     column: $table.overtimeMultiplierDenominator,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get nightEnabled => $composableBuilder(
+    column: $table.nightEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get nightStartMinute => $composableBuilder(
+    column: $table.nightStartMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get nightEndMinute => $composableBuilder(
+    column: $table.nightEndMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get nightMultiplierNumerator => $composableBuilder(
+    column: $table.nightMultiplierNumerator,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get nightMultiplierDenominator => $composableBuilder(
+    column: $table.nightMultiplierDenominator,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get holidayCalendar => $composableBuilder(
+    column: $table.holidayCalendar,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get holidayMultiplierNumerator => $composableBuilder(
+    column: $table.holidayMultiplierNumerator,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get holidayMultiplierDenominator => $composableBuilder(
+    column: $table.holidayMultiplierDenominator,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get premiumStacking => $composableBuilder(
+    column: $table.premiumStacking,
     builder: (column) => column,
   );
 
@@ -6071,6 +6715,15 @@ class $$PayAgreementsTableTableManager
                 Value<int> overtimeThresholdMinutes = const Value.absent(),
                 Value<int> overtimeMultiplierNumerator = const Value.absent(),
                 Value<int> overtimeMultiplierDenominator = const Value.absent(),
+                Value<bool> nightEnabled = const Value.absent(),
+                Value<int> nightStartMinute = const Value.absent(),
+                Value<int> nightEndMinute = const Value.absent(),
+                Value<int> nightMultiplierNumerator = const Value.absent(),
+                Value<int> nightMultiplierDenominator = const Value.absent(),
+                Value<String> holidayCalendar = const Value.absent(),
+                Value<int> holidayMultiplierNumerator = const Value.absent(),
+                Value<int> holidayMultiplierDenominator = const Value.absent(),
+                Value<String> premiumStacking = const Value.absent(),
                 Value<String?> label = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<int> createdAtUtcMicros = const Value.absent(),
@@ -6087,6 +6740,15 @@ class $$PayAgreementsTableTableManager
                 overtimeThresholdMinutes: overtimeThresholdMinutes,
                 overtimeMultiplierNumerator: overtimeMultiplierNumerator,
                 overtimeMultiplierDenominator: overtimeMultiplierDenominator,
+                nightEnabled: nightEnabled,
+                nightStartMinute: nightStartMinute,
+                nightEndMinute: nightEndMinute,
+                nightMultiplierNumerator: nightMultiplierNumerator,
+                nightMultiplierDenominator: nightMultiplierDenominator,
+                holidayCalendar: holidayCalendar,
+                holidayMultiplierNumerator: holidayMultiplierNumerator,
+                holidayMultiplierDenominator: holidayMultiplierDenominator,
+                premiumStacking: premiumStacking,
                 label: label,
                 note: note,
                 createdAtUtcMicros: createdAtUtcMicros,
@@ -6105,6 +6767,15 @@ class $$PayAgreementsTableTableManager
                 required int overtimeThresholdMinutes,
                 required int overtimeMultiplierNumerator,
                 required int overtimeMultiplierDenominator,
+                required bool nightEnabled,
+                required int nightStartMinute,
+                required int nightEndMinute,
+                required int nightMultiplierNumerator,
+                required int nightMultiplierDenominator,
+                required String holidayCalendar,
+                required int holidayMultiplierNumerator,
+                required int holidayMultiplierDenominator,
+                required String premiumStacking,
                 Value<String?> label = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 required int createdAtUtcMicros,
@@ -6121,6 +6792,15 @@ class $$PayAgreementsTableTableManager
                 overtimeThresholdMinutes: overtimeThresholdMinutes,
                 overtimeMultiplierNumerator: overtimeMultiplierNumerator,
                 overtimeMultiplierDenominator: overtimeMultiplierDenominator,
+                nightEnabled: nightEnabled,
+                nightStartMinute: nightStartMinute,
+                nightEndMinute: nightEndMinute,
+                nightMultiplierNumerator: nightMultiplierNumerator,
+                nightMultiplierDenominator: nightMultiplierDenominator,
+                holidayCalendar: holidayCalendar,
+                holidayMultiplierNumerator: holidayMultiplierNumerator,
+                holidayMultiplierDenominator: holidayMultiplierDenominator,
+                premiumStacking: premiumStacking,
                 label: label,
                 note: note,
                 createdAtUtcMicros: createdAtUtcMicros,
@@ -6224,7 +6904,6 @@ typedef $$WorkShiftsTableCreateCompanionBuilder = WorkShiftsCompanion Function({
   Value<int?> endUtcMicros,
   required String timezoneId,
   required String localStartDate,
-  required int overtimeMinutes,
   Value<String?> note,
   Value<String?> voidReason,
   Value<String?> replacementShiftId,
@@ -6243,7 +6922,6 @@ typedef $$WorkShiftsTableUpdateCompanionBuilder = WorkShiftsCompanion Function({
   Value<int?> endUtcMicros,
   Value<String> timezoneId,
   Value<String> localStartDate,
-  Value<int> overtimeMinutes,
   Value<String?> note,
   Value<String?> voidReason,
   Value<String?> replacementShiftId,
@@ -6384,11 +7062,6 @@ class $$WorkShiftsTableFilterComposer
 
   ColumnFilters<String> get localStartDate => $composableBuilder(
     column: $table.localStartDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get overtimeMinutes => $composableBuilder(
-    column: $table.overtimeMinutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6574,11 +7247,6 @@ class $$WorkShiftsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get overtimeMinutes => $composableBuilder(
-    column: $table.overtimeMinutes,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get note => $composableBuilder(
     column: $table.note,
     builder: (column) => ColumnOrderings(column),
@@ -6729,11 +7397,6 @@ class $$WorkShiftsTableAnnotationComposer
 
   GeneratedColumn<String> get localStartDate => $composableBuilder(
     column: $table.localStartDate,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get overtimeMinutes => $composableBuilder(
-    column: $table.overtimeMinutes,
     builder: (column) => column,
   );
 
@@ -6918,7 +7581,6 @@ class $$WorkShiftsTableTableManager
                 Value<int?> endUtcMicros = const Value.absent(),
                 Value<String> timezoneId = const Value.absent(),
                 Value<String> localStartDate = const Value.absent(),
-                Value<int> overtimeMinutes = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<String?> voidReason = const Value.absent(),
                 Value<String?> replacementShiftId = const Value.absent(),
@@ -6936,7 +7598,6 @@ class $$WorkShiftsTableTableManager
                 endUtcMicros: endUtcMicros,
                 timezoneId: timezoneId,
                 localStartDate: localStartDate,
-                overtimeMinutes: overtimeMinutes,
                 note: note,
                 voidReason: voidReason,
                 replacementShiftId: replacementShiftId,
@@ -6956,7 +7617,6 @@ class $$WorkShiftsTableTableManager
                 Value<int?> endUtcMicros = const Value.absent(),
                 required String timezoneId,
                 required String localStartDate,
-                required int overtimeMinutes,
                 Value<String?> note = const Value.absent(),
                 Value<String?> voidReason = const Value.absent(),
                 Value<String?> replacementShiftId = const Value.absent(),
@@ -6974,7 +7634,6 @@ class $$WorkShiftsTableTableManager
                 endUtcMicros: endUtcMicros,
                 timezoneId: timezoneId,
                 localStartDate: localStartDate,
-                overtimeMinutes: overtimeMinutes,
                 note: note,
                 voidReason: voidReason,
                 replacementShiftId: replacementShiftId,

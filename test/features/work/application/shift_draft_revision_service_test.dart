@@ -70,7 +70,6 @@ void main() {
         timezoneId: 'Europe/Berlin',
         startFold: null,
         endFold: null,
-        overtimeMinutes: 0,
         note: null,
       ),
     );
@@ -117,7 +116,6 @@ ReviseShiftDraftCommand _command(
       endFold: null,
     ),
   ],
-  overtimeMinutes: 0,
   note: '  Revised  ',
 );
 
@@ -139,7 +137,6 @@ Future<WorkShift> _draft(DriftShiftRepository repository) async {
       endUtc: DateTime.utc(2026, 9, 29, 14),
       timezoneId: 'Europe/Berlin',
       localStartDate: const LocalDate(2026, 9, 29),
-      overtimeMinutes: 0,
       note: null,
       voidReason: null,
       replacementShiftId: null,

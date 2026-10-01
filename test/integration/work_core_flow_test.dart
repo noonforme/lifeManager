@@ -237,7 +237,7 @@ void main() {
     clock.now = DateTime.utc(2026, 9, 29, 16, 30);
     await tester.tap(find.text('End shift'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Confirm finalization'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Finalize shift'));
     await tester.pumpAndSettle();
     expect(find.text('Shift finalized'), findsOneWidget);
     expect(location(), shiftLocation);

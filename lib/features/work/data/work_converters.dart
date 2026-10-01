@@ -62,6 +62,15 @@ db.PayAgreementsCompanion agreementToCompanion(domain.PayAgreement value) =>
       overtimeThresholdMinutes: value.overtimeThresholdMinutes,
       overtimeMultiplierNumerator: value.overtimeMultiplier.numerator,
       overtimeMultiplierDenominator: value.overtimeMultiplier.denominator,
+      nightEnabled: value.nightEnabled,
+      nightStartMinute: value.nightStartMinute,
+      nightEndMinute: value.nightEndMinute,
+      nightMultiplierNumerator: value.nightMultiplier.numerator,
+      nightMultiplierDenominator: value.nightMultiplier.denominator,
+      holidayCalendar: holidayCalendarText(value.holidayCalendar),
+      holidayMultiplierNumerator: value.holidayMultiplier.numerator,
+      holidayMultiplierDenominator: value.holidayMultiplier.denominator,
+      premiumStacking: premiumStackingText(value.premiumStacking),
       label: Value(value.label),
       note: Value(value.note),
       createdAtUtcMicros: value.createdAtUtc.microsecondsSinceEpoch,
@@ -95,6 +104,19 @@ domain.PayAgreement agreementFromRow(
       numerator: row.overtimeMultiplierNumerator,
       denominator: row.overtimeMultiplierDenominator,
     ),
+    nightEnabled: row.nightEnabled,
+    nightStartMinute: row.nightStartMinute,
+    nightEndMinute: row.nightEndMinute,
+    nightMultiplier: domain.RationalMultiplier(
+      numerator: row.nightMultiplierNumerator,
+      denominator: row.nightMultiplierDenominator,
+    ),
+    holidayCalendar: _holidayCalendar(row.holidayCalendar),
+    holidayMultiplier: domain.RationalMultiplier(
+      numerator: row.holidayMultiplierNumerator,
+      denominator: row.holidayMultiplierDenominator,
+    ),
+    premiumStacking: _premiumStacking(row.premiumStacking),
     label: row.label,
     note: row.note,
     createdAtUtc: _utc(row.createdAtUtcMicros),
@@ -113,7 +135,6 @@ db.WorkShiftsCompanion shiftToCompanion(domain.WorkShift value) =>
       endUtcMicros: Value(value.endUtc?.microsecondsSinceEpoch),
       timezoneId: value.timezoneId,
       localStartDate: value.localStartDate.toString(),
-      overtimeMinutes: value.overtimeMinutes,
       note: Value(value.note),
       voidReason: Value(value.voidReason),
       replacementShiftId: Value(value.replacementShiftId?.value),
@@ -144,7 +165,6 @@ domain.WorkShift shiftFromRow(db.WorkShift row) => _decode(
     endUtc: row.endUtcMicros == null ? null : _utc(row.endUtcMicros!),
     timezoneId: row.timezoneId,
     localStartDate: _date('workShift', 'localStartDate', row.localStartDate),
-    overtimeMinutes: row.overtimeMinutes,
     note: row.note,
     voidReason: row.voidReason,
     replacementShiftId: _nullableId(
@@ -357,6 +377,39 @@ domain.EmploymentStatus _employmentStatus(String value) => switch (value) {
   _ => throw WorkDataCorruption(
     recordType: 'employment',
     field: 'status',
+    value: value,
+  ),
+};
+
+/// Stable stored names; renaming an enum value must not change them.
+String holidayCalendarText(domain.HolidayCalendar value) => switch (value) {
+  domain.HolidayCalendar.none => 'none',
+  domain.HolidayCalendar.lithuania => 'lithuania',
+};
+
+String premiumStackingText(domain.PremiumStacking value) => switch (value) {
+  domain.PremiumStacking.highest => 'highest',
+  domain.PremiumStacking.additive => 'additive',
+  domain.PremiumStacking.multiplicative => 'multiplicative',
+};
+
+domain.HolidayCalendar _holidayCalendar(String value) => switch (value) {
+  'none' => domain.HolidayCalendar.none,
+  'lithuania' => domain.HolidayCalendar.lithuania,
+  _ => throw WorkDataCorruption(
+    recordType: 'payAgreement',
+    field: 'holidayCalendar',
+    value: value,
+  ),
+};
+
+domain.PremiumStacking _premiumStacking(String value) => switch (value) {
+  'highest' => domain.PremiumStacking.highest,
+  'additive' => domain.PremiumStacking.additive,
+  'multiplicative' => domain.PremiumStacking.multiplicative,
+  _ => throw WorkDataCorruption(
+    recordType: 'payAgreement',
+    field: 'premiumStacking',
     value: value,
   ),
 };

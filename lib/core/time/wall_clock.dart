@@ -50,3 +50,14 @@ final class ZoneWallClock {
     throw StateError('No valid local time near $date');
   }
 }
+
+/// Wall-clock conversions per zone id, in the shape pay calculation takes.
+({
+  WallTime Function(DateTime utc) toLocal,
+  List<DateTime> Function(LocalDate date, int minuteOfDay) toInstants,
+})
+Function(String zoneId)
+zoneClocksOf(TimezoneService zones) => (zoneId) {
+  final clock = ZoneWallClock(zones, zoneId);
+  return (toLocal: clock.toLocal, toInstants: clock.toInstants);
+};

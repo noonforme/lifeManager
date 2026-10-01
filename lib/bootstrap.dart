@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'app/startup_recovery.dart';
+import 'core/database/database_identity.dart';
 import 'core/outcomes/mutation_outcome.dart';
 
 abstract interface class BootstrapDatabase {
@@ -60,6 +61,14 @@ Future<void> bootstrap(BootstrapDependencies dependencies) async {
     final app = await dependencies.buildRouter(providers);
     await dependencies.mountApp(app);
     await dependencies.showWindow();
+  } on DatabaseFromEarlierBuild catch (failure) {
+    await database?.close();
+    await dependencies.showRecovery(
+      StartupFailure(
+        SafeFailureCode.databaseFromEarlierBuild,
+        databasePath: failure.path,
+      ),
+    );
   } on Object {
     await database?.close();
     await dependencies.showRecovery(

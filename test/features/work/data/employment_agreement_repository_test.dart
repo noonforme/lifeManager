@@ -117,11 +117,11 @@ void main() {
       '''
       INSERT INTO work_shifts (
         id, employment_id, agreement_id, state, start_utc_micros,
-        end_utc_micros, timezone_id, local_start_date, overtime_minutes,
+        end_utc_micros, timezone_id, local_start_date,
         note, void_reason, replacement_shift_id, replaced_shift_id,
         created_at_utc_micros, updated_at_utc_micros, revision
       ) VALUES (?, ?, ?, 'finalized', 1, 2, 'Europe/Berlin', '2026-09-29',
-        0, NULL, NULL, NULL, NULL, 1, 2, 1)
+        NULL, NULL, NULL, NULL, 1, 2, 1)
       ''',
       [
         '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c31',

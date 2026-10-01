@@ -147,9 +147,7 @@ final class _WorkRouteHost extends ConsumerWidget {
         onStartBreak: ref.read(workControllerProvider.notifier).startBreak,
         onEndBreak: ref.read(workControllerProvider.notifier).endBreak,
         onEndShift: ref.read(workControllerProvider.notifier).endShift,
-        onFinalize: (shift, minutes) => ref
-            .read(workControllerProvider.notifier)
-            .finalizeShift(shift, overtimeMinutes: minutes),
+        onFinalize: ref.read(workControllerProvider.notifier).finalizeShift,
         onStartShift: ref
             .read(workControllerProvider.notifier)
             .startShiftInSystemZone,

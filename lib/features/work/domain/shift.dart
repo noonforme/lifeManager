@@ -3,6 +3,7 @@ import 'agreement.dart';
 import 'facts.dart';
 import 'ids.dart';
 import 'pay.dart';
+import 'pay_premiums.dart';
 
 enum ShiftState { draft, running, onBreak, finalized, voided }
 
@@ -16,7 +17,6 @@ final class WorkShift {
     required this.endUtc,
     required this.timezoneId,
     required this.localStartDate,
-    required this.overtimeMinutes,
     required this.note,
     required this.voidReason,
     required this.replacementShiftId,
@@ -36,9 +36,6 @@ final class WorkShift {
     }
     if (timezoneId.trim().isEmpty) {
       throw ArgumentError.value(timezoneId, 'timezoneId');
-    }
-    if (overtimeMinutes < 0) {
-      throw ArgumentError.value(overtimeMinutes, 'overtimeMinutes');
     }
     switch (state) {
       case ShiftState.running || ShiftState.onBreak:
@@ -64,7 +61,6 @@ final class WorkShift {
   final DateTime? endUtc;
   final String timezoneId;
   final LocalDate localStartDate;
-  final int overtimeMinutes;
   final String? note;
   final String? voidReason;
   final ShiftId? replacementShiftId;
@@ -85,7 +81,6 @@ final class WorkShift {
       endUtc: endUtc,
       timezoneId: timezoneId,
       localStartDate: localStartDate,
-      overtimeMinutes: overtimeMinutes,
       note: note,
       voidReason: null,
       replacementShiftId: null,
@@ -110,7 +105,6 @@ final class WorkShift {
       endUtc: endUtc,
       timezoneId: timezoneId,
       localStartDate: localStartDate,
-      overtimeMinutes: overtimeMinutes,
       note: note,
       voidReason: voidReason,
       replacementShiftId: replacementId,
@@ -128,7 +122,6 @@ final class WorkShift {
     required DateTime endUtc,
     required String timezoneId,
     required LocalDate localStartDate,
-    required int overtimeMinutes,
     required String? note,
     DateTime? updatedAtUtc,
   }) {
@@ -141,7 +134,6 @@ final class WorkShift {
       endUtc: endUtc,
       timezoneId: timezoneId,
       localStartDate: localStartDate,
-      overtimeMinutes: overtimeMinutes,
       note: note,
       voidReason: voidReason,
       replacementShiftId: replacementShiftId,
@@ -165,7 +157,6 @@ final class WorkShift {
       endUtc: endUtc,
       timezoneId: timezoneId,
       localStartDate: localStartDate,
-      overtimeMinutes: overtimeMinutes,
       note: note,
       voidReason: null,
       replacementShiftId: null,
@@ -218,13 +209,48 @@ final class FinalizationFacts {
   final WorkShift shift;
   final List<ShiftBreak> breaks;
   final PayAgreement agreement;
+
+  /// Paid seconds over whole-second instants, so it always equals the sum of
+  /// the pay segments.
   final int paidSeconds;
 
-  ExpectedPayInput toExpectedPayInput() => ExpectedPayInput(
-    paidSeconds: paidSeconds,
-    overtimeMinutes: shift.overtimeMinutes,
+  /// Whole seconds from start to end, breaks included.
+  int get elapsedSeconds => _second(shift.endUtc!) - _second(shift.startUtc);
+
+  int get breakSeconds => elapsedSeconds - paidSeconds;
+
+  /// The shift minus its breaks, in UTC whole seconds and in order.
+  List<({DateTime start, DateTime end})> get paidIntervals {
+    DateTime whole(DateTime utc) =>
+        DateTime.fromMillisecondsSinceEpoch(_second(utc) * 1000, isUtc: true);
+    final intervals = <({DateTime start, DateTime end})>[];
+    var from = whole(shift.startUtc);
+    for (final item in breaks) {
+      final breakStart = whole(item.startUtc);
+      if (breakStart.isAfter(from)) {
+        intervals.add((start: from, end: breakStart));
+      }
+      from = whole(item.endUtc!);
+    }
+    final end = whole(shift.endUtc!);
+    if (end.isAfter(from)) intervals.add((start: from, end: end));
+    return List.unmodifiable(intervals);
+  }
+
+  /// Expected pay with night, holiday and derived overtime premiums, read on
+  /// the shift's own wall clock.
+  ExpectedPay expectedPay({
+    required ToLocal toLocal,
+    required ToInstants toInstants,
+  }) => calculateExpectedPay(
+    segments: segmentPaidTime(
+      paidIntervals: paidIntervals,
+      agreement: agreement,
+      toLocal: toLocal,
+      toInstants: toInstants,
+    ),
     hourlyRateMicroEur: agreement.hourlyRateMicroEur,
-    multiplier: agreement.overtimeMultiplier,
+    agreement: agreement,
     currency: const CurrencyCode.eur(),
   );
 }
@@ -272,28 +298,16 @@ FinalizationValidation validateFinalization({
     if (previousEnd != null && item.startUtc.isBefore(previousEnd)) {
       issues.add(const DomainIssue('break.overlap', field: 'breaks'));
     }
-    breakSeconds += breakEnd.difference(item.startUtc).inSeconds;
+    breakSeconds += _second(breakEnd) - _second(item.startUtc);
     previousEnd = breakEnd;
   }
 
   final paidSeconds = end == null
       ? 0
-      : end.difference(shift.startUtc).inSeconds - breakSeconds;
+      : _second(end) - _second(shift.startUtc) - breakSeconds;
   if (end != null && paidSeconds <= 0) {
     issues.add(
       const DomainIssue('shift.paidDurationNotPositive', field: 'duration'),
-    );
-  }
-  if (shift.overtimeMinutes < 0) {
-    issues.add(
-      const DomainIssue('shift.overtimeNegative', field: 'overtimeMinutes'),
-    );
-  } else if (shift.overtimeMinutes > paidSeconds ~/ 60) {
-    issues.add(
-      const DomainIssue(
-        'shift.overtimeExceedsPaidMinutes',
-        field: 'overtimeMinutes',
-      ),
     );
   }
   if (issues.isNotEmpty) {
@@ -321,6 +335,8 @@ FinalizationValidation validateFinalization({
     ),
   );
 }
+
+int _second(DateTime utc) => utc.microsecondsSinceEpoch ~/ 1000000;
 
 void _requireUtc(DateTime value, String name) {
   if (!value.isUtc) throw ArgumentError.value(value, name);

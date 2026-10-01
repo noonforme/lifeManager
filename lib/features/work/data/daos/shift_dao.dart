@@ -213,28 +213,6 @@ final class ShiftDao {
     );
   }
 
-  Future<int> setOvertime(
-    ShiftId id, {
-    required int overtimeMinutes,
-    required Revision expected,
-    required DateTime updatedAtUtc,
-  }) {
-    return database.customUpdate(
-      '''
-      UPDATE work_shifts
-      SET overtime_minutes = ?, updated_at_utc_micros = ?
-      WHERE id = ? AND revision = ? AND state = 'draft'
-      ''',
-      variables: [
-        Variable(overtimeMinutes),
-        Variable(updatedAtUtc.microsecondsSinceEpoch),
-        Variable(id.value),
-        Variable(expected.value),
-      ],
-      updates: {database.workShifts},
-    );
-  }
-
   /// Rewrites a draft's facts and bumps its revision; finalized and voided
   /// shifts never match.
   Future<int> reviseDraft(
@@ -245,7 +223,7 @@ final class ShiftDao {
       '''
       UPDATE work_shifts
       SET start_utc_micros = ?, end_utc_micros = ?, timezone_id = ?,
-          local_start_date = ?, overtime_minutes = ?, note = ?,
+          local_start_date = ?, note = ?,
           updated_at_utc_micros = ?, revision = revision + 1
       WHERE id = ? AND revision = ? AND state = 'draft'
       ''',
@@ -254,7 +232,6 @@ final class ShiftDao {
         Variable(value.endUtc?.microsecondsSinceEpoch),
         Variable(value.timezoneId),
         Variable(value.localStartDate.toString()),
-        Variable(value.overtimeMinutes),
         Variable(value.note),
         Variable(value.updatedAtUtc.microsecondsSinceEpoch),
         Variable(value.id.value),

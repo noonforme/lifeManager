@@ -10,6 +10,11 @@ typedef ToLocal = ({LocalDate date, int minuteOfDay}) Function(DateTime utc);
 /// instant after a daylight-saving gap.
 typedef ToInstants = List<DateTime> Function(LocalDate date, int minuteOfDay);
 
+/// The wall-clock conversions for an IANA zone id.
+typedef ZoneClocks = ({ToLocal toLocal, ToInstants toInstants}) Function(
+  String zoneId,
+);
+
 /// A stretch of paid time with one set of premium flags (spec 5.1).
 final class PaySegment {
   const PaySegment({

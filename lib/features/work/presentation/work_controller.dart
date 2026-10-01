@@ -330,18 +330,12 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
         ),
       );
 
-  Future<MutationOutcome<WorkShift>> finalizeShift(
-    WorkShift shift, {
-    required int overtimeMinutes,
-  }) => _replaceRouteOnCommit(
-    ref.read(finalizeShiftProvider)(
-      FinalizeShiftCommand(
-        id: shift.id,
-        overtimeMinutes: overtimeMinutes,
-        expectedRevision: shift.revision,
-      ),
-    ),
-  );
+  Future<MutationOutcome<WorkShift>> finalizeShift(WorkShift shift) =>
+      _replaceRouteOnCommit(
+        ref.read(finalizeShiftProvider)(
+          FinalizeShiftCommand(id: shift.id, expectedRevision: shift.revision),
+        ),
+      );
 
   Future<MutationOutcome<WorkShift>> saveManualShift(ManualShiftDraft value) {
     draft = value;
@@ -367,7 +361,6 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
                 endFold: null,
               ),
           ],
-          overtimeMinutes: value.overtimeMinutes,
           note: _trimOptional(value.note),
         ),
       ),
@@ -404,7 +397,6 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
                 endFold: null,
               ),
           ],
-          overtimeMinutes: value.overtimeMinutes,
           note: _trimOptional(value.note),
         ),
       ),

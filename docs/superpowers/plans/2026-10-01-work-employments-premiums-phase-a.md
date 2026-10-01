@@ -181,24 +181,25 @@ Removing the overtime field touches the domain, the schema, the services and the
 - Modify: `lib/features/work/presentation/shift_forms.dart`, `work_inspector.dart`, `work_screen.dart`, `work_controller.dart`, `lib/app/app_router.dart`
 - Modify: `lib/core/database/schema_versions.dart`, `migration_strategy.dart`, `database_service.dart`, `app_database.g.dart` (regenerated); `lib/core/outcomes/mutation_outcome.dart` (failure code); `lib/app/startup_recovery.dart`
 - Replace: `drift_schemas/schema_v1.json`; delete `drift_schemas/schema_v2.json`
-- Modify: `tool/schema_check.dart` and the affected tests
+- Modify: `tool/schema_check.dart`, `app.sh` (project checks run it) and the affected tests
+- Create: `lib/core/time/wall_clock.dart` `zoneClocksOf`, `test/support/zone_clocks.dart`
 - Create: `test/repository/no_manual_overtime_test.dart`
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - **Scan:** no file under `lib/` mentions `overtimeMinutes`, `overtime_minutes`, `suggestedOvertimeMinutes` or `OvertimeConfirmation`.
   - **Finalization:** derived overtime gives the expected pay from Task 3. A finished shift finalizes directly, with no overtime value.
   - **Converters:** round-trip every new agreement field and the enums by their stable names.
   - **CHECK constraints:** reject a night minute outside 0–1439, a start equal to the end, a multiplier below 1 and an unknown enum.
   - **Fresh database:** created at schema version 1 with no `overtime_minutes` column. The fingerprint test lists only version 1.
   - **Earlier-build database:** a database with `user_version` 2 fails with `SafeFailureCode.databaseFromEarlierBuild`. The recovery screen shows "This database was made by an earlier development build of LifeOS and can't be opened. Close LifeOS, remove <path>, then start it again." The path is the database's own location; no record content is shown.
-- [ ] **Step 2: Implement.**
+- [x] **Step 2: Implement.**
   - Remove `WorkShift.overtimeMinutes`, its validation, `suggestedOvertimeMinutes` and the overtime confirmation inspector.
   - `FinalizationFacts` exposes the paid intervals plus `expectedPay(ToLocal, ToInstants)`, and reconciliation reads the new breakdown. Delete the interim `calculateManualOvertimePay` and `ExpectedPayInput`.
   - Add the agreement columns and CHECKs from spec section 6, and drop `overtime_minutes`.
   - Set `currentSchemaVersion = 1`. `onCreate` builds everything, and `onUpgrade` only accepts the current version.
   - Regenerate Drift output and the snapshot: `dart run build_runner build --delete-conflicting-outputs`, then `dart run drift_dev schema dump lib/core/database/app_database.dart drift_schemas/schema_v1.json`. Update the fingerprints with `sha256sum`.
-- [ ] **Step 3: Run** `flutter analyze`, `flutter test` and `dart run tool/schema_check.dart`. Expected: PASS.
-- [ ] **Step 4: Commit** `feat!: derive overtime and reset the unreleased schema`.
+- [x] **Step 3: Run** `flutter analyze`, `flutter test` and `dart run tool/schema_check.dart`. Expected: PASS.
+- [x] **Step 4: Commit** `feat!: derive overtime and reset the unreleased schema`.
 
 ### Task 5: Application services
 

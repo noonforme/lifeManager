@@ -14,63 +14,57 @@ import 'package:sqlite3/sqlite3.dart' as sqlite;
 import '../../support/owned_test_root.dart';
 
 void main() {
-  test(
-    'released schema snapshots and fingerprints match version two',
-    () async {
-      final observed = <int, String>{};
-      for (var version = 1; version <= currentSchemaVersion; version++) {
-        final snapshot = File('drift_schemas/schema_v$version.json');
-        expect(await snapshot.exists(), isTrue, reason: snapshot.path);
-        final document = jsonDecode(await snapshot.readAsString());
-        expect(document, isA<Map<String, Object?>>());
-        final map = document as Map<String, Object?>;
-        expect(map['_meta'], isA<Map<String, Object?>>());
-        expect(map['entities'], isA<List<Object?>>());
-        final checksum = await Process.run('sha256sum', [snapshot.path]);
-        expect(checksum.exitCode, 0);
-        observed[version] = (checksum.stdout as String)
-            .split(RegExp(r'\s+'))
-            .first;
-      }
+  test('the reset schema has one released snapshot, version one', () async {
+    final observed = <int, String>{};
+    for (var version = 1; version <= currentSchemaVersion; version++) {
+      final snapshot = File('drift_schemas/schema_v$version.json');
+      expect(await snapshot.exists(), isTrue, reason: snapshot.path);
+      final document = jsonDecode(await snapshot.readAsString());
+      expect(document, isA<Map<String, Object?>>());
+      final map = document as Map<String, Object?>;
+      expect(map['_meta'], isA<Map<String, Object?>>());
+      expect(map['entities'], isA<List<Object?>>());
+      final checksum = await Process.run('sha256sum', [snapshot.path]);
+      expect(checksum.exitCode, 0);
+      observed[version] = (checksum.stdout as String)
+          .split(RegExp(r'\s+'))
+          .first;
+    }
 
-      expect(currentSchemaVersion, 2);
-      expect(releasedMigrationFingerprints, observed);
-    },
-  );
+    expect(currentSchemaVersion, 1);
+    expect(releasedMigrationFingerprints, observed);
+  });
 
   test(
-    'schema version one upgrades additively to Work schema version two',
+    'a fresh database is created at version one without manual overtime',
     () async {
       final raw = sqlite.sqlite3.openInMemory();
-      raw.execute('''
-      CREATE TABLE core_metadata (
-        id INTEGER NOT NULL DEFAULT 1 PRIMARY KEY,
-        application_version TEXT,
-        snapshot_schema_version INTEGER,
-        snapshot_created_at_utc TEXT
-      )
-    ''');
-      raw.execute('INSERT INTO core_metadata (id) VALUES (1)');
-      raw.userVersion = 1;
       final database = AppDatabase(NativeDatabase.opened(raw));
       addTearDown(database.close);
 
       await database.customSelect('SELECT 1').getSingle();
 
-      expect(raw.userVersion, 2);
+      expect(raw.userVersion, 1);
+      final shiftColumns = raw
+          .select('PRAGMA table_info(work_shifts)')
+          .map((row) => row['name']);
+      expect(shiftColumns, isNot(contains('overtime_minutes')));
+      final agreementColumns = raw
+          .select('PRAGMA table_info(pay_agreements)')
+          .map((row) => row['name']);
       expect(
-        raw
-            .select("SELECT name FROM sqlite_master WHERE type = 'table'")
-            .map((row) => row['name']),
-        containsAll(<String>{
-          'core_metadata',
-          'employments',
-          'pay_agreements',
-          'work_shifts',
-          'shift_breaks',
-          'pay_periods',
-          'payslips',
-        }),
+        agreementColumns,
+        containsAll(<String>[
+          'night_enabled',
+          'night_start_minute',
+          'night_end_minute',
+          'night_multiplier_numerator',
+          'night_multiplier_denominator',
+          'holiday_calendar',
+          'holiday_multiplier_numerator',
+          'holiday_multiplier_denominator',
+          'premium_stacking',
+        ]),
       );
       expect(
         raw
@@ -81,14 +75,49 @@ void main() {
             .single['name'],
         'one_active_shift',
       );
-      expect(
-        raw
-            .select('SELECT COUNT(*) AS count FROM core_metadata')
-            .single['count'],
-        1,
-      );
     },
   );
+
+  group('a database from an earlier development build', () {
+    Future<File> earlierBuild(OwnedTestRoot root, int userVersion) async {
+      final file = File.fromUri(root.uri.resolve('lifeos-native-v1.sqlite'));
+      final raw = sqlite.sqlite3.open(file.path);
+      raw.execute('PRAGMA application_id = $lifeOsApplicationId');
+      raw.execute('CREATE TABLE core_metadata (id INTEGER PRIMARY KEY)');
+      raw.execute(
+        'CREATE TABLE pay_agreements (id TEXT PRIMARY KEY, basis TEXT)',
+      );
+      raw.userVersion = userVersion;
+      raw.close();
+      return file;
+    }
+
+    for (final version in [1, 2]) {
+      test('at user_version $version is refused, not migrated', () async {
+        final root = await OwnedTestRoot.create();
+        addTearDown(root.dispose);
+        final file = await earlierBuild(root, version);
+
+        await expectLater(
+          DriftDatabaseService.open(
+            DatabaseConfig.test(root: root.uri, markerToken: root.token),
+            location: _locationFor(root),
+          ),
+          throwsA(
+            isA<DatabaseFromEarlierBuild>().having(
+              (error) => error.path,
+              'path',
+              file.path,
+            ),
+          ),
+        );
+
+        final unchanged = sqlite.sqlite3.open(file.path);
+        addTearDown(unchanged.close);
+        expect(unchanged.userVersion, version);
+      });
+    }
+  });
 
   test('snapshot embeds metadata and validates read-only', () async {
     final root = await OwnedTestRoot.create();

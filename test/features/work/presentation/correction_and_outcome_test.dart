@@ -370,7 +370,6 @@ WorkShift _shift({
   endUtc: DateTime.utc(2026, 10, 1, 16),
   timezoneId: 'Europe/Amsterdam',
   localStartDate: const LocalDate(2026, 10, 1),
-  overtimeMinutes: 0,
   note: null,
   voidReason: null,
   replacementShiftId: null,

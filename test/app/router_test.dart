@@ -357,9 +357,7 @@ void main() {
     );
   });
 
-  testWidgets('ended shift offers agreement overtime suggestion to finalize', (
-    tester,
-  ) async {
+  testWidgets('ended shift finalizes from the inspector', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1280, 760);
     addTearDown(tester.view.reset);
@@ -369,11 +367,7 @@ void main() {
       endUtc: DateTime.utc(2026, 9, 29, 16),
     );
     final repository = _LiveShiftQueryRepository(
-      ShiftRecordProjection(
-        ended,
-        breaks: [_closedBreak],
-        suggestedOvertimeMinutes: 30,
-      ),
+      ShiftRecordProjection(ended, breaks: [_closedBreak]),
     );
     addTearDown(repository.close);
     FinalizeShiftCommand? issued;
@@ -404,18 +398,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Suggested from the agreement threshold: 30 minutes.'),
-      findsOneWidget,
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('shift-final-overtime')),
-      '25',
-    );
-    await tester.tap(find.text('Confirm finalization'));
+    expect(find.bySemanticsLabel('Finalize shift'), findsWidgets);
+    await tester.tap(find.widgetWithText(FilledButton, 'Finalize shift'));
     await tester.pumpAndSettle();
 
-    expect(issued?.overtimeMinutes, 25);
+    expect(issued?.id, _shiftId);
     expect(issued?.expectedRevision, const Revision(3));
   });
 
@@ -1267,7 +1254,6 @@ WorkShift _liveShift(ShiftState state, Revision revision, {DateTime? endUtc}) =>
       endUtc: endUtc,
       timezoneId: 'Europe/Amsterdam',
       localStartDate: const LocalDate(2026, 9, 29),
-      overtimeMinutes: 0,
       note: null,
       voidReason: null,
       replacementShiftId: null,
@@ -1432,7 +1418,6 @@ final _revisedFinalized = WorkShift(
   endUtc: DateTime.utc(2026, 9, 29, 15),
   timezoneId: 'Europe/Amsterdam',
   localStartDate: const LocalDate(2026, 9, 29),
-  overtimeMinutes: 0,
   note: null,
   voidReason: null,
   replacementShiftId: null,

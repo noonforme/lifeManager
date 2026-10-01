@@ -2,6 +2,8 @@ import 'package:drift/drift.dart' show TableUpdateQuery;
 
 import '../../../core/database/app_database.dart' show AppDatabase;
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/timezone_service.dart';
+import '../../../core/time/wall_clock.dart';
 import '../application/pay_period_service.dart';
 import '../application/payslip_service.dart';
 import '../application/work_commands.dart';
@@ -13,6 +15,7 @@ import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart';
+import '../domain/pay_premiums.dart';
 import '../domain/payslip.dart';
 import '../domain/shift.dart';
 import 'daos/agreement_dao.dart';
@@ -32,14 +35,18 @@ final class DriftWorkRepository
         PayPeriodRepository,
         PayslipRepository,
         WorkQueryRepository {
-  DriftWorkRepository(this._database)
-    : _employments = EmploymentDao(_database),
+  /// Expected pay reads each shift on its own wall clock through
+  /// [timezones].
+  DriftWorkRepository(this._database, {TimezoneService? timezones})
+    : _zoneClocks = zoneClocksOf(timezones ?? IanaTimezoneService()),
+      _employments = EmploymentDao(_database),
       _agreements = AgreementDao(_database),
       _periods = PayPeriodDao(_database),
       _payslips = PayslipDao(_database),
       _shifts = ShiftDao(_database);
 
   final AppDatabase _database;
+  final ZoneClocks _zoneClocks;
   final EmploymentDao _employments;
   final AgreementDao _agreements;
   final PayPeriodDao _periods;
@@ -297,6 +304,7 @@ final class DriftWorkRepository
           breaks: breaks,
           agreements: agreements,
           payslips: payslips,
+          zoneClocks: _zoneClocks,
         ),
       );
     }
@@ -347,29 +355,8 @@ final class DriftWorkRepository
     }
   }
 
-  Future<ShiftRecordProjection> _shiftRecord(WorkShift shift) async {
-    final breaks = await _shifts.breaksFor(shift.id);
-    int? suggestion;
-    if (shift.state == ShiftState.draft && shift.endUtc != null) {
-      final validation = validateFinalization(
-        shift: shift,
-        breaks: breaks,
-        agreements: await _agreements.forEmployment(shift.employmentId),
-      );
-      final facts = validation.facts;
-      if (facts != null) {
-        suggestion = suggestedOvertimeMinutes(
-          paidWholeMinutes: facts.paidSeconds ~/ 60,
-          agreement: facts.agreement,
-        );
-      }
-    }
-    return ShiftRecordProjection(
-      shift,
-      breaks: breaks,
-      suggestedOvertimeMinutes: suggestion,
-    );
-  }
+  Future<ShiftRecordProjection> _shiftRecord(WorkShift shift) async =>
+      ShiftRecordProjection(shift, breaks: await _shifts.breaksFor(shift.id));
 }
 
 final class _StalePayslipCorrection implements Exception {

@@ -35,7 +35,6 @@ abstract interface class ShiftLifecycleRepository {
 
   Future<MutationOutcome<WorkShift>> commitFinalization(
     ShiftId id, {
-    required int overtimeMinutes,
     required Revision expected,
   });
 
@@ -76,7 +75,6 @@ final class ShiftLifecycleService {
         endUtc: null,
         timezoneId: command.timezoneId,
         localStartDate: timezones.localDateAt(nowUtc, command.timezoneId),
-        overtimeMinutes: 0,
         note: _trimOptional(command.note),
         voidReason: null,
         replacementShiftId: null,
@@ -141,17 +139,9 @@ final class ShiftLifecycleService {
   Future<MutationOutcome<WorkShift>> finalizeShift(
     FinalizeShiftCommand command,
   ) {
-    if (command.overtimeMinutes < 0) {
-      return Future.value(
-        const Invalid<WorkShift>({
-          'overtimeMinutes': [FieldIssue(FieldIssueCode.outOfRange)],
-        }),
-      );
-    }
     return _mapStorageFailure(
       () => _repository.commitFinalization(
         command.id,
-        overtimeMinutes: command.overtimeMinutes,
         expected: command.expectedRevision,
       ),
     );

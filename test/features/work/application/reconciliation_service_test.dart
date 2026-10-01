@@ -17,6 +17,8 @@ import 'package:lifeos/features/work/domain/payslip.dart';
 import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 
+import '../../../support/zone_clocks.dart';
+
 void main() {
   late AppDatabase database;
   late DriftWorkRepository repository;
@@ -103,6 +105,7 @@ void main() {
               breaks: const [],
               agreements: const [],
               payslips: const [],
+              zoneClocks: testZoneClocks,
             ),
           ),
         ),
@@ -150,7 +153,6 @@ WorkShift _finalizedShift() => WorkShift(
   endUtc: DateTime.utc(2026, 9, 10, 16),
   timezoneId: 'Europe/Berlin',
   localStartDate: const LocalDate(2026, 9, 10),
-  overtimeMinutes: 0,
   note: null,
   voidReason: null,
   replacementShiftId: null,

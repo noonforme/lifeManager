@@ -40,6 +40,7 @@ run_checks() {
     "$flutter" analyze lib test tool
     dart_bin="$(dirname -- "$flutter")/dart"
     "$dart_bin" format --output=none --set-exit-if-changed lib test tool
+    "$dart_bin" run tool/schema_check.dart
 }
 
 while true; do

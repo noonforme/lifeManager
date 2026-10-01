@@ -63,6 +63,1552 @@
           "id"
         ]
       }
+    },
+    {
+      "id": 1,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "employments",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "name",
+            "getter_name": "name",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "legal_label",
+            "getter_name": "legalLabel",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "status",
+            "getter_name": "status",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_utc_micros",
+            "getter_name": "createdAtUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at_utc_micros",
+            "getter_name": "updatedAtUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "revision",
+            "getter_name": "revision",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('revision >= 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "references": [
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "pay_agreements",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "employment_id",
+            "getter_name": "employmentId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES employments (id) ON DELETE RESTRICT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES employments (id) ON DELETE RESTRICT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "employments",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "restrict"
+                }
+              }
+            ]
+          },
+          {
+            "name": "version",
+            "getter_name": "version",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('version > 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "effective_start",
+            "getter_name": "effectiveStart",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "effective_end",
+            "getter_name": "effectiveEnd",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "hourly_rate_micro_eur",
+            "getter_name": "hourlyRateMicroEur",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('hourly_rate_micro_eur > 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "basis",
+            "getter_name": "basis",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "overtime_threshold_minutes",
+            "getter_name": "overtimeThresholdMinutes",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('overtime_threshold_minutes > 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "overtime_multiplier_numerator",
+            "getter_name": "overtimeMultiplierNumerator",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('overtime_multiplier_numerator > 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "overtime_multiplier_denominator",
+            "getter_name": "overtimeMultiplierDenominator",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('overtime_multiplier_denominator > 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "night_enabled",
+            "getter_name": "nightEnabled",
+            "moor_type": "bool",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "CHECK (\"night_enabled\" IN (0, 1))",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "CHECK (\"night_enabled\" IN (0, 1))"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "night_start_minute",
+            "getter_name": "nightStartMinute",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('night_start_minute BETWEEN 0 AND 1439')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "night_end_minute",
+            "getter_name": "nightEndMinute",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('night_end_minute BETWEEN 0 AND 1439')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "night_multiplier_numerator",
+            "getter_name": "nightMultiplierNumerator",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('night_multiplier_numerator > 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "night_multiplier_denominator",
+            "getter_name": "nightMultiplierDenominator",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('night_multiplier_denominator > 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "holiday_calendar",
+            "getter_name": "holidayCalendar",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">(\"holiday_calendar IN ('none', 'lithuania')\")"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "holiday_multiplier_numerator",
+            "getter_name": "holidayMultiplierNumerator",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('holiday_multiplier_numerator > 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "holiday_multiplier_denominator",
+            "getter_name": "holidayMultiplierDenominator",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('holiday_multiplier_denominator > 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "premium_stacking",
+            "getter_name": "premiumStacking",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">(\"premium_stacking IN ('highest', 'additive', 'multiplicative')\")"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "label",
+            "getter_name": "label",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "note",
+            "getter_name": "note",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_utc_micros",
+            "getter_name": "createdAtUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "revision",
+            "getter_name": "revision",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('revision >= 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "CHECK (effective_end IS NULL OR effective_end >= effective_start)",
+          "CHECK (overtime_multiplier_numerator >= overtime_multiplier_denominator)",
+          "CHECK (night_multiplier_numerator >= night_multiplier_denominator)",
+          "CHECK (holiday_multiplier_numerator >= holiday_multiplier_denominator)",
+          "CHECK (night_start_minute <> night_end_minute)",
+          "UNIQUE (employment_id, version)"
+        ],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "references": [
+        1,
+        2
+      ],
+      "type": "table",
+      "data": {
+        "name": "work_shifts",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "employment_id",
+            "getter_name": "employmentId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES employments (id) ON DELETE RESTRICT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES employments (id) ON DELETE RESTRICT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "employments",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "restrict"
+                }
+              }
+            ]
+          },
+          {
+            "name": "agreement_id",
+            "getter_name": "agreementId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES pay_agreements (id) ON DELETE RESTRICT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES pay_agreements (id) ON DELETE RESTRICT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "pay_agreements",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "restrict"
+                }
+              }
+            ]
+          },
+          {
+            "name": "state",
+            "getter_name": "state",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "start_utc_micros",
+            "getter_name": "startUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "end_utc_micros",
+            "getter_name": "endUtcMicros",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "timezone_id",
+            "getter_name": "timezoneId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "local_start_date",
+            "getter_name": "localStartDate",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "note",
+            "getter_name": "note",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "void_reason",
+            "getter_name": "voidReason",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "replacement_shift_id",
+            "getter_name": "replacementShiftId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES work_shifts (id) ON DELETE RESTRICT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES work_shifts (id) ON DELETE RESTRICT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "work_shifts",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "restrict"
+                }
+              }
+            ]
+          },
+          {
+            "name": "replaced_shift_id",
+            "getter_name": "replacedShiftId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES work_shifts (id) ON DELETE RESTRICT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES work_shifts (id) ON DELETE RESTRICT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "work_shifts",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "restrict"
+                }
+              }
+            ]
+          },
+          {
+            "name": "created_at_utc_micros",
+            "getter_name": "createdAtUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at_utc_micros",
+            "getter_name": "updatedAtUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "revision",
+            "getter_name": "revision",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('revision >= 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "references": [
+        3
+      ],
+      "type": "table",
+      "data": {
+        "name": "shift_breaks",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "shift_id",
+            "getter_name": "shiftId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES work_shifts (id) ON DELETE RESTRICT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES work_shifts (id) ON DELETE RESTRICT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "work_shifts",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "restrict"
+                }
+              }
+            ]
+          },
+          {
+            "name": "start_utc_micros",
+            "getter_name": "startUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "end_utc_micros",
+            "getter_name": "endUtcMicros",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_utc_micros",
+            "getter_name": "createdAtUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at_utc_micros",
+            "getter_name": "updatedAtUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "revision",
+            "getter_name": "revision",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('revision >= 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "references": [
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "pay_periods",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "employment_id",
+            "getter_name": "employmentId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES employments (id) ON DELETE RESTRICT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES employments (id) ON DELETE RESTRICT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "employments",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "restrict"
+                }
+              }
+            ]
+          },
+          {
+            "name": "start",
+            "getter_name": "start",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "end",
+            "getter_name": "end",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "label",
+            "getter_name": "label",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "state",
+            "getter_name": "state",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_utc_micros",
+            "getter_name": "createdAtUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at_utc_micros",
+            "getter_name": "updatedAtUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "revision",
+            "getter_name": "revision",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('revision >= 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "CHECK (\"end\" >= start)"
+        ],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "references": [
+        5
+      ],
+      "type": "table",
+      "data": {
+        "name": "payslips",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "period_id",
+            "getter_name": "periodId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES pay_periods (id) ON DELETE RESTRICT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES pay_periods (id) ON DELETE RESTRICT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "pay_periods",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "restrict"
+                }
+              }
+            ]
+          },
+          {
+            "name": "issued_date",
+            "getter_name": "issuedDate",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "paid_date",
+            "getter_name": "paidDate",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "amount_minor_units",
+            "getter_name": "amountMinorUnits",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('amount_minor_units > 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "currency",
+            "getter_name": "currency",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "basis",
+            "getter_name": "basis",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "gross_minor_units",
+            "getter_name": "grossMinorUnits",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('gross_minor_units IS NULL OR gross_minor_units >= 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "net_minor_units",
+            "getter_name": "netMinorUnits",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('net_minor_units IS NULL OR net_minor_units >= 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "deduction_minor_units",
+            "getter_name": "deductionMinorUnits",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('deduction_minor_units IS NULL OR deduction_minor_units >= 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "reference",
+            "getter_name": "reference",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "note",
+            "getter_name": "note",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "state",
+            "getter_name": "state",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "void_reason",
+            "getter_name": "voidReason",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "replacement_payslip_id",
+            "getter_name": "replacementPayslipId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES payslips (id) ON DELETE RESTRICT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES payslips (id) ON DELETE RESTRICT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "payslips",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "restrict"
+                }
+              }
+            ]
+          },
+          {
+            "name": "replaced_payslip_id",
+            "getter_name": "replacedPayslipId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES payslips (id) ON DELETE RESTRICT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES payslips (id) ON DELETE RESTRICT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "payslips",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "restrict"
+                }
+              }
+            ]
+          },
+          {
+            "name": "created_at_utc_micros",
+            "getter_name": "createdAtUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at_utc_micros",
+            "getter_name": "updatedAtUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "revision",
+            "getter_name": "revision",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('revision >= 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
     }
   ],
   "fixed_sql": [
@@ -72,6 +1618,60 @@
         {
           "dialect": "sqlite",
           "sql": "CREATE TABLE IF NOT EXISTS \"core_metadata\" (\"id\" INTEGER NOT NULL DEFAULT 1, \"application_version\" TEXT NULL, \"snapshot_schema_version\" INTEGER NULL, \"snapshot_created_at_utc\" TEXT NULL, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "employments",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"employments\" (\"id\" TEXT NOT NULL, \"name\" TEXT NOT NULL, \"legal_label\" TEXT NULL, \"status\" TEXT NOT NULL, \"created_at_utc_micros\" INTEGER NOT NULL, \"updated_at_utc_micros\" INTEGER NOT NULL, \"revision\" INTEGER NOT NULL CHECK(revision >= 0), PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "pay_agreements",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"pay_agreements\" (\"id\" TEXT NOT NULL, \"employment_id\" TEXT NOT NULL REFERENCES employments (id) ON DELETE RESTRICT, \"version\" INTEGER NOT NULL CHECK(version > 0), \"effective_start\" TEXT NOT NULL, \"effective_end\" TEXT NULL, \"hourly_rate_micro_eur\" INTEGER NOT NULL CHECK(hourly_rate_micro_eur > 0), \"basis\" TEXT NOT NULL, \"overtime_threshold_minutes\" INTEGER NOT NULL CHECK(overtime_threshold_minutes > 0), \"overtime_multiplier_numerator\" INTEGER NOT NULL CHECK(overtime_multiplier_numerator > 0), \"overtime_multiplier_denominator\" INTEGER NOT NULL CHECK(overtime_multiplier_denominator > 0), \"night_enabled\" INTEGER NOT NULL CHECK (\"night_enabled\" IN (0, 1)), \"night_start_minute\" INTEGER NOT NULL CHECK(night_start_minute BETWEEN 0 AND 1439), \"night_end_minute\" INTEGER NOT NULL CHECK(night_end_minute BETWEEN 0 AND 1439), \"night_multiplier_numerator\" INTEGER NOT NULL CHECK(night_multiplier_numerator > 0), \"night_multiplier_denominator\" INTEGER NOT NULL CHECK(night_multiplier_denominator > 0), \"holiday_calendar\" TEXT NOT NULL CHECK(holiday_calendar IN ('none', 'lithuania')), \"holiday_multiplier_numerator\" INTEGER NOT NULL CHECK(holiday_multiplier_numerator > 0), \"holiday_multiplier_denominator\" INTEGER NOT NULL CHECK(holiday_multiplier_denominator > 0), \"premium_stacking\" TEXT NOT NULL CHECK(premium_stacking IN ('highest', 'additive', 'multiplicative')), \"label\" TEXT NULL, \"note\" TEXT NULL, \"created_at_utc_micros\" INTEGER NOT NULL, \"revision\" INTEGER NOT NULL CHECK(revision >= 0), PRIMARY KEY (\"id\"), CHECK (effective_end IS NULL OR effective_end >= effective_start), CHECK (overtime_multiplier_numerator >= overtime_multiplier_denominator), CHECK (night_multiplier_numerator >= night_multiplier_denominator), CHECK (holiday_multiplier_numerator >= holiday_multiplier_denominator), CHECK (night_start_minute <> night_end_minute), UNIQUE (employment_id, version));"
+        }
+      ]
+    },
+    {
+      "name": "work_shifts",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"work_shifts\" (\"id\" TEXT NOT NULL, \"employment_id\" TEXT NOT NULL REFERENCES employments (id) ON DELETE RESTRICT, \"agreement_id\" TEXT NULL REFERENCES pay_agreements (id) ON DELETE RESTRICT, \"state\" TEXT NOT NULL, \"start_utc_micros\" INTEGER NOT NULL, \"end_utc_micros\" INTEGER NULL, \"timezone_id\" TEXT NOT NULL, \"local_start_date\" TEXT NOT NULL, \"note\" TEXT NULL, \"void_reason\" TEXT NULL, \"replacement_shift_id\" TEXT NULL REFERENCES work_shifts (id) ON DELETE RESTRICT, \"replaced_shift_id\" TEXT NULL REFERENCES work_shifts (id) ON DELETE RESTRICT, \"created_at_utc_micros\" INTEGER NOT NULL, \"updated_at_utc_micros\" INTEGER NOT NULL, \"revision\" INTEGER NOT NULL CHECK(revision >= 0), PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "shift_breaks",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"shift_breaks\" (\"id\" TEXT NOT NULL, \"shift_id\" TEXT NOT NULL REFERENCES work_shifts (id) ON DELETE RESTRICT, \"start_utc_micros\" INTEGER NOT NULL, \"end_utc_micros\" INTEGER NULL, \"created_at_utc_micros\" INTEGER NOT NULL, \"updated_at_utc_micros\" INTEGER NOT NULL, \"revision\" INTEGER NOT NULL CHECK(revision >= 0), PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "pay_periods",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"pay_periods\" (\"id\" TEXT NOT NULL, \"employment_id\" TEXT NOT NULL REFERENCES employments (id) ON DELETE RESTRICT, \"start\" TEXT NOT NULL, \"end\" TEXT NOT NULL, \"label\" TEXT NULL, \"state\" TEXT NOT NULL, \"created_at_utc_micros\" INTEGER NOT NULL, \"updated_at_utc_micros\" INTEGER NOT NULL, \"revision\" INTEGER NOT NULL CHECK(revision >= 0), PRIMARY KEY (\"id\"), CHECK (\"end\" >= start));"
+        }
+      ]
+    },
+    {
+      "name": "payslips",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"payslips\" (\"id\" TEXT NOT NULL, \"period_id\" TEXT NOT NULL REFERENCES pay_periods (id) ON DELETE RESTRICT, \"issued_date\" TEXT NOT NULL, \"paid_date\" TEXT NULL, \"amount_minor_units\" INTEGER NOT NULL CHECK(amount_minor_units > 0), \"currency\" TEXT NOT NULL, \"basis\" TEXT NOT NULL, \"gross_minor_units\" INTEGER NULL CHECK(gross_minor_units IS NULL OR gross_minor_units >= 0), \"net_minor_units\" INTEGER NULL CHECK(net_minor_units IS NULL OR net_minor_units >= 0), \"deduction_minor_units\" INTEGER NULL CHECK(deduction_minor_units IS NULL OR deduction_minor_units >= 0), \"reference\" TEXT NULL, \"note\" TEXT NULL, \"state\" TEXT NOT NULL, \"void_reason\" TEXT NULL, \"replacement_payslip_id\" TEXT NULL REFERENCES payslips (id) ON DELETE RESTRICT, \"replaced_payslip_id\" TEXT NULL REFERENCES payslips (id) ON DELETE RESTRICT, \"created_at_utc_micros\" INTEGER NOT NULL, \"updated_at_utc_micros\" INTEGER NOT NULL, \"revision\" INTEGER NOT NULL CHECK(revision >= 0), PRIMARY KEY (\"id\"));"
         }
       ]
     }

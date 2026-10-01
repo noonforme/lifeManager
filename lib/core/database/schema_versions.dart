@@ -1,6 +1,7 @@
-const currentSchemaVersion = 2;
+/// The schema history was reset before the first release (2026-10-01):
+/// version 1 is the only released schema.
+const currentSchemaVersion = 1;
 
 const releasedMigrationFingerprints = <int, String>{
-  1: '18aa20ccd69044e0822049ccf5a1a8b332d71745e388e10798b27e65b7ea1e94',
-  2: '5aaef8a1f309c5143dd34fc0d49307148554ea5415d6d9bea886e8e713458143',
+  1: 'e8f31e2cf9952576ac6b145b8ae35a87b14e0115cd7b607d812a1c2c824dca70',
 };

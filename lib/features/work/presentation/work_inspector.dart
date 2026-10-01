@@ -26,7 +26,6 @@ final class WorkInspector extends StatefulWidget {
     required this.onEndShift,
     required this.onFinalize,
     this.durationLabel,
-    this.suggestedOvertimeMinutes,
     super.key,
   }) : onCorrect = null,
        onSetPeriodState = null,
@@ -44,8 +43,7 @@ final class WorkInspector extends StatefulWidget {
     this.onFinalize,
     this.onCorrect,
     super.key,
-  }) : durationLabel = null,
-       suggestedOvertimeMinutes = null;
+  }) : durationLabel = null;
 
   final WorkRecordProjection projection;
   final SetPayPeriodState? onSetPeriodState;
@@ -54,9 +52,8 @@ final class WorkInspector extends StatefulWidget {
   final MutateShift? onStartBreak;
   final MutateBreak? onEndBreak;
   final MutateShift? onEndShift;
-  final FinalizeOvertime? onFinalize;
+  final MutateShift? onFinalize;
   final String? durationLabel;
-  final int? suggestedOvertimeMinutes;
 
   /// Opens void-and-replace confirmation for a finalized shift or an
   /// effective payslip.
@@ -120,8 +117,6 @@ final class _WorkInspectorState extends State<WorkInspector> {
       return _lifecycleOutcome(failure);
     }
     final shift = projection.shift;
-    final suggestion =
-        projection.suggestedOvertimeMinutes ?? widget.suggestedOvertimeMinutes;
     final onStartBreak = widget.onStartBreak;
     final onEndBreak = widget.onEndBreak;
     final onEndShift = widget.onEndShift;
@@ -149,16 +144,11 @@ final class _WorkInspectorState extends State<WorkInspector> {
                 ),
         ),
       ),
-      ShiftState.draft
-          when shift.endUtc != null &&
-              suggestion != null &&
-              onFinalize != null =>
-        OvertimeConfirmationInspector(
+      ShiftState.draft when shift.endUtc != null && onFinalize != null =>
+        FinalizeShiftInspector(
           shift: shift,
-          suggestedOvertimeMinutes: suggestion,
-          enteredOvertimeMinutes: shift.overtimeMinutes,
-          onFinalize: (minutes) async {
-            final outcome = await onFinalize(minutes);
+          onFinalize: () async {
+            final outcome = await onFinalize(shift);
             if (outcome is! Committed<WorkShift> &&
                 outcome is! Invalid<WorkShift> &&
                 mounted) {
@@ -169,8 +159,8 @@ final class _WorkInspectorState extends State<WorkInspector> {
         ),
       ShiftState.draft when shift.endUtc != null =>
         const ValidationFailureInspector(
-          message: 'Overtime suggestion unavailable.',
-          child: _UnavailableShift(title: 'Overtime suggestion unavailable.'),
+          message: 'Finalizing is unavailable.',
+          child: _UnavailableShift(title: 'Finalizing is unavailable.'),
         ),
       ShiftState.finalized => Semantics(
         container: true,

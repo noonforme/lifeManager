@@ -199,12 +199,10 @@ final class EndShiftCommand {
 final class FinalizeShiftCommand {
   const FinalizeShiftCommand({
     required this.id,
-    required this.overtimeMinutes,
     required this.expectedRevision,
   });
 
   final ShiftId id;
-  final int overtimeMinutes;
   final Revision expectedRevision;
 }
 
@@ -254,7 +252,6 @@ final class ReviseShiftDraftCommand {
     required this.startFold,
     required this.endFold,
     this.breaks = const [],
-    required this.overtimeMinutes,
     required this.note,
   });
 
@@ -268,7 +265,6 @@ final class ReviseShiftDraftCommand {
   final FoldChoice? startFold;
   final FoldChoice? endFold;
   final List<ManualShiftBreak> breaks;
-  final int overtimeMinutes;
   final String? note;
 }
 
@@ -283,7 +279,6 @@ final class CreateManualShiftCommand {
     required this.startFold,
     required this.endFold,
     this.breaks = const [],
-    required this.overtimeMinutes,
     required this.note,
   });
 
@@ -296,6 +291,5 @@ final class CreateManualShiftCommand {
   final FoldChoice? startFold;
   final FoldChoice? endFold;
   final List<ManualShiftBreak> breaks;
-  final int overtimeMinutes;
   final String? note;
 }

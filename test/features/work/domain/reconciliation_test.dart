@@ -9,6 +9,8 @@ import 'package:lifeos/features/work/domain/payslip.dart';
 import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 
+import '../../../support/zone_clocks.dart';
+
 void main() {
   test('period range is inclusive and cannot end before it starts', () {
     expect(period().contains(LocalDate.parse('2026-09-30')), isTrue);
@@ -35,6 +37,7 @@ void main() {
       breaks: const [],
       agreements: const [],
       payslips: [voidPayslip()],
+      zoneClocks: testZoneClocks,
     );
     expect(groups.single.status, isA<EmptyReconciliation>());
   });
@@ -47,6 +50,7 @@ void main() {
       breaks: const [],
       agreements: [agreement()],
       payslips: [payslip(basis: const NetBasis(), minorUnits: 16000)],
+      zoneClocks: testZoneClocks,
     );
 
     expect(groups, hasLength(2));
@@ -66,6 +70,28 @@ void main() {
     expect(statusFor(paidMinorUnits: 15900), isA<Difference>());
   });
 
+  test('expected pay includes derived night and overtime premiums', () {
+    // 20:00 to 06:00 in Berlin: 10h, 8h of it night, the last 2h overtime.
+    final night = finalizedShift(
+      start: '2026-09-10T18:00:00Z',
+      end: '2026-09-11T04:00:00Z',
+    );
+    final group = reconcilePeriod(
+      employmentId: employmentId,
+      period: period(),
+      shifts: [night],
+      breaks: const [],
+      agreements: [agreement()],
+      payslips: const [],
+      zoneClocks: testZoneClocks,
+    ).single;
+
+    // 2h × 20 + 6h × 20 × 1.5 + 2h × 20 × 1.5 (highest) = EUR 280.
+    expect(group.expected, const Money(minorUnits: 28000));
+    expect(group.overtimePaidSeconds, 2 * 3600);
+    expect(group.regularPaidSeconds, 2 * 3600);
+  });
+
   test('reports missing, unmatched, unavailable, and empty', () {
     final missing = reconcilePeriod(
       employmentId: employmentId,
@@ -74,6 +100,7 @@ void main() {
       breaks: const [],
       agreements: [agreement()],
       payslips: const [],
+      zoneClocks: testZoneClocks,
     );
     final unmatched = reconcilePeriod(
       employmentId: employmentId,
@@ -82,6 +109,7 @@ void main() {
       breaks: const [],
       agreements: const [],
       payslips: [payslip()],
+      zoneClocks: testZoneClocks,
     );
     final unavailable = reconcilePeriod(
       employmentId: employmentId,
@@ -90,6 +118,7 @@ void main() {
       breaks: const [],
       agreements: const [],
       payslips: const [],
+      zoneClocks: testZoneClocks,
     );
     final empty = reconcilePeriod(
       employmentId: employmentId,
@@ -98,6 +127,7 @@ void main() {
       breaks: const [],
       agreements: const [],
       payslips: const [],
+      zoneClocks: testZoneClocks,
     );
 
     expect(missing.single.status, isA<MissingPayslip>());
@@ -115,6 +145,7 @@ ReconciliationStatus statusFor({required int paidMinorUnits}) =>
       breaks: const [],
       agreements: [agreement()],
       payslips: [payslip(minorUnits: paidMinorUnits)],
+      zoneClocks: testZoneClocks,
     ).single.status;
 
 const employmentId = EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11');
@@ -147,16 +178,18 @@ PayAgreement agreement() => PayAgreement(
   usedByFinalizedShift: true,
 );
 
-WorkShift finalizedShift() => WorkShift(
+WorkShift finalizedShift({
+  String start = '2026-09-10T08:00:00Z',
+  String end = '2026-09-10T16:00:00Z',
+}) => WorkShift(
   id: const ShiftId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c31'),
   employmentId: employmentId,
   agreementId: agreementId,
   state: ShiftState.finalized,
-  startUtc: DateTime.parse('2026-09-10T08:00:00Z'),
-  endUtc: DateTime.parse('2026-09-10T16:00:00Z'),
+  startUtc: DateTime.parse(start),
+  endUtc: DateTime.parse(end),
   timezoneId: 'Europe/Berlin',
   localStartDate: LocalDate.parse('2026-09-10'),
-  overtimeMinutes: 0,
   note: null,
   voidReason: null,
   replacementShiftId: null,

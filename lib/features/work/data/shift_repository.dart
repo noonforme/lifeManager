@@ -254,43 +254,8 @@ final class DriftShiftRepository
   @override
   Future<MutationOutcome<WorkShift>> commitFinalization(
     ShiftId id, {
-    required int overtimeMinutes,
     required Revision expected,
-  }) {
-    return _database.transaction(() async {
-      final shift = await _shifts.byId(id);
-      if (shift == null) return const Missing<WorkShift>();
-      if (shift.revision != expected) return const Stale<WorkShift>();
-      final candidate = _withOvertime(shift, overtimeMinutes);
-      final validation = validateFinalization(
-        shift: candidate,
-        breaks: await _shifts.breaksFor(id),
-        agreements: await _agreements.forEmployment(shift.employmentId),
-      );
-      final facts = validation.facts;
-      if (facts == null) {
-        return Invalid<WorkShift>({
-          'shift': [
-            for (final _ in validation.issues)
-              const FieldIssue(FieldIssueCode.invalid),
-          ],
-        });
-      }
-      if (await _shifts.setOvertime(
-            id,
-            overtimeMinutes: overtimeMinutes,
-            expected: expected,
-            updatedAtUtc: shift.updatedAtUtc,
-          ) ==
-          0) {
-        return const Stale<WorkShift>();
-      }
-      if (await _shifts.finalize(facts.shift, expected: expected) == 0) {
-        return const Stale<WorkShift>();
-      }
-      return Committed<WorkShift>((await _shifts.byId(id))!);
-    });
-  }
+  }) => finalizeShift(id, expected: expected);
 
   @override
   Future<MutationOutcome<WorkShift>> createAndFinalizeManual(
@@ -446,25 +411,6 @@ final class DriftShiftRepository
     }
   }
 }
-
-WorkShift _withOvertime(WorkShift shift, int overtimeMinutes) => WorkShift(
-  id: shift.id,
-  employmentId: shift.employmentId,
-  agreementId: shift.agreementId,
-  state: shift.state,
-  startUtc: shift.startUtc,
-  endUtc: shift.endUtc,
-  timezoneId: shift.timezoneId,
-  localStartDate: shift.localStartDate,
-  overtimeMinutes: overtimeMinutes,
-  note: shift.note,
-  voidReason: shift.voidReason,
-  replacementShiftId: shift.replacementShiftId,
-  replacedShiftId: shift.replacedShiftId,
-  createdAtUtc: shift.createdAtUtc,
-  updatedAtUtc: shift.updatedAtUtc,
-  revision: shift.revision,
-);
 
 /// Rolls back a draft revision whose finalization did not commit.
 final class _RevisionRejected implements Exception {

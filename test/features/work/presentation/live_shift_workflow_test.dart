@@ -22,27 +22,50 @@ import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 import 'package:lifeos/shared/workbench/operational_state.dart';
 
 void main() {
-  testWidgets(
-    'end shift presents suggestion and requires owner overtime confirmation',
-    (tester) async {
-      await tester.pumpWidget(
-        _TestApp(
-          child: OvertimeConfirmationInspector(
-            shift: endedShift,
-            suggestedOvertimeMinutes: 42,
-            enteredOvertimeMinutes: 0,
-            onFinalize: (_) async => Committed(finalizedShift),
-          ),
+  testWidgets('an ended shift finalizes without entering overtime', (
+    tester,
+  ) async {
+    var finalized = false;
+    await tester.pumpWidget(
+      _TestApp(
+        child: FinalizeShiftInspector(
+          shift: endedShift,
+          onFinalize: () async {
+            finalized = true;
+            return Committed(finalizedShift);
+          },
         ),
-      );
+      ),
+    );
 
-      expect(
-        find.text('Suggested from the agreement threshold: 42 minutes.'),
-        findsOneWidget,
-      );
-      expect(find.text('Confirm finalization'), findsOneWidget);
-    },
-  );
+    expect(
+      find.text(
+        'Overtime, night and holiday pay are worked out from the agreement.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(TextField), findsNothing);
+    await tester.tap(find.text('Finalize shift').last);
+    await tester.pump();
+    expect(finalized, isTrue);
+  });
+
+  testWidgets('a rejected finalization explains what to check', (tester) async {
+    await tester.pumpWidget(
+      _TestApp(
+        child: FinalizeShiftInspector(
+          shift: endedShift,
+          onFinalize: () async => const Invalid<WorkShift>({
+            'shift': [FieldIssue(FieldIssueCode.invalid)],
+          }),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Finalize shift').last);
+    await tester.pump();
+    expect(find.textContaining("This shift can't be finalized."), findsOne);
+  });
 
   testWidgets('restart restores on-break state from projection', (
     tester,
@@ -102,7 +125,6 @@ void main() {
                 });
                 return Committed(endedShift);
               },
-              suggestedOvertimeMinutes: 0,
               onFinalize: (_) async {
                 update(() {
                   projection = ShiftRecordProjection(
@@ -127,8 +149,8 @@ void main() {
     expect(find.text('End shift'), findsOneWidget);
     await tester.tap(find.text('End shift'));
     await tester.pumpAndSettle();
-    expect(find.text('Confirm finalization'), findsOneWidget);
-    await tester.tap(find.text('Confirm finalization'));
+    expect(find.text('Finalize shift'), findsWidgets);
+    await tester.tap(find.text('Finalize shift').last);
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('Finalized shift'), findsOneWidget);
   });
@@ -203,13 +225,13 @@ void main() {
       ),
       _InspectorFixture(
         name: 'validationFailure',
-        title: 'Overtime suggestion unavailable.',
+        title: 'Finalizing is unavailable.',
         child: WorkInspector.fromProjection(
           projection: ShiftRecordProjection(endedShift, breaks: [closedBreak]),
           onStartBreak: (_) async => Committed(onBreakShift),
           onEndBreak: (_) async => Committed(runningAfterBreak),
           onEndShift: (_) async => Committed(endedShift),
-          onFinalize: (_) async => Committed(finalizedShift),
+          onFinalize: null,
         ),
       ),
       const _InspectorFixture(
@@ -356,7 +378,7 @@ void main() {
       await controller.startBreak(runningShift);
       await controller.endBreak(onBreakShift, openBreak);
       await controller.endShift(runningAfterBreak);
-      await controller.finalizeShift(endedShift, overtimeMinutes: 15);
+      await controller.finalizeShift(endedShift);
       await controller.saveManualShift(
         const ManualShiftDraft(
           employmentId: employmentId,
@@ -375,7 +397,6 @@ void main() {
               end: LocalTime(1, 20),
             ),
           ],
-          overtimeMinutes: 30,
           note: ' night ',
         ),
       );
@@ -386,7 +407,7 @@ void main() {
       expect(endBreak?.breakId, breakId);
       expect(endBreak?.expectedBreakRevision, openBreak.revision);
       expect(end?.expectedRevision, runningAfterBreak.revision);
-      expect(finalize?.overtimeMinutes, 15);
+      expect(finalize?.id, endedShift.id);
       expect(finalize?.expectedRevision, endedShift.revision);
       expect(manual?.localEndDate, const LocalDate(2026, 10, 2));
       expect(manual?.breaks, hasLength(1));
@@ -485,7 +506,6 @@ WorkShift shift({
   required Revision revision,
   DateTime? endUtc,
   AgreementId? agreement,
-  int overtimeMinutes = 0,
 }) => WorkShift(
   id: shiftId,
   employmentId: employmentId,
@@ -495,7 +515,6 @@ WorkShift shift({
   endUtc: endUtc,
   timezoneId: 'Europe/Amsterdam',
   localStartDate: const LocalDate(2026, 10, 1),
-  overtimeMinutes: overtimeMinutes,
   note: null,
   voidReason: null,
   replacementShiftId: null,
@@ -526,7 +545,6 @@ final finalizedShift = shift(
   state: ShiftState.finalized,
   endUtc: DateTime.utc(2026, 10, 1, 16),
   agreement: agreementId,
-  overtimeMinutes: 15,
   revision: const Revision(4),
 );
 final openBreak = ShiftBreak(
