@@ -25,4 +25,7 @@ final class WindowManagerDesktopWindowService implements DesktopWindowService {
     await windowManager.show();
     await windowManager.focus();
   }
+
+  /// Closes the window, ending the app (File › Quit).
+  Future<void> close() => windowManager.close();
 }

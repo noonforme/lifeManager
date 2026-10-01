@@ -150,19 +150,19 @@ final class StatusSnapshot {
 }
 ```
 
-- [ ] **Step 1: Write failing frame tests.**
+- [x] **Step 1: Write failing frame tests.**
   - At 1280 × 800, all eight landmarks are present (spec 9).
   - At 1100, opening a record shows the inspector in place of the desk with **Back to desk**, and the desk's selection survives.
   - At 960, **Books** opens the tree pane, and choosing a sheet returns to the desk.
   - No width produces page-level horizontal overflow.
-- [ ] **Step 2: Write failing tree tests.**
+- [x] **Step 2: Write failing tree tests.**
   - Finance, Tracking and Knowledge show "Not built yet" and open an honest unavailable sheet.
   - A Work employment node shows the running state from the projection.
   - Right-click lists Open, Open on new desk and Add to desk.
-- [ ] **Step 3: Run** the shell tests. Expected: FAIL.
-- [ ] **Step 4: Implement** the frame, menu bar (spec 5.3; unbuilt items disabled with a reason tooltip), toolbar, tree, status line and routes. Rename `/money` to `/finance` and `/habits` to `/tracking`, and add `/knowledge`. Keep `/work` query parameters exactly as the master plan defines them.
-- [ ] **Step 5: Run** the shell tests, then `flutter test` and `flutter analyze`. Expected: PASS.
-- [ ] **Step 6: Commit** `feat: replace the rail frame with the Office Machine shell`.
+- [x] **Step 3: Run** the shell tests. Expected: FAIL.
+- [x] **Step 4: Implement** the frame, menu bar (spec 5.3; unbuilt items disabled with a reason tooltip), toolbar, tree, status line and routes. Rename `/money` to `/finance` and `/habits` to `/tracking`, and add `/knowledge`. Keep `/work` query parameters exactly as the master plan defines them.
+- [x] **Step 5: Run** the shell tests, then `flutter test` and `flutter analyze`. Expected: PASS.
+- [x] **Step 6: Commit** `feat: replace the rail frame with the Office Machine shell`.
 
 ### Task 3: Register v2
 

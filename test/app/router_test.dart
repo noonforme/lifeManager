@@ -99,7 +99,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel('System navigation'), findsOneWidget);
+    expect(find.bySemanticsLabel('Books'), findsOneWidget);
     expect(find.bySemanticsLabel('Work register'), findsOneWidget);
     expect(find.bySemanticsLabel('Record inspector'), findsOneWidget);
     expect(find.text('Create an employment to begin.'), findsOneWidget);
@@ -172,7 +172,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(repository.requestedScopes.single.employmentId, _employmentId);
+    // The book tree also watches the unscoped employment list.
+    expect(
+      repository.requestedScopes
+          .where((scope) => scope.employmentId != null)
+          .single
+          .employmentId,
+      _employmentId,
+    );
 
     await tester.tap(find.text('2026-09-29'));
     await tester.pumpAndSettle();
@@ -1014,11 +1021,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    router.go('/money');
+    router.go('/finance');
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Money is not available in this release.'),
+      find.text('Finance is not built yet. It arrives in a later update.'),
       findsOneWidget,
     );
   });
@@ -1029,7 +1036,16 @@ void main() {
     final router = createAppRouter(
       initialLocation: '/work?from=2026-09-31&to=2026-10-01',
     );
-    await tester.pumpWidget(LifeOsApp(router: router));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _EmptyWorkQueryRepository(),
+          ),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Invalid Work scope'), findsOneWidget);

@@ -7,67 +7,72 @@ import '../features/work/domain/ids.dart';
 import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_route_state.dart';
 import '../features/work/presentation/work_screen.dart';
-import '../shared/workbench/lifeos_theme.dart';
-import '../shared/workbench/system_rail.dart';
+import '../shared/shell/shell_frame.dart';
+import '../shared/workbench/lifeos_skin.dart';
+import 'shell_host.dart';
 
 GoRouter createAppRouter({String initialLocation = '/work'}) {
+  GoRoute unavailable(String path, String title, String message) => GoRoute(
+    path: path,
+    builder: (_, state) => ShellChromeHost(
+      location: state.uri,
+      child: _UnavailableSurface(title: title, message: message),
+    ),
+  );
+
   return GoRouter(
     initialLocation: initialLocation,
     routes: [
-      GoRoute(
-        path: '/today',
-        builder: (_, _) => const _NativeFrame(
-          location: '/today',
-          child: _UnavailableSurface(
-            title: 'Today',
-            message: 'Today is not available in this release.',
-          ),
-        ),
+      unavailable(
+        '/today',
+        'Today',
+        'Today is not built yet. It arrives with desks in a later update.',
       ),
       GoRoute(
         path: '/work',
         builder: (context, state) => _workSurface(context, state.uri),
       ),
-      GoRoute(
-        path: '/money',
-        builder: (_, _) => const _NativeFrame(
-          location: '/money',
-          child: _UnavailableSurface(
-            title: 'Money',
-            message: 'Money is not available in this release.',
-          ),
-        ),
+      unavailable(
+        '/journal',
+        'Journal',
+        'The Journal is not built yet. It arrives in a later update.',
       ),
-      GoRoute(
-        path: '/habits',
-        builder: (_, _) => const _NativeFrame(
-          location: '/habits',
-          child: _UnavailableSurface(
-            title: 'Habits',
-            message: 'Habits are not available in this release.',
-          ),
-        ),
+      unavailable(
+        '/finance',
+        'Finance',
+        'Finance is not built yet. It arrives in a later update.',
       ),
-      GoRoute(
-        path: '/system/files',
-        builder: (_, _) => const _NativeFrame(
-          location: '/system/files',
-          child: _UnavailableSurface(
-            title: 'Backup and export',
-            message: 'File tools are not available yet.',
-          ),
-        ),
+      unavailable(
+        '/tracking',
+        'Tracking',
+        'Tracking is not built yet. It arrives in a later update.',
+      ),
+      unavailable(
+        '/knowledge',
+        'Knowledge',
+        'Knowledge is not built yet. It arrives in a later update.',
+      ),
+      unavailable(
+        '/system/files',
+        'Backup and export',
+        'File tools are not available yet.',
       ),
     ],
-    redirect: (_, state) => state.uri.path == '/' ? '/work' : null,
+    redirect: (_, state) => switch (state.uri.path) {
+      '/' => '/work',
+      // Money and Habits were renamed Finance and Tracking.
+      '/money' => '/finance',
+      '/habits' => '/tracking',
+      _ => null,
+    },
   );
 }
 
 Widget _workSurface(BuildContext routerContext, Uri uri) {
   final route = parseWorkRoute(uri);
   if (route is InvalidWorkRoute) {
-    return _NativeFrame(
-      location: '/work',
+    return ShellChromeHost(
+      location: uri,
       child: _UnavailableSurface(
         title: switch (route.reason) {
           WorkRouteProblem.malformedId => 'Work record unavailable',
@@ -92,7 +97,7 @@ Widget _workSurface(BuildContext routerContext, Uri uri) {
         (route) => routerContext.go(workRouteUri(route).toString()),
       ),
     ],
-    child: const _WorkRouteHost(),
+    child: ShellChromeHost(location: uri, child: const _WorkRouteHost()),
   );
 }
 
@@ -206,30 +211,7 @@ void _replaceMode(WidgetRef ref, WorkInspectorMode mode) {
   }
 }
 
-final class _NativeFrame extends StatelessWidget {
-  const _NativeFrame({required this.location, required this.child});
-
-  final String location;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: LifeOSMetrics.railWidth,
-            child: SystemRail(selectedPath: location, onNavigate: context.go),
-          ),
-          const VerticalDivider(width: LifeOSMetrics.separatorWidth),
-          Expanded(child: child),
-        ],
-      ),
-    );
-  }
-}
-
+/// An honest sheet for a destination that has not shipped.
 final class _UnavailableSurface extends StatelessWidget {
   const _UnavailableSurface({required this.title, required this.message});
 
@@ -238,16 +220,41 @@ final class _UnavailableSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 10),
-          Text(message),
-        ],
+    return ShellFrame(
+      inspectorOpen: false,
+      onBackToDesk: _noop,
+      inspector: const SizedBox.expand(),
+      desk: Builder(
+        builder: (context) {
+          final skin = LifeOSSkinScope.of(context);
+          return ColoredBox(
+            color: skin.tokens.paper,
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: skin.typography.title.copyWith(
+                      color: skin.tokens.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    message,
+                    style: skin.typography.body.copyWith(
+                      color: skin.tokens.ink,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 }
+
+void _noop() {}

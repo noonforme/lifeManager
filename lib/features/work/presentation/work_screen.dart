@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/timezone_service.dart';
-import '../../../shared/workbench/inspector_pane.dart';
-import '../../../shared/workbench/lifeos_frame.dart';
+import '../../../shared/shell/shell_frame.dart';
+import '../../../shared/workbench/lifeos_theme.dart';
 import '../../../shared/workbench/operational_state.dart';
-import '../../../shared/workbench/system_rail.dart';
 import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/ids.dart';
@@ -189,12 +188,11 @@ final class _WorkScreenState extends State<WorkScreen> {
     final inspectorActive =
         (routeRecord != null || _creatingPeriod || _payslipPeriod != null) &&
         !_showRegister;
-    return LifeOSFrame(
-      rail: SystemRail(selectedPath: '/work', onNavigate: widget.onNavigate),
-      register: _register(ready),
-      inspector: InspectorPane(child: _inspector(ready)),
-      inspectorIsActive: inspectorActive,
-      onBackToRegister: () => setState(() => _showRegister = true),
+    return ShellFrame(
+      desk: _RegisterLandmark(child: _register(ready)),
+      inspector: _inspector(ready),
+      inspectorOpen: inspectorActive,
+      onBackToDesk: () => setState(() => _showRegister = true),
     );
   }
 
@@ -523,4 +521,24 @@ final class _Rejected extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Keeps the Work register a named landmark inside the shell's desk.
+final class _RegisterLandmark extends StatelessWidget {
+  const _RegisterLandmark({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: 'Work register',
+      child: ColoredBox(
+        color: LifeOSColors.ground,
+        child: FocusTraversalGroup(child: child),
+      ),
+    );
+  }
 }

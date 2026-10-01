@@ -31,7 +31,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel('System navigation'), findsOneWidget);
+    expect(find.bySemanticsLabel('Books'), findsOneWidget);
     expect(find.bySemanticsLabel('Work register'), findsOneWidget);
     expect(find.bySemanticsLabel('Record inspector'), findsOneWidget);
     expect(find.text('Create an employment to begin.'), findsOneWidget);

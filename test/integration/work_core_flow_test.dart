@@ -160,17 +160,29 @@ void main() {
       contains('employment='),
     );
     expect(find.text('Create an employment to begin.'), findsNothing);
-    expect(find.text('Synthetic studio'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.bySemanticsLabel('Work register'),
+        matching: find.text('Synthetic studio'),
+      ),
+      findsOneWidget,
+    );
     expect(find.bySemanticsLabel('Create agreement'), findsOneWidget);
 
     // Leaving Work and returning resumes setup for the saved employment.
-    router.go('/money');
+    router.go('/finance');
     await tester.pumpAndSettle();
     router.go('/work');
     await tester.pumpAndSettle();
 
     expect(find.text('Create an employment to begin.'), findsNothing);
-    expect(find.text('Synthetic studio'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.bySemanticsLabel('Work register'),
+        matching: find.text('Synthetic studio'),
+      ),
+      findsOneWidget,
+    );
     expect(find.bySemanticsLabel('Create agreement'), findsOneWidget);
   });
 

@@ -1,0 +1,216 @@
+import 'package:flutter/material.dart';
+
+import '../workbench/lifeos_skin.dart';
+import '../workbench/lifeos_tokens.dart';
+import 'shell_frame.dart';
+
+/// The shell's menu bar (spec 5.3). Items whose feature has not shipped
+/// stay visible, disabled, with the reason as a tooltip.
+final class LifeOSMenuBar extends StatelessWidget {
+  const LifeOSMenuBar({required this.onNavigate, this.onQuit, super.key});
+
+  final ValueChanged<String> onNavigate;
+
+  /// Closes the window. Null disables Quit (for example in tests).
+  final VoidCallback? onQuit;
+
+  static const _desks = 'Desks arrive in a later update';
+  static const _cells = 'Cell selection arrives in a later update';
+  static const _history = 'Record history arrives in a later update';
+  static const _quickAdd = 'Quick add arrives in a later update';
+  static const _navigation = 'Back and forward arrive in a later update';
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = LifeOSSkinScope.of(context);
+    final tokens = skin.tokens;
+    final appearance = LifeOSAppearanceScope.maybeOf(context);
+    final view = ShellViewScope.maybeOf(context);
+    final menuStyle = MenuStyle(
+      backgroundColor: WidgetStatePropertyAll(tokens.paper),
+      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+      elevation: const WidgetStatePropertyAll(0),
+      side: WidgetStatePropertyAll(BorderSide(color: tokens.muted)),
+      shape: const WidgetStatePropertyAll(
+        RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(4)),
+        ),
+      ),
+      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 4)),
+    );
+    final itemStyle = ButtonStyle(
+      textStyle: WidgetStatePropertyAll(skin.typography.body),
+      foregroundColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.disabled) ? tokens.muted : tokens.ink,
+      ),
+      backgroundColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.hovered) ||
+                states.contains(WidgetState.focused)
+            ? tokens.selWash
+            : Colors.transparent,
+      ),
+      minimumSize: const WidgetStatePropertyAll(Size(0, 28)),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 10),
+      ),
+      shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
+    );
+
+    Widget item(String label, VoidCallback? onPressed) => MenuItemButton(
+      style: itemStyle,
+      onPressed: onPressed,
+      child: Text(label),
+    );
+
+    Widget later(String label, String reason) => MenuItemButton(
+      style: itemStyle,
+      onPressed: null,
+      child: Tooltip(message: reason, child: Text(label)),
+    );
+
+    Widget menu(String label, List<Widget> children) => SubmenuButton(
+      style: itemStyle,
+      menuStyle: menuStyle,
+      menuChildren: children,
+      child: Text(label),
+    );
+
+    Widget appearanceItem(String label, LifeOSAppearance value) =>
+        RadioMenuButton<LifeOSAppearance>(
+          style: itemStyle,
+          value: value,
+          groupValue: appearance?.value ?? LifeOSAppearance.system,
+          onChanged: appearance == null
+              ? null
+              : (selected) {
+                  if (selected != null) appearance.value = selected;
+                },
+          child: Text(label),
+        );
+
+    Widget viewItem(
+      String label,
+      bool Function(ShellView) read,
+      ShellView Function(ShellView, bool) write,
+    ) {
+      final current = view?.value ?? const ShellView();
+      return CheckboxMenuButton(
+        style: itemStyle,
+        value: read(current),
+        onChanged: view == null
+            ? null
+            : (checked) => view.value = write(view.value, checked ?? false),
+        child: Text(label),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: tokens.chrome,
+        border: Border(bottom: BorderSide(color: tokens.chromeLine)),
+      ),
+      child: Row(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: ExcludeSemantics(
+              child: Text(
+                'LifeOS',
+                style: skin.typography.body.copyWith(
+                  color: tokens.ink,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: MenuBar(
+              style: MenuStyle(
+                backgroundColor: const WidgetStatePropertyAll(
+                  Colors.transparent,
+                ),
+                elevation: const WidgetStatePropertyAll(0),
+                shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+                surfaceTintColor: const WidgetStatePropertyAll(
+                  Colors.transparent,
+                ),
+                padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+              ),
+              children: [
+                menu('File', [
+                  item('Backup and export…', () => onNavigate('/system/files')),
+                  item('Quit', onQuit),
+                ]),
+                menu('Edit', [
+                  later('Copy cell', _cells),
+                  later('Copy row', _cells),
+                  later('Copy explanation', _cells),
+                ]),
+                menu('View', [
+                  menu('Appearance', [
+                    appearanceItem('System', LifeOSAppearance.system),
+                    appearanceItem('Office Machine Day', LifeOSAppearance.day),
+                    appearanceItem(
+                      'Office Machine Night',
+                      LifeOSAppearance.night,
+                    ),
+                    appearanceItem(
+                      'High contrast',
+                      LifeOSAppearance.highContrast,
+                    ),
+                  ]),
+                  viewItem(
+                    'Show book tree',
+                    (v) => v.showTree,
+                    (v, on) => v.copyWith(showTree: on),
+                  ),
+                  viewItem(
+                    'Show inspector',
+                    (v) => v.showInspector,
+                    (v, on) => v.copyWith(showInspector: on),
+                  ),
+                  viewItem(
+                    'Show formula bar',
+                    (v) => v.showFormulaBar,
+                    (v, on) => v.copyWith(showFormulaBar: on),
+                  ),
+                ]),
+                menu('Desk', [
+                  later('New desk', _desks),
+                  later('Add sheet to desk', _desks),
+                  later('Layout', _desks),
+                  later('Rename desk', _desks),
+                  later('Reset starter desk', _desks),
+                ]),
+                menu('Record', [
+                  later('+ Add', _quickAdd),
+                  later('Show history', _history),
+                ]),
+                menu('Window', [
+                  later('Back', _navigation),
+                  later('Forward', _navigation),
+                  later('Today', _desks),
+                  later('Journal', 'The Journal arrives in a later update'),
+                ]),
+                menu('Help', [
+                  item(
+                    'About LifeOS',
+                    () => showAboutDialog(
+                      context: context,
+                      applicationName: 'LifeOS',
+                      applicationLegalese:
+                          'Private, local-first records. Nothing leaves this '
+                          'computer.',
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

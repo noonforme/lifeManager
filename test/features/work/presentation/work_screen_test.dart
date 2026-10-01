@@ -11,6 +11,7 @@ import 'package:lifeos/features/work/domain/payslip.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/features/work/presentation/work_screen.dart';
+import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
 void main() {
@@ -29,7 +30,7 @@ void main() {
   ) async {
     await pumpScreen(tester, const AsyncLoading());
 
-    expect(find.bySemanticsLabel('System navigation'), findsOneWidget);
+    expect(find.bySemanticsLabel('Books'), findsOneWidget);
     expect(find.text('Loading Work records'), findsOneWidget);
   });
 
@@ -113,14 +114,16 @@ final class _TestScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: buildLifeOSTheme(highContrast: false),
-      home: Scaffold(
-        body: WorkScreen(
-          state: state,
-          onSelect: (_) {},
-          onPrimaryAction: () {},
-          onCreateEmployment: (_) async => throw UnimplementedError(),
-          onCreateAgreement: (_) async => throw UnimplementedError(),
-          onNavigate: (_) {},
+      home: LifeOSSkinScope(
+        child: Scaffold(
+          body: WorkScreen(
+            state: state,
+            onSelect: (_) {},
+            onPrimaryAction: () {},
+            onCreateEmployment: (_) async => throw UnimplementedError(),
+            onCreateAgreement: (_) async => throw UnimplementedError(),
+            onNavigate: (_) {},
+          ),
         ),
       ),
     );

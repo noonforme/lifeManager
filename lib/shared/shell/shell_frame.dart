@@ -1,0 +1,413 @@
+import 'package:flutter/widgets.dart';
+
+import '../workbench/lifeos_skin.dart';
+import '../workbench/office_controls.dart';
+
+/// Fixed shell geometry (spec 5.1–5.2).
+abstract final class ShellMetrics {
+  static const menuBarHeight = 28.0;
+  static const toolbarHeight = 44.0;
+  static const formulaBarHeight = 34.0;
+  static const statusLineHeight = 24.0;
+  static const treeWidth = 228.0;
+  static const inspectorWidth = 320.0;
+
+  /// At and above this width every region is visible.
+  static const fullWidth = 1280.0;
+
+  /// Below this width the book tree folds into the **Books** button.
+  static const treeFoldWidth = 1024.0;
+}
+
+/// Which optional regions the owner shows (View menu).
+@immutable
+final class ShellView {
+  const ShellView({
+    this.showTree = true,
+    this.showInspector = true,
+    this.showFormulaBar = true,
+  });
+
+  final bool showTree;
+  final bool showInspector;
+  final bool showFormulaBar;
+
+  ShellView copyWith({
+    bool? showTree,
+    bool? showInspector,
+    bool? showFormulaBar,
+  }) => ShellView(
+    showTree: showTree ?? this.showTree,
+    showInspector: showInspector ?? this.showInspector,
+    showFormulaBar: showFormulaBar ?? this.showFormulaBar,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is ShellView &&
+      other.showTree == showTree &&
+      other.showInspector == showInspector &&
+      other.showFormulaBar == showFormulaBar;
+
+  @override
+  int get hashCode => Object.hash(showTree, showInspector, showFormulaBar);
+}
+
+final class ShellViewController extends ValueNotifier<ShellView> {
+  ShellViewController() : super(const ShellView());
+}
+
+final class ShellViewScope extends InheritedNotifier<ShellViewController> {
+  const ShellViewScope({
+    required ShellViewController controller,
+    required super.child,
+    super.key,
+  }) : super(notifier: controller);
+
+  static ShellViewController? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ShellViewScope>()?.notifier;
+}
+
+/// The app-level parts of the shell: menu bar, book tree, status line and
+/// the current location's title. The app provides them once; every surface
+/// then only supplies its desk and inspector.
+final class ShellChrome extends InheritedWidget {
+  const ShellChrome({
+    required this.menuBar,
+    required this.tree,
+    required this.status,
+    required this.title,
+    required super.child,
+    super.key,
+  });
+
+  final Widget menuBar;
+
+  /// Builds the book tree. [onOpened] is called after a node is opened, so a
+  /// folded tree pane can close itself.
+  final Widget Function(VoidCallback onOpened) tree;
+  final Widget status;
+  final String title;
+
+  static ShellChrome? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ShellChrome>();
+
+  @override
+  bool updateShouldNotify(ShellChrome oldWidget) =>
+      menuBar != oldWidget.menuBar ||
+      tree != oldWidget.tree ||
+      status != oldWidget.status ||
+      title != oldWidget.title;
+}
+
+/// The Office Machine shell: menu bar, toolbar, formula bar, book tree,
+/// desk, inspector and status line, with the width behaviour of spec 5.2.
+///
+/// The desk and inspector stay mounted while the narrower layouts swap
+/// between them, so scroll position, selection and drafts survive.
+final class ShellFrame extends StatefulWidget {
+  const ShellFrame({
+    required this.desk,
+    required this.inspector,
+    required this.inspectorOpen,
+    required this.onBackToDesk,
+    this.formulaBar,
+    super.key,
+  });
+
+  final Widget desk;
+  final Widget inspector;
+
+  /// Whether a record is open. Below full width the inspector then replaces
+  /// the desk until [onBackToDesk].
+  final bool inspectorOpen;
+  final VoidCallback onBackToDesk;
+
+  /// Content of the formula bar; the bar is empty when nothing is selected.
+  final Widget? formulaBar;
+
+  @override
+  State<ShellFrame> createState() => _ShellFrameState();
+}
+
+final class _ShellFrameState extends State<ShellFrame> {
+  bool _treeOpen = false;
+
+  void _toggleTree() => setState(() => _treeOpen = !_treeOpen);
+
+  void _closeTree() {
+    if (_treeOpen) setState(() => _treeOpen = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = LifeOSSkinScope.of(context);
+    final tokens = skin.tokens;
+    final chrome = ShellChrome.maybeOf(context);
+    final view = ShellViewScope.maybeOf(context)?.value ?? const ShellView();
+    return ColoredBox(
+      color: tokens.ground,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          // A hidden region behaves like a narrower window: the tree folds
+          // into Books and the inspector alternates with the desk, so
+          // navigation and open records are never lost.
+          final full = width >= ShellMetrics.fullWidth && view.showInspector;
+          final treeFolded =
+              width < ShellMetrics.treeFoldWidth || !view.showTree;
+          final tree = _Landmark(
+            label: 'Books',
+            child: chrome?.tree(_closeTree) ?? const SizedBox.expand(),
+          );
+          final desk = _Landmark(label: 'Desk workspace', child: widget.desk);
+          final inspector = _Landmark(
+            label: 'Record inspector',
+            child: _InspectorRegion(
+              showBackToDesk: !full,
+              onBackToDesk: widget.onBackToDesk,
+              child: widget.inspector,
+            ),
+          );
+
+          // Desk and inspector sit side by side at full width; otherwise
+          // they alternate, both staying mounted.
+          final Widget work = full
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: desk),
+                    _Divider(color: tokens.chromeLine),
+                    SizedBox(
+                      width: ShellMetrics.inspectorWidth,
+                      child: inspector,
+                    ),
+                  ],
+                )
+              : IndexedStack(
+                  index: widget.inspectorOpen ? 1 : 0,
+                  sizing: StackFit.expand,
+                  children: [desk, inspector],
+                );
+          final Widget body = treeFolded
+              ? IndexedStack(
+                  index: _treeOpen ? 1 : 0,
+                  sizing: StackFit.expand,
+                  children: [work, tree],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(width: ShellMetrics.treeWidth, child: tree),
+                    _Divider(color: tokens.chromeLine),
+                    Expanded(child: work),
+                  ],
+                );
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Landmark(
+                label: 'Menu bar',
+                child: SizedBox(
+                  height: ShellMetrics.menuBarHeight,
+                  child: chrome?.menuBar ?? const SizedBox.shrink(),
+                ),
+              ),
+              _Landmark(
+                label: 'Toolbar',
+                child: _Toolbar(
+                  title: chrome?.title ?? '',
+                  showBooks: treeFolded,
+                  booksOpen: _treeOpen,
+                  onBooks: _toggleTree,
+                ),
+              ),
+              if (view.showFormulaBar)
+                _Landmark(
+                  label: 'Formula bar',
+                  liveRegion: true,
+                  child: _FormulaBarRegion(child: widget.formulaBar),
+                ),
+              Expanded(child: body),
+              _Landmark(
+                label: 'Status line',
+                child: SizedBox(
+                  height: ShellMetrics.statusLineHeight,
+                  child: chrome?.status ?? const SizedBox.shrink(),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+final class _Landmark extends StatelessWidget {
+  const _Landmark({
+    required this.label,
+    required this.child,
+    this.liveRegion = false,
+  });
+
+  final String label;
+  final Widget child;
+  final bool liveRegion;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    container: true,
+    explicitChildNodes: true,
+    liveRegion: liveRegion,
+    label: label,
+    child: FocusTraversalGroup(child: child),
+  );
+}
+
+final class _Divider extends StatelessWidget {
+  const _Divider({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) =>
+      SizedBox(width: 1, child: ColoredBox(color: color));
+}
+
+final class _Toolbar extends StatelessWidget {
+  const _Toolbar({
+    required this.title,
+    required this.showBooks,
+    required this.booksOpen,
+    required this.onBooks,
+  });
+
+  final String title;
+  final bool showBooks;
+  final bool booksOpen;
+  final VoidCallback onBooks;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = LifeOSSkinScope.of(context);
+    final tokens = skin.tokens;
+    return Container(
+      constraints: const BoxConstraints(minHeight: ShellMetrics.toolbarHeight),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: tokens.chrome,
+        border: Border(bottom: BorderSide(color: tokens.chromeLine)),
+      ),
+      child: Row(
+        children: [
+          if (showBooks) ...[
+            KeyButton(
+              label: booksOpen ? 'Close books' : 'Books',
+              onPressed: onBooks,
+            ),
+            const SizedBox(width: 10),
+          ],
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: skin.typography.body.copyWith(
+                color: tokens.ink,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The formula bar's frame. It shows nothing until a value is selected; it
+/// never shows placeholder text.
+final class _FormulaBarRegion extends StatelessWidget {
+  const _FormulaBarRegion({required this.child});
+
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = LifeOSSkinScope.of(context);
+    final tokens = skin.tokens;
+    return Container(
+      constraints: const BoxConstraints(
+        minHeight: ShellMetrics.formulaBarHeight,
+      ),
+      decoration: BoxDecoration(
+        color: tokens.paper,
+        border: Border(bottom: BorderSide(color: tokens.chromeLine)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            alignment: Alignment.center,
+            child: ExcludeSemantics(
+              child: Text(
+                'ƒx',
+                style: skin.typography.figure.copyWith(
+                  color: tokens.muted,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ),
+          _Divider(color: tokens.rule),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _InspectorRegion extends StatelessWidget {
+  const _InspectorRegion({
+    required this.showBackToDesk,
+    required this.onBackToDesk,
+    required this.child,
+  });
+
+  final bool showBackToDesk;
+  final VoidCallback onBackToDesk;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = LifeOSSkinScope.of(context).tokens;
+    return ColoredBox(
+      color: tokens.paper,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showBackToDesk)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: tokens.rule)),
+              ),
+              alignment: Alignment.centerLeft,
+              child: KeyButton(
+                label: 'Back to desk',
+                kind: KeyKind.small,
+                onPressed: onBackToDesk,
+              ),
+            ),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}

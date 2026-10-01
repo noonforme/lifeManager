@@ -228,7 +228,7 @@ Fonts: the interface needs a free, Tahoma-metric face. Choose one at implementat
 | Book tree | 228 wide (200–320, resizable) | Areas and sheets with live values |
 | Desk tabs | 32 high | Desk tabs and **+ Desk** |
 | Desk | remaining | One sheet, or tiles |
-| Inspector | 252 wide (252–400, resizable) | Record and History tabs |
+| Inspector | 320 wide (280–400, resizable) | Record and History tabs. Work's setup and shift forms need 320 |
 | Status line | 24 high | Running shift, Needs-you count, save state |
 
 ### 5.2 Width behaviour
@@ -255,7 +255,7 @@ Each item that has a shortcut shows it right-aligned.
 
 ### 5.4 Status line
 
-Segments, left to right: a running shift ("● Shift running · 6:46", which opens the shift on click), a Needs-you count, the open draft count, and on the right "Local database · saved 13:48". The save time is the last committed mutation. An uncertain outcome replaces it with "Last save uncertain. Reload to check", in `negative`.
+Segments, left to right: a running shift ("● Shift running since 07:02", the start in the shift's own timezone, which opens the shift on click), a Needs-you count, the open draft count, and on the right "Local database · saved 13:48". Each segment appears only once LifeOS has the fact behind it. The save time is the last committed mutation. An uncertain outcome replaces it with "Last save uncertain. Reload to check", in `negative`.
 
 ## 6. Shell Components
 
@@ -414,7 +414,7 @@ The schema is unreleased, so these tables join the reset schema history the prem
 
 ## 9. Accessibility
 
-- Landmarks: menu bar, toolbar, formula bar (live region, polite), book tree (tree semantics), desk, each tile, inspector, status line.
+- Landmarks, by their announced names: "Menu bar", "Toolbar", "Formula bar" (live region, polite), "Books", "Desk workspace" (and each tile), "Record inspector", "Status line".
 - A cell selection change announces the cell and the first line of its explanation.
 - Every button has visible text. The only icon-only buttons are ‹ and ›, which carry the labels "Back" and "Forward".
 - High contrast and 200% text scale keep every region reachable. Optional register columns hide before the layout breaks.

@@ -16,8 +16,8 @@ import 'package:lifeos/features/work/presentation/shift_forms.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_inspector.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
-import 'package:lifeos/shared/workbench/inspector_pane.dart';
-import 'package:lifeos/shared/workbench/lifeos_frame.dart';
+import 'package:lifeos/shared/shell/shell_frame.dart';
+import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 import 'package:lifeos/shared/workbench/operational_state.dart';
 
@@ -426,16 +426,22 @@ final class _TestWorkbench extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     theme: buildLifeOSTheme(highContrast: false),
-    home: Scaffold(
-      body: SizedBox(
-        width: 1280,
-        height: 760,
-        child: LifeOSFrame(
-          rail: const Text('Work'),
-          register: const Text('Synthetic register'),
-          inspector: InspectorPane(child: inspector),
-          inspectorIsActive: true,
-          onBackToRegister: _noop,
+    home: LifeOSSkinScope(
+      child: Scaffold(
+        body: SizedBox(
+          width: 1280,
+          height: 760,
+          child: ShellFrame(
+            desk: Semantics(
+              container: true,
+              explicitChildNodes: true,
+              label: 'Work register',
+              child: const Text('Synthetic register'),
+            ),
+            inspector: inspector,
+            inspectorOpen: true,
+            onBackToDesk: _noop,
+          ),
         ),
       ),
     ),

@@ -281,12 +281,15 @@ final class LifeOSSkinScope extends StatelessWidget {
   const LifeOSSkinScope({
     required this.child,
     this.skin = const OfficeMachineSkin(),
-    this.appearance = LifeOSAppearance.system,
+    this.appearance,
     super.key,
   });
 
   final LifeOSSkin skin;
-  final LifeOSAppearance appearance;
+
+  /// The appearance to resolve. Null uses the nearest
+  /// [LifeOSAppearanceScope], or [LifeOSAppearance.system] without one.
+  final LifeOSAppearance? appearance;
   final Widget child;
 
   static LifeOSSkinData of(BuildContext context) {
@@ -300,7 +303,11 @@ final class LifeOSSkinScope extends StatelessWidget {
   Widget build(BuildContext context) {
     final platformBrightness = MediaQuery.platformBrightnessOf(context);
     final platformHighContrast = MediaQuery.highContrastOf(context);
-    final (brightness, highContrast) = switch (appearance) {
+    final chosen =
+        appearance ??
+        LifeOSAppearanceScope.maybeOf(context)?.value ??
+        LifeOSAppearance.system;
+    final (brightness, highContrast) = switch (chosen) {
       LifeOSAppearance.system => (platformBrightness, platformHighContrast),
       LifeOSAppearance.day => (Brightness.light, platformHighContrast),
       LifeOSAppearance.night => (Brightness.dark, platformHighContrast),
@@ -327,4 +334,23 @@ final class _InheritedLifeOSSkin extends InheritedWidget {
       data.skin != oldWidget.data.skin ||
       data.tokens != oldWidget.data.tokens ||
       data.typography != oldWidget.data.typography;
+}
+
+/// Holds the owner's appearance choice for the running app.
+final class LifeOSAppearanceController extends ValueNotifier<LifeOSAppearance> {
+  LifeOSAppearanceController([super.value = LifeOSAppearance.system]);
+}
+
+/// Provides the appearance controller to the View menu and the skin scope.
+final class LifeOSAppearanceScope
+    extends InheritedNotifier<LifeOSAppearanceController> {
+  const LifeOSAppearanceScope({
+    required LifeOSAppearanceController controller,
+    required super.child,
+    super.key,
+  }) : super(notifier: controller);
+
+  static LifeOSAppearanceController? maybeOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<LifeOSAppearanceScope>()
+      ?.notifier;
 }
