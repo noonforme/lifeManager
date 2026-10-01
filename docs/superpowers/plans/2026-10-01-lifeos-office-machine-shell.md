@@ -207,10 +207,10 @@ final class CellRef { const CellRef(this.rowId, this.columnKey); }
 ### Task 4: Explanations and formula bar
 
 **Files:**
-- Create: `lib/core/explain/explanation.dart`
-- Create: `lib/features/work/application/work_explanations.dart`
+- Create: `lib/core/explain/explanation.dart` (created in Task 3)
+- Create: `lib/features/work/presentation/work_explanations.dart` and `work_formats.dart` (presentation, because explanations hold display text and record routes)
 - Create: `lib/shared/shell/formula_bar.dart`
-- Create: `test/features/work/application/work_explanations_test.dart`
+- Create: `test/features/work/presentation/work_explanations_test.dart`
 - Create: `test/shared/shell/formula_bar_test.dart`
 
 **Interfaces:**
@@ -230,25 +230,25 @@ final class Explanation {
   final String label; final List<ExplanationToken> tokens; final SourceRef? source;
 }
 
-Explanation explainPaidTime(ShiftRecordProjection shift);
-Explanation explainExpectedPay(ShiftRecordProjection shift, ExpectedPay pay, PayAgreement agreement);
+Explanation explainPaidTime(FinalizationFacts facts, TimezoneService zones);
+Explanation explainExpectedPay(FinalizationFacts facts, ExpectedPay pay);
 Explanation explainPeriodExpected(ReconciliationGroup group);
 Explanation explainDifference(ReconciliationGroup group);
 ```
 
-- [ ] **Step 1: Write failing explanation tests.**
-  - For each premiums-spec pay case (day, night, holiday, stacking), the `ResultToken` text equals the formatted cell value from the same `ExpectedPay`.
+- [x] **Step 1: Write failing explanation tests.**
+  - The `ResultToken` text equals the formatted cell value from the same `ExpectedPay`, with and without overtime. The night, holiday and stacking cases are added when the premiums spec lands and `ExpectedPay` gains its breakdown.
   - Operand routes are structural: they contain no money, notes or labels.
-- [ ] **Step 2: Write failing formula-bar tests.**
+- [x] **Step 2: Write failing formula-bar tests.**
   - Shows the cell reference, label and tokens.
   - Clicking an operand navigates to its source.
   - A non-derived cell reads "Recorded fact · entered …".
   - The bar is empty with no selection.
   - **Copy explanation** copies the plain text.
-- [ ] **Step 3: Run.** Expected: FAIL.
-- [ ] **Step 4: Implement.** Build explanations only from result objects; never recompute pay.
-- [ ] **Step 5: Run** the tests and analysis. Expected: PASS.
-- [ ] **Step 6: Commit** `feat: explain derived Work values in the formula bar`.
+- [x] **Step 3: Run.** Expected: FAIL.
+- [x] **Step 4: Implement.** Build explanations only from result objects; never recompute pay.
+- [x] **Step 5: Run** the tests and analysis. Expected: PASS.
+- [x] **Step 6: Commit** `feat: explain derived Work values in the formula bar`.
 
 ### Task 5: Record history
 

@@ -159,6 +159,7 @@ final class _HarnessState extends State<_Harness> {
                 ),
                 status: const Text('Status content'),
                 title: 'Work',
+                onNavigate: (_) {},
                 child: ShellFrame(
                   inspectorOpen: _inspectorOpen,
                   onBackToDesk: () => setState(() => _inspectorOpen = false),

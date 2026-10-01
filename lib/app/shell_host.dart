@@ -159,6 +159,7 @@ final class ShellChromeHost extends ConsumerWidget {
       ),
       status: StatusLine(snapshot: StatusSnapshot(runningShift: running)),
       title: _title(location.path, employmentName),
+      onNavigate: context.go,
       child: child,
     );
   }

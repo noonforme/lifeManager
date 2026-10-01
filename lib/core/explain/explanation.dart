@@ -51,7 +51,12 @@ final class ResultToken extends ExplanationToken {
 /// object that produced the cell, never from a second calculation.
 @immutable
 final class Explanation {
-  const Explanation({required this.label, required this.tokens, this.source});
+  const Explanation({
+    required this.label,
+    required this.tokens,
+    this.source,
+    this.sourceLabel,
+  });
 
   /// What the value is, for example "Est. pay, Tue 29 Sep".
   final String label;
@@ -59,6 +64,10 @@ final class Explanation {
 
   /// The rule or record behind the whole calculation, such as an agreement.
   final SourceRef? source;
+
+  /// How [source] is named in the formula bar, for example
+  /// 'Agreement "Standard" v2'.
+  final String? sourceLabel;
 
   /// The calculation as one line of plain text, for copying.
   String get plainText =>

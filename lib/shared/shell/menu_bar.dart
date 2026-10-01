@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../workbench/cell_selection.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/lifeos_tokens.dart';
 import 'shell_frame.dart';
@@ -15,7 +17,6 @@ final class LifeOSMenuBar extends StatelessWidget {
   final VoidCallback? onQuit;
 
   static const _desks = 'Desks arrive in a later update';
-  static const _cells = 'Cell selection arrives in a later update';
   static const _history = 'Record history arrives in a later update';
   static const _quickAdd = 'Quick add arrives in a later update';
   static const _navigation = 'Back and forward arrive in a later update';
@@ -26,6 +27,8 @@ final class LifeOSMenuBar extends StatelessWidget {
     final tokens = skin.tokens;
     final appearance = LifeOSAppearanceScope.maybeOf(context);
     final view = ShellViewScope.maybeOf(context);
+    final cell = CellSelectionScope.maybeOf(context)?.value;
+    final explanation = cell?.explanation;
     final menuStyle = MenuStyle(
       backgroundColor: WidgetStatePropertyAll(tokens.paper),
       surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
@@ -144,9 +147,23 @@ final class LifeOSMenuBar extends StatelessWidget {
                   item('Quit', onQuit),
                 ]),
                 menu('Edit', [
-                  later('Copy cell', _cells),
-                  later('Copy row', _cells),
-                  later('Copy explanation', _cells),
+                  item(
+                    'Copy cell',
+                    cell == null
+                        ? null
+                        : () => Clipboard.setData(
+                            ClipboardData(text: cell.display),
+                          ),
+                  ),
+                  later('Copy row', 'Copy row arrives in a later update'),
+                  item(
+                    'Copy explanation',
+                    explanation == null
+                        ? null
+                        : () => Clipboard.setData(
+                            ClipboardData(text: explanation.plainText),
+                          ),
+                  ),
                 ]),
                 menu('View', [
                   menu('Appearance', [

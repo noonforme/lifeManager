@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../workbench/lifeos_skin.dart';
 import '../workbench/office_controls.dart';
+import 'formula_bar.dart';
 
 /// Fixed shell geometry (spec 5.1–5.2).
 abstract final class ShellMetrics {
@@ -77,11 +78,15 @@ final class ShellChrome extends InheritedWidget {
     required this.tree,
     required this.status,
     required this.title,
+    required this.onNavigate,
     required super.child,
     super.key,
   });
 
   final Widget menuBar;
+
+  /// Opens a route, for example an operand's source from the formula bar.
+  final ValueChanged<String> onNavigate;
 
   /// Builds the book tree. [onOpened] is called after a node is opened, so a
   /// folded tree pane can close itself.
@@ -97,7 +102,8 @@ final class ShellChrome extends InheritedWidget {
       menuBar != oldWidget.menuBar ||
       tree != oldWidget.tree ||
       status != oldWidget.status ||
-      title != oldWidget.title;
+      title != oldWidget.title ||
+      onNavigate != oldWidget.onNavigate;
 }
 
 /// The Office Machine shell: menu bar, toolbar, formula bar, book tree,
@@ -123,7 +129,8 @@ final class ShellFrame extends StatefulWidget {
   final bool inspectorOpen;
   final VoidCallback onBackToDesk;
 
-  /// Content of the formula bar; the bar is empty when nothing is selected.
+  /// Replaces the formula bar's content. By default it shows the selected
+  /// cell and is empty when nothing is selected.
   final Widget? formulaBar;
 
   @override
@@ -227,7 +234,14 @@ final class _ShellFrameState extends State<ShellFrame> {
                 _Landmark(
                   label: 'Formula bar',
                   liveRegion: true,
-                  child: _FormulaBarRegion(child: widget.formulaBar),
+                  child: _FormulaBarRegion(
+                    child:
+                        widget.formulaBar ??
+                        FormulaBar(
+                          onNavigate: (route) =>
+                              chrome?.onNavigate(route.toString()),
+                        ),
+                  ),
                 ),
               Expanded(child: body),
               _Landmark(
