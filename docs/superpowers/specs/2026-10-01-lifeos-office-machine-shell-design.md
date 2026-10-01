@@ -33,7 +33,7 @@ Phases 0 and 1 succeed when the owner can:
 | Topic | Decision |
 |---|---|
 | Visual world | Office Machine (section 4). Day and night palettes and a high-contrast variant. Default follows the system; the owner can pin day or night |
-| Appearances | Two optional skins over the same shell: **Millennium** (inspired by the 2001 Windows XP desktop) and **One-bit** (inspired by the 1984 Macintosh), chosen under View › Appearance. Structure and behaviour do not change between skins (section 4.7) |
+| Appearances | One optional skin over the same shell: **Millennium** (inspired by the 2001 Windows XP desktop), chosen under View › Appearance. Structure and behaviour do not change between skins (section 4.7) |
 | Fonts | Archivo for the interface, Azeret Mono for figures, both bundled as assets under the SIL Open Font License. No runtime font download |
 | Navigation | Book tree on the left replaces the system rail. It is always reachable: at narrow widths it collapses to a **Books** button |
 | Work area | Desks (tabs) hold one sheet full size or several tiles. Starter desks: Today, Weekly review, Month close |
@@ -50,7 +50,7 @@ Phases 0 and 1 succeed when the owner can:
 ### 3.1 Included
 
 - Office Machine theme: tokens, fonts, components and states
-- Skin architecture, plus the Millennium and One-bit appearances (section 4.7)
+- Skin architecture, plus the Millennium appearance (section 4.7)
 - Shell frame: menu bar, toolbar, formula bar, book tree, desk tabs, desk, inspector, status line
 - Register v2: typed columns, group and subtotal rows, entry row, cell selection, row states, right-click menu
 - Work moved into the shell, with the gaps listed in section 7.1 fixed
@@ -68,7 +68,7 @@ Phases 0 and 1 succeed when the owner can:
 - Attachment store, receipts and media (phase 2 and 4)
 - Agreement versions, archive and schedules (later phases of the premiums spec)
 - Free-form tile resizing by dragging (tiles use fixed layouts in this phase; see 6.4)
-- Floating, overlapping windows for the One-bit skin; tray balloons and other operating-system chrome (taskbar, desktop icons) for any skin
+- Tray balloons and other operating-system chrome (taskbar, desktop icons) for any skin
 
 ## 4. Visual System: Office Machine
 
@@ -164,7 +164,7 @@ Every visible part of the shell is a LifeOS-owned widget, and each widget paints
 
 Layout, regions, width behaviour, menus, copy, states and data are identical in every skin. Changing appearance never moves a control, and it never changes what a control does.
 
-Shipped skin names are Office Machine, Millennium and One-bit. The skins borrow the conventions of their eras but use no Microsoft or Apple names, logos, icons, wallpapers or system sounds.
+Shipped skin names are Office Machine and Millennium. Millennium borrows the conventions of its era but uses no Microsoft names, logos, icons, wallpapers or system sounds.
 
 #### Millennium (inspired by the 2001 Windows XP desktop)
 
@@ -210,39 +210,11 @@ Painting rules:
 
 Fonts: the interface needs a free, Tahoma-metric face. Choose one at implementation after a licence review; an LGPL-2.1 face may be bundled with its notice. If none passes, use Noto Sans (SIL OFL). Figures use the same face with tabular figures where available.
 
-#### One-bit (inspired by the 1984 Macintosh)
-
-Black and white only. It is calm and exact.
-
-| Token | One-bit | One-bit inverted |
-|---|---|---|
-| `ground` | 50% dither pattern | 50% dither pattern |
-| `paper`, `chrome`, `actionFill` | `#ffffff` | `#000000` |
-| `ink`, `muted`, `rule`, `chromeLine`, `signal`, `runInk`, `negative`, `positive`, `focus`, `actionInk` | `#000000` | `#ffffff` |
-| `selWash` | `#000000` | `#ffffff` |
-| `selInk` | `#ffffff` | `#000000` |
-| `band` | 25% dither pattern | 25% dither pattern |
-| `head` / `headInk` | `#ffffff` / `#000000`; the focused tile's title bar has horizontal stripes | inverted |
-
-Painting rules:
-- **Shape:** 2-pixel borders everywhere. Tiles cast a hard 4-pixel offset shadow; this is the only shadow in any skin.
-- **Tiles:** window chrome, with a close box and a striped title bar on the focused tile.
-- **Buttons:** rounded rectangles with a 10-pixel radius. The primary button has a thick outer ring.
-- **Selection:** inversion.
-- **Disabled controls:** dithered rather than grey.
-- **Desk tabs:** boxed labels in a row. The **Desk** menu also lists every desk.
-- **Status line:** its segments move to the right end of the menu bar.
-- **Secondary text:** told apart by size and weight, never by grey.
-- **Negative amounts:** carry the minus sign and the word ("over", "short").
-- **Area markers:** patterns. Work is solid, Finance a 50% dither, Tracking diagonal stripes, Knowledge an outline.
-
-Fonts: Pixelify Sans for the interface and VT323 for figures, both SIL OFL and bundled. At 150% text scale and above, One-bit switches to Archivo and Azeret Mono to stay legible, keeping its borders, patterns and inversion.
-
 #### Contrast and accessibility per skin
 
-- Every text pair in every skin meets 4.5:1, and every indicator 3:1. The One-bit skins are pure black and white, so their ratio is 21:1.
-- The high-contrast setting from the operating system wins over any skin: when it is on, LifeOS uses the Office Machine high-contrast tokens unless the chosen skin is One-bit.
-- The focus ring stays distinct from selection in every skin: an outline in Office Machine, a dotted rectangle in Millennium and One-bit.
+- Every text pair in every skin meets 4.5:1, and every indicator 3:1.
+- The high-contrast setting from the operating system wins over any skin: when it is on, LifeOS uses the Office Machine high-contrast tokens.
+- The focus ring stays distinct from selection in every skin: an outline in Office Machine, a dotted rectangle in Millennium.
 
 ## 5. Shell Layout
 
@@ -273,7 +245,7 @@ Navigation is never removed at any width. The page body never scrolls horizontal
 |---|---|
 | File | Backup and export… (opens the existing System Files route), Quit |
 | Edit | Copy cell, Copy row, Copy explanation (from the formula bar) |
-| View | Appearance: System / Office Machine Day / Office Machine Night / High contrast / Millennium / One-bit / One-bit inverted, Show book tree, Show inspector, Show formula bar |
+| View | Appearance: System / Office Machine Day / Office Machine Night / High contrast / Millennium, Show book tree, Show inspector, Show formula bar |
 | Desk | New desk, Add sheet to desk ▸, Layout ▸ (single, two columns, main and side), Rename desk, Reset starter desk |
 | Record | + Add ▸ (types), Open in its sheet, Void and replace…, Show history |
 | Window | Back, Forward, Today, Journal |
@@ -450,7 +422,7 @@ The schema is unreleased, so these tables join the reset schema history the prem
 
 ## 10. Testing
 
-**Theme:** contrast test over every token pair in 4.2 and 4.7, for every appearance. Golden tests for the shell at 1280 × 800 in each appearance (Office Machine day, night and high contrast; Millennium; One-bit; One-bit inverted), using synthetic data only. A One-bit test asserts that every state in 4.5 is readable from its word, mark or pattern alone. A text-scale test asserts that One-bit switches to the smooth fallback faces at 150%.
+**Theme:** contrast test over every token pair in 4.2 and 4.7, for every appearance. Golden tests for the shell at 1280 × 800 in each appearance (Office Machine day, night and high contrast; Millennium), using synthetic data only.
 
 **Shell:**
 - Tree navigation opens sheets on the current desk.
