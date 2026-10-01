@@ -277,6 +277,19 @@ final class _WorkScreenState extends State<WorkScreen> {
             mode: WorkInspectorMode.create,
           ),
         ),
+        route: route,
+        onRoute: _go,
+        onAddManualShift:
+            widget.onOpenManualShift == null || route.employmentId == null
+            ? null
+            : () => widget.onOpenManualShift!(route.employmentId!),
+        onRecordPayslip: widget.onRecordPayslip == null
+            ? null
+            : (period) => setState(() {
+                _payslipPeriod = period;
+                _showRegister = false;
+              }),
+        timezones: widget.timezones,
       ),
       null => const OperationalState(
         kind: OperationalStateKind.unavailable,

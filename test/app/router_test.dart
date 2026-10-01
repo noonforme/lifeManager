@@ -574,7 +574,7 @@ void main() {
     tester.view.physicalSize = const Size(1280, 760);
     addTearDown(tester.view.reset);
     final router = createAppRouter(
-      initialLocation: '/work?employment=${_employmentId.value}',
+      initialLocation: '/work?employment=${_employmentId.value}&sheet=periods',
     );
     addTearDown(router.dispose);
     await tester.pumpWidget(
@@ -589,13 +589,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Pay period'));
+    await tester.tap(
+      find.bySemanticsLabel('Pay period 2026-09-01 – 2026-09-30'),
+    );
     await tester.pumpAndSettle();
 
     expect(
       router.routeInformationProvider.value.uri.toString(),
       '/work?employment=${_employmentId.value}&period=${_periodId.value}'
-      '&record=payPeriod:${_periodId.value}&mode=inspect',
+      '&sheet=periods&record=payPeriod:${_periodId.value}&mode=inspect',
     );
   });
 
@@ -1194,6 +1196,18 @@ final class _ShiftWorkQueryRepository implements WorkQueryRepository {
         payslipRows: const [],
         paid: const Money(minorUnits: 12345),
         reconciliation: null,
+        shiftSheet: [
+          ShiftSheetRow(
+            shift: _liveShift(
+              ShiftState.finalized,
+              const Revision(2),
+              endUtc: DateTime.utc(2026, 9, 29, 16),
+            ),
+            breakSeconds: 0,
+            paidSeconds: 8 * 3600,
+            period: null,
+          ),
+        ],
       ),
     );
   }
@@ -1337,6 +1351,9 @@ final class _PeriodQueryRepository implements WorkQueryRepository {
           paid: const Money(minorUnits: 0),
           reconciliation: null,
           periodRows: [_openPeriod],
+          periodSheet: [
+            PeriodSheetRow(period: _openPeriod, shiftCount: 0, groups: []),
+          ],
         ),
       );
     }

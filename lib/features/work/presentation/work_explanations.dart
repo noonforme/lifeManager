@@ -191,3 +191,82 @@ Explanation explainDifference(ReconciliationGroup group) {
     sourceLabel: 'Pay period',
   );
 }
+
+/// Which premium's hours a cell shows.
+enum PremiumHours { night, holiday, overtime }
+
+/// A shift's night, holiday or overtime hours: the paid time the
+/// agreement's rule selects, from the same pay result as the cell.
+Explanation explainPremiumHours(
+  FinalizationFacts facts,
+  ExpectedPay pay,
+  PremiumHours which,
+) {
+  final shift = facts.shift;
+  final agreement = facts.agreement;
+  final agreementSource = _record(
+    shift.employmentId,
+    WorkRecordKind.agreement,
+    agreement.id,
+  );
+  String clock(int minute) =>
+      '${(minute ~/ 60).toString().padLeft(2, '0')}:'
+      '${(minute % 60).toString().padLeft(2, '0')}';
+  final (label, rule, seconds) = switch (which) {
+    PremiumHours.night => (
+      'Night',
+      agreement.nightEnabled
+          ? '${clock(agreement.nightStartMinute)}–'
+                '${clock(agreement.nightEndMinute)}'
+          : 'night pay off',
+      pay.nightPaidSeconds,
+    ),
+    PremiumHours.holiday => (
+      'Holiday',
+      agreement.holidayCalendar == HolidayCalendar.none
+          ? 'public holidays off'
+          : 'Lithuanian public holidays',
+      pay.holidayPaidSeconds,
+    ),
+    PremiumHours.overtime => (
+      'OT',
+      'after ${formatDuration(agreement.overtimeThresholdMinutes * 60)} '
+          'paid per shift',
+      pay.overtimePaidSeconds,
+    ),
+  };
+  return Explanation(
+    label: '$label, ${shift.localStartDate}',
+    tokens: [
+      const TextToken('paid time '),
+      OperandToken(rule, agreementSource),
+      TextToken(' in ${shift.timezoneId}'),
+      const TextToken(' = '),
+      ResultToken(formatDuration(seconds)),
+    ],
+    source: agreementSource,
+    sourceLabel: _agreementName(agreement),
+  );
+}
+
+/// A period's paid total: the sum of its effective payslips.
+Explanation explainPeriodPaid(ReconciliationGroup group) {
+  final source = _record(
+    group.employmentId,
+    WorkRecordKind.payPeriod,
+    group.periodId,
+  );
+  final payslips = group.payslipIds.length;
+  final paid = group.paid;
+  return Explanation(
+    label: 'Paid, ${_basisWord(group)}',
+    tokens: [
+      const TextToken('Σ '),
+      OperandToken(payslips == 1 ? '1 payslip' : '$payslips payslips', source),
+      const TextToken(' = '),
+      ResultToken(paid == null ? 'none recorded' : formatMoney(paid)),
+    ],
+    source: source,
+    sourceLabel: 'Pay period',
+  );
+}
