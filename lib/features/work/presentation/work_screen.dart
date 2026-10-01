@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/shell/shell_frame.dart';
 import '../../../shared/workbench/lifeos_theme.dart';
@@ -51,6 +52,7 @@ final class WorkScreen extends StatefulWidget {
     this.onUpdateEmployment,
     this.onDeleteEmployment,
     this.onUpdateAgreement,
+    this.today,
     super.key,
   });
 
@@ -105,6 +107,9 @@ final class WorkScreen extends StatefulWidget {
     AgreementDraft value,
   )?
   onUpdateAgreement;
+
+  /// Today's local date for new agreements; the device date when null.
+  final LocalDate? today;
 
   @override
   State<WorkScreen> createState() => _WorkScreenState();
@@ -298,6 +303,7 @@ final class _WorkScreenState extends State<WorkScreen> {
       return AgreementForm(
         key: ValueKey(employment.id),
         employmentId: employment.id,
+        today: widget.today,
         onSubmit: widget.onCreateAgreement,
       );
     }

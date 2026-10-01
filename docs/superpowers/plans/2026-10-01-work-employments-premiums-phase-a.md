@@ -255,10 +255,11 @@ final class UpdateAgreementCommand  { /* agreementId, employmentId, expectedRevi
 
 **Files:**
 - Modify: `test/integration/work_core_flow_test.dart`
+- Modify: `work_controller.dart` (`todayProvider`), `production_work_providers.dart` (today from the app clock and zone), `work_screen.dart`, `app_router.dart`
 
-- [ ] **Step 1: Add the spec's integration flow.** Fresh install → employment → agreement with defaults (rate only) → record a night shift → finalize → the expected pay includes the night premium, and the breakdown shows the night hours.
-- [ ] **Step 2: Run** `dart format --set-exit-if-changed lib test tool`, `flutter analyze`, `flutter test` and `./app.sh` options 2 and 3. Expected: PASS.
-- [ ] **Step 3: Commit** `test: cover first launch to night premium end to end`.
+- [x] **Step 1: Add the spec's integration flow.** Fresh install → employment → agreement with defaults (rate only) → record a night shift → finalize → the expected pay includes the night premium, and the breakdown shows the night hours.
+- [x] **Step 2: Run** `dart format --set-exit-if-changed lib test tool`, `flutter analyze`, `flutter test` and `./app.sh` options 2 and 3. Expected: PASS.
+- [x] **Step 3: Commit** `test: cover first launch to night premium end to end`.
 
 ## Plan self-review
 

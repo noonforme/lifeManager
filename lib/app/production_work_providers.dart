@@ -82,6 +82,7 @@ ProductionWorkProviders buildWorkProviders({
     currentTimezoneId: currentTimezoneId,
     shiftIds: shiftIds,
     evidenceIds: evidenceIds,
+    clock: clock,
   );
 }
 
@@ -99,6 +100,7 @@ final class ProductionWorkProviders {
     required this.currentTimezoneId,
     required this.shiftIds,
     required this.evidenceIds,
+    required this.clock,
   });
 
   final DriftWorkRepository workRepository;
@@ -113,6 +115,7 @@ final class ProductionWorkProviders {
   final CurrentTimezoneId currentTimezoneId;
   final ShiftIdFactory shiftIds;
   final WorkEvidenceIdFactory evidenceIds;
+  final AppClock clock;
 
   List<Override> get _overrides => [
     workQueryRepositoryProvider.overrideWithValue(workRepository),
@@ -136,6 +139,9 @@ final class ProductionWorkProviders {
       draftRevisions.reviseAndFinalize,
     ),
     timezoneServiceProvider.overrideWithValue(timezones),
+    todayProvider.overrideWithValue(
+      () => timezones.localDateAt(clock.nowUtc(), currentTimezoneId() ?? 'UTC'),
+    ),
     currentTimezoneIdProvider.overrideWithValue(currentTimezoneId),
     nextReplacementShiftIdProvider.overrideWithValue(shiftIds.shiftId),
     nextReplacementPayslipIdProvider.overrideWithValue(evidenceIds.payslipId),

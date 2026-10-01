@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../application/work_commands.dart';
 import '../application/work_query_service.dart';
@@ -130,6 +131,14 @@ final nextReplacementPayslipIdProvider = Provider<PayslipId Function()>(
 
 final reviseShiftDraftProvider = Provider<ReviseShiftDraft>(
   (ref) => throw StateError('ReviseShiftDraft has not been provided.'),
+);
+
+/// Today's local date, the default start of a new agreement.
+final todayProvider = Provider<LocalDate Function()>(
+  (ref) => () {
+    final now = DateTime.now();
+    return LocalDate(now.year, now.month, now.day);
+  },
 );
 
 /// Converts stored UTC facts into wall-clock values for prefilled forms.
