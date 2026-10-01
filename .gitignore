@@ -18,7 +18,7 @@ staticfiles/
 .env.*
 !.env.example
 .claude/settings.local.json
-.impeccable/*.local.json
+.impeccable/
 
 # Personal and test databases
 *.sqlite

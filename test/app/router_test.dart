@@ -137,20 +137,6 @@ void main() {
         router.routeInformationProvider.value.uri.toString(),
         '/work?mode=create',
       );
-      expect(
-        find.text(
-          'Create an employment and an agreement before recording paid work.',
-        ),
-        findsOneWidget,
-      );
-
-      await tester.tap(
-        find.descendant(
-          of: find.bySemanticsLabel('Record inspector'),
-          matching: find.text('Create employment'),
-        ),
-      );
-      await tester.pump();
       await tester.enterText(
         find.byKey(const ValueKey('employment-name')),
         'Synthetic studio',
@@ -158,7 +144,10 @@ void main() {
       await tester.tap(find.text('Save employment'));
       await tester.pumpAndSettle();
 
-      expect(find.bySemanticsLabel('Create agreement'), findsOneWidget);
+      expect(
+        router.routeInformationProvider.value.uri.toString(),
+        '/work?employment=${_employmentId.value}&mode=create',
+      );
     },
   );
 

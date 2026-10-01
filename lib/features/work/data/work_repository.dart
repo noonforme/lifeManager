@@ -193,20 +193,44 @@ final class DriftWorkRepository
     final employmentId = scope.employmentId;
     final temporal = scope.temporal;
     if (employmentId == null) {
-      yield WorkRegisterProjection.empty(scope);
+      yield WorkRegisterProjection.empty(
+        scope,
+        availableEmployments: await _employments.active(),
+      );
+      await for (final _ in _database.tableUpdates(
+        TableUpdateQuery.onAllTables([_database.employments]),
+      )) {
+        yield WorkRegisterProjection.empty(
+          scope,
+          availableEmployments: await _employments.active(),
+        );
+      }
       return;
     }
     if (temporal == null) {
-      await for (final periods in _periods.watchForEmployment(employmentId)) {
-        yield WorkRegisterProjection(
-          scope: scope,
-          period: null,
-          shiftRows: const [],
-          payslipRows: const [],
-          paid: const Money(minorUnits: 0),
-          reconciliation: null,
-          periodRows: periods,
-        );
+      // Re-read on setup changes too, so a new agreement moves the selected
+      // employment out of setup without re-selection.
+      Future<WorkRegisterProjection> load() async => WorkRegisterProjection(
+        scope: scope,
+        period: null,
+        shiftRows: const [],
+        payslipRows: const [],
+        paid: const Money(minorUnits: 0),
+        reconciliation: null,
+        periodRows: await _periods.forEmployment(employmentId),
+        employment: await _employments.byId(employmentId),
+        hasAgreement: (await _agreements.forEmployment(employmentId))
+            .isNotEmpty,
+      );
+      yield await load();
+      await for (final _ in _database.tableUpdates(
+        TableUpdateQuery.onAllTables([
+          _database.employments,
+          _database.payAgreements,
+          _database.payPeriods,
+        ]),
+      )) {
+        yield await load();
       }
       return;
     }

@@ -2,20 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../data/projections/work_record_projection.dart';
-import '../domain/agreement.dart';
-import '../domain/employment.dart';
 import '../domain/facts.dart';
-import '../domain/ids.dart';
 import '../domain/pay.dart';
 import '../domain/payslip.dart';
 import '../domain/reconciliation.dart';
 import '../domain/shift.dart';
 import 'correction_confirmation.dart';
-import 'employment_agreement_forms.dart';
 import 'period_payslip_forms.dart';
 import 'shift_forms.dart';
-
-enum _SetupStep { introduction, employment, agreement, ready }
 
 typedef MutateShift = Future<MutationOutcome<WorkShift>> Function(
   WorkShift shift,
@@ -25,24 +19,6 @@ typedef MutateBreak = Future<MutationOutcome<WorkShift>> Function(
 );
 
 final class WorkInspector extends StatefulWidget {
-  const WorkInspector({
-    required this.onCreateEmployment,
-    required this.onCreateAgreement,
-    this.onStartShift,
-    this.onAddManualShift,
-    super.key,
-  }) : projection = null,
-       onCorrect = null,
-       onSetPeriodState = null,
-       onRecordPayslip = null,
-       reconciliation = const [],
-       onStartBreak = null,
-       onEndBreak = null,
-       onEndShift = null,
-       onFinalize = null,
-       durationLabel = null,
-       suggestedOvertimeMinutes = null;
-
   const WorkInspector.fromProjection({
     required this.projection,
     required this.onStartBreak,
@@ -55,11 +31,7 @@ final class WorkInspector extends StatefulWidget {
   }) : onCorrect = null,
        onSetPeriodState = null,
        onRecordPayslip = null,
-       reconciliation = const [],
-       onCreateEmployment = null,
-       onCreateAgreement = null,
-       onStartShift = null,
-       onAddManualShift = null;
+       reconciliation = const [];
 
   const WorkInspector.fromRecord({
     required this.projection,
@@ -72,18 +44,10 @@ final class WorkInspector extends StatefulWidget {
     this.onFinalize,
     this.onCorrect,
     super.key,
-  }) : onCreateEmployment = null,
-       onCreateAgreement = null,
-       onStartShift = null,
-       onAddManualShift = null,
-       durationLabel = null,
+  }) : durationLabel = null,
        suggestedOvertimeMinutes = null;
 
-  final SubmitEmployment? onCreateEmployment;
-  final SubmitAgreement? onCreateAgreement;
-  final ValueChanged<EmploymentId>? onStartShift;
-  final ValueChanged<EmploymentId>? onAddManualShift;
-  final WorkRecordProjection? projection;
+  final WorkRecordProjection projection;
   final SetPayPeriodState? onSetPeriodState;
   final VoidCallback? onRecordPayslip;
   final List<ReconciliationGroup> reconciliation;
@@ -103,9 +67,6 @@ final class WorkInspector extends StatefulWidget {
 }
 
 final class _WorkInspectorState extends State<WorkInspector> {
-  _SetupStep _step = _SetupStep.introduction;
-  Employment? _employment;
-  PayAgreement? _agreement;
   MutationOutcome<WorkShift>? _lifecycleFailure;
 
   @override
@@ -134,70 +95,22 @@ final class _WorkInspectorState extends State<WorkInspector> {
     return outcome;
   }
 
-  Future<MutationOutcome<Employment>> _createEmployment(
-    EmploymentDraft draft,
-  ) async {
-    final outcome = await widget.onCreateEmployment!(draft);
-    if (mounted) {
-      if (outcome case Committed<Employment>(:final value)) {
-        setState(() {
-          _employment = value;
-          _step = _SetupStep.agreement;
-        });
-      }
-    }
-    return outcome;
-  }
-
-  Future<MutationOutcome<PayAgreement>> _createAgreement(
-    AgreementDraft draft,
-  ) async {
-    final outcome = await widget.onCreateAgreement!(draft);
-    if (mounted) {
-      if (outcome case Committed<PayAgreement>(:final value)) {
-        setState(() {
-          _agreement = value;
-          _step = _SetupStep.ready;
-        });
-      }
-    }
-    return outcome;
-  }
-
   @override
   Widget build(BuildContext context) {
     final projection = widget.projection;
-    if (projection != null) {
-      return switch (projection) {
-        ShiftRecordProjection() => _shiftInspector(projection),
-        PayPeriodRecordProjection(:final period) => PeriodInspector(
-          period: period,
-          onSetState: widget.onSetPeriodState,
-          onRecordPayslip: widget.onRecordPayslip,
-          reconciliation: widget.reconciliation,
-        ),
-        PayslipRecordProjection(:final payslip) => _PayslipDetail(
-          payslip: payslip,
-          onCorrect: payslip.isEffective ? widget.onCorrect : null,
-        ),
-        EmploymentRecordProjection() => const _UnavailableRecord(),
-      };
-    }
-    return switch (_step) {
-      _SetupStep.introduction => _Introduction(
-        onCreate: () => setState(() => _step = _SetupStep.employment),
+    return switch (projection) {
+      ShiftRecordProjection() => _shiftInspector(projection),
+      PayPeriodRecordProjection(:final period) => PeriodInspector(
+        period: period,
+        onSetState: widget.onSetPeriodState,
+        onRecordPayslip: widget.onRecordPayslip,
+        reconciliation: widget.reconciliation,
       ),
-      _SetupStep.employment => EmploymentForm(onSubmit: _createEmployment),
-      _SetupStep.agreement => AgreementForm(
-        employmentId: _employment!.id,
-        onSubmit: _createAgreement,
+      PayslipRecordProjection(:final payslip) => _PayslipDetail(
+        payslip: payslip,
+        onCorrect: payslip.isEffective ? widget.onCorrect : null,
       ),
-      _SetupStep.ready => _Ready(
-        employment: _employment!,
-        agreement: _agreement!,
-        onStartShift: widget.onStartShift,
-        onAddManualShift: widget.onAddManualShift,
-      ),
+      EmploymentRecordProjection() => const _UnavailableRecord(),
     };
   }
 
@@ -287,72 +200,6 @@ final class _WorkInspectorState extends State<WorkInspector> {
         ),
         Committed<WorkShift>() => const SizedBox.shrink(),
       };
-}
-
-final class _Introduction extends StatelessWidget {
-  const _Introduction({required this.onCreate});
-
-  final VoidCallback onCreate;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Set up Work', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 10),
-        const Text(
-          'Create an employment and an agreement before recording paid work.',
-        ),
-        const SizedBox(height: 18),
-        FilledButton(
-          onPressed: onCreate,
-          child: const Text('Create employment'),
-        ),
-      ],
-    ),
-  );
-}
-
-final class _Ready extends StatelessWidget {
-  const _Ready({
-    required this.employment,
-    required this.agreement,
-    required this.onStartShift,
-    required this.onAddManualShift,
-  });
-
-  final Employment employment;
-  final PayAgreement agreement;
-  final ValueChanged<EmploymentId>? onStartShift;
-  final ValueChanged<EmploymentId>? onAddManualShift;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(employment.name, style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 6),
-        Text('Agreement ${agreement.version} is effective.'),
-        const SizedBox(height: 18),
-        FilledButton(
-          onPressed: _bind(onStartShift),
-          child: const Text('Start shift'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: _bind(onAddManualShift),
-          child: const Text('Add manual shift'),
-        ),
-      ],
-    ),
-  );
-
-  VoidCallback? _bind(ValueChanged<EmploymentId>? action) =>
-      action == null ? null : () => action(employment.id);
 }
 
 final class _FinalizedShift extends StatelessWidget {

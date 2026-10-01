@@ -7,6 +7,7 @@ import '../data/daos/payslip_dao.dart';
 import '../data/daos/shift_dao.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/facts.dart';
+import '../domain/ids.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart';
 import 'work_route_state.dart';
@@ -17,6 +18,7 @@ final class WorkRegister extends StatelessWidget {
     required this.selectedRecord,
     required this.onSelect,
     required this.onPrimaryAction,
+    this.onOpenEmployment,
     this.onNewPeriod,
     super.key,
   });
@@ -25,6 +27,7 @@ final class WorkRegister extends StatelessWidget {
   final WorkRecordRef? selectedRecord;
   final ValueChanged<WorkRecordRef> onSelect;
   final VoidCallback onPrimaryAction;
+  final ValueChanged<EmploymentId>? onOpenEmployment;
   final VoidCallback? onNewPeriod;
 
   @override
@@ -35,6 +38,32 @@ final class WorkRegister extends StatelessWidget {
         kind: OperationalStateKind.unavailable,
         title: 'Work records unavailable',
         message: 'Reload Work to inspect the current records.',
+      );
+    }
+    final open = onOpenEmployment;
+    if (value.scope.employmentId == null &&
+        value.availableEmployments.isNotEmpty &&
+        open != null) {
+      return OperationalState(
+        kind: OperationalStateKind.empty,
+        title: 'Choose an employment',
+        message: 'Open an employment to continue, or create another one.',
+        action: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: [
+            for (final employment in value.availableEmployments)
+              OutlinedButton(
+                onPressed: () => open(employment.id),
+                child: Text(employment.name),
+              ),
+            FilledButton(
+              onPressed: onPrimaryAction,
+              child: const Text('Create employment'),
+            ),
+          ],
+        ),
       );
     }
     if (value.scope.employmentId == null) {
@@ -130,7 +159,7 @@ final class _Toolbar extends StatelessWidget {
         runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          const _Control(label: 'Employment'),
+          _Control(label: 'Employment', detail: projection.employment?.name),
           _Control(
             label: 'Scope',
             detail: switch (scope) {

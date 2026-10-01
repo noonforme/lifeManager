@@ -1,4 +1,5 @@
 import '../../../../core/time/local_date.dart';
+import '../../domain/employment.dart';
 import '../../domain/ids.dart';
 import '../../domain/pay.dart';
 import '../../domain/pay_period.dart';
@@ -39,6 +40,9 @@ final class WorkRegisterProjection {
     required this.paid,
     required this.reconciliation,
     this.periodRows = const [],
+    this.employment,
+    this.hasAgreement = false,
+    this.availableEmployments = const [],
   });
 
   final WorkScope scope;
@@ -52,13 +56,26 @@ final class WorkRegisterProjection {
   /// chosen so the owner can pick one explicitly.
   final List<PayPeriod> periodRows;
 
-  factory WorkRegisterProjection.empty(WorkScope scope) =>
-      WorkRegisterProjection(
-        scope: scope,
-        period: null,
-        shiftRows: const [],
-        payslipRows: const [],
-        paid: const Money(minorUnits: 0),
-        reconciliation: null,
-      );
+  /// The selected employment, when it exists.
+  final Employment? employment;
+
+  /// Whether the selected employment has at least one pay agreement.
+  final bool hasAgreement;
+
+  /// Active employments, listed when no employment is selected so Work can
+  /// reopen an existing one instead of restarting setup.
+  final List<Employment> availableEmployments;
+
+  factory WorkRegisterProjection.empty(
+    WorkScope scope, {
+    List<Employment> availableEmployments = const [],
+  }) => WorkRegisterProjection(
+    scope: scope,
+    period: null,
+    shiftRows: const [],
+    payslipRows: const [],
+    paid: const Money(minorUnits: 0),
+    reconciliation: null,
+    availableEmployments: availableEmployments,
+  );
 }

@@ -121,6 +121,59 @@ void main() {
     expect(_summary('Difference'), 'EUR 10.00');
   });
 
+  testWidgets('saved employment stays selected and setup resumes', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1600);
+    addTearDown(tester.view.reset);
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final ids = UuidV7WorkIdFactory();
+    final composition = buildWorkProviders(
+      database: database,
+      clock: _FixedClock(),
+      timezones: IanaTimezoneService(),
+      currentTimezoneId: () => 'Europe/Amsterdam',
+      workIds: ids,
+      shiftIds: ids,
+      evidenceIds: ids,
+    );
+    final router = createAppRouter();
+    addTearDown(router.dispose);
+    await tester.pumpWidget(composition.scope(LifeOsApp(router: router)));
+    await tester.pumpAndSettle();
+
+    // One press opens the employment form directly.
+    await tester.tap(find.text('Create employment'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('employment-name')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('employment-name')),
+      'Synthetic studio',
+    );
+    await tester.tap(find.text('Save employment'));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      contains('employment='),
+    );
+    expect(find.text('Create an employment to begin.'), findsNothing);
+    expect(find.text('Synthetic studio'), findsOneWidget);
+    expect(find.bySemanticsLabel('Create agreement'), findsOneWidget);
+
+    // Leaving Work and returning resumes setup for the saved employment.
+    router.go('/money');
+    await tester.pumpAndSettle();
+    router.go('/work');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create an employment to begin.'), findsNothing);
+    expect(find.text('Synthetic studio'), findsOneWidget);
+    expect(find.bySemanticsLabel('Create agreement'), findsOneWidget);
+  });
+
   testWidgets('live shift recovers after restart and finalizes', (
     tester,
   ) async {
@@ -195,8 +248,6 @@ String _summary(String label) {
 Future<void> _setUpEmployment(WidgetTester tester) async {
   await tester.tap(find.text('Create employment'));
   await tester.pumpAndSettle();
-  await tester.tap(_inInspector(find.text('Create employment')));
-  await tester.pumpAndSettle();
   await tester.enterText(
     find.byKey(const ValueKey('employment-name')),
     'Synthetic studio',
@@ -225,7 +276,7 @@ Future<void> _setUpEmployment(WidgetTester tester) async {
   );
   await tester.tap(find.byKey(const ValueKey('save-agreement')));
   await tester.pumpAndSettle();
-  expect(find.text('Agreement 1 is effective.'), findsOneWidget);
+  expect(_inInspector(find.text('Record work')), findsOneWidget);
 }
 
 Finder _inInspector(Finder finder) => find.descendant(

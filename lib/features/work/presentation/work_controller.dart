@@ -229,14 +229,29 @@ final class WorkInspectorUnavailable extends WorkInspectorState {
 final class WorkController extends AsyncNotifier<WorkViewState> {
   Object? draft;
 
-  Future<MutationOutcome<Employment>> submitEmployment(EmploymentDraft value) {
+  /// Creates an employment and selects it, so setup continues with its
+  /// first agreement.
+  Future<MutationOutcome<Employment>> submitEmployment(
+    EmploymentDraft value,
+  ) async {
     draft = value;
-    return ref.read(createEmploymentProvider)(
+    final outcome = await ref.read(createEmploymentProvider)(
       CreateEmploymentCommand(
         name: value.name.trim(),
         legalLabel: _trimOptional(value.legalLabel),
       ),
     );
+    if (outcome case Committed<Employment>(:final value)) {
+      ref.read(replaceWorkRouteProvider)(
+        WorkRouteState(
+          employmentId: value.id,
+          scope: null,
+          record: null,
+          mode: WorkInspectorMode.create,
+        ),
+      );
+    }
+    return outcome;
   }
 
   Future<MutationOutcome<PayAgreement>> submitAgreement(AgreementDraft value) {
@@ -539,9 +554,12 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       return WorkInvalidScope(reason);
     }
     final route = (parsed as ValidWorkRoute).state;
-    if (route.record == null &&
+    final unselected =
+        route.record == null &&
         route.scope == null &&
-        route.mode == WorkInspectorMode.inspect) {
+        route.mode == WorkInspectorMode.inspect;
+    var restoring = false;
+    if (unselected) {
       final active = await _valueOf(
         ref.watch(workActiveShiftProvider),
         ref.watch(workActiveShiftProvider.future),
@@ -549,6 +567,7 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       if (active != null &&
           (route.employmentId == null ||
               route.employmentId == active.shift.employmentId)) {
+        restoring = true;
         final restored = routeForCommittedShift(active.shift);
         final replace = ref.read(replaceWorkRouteProvider);
         unawaited(
@@ -562,6 +581,24 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       ref.watch(workRegisterProjectionProvider),
       ref.watch(workRegisterProjectionProvider.future),
     );
+    // Reopen the only employment instead of restarting setup.
+    if (unselected &&
+        !restoring &&
+        route.employmentId == null &&
+        register.availableEmployments.length == 1) {
+      final reopened = WorkRouteState(
+        employmentId: register.availableEmployments.single.id,
+        scope: null,
+        record: null,
+        mode: WorkInspectorMode.inspect,
+      );
+      final replace = ref.read(replaceWorkRouteProvider);
+      unawaited(
+        Future.microtask(() {
+          if (ref.mounted) replace(reopened);
+        }),
+      );
+    }
     final recordRef = route.record;
     final WorkInspectorState inspector;
     if (recordRef == null) {

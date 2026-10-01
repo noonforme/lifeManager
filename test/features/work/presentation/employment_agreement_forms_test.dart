@@ -13,7 +13,6 @@ import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/presentation/employment_agreement_forms.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
-import 'package:lifeos/features/work/presentation/work_inspector.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
@@ -28,30 +27,6 @@ void main() {
     await tester.tap(action);
     await tester.pumpAndSettle();
   }
-
-  testWidgets('empty Work explains setup and opens employment creation', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _TestApp(
-        child: WorkInspector(
-          onCreateEmployment: (_) async => Committed(_employment),
-          onCreateAgreement: (_) async => Committed(_agreement),
-        ),
-      ),
-    );
-
-    expect(
-      find.text(
-        'Create an employment and an agreement before recording paid work.',
-      ),
-      findsOneWidget,
-    );
-    await tester.tap(find.text('Create employment'));
-    await tester.pump();
-
-    expect(find.bySemanticsLabel('Create employment'), findsOneWidget);
-  });
 
   testWidgets('invalid agreement keeps field values and associates errors', (
     tester,
@@ -96,59 +71,6 @@ void main() {
     );
     expect(find.text('25.50'), findsOneWidget);
   });
-
-  testWidgets(
-    'shift actions appear only after employment and agreement commit',
-    (tester) async {
-      await tester.pumpWidget(
-        _TestApp(
-          child: WorkInspector(
-            onCreateEmployment: (_) async => Committed(_employment),
-            onCreateAgreement: (_) async => Committed(_agreement),
-          ),
-        ),
-      );
-
-      expect(find.text('Start shift'), findsNothing);
-      expect(find.text('Add manual shift'), findsNothing);
-      await tester.tap(find.text('Create employment'));
-      await tester.pump();
-      await tester.enterText(
-        find.byKey(const ValueKey('employment-name')),
-        'Studio',
-      );
-      await tester.tap(find.text('Save employment'));
-      await tester.pumpAndSettle();
-
-      expect(find.bySemanticsLabel('Create agreement'), findsOneWidget);
-      expect(find.text('Start shift'), findsNothing);
-      await tester.enterText(
-        find.byKey(const ValueKey('agreement-effective-start')),
-        '2026-10-01',
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('agreement-hourly-rate')),
-        '25.50',
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('agreement-threshold')),
-        '480',
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('agreement-multiplier-numerator')),
-        '3',
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('agreement-multiplier-denominator')),
-        '2',
-      );
-      await submitAgreement(tester);
-
-      expect(find.text('Start shift'), findsOneWidget);
-      expect(find.text('Add manual shift'), findsOneWidget);
-      expect(find.text('Studio'), findsOneWidget);
-    },
-  );
 
   test('controller actions adapt drafts to typed commands', () async {
     CreateEmploymentCommand? employmentCommand;

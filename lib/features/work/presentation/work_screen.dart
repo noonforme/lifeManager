@@ -224,6 +224,16 @@ final class _WorkScreenState extends State<WorkScreen> {
         selectedRecord: route.record,
         onSelect: widget.onSelect,
         onPrimaryAction: widget.onPrimaryAction,
+        onOpenEmployment: (id) => widget.onNavigate(
+          workRouteUri(
+            WorkRouteState(
+              employmentId: id,
+              scope: null,
+              record: null,
+              mode: WorkInspectorMode.inspect,
+            ),
+          ).toString(),
+        ),
         onNewPeriod:
             widget.onCreatePayPeriod == null || route.employmentId == null
             ? null
@@ -250,6 +260,16 @@ final class _WorkScreenState extends State<WorkScreen> {
     }
     final route = state.route;
     final employmentId = route.employmentId;
+    final employment = state.register.employment;
+    if (route.record == null &&
+        employment != null &&
+        !state.register.hasAgreement) {
+      return AgreementForm(
+        key: ValueKey(employment.id),
+        employmentId: employment.id,
+        onSubmit: widget.onCreateAgreement,
+      );
+    }
     if (_creatingPeriod && employmentId != null) {
       return PeriodInspector.create(
         employmentId: employmentId,
@@ -275,12 +295,7 @@ final class _WorkScreenState extends State<WorkScreen> {
           onAddManualShift: open == null ? null : () => open(employment),
         );
       }
-      return WorkInspector(
-        onCreateEmployment: widget.onCreateEmployment,
-        onCreateAgreement: widget.onCreateAgreement,
-        onStartShift: _startShift,
-        onAddManualShift: widget.onOpenManualShift,
-      );
+      return EmploymentForm(onSubmit: widget.onCreateEmployment);
     }
     final save = widget.onSaveManualShift;
     if (route.mode == WorkInspectorMode.edit &&

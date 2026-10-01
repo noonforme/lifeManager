@@ -41,6 +41,17 @@ final class EmploymentDao {
     return row == null ? null : employmentFromRow(row);
   }
 
+  Future<List<domain.Employment>> active() async {
+    final rows =
+        await (database.select(database.employments)
+              ..where((table) => table.status.equals('active'))
+              ..orderBy([
+                (table) => OrderingTerm.asc(table.createdAtUtcMicros),
+              ]))
+            .get();
+    return rows.map(employmentFromRow).toList(growable: false);
+  }
+
   Stream<domain.Employment?> watchById(EmploymentId id) {
     return (database.select(database.employments)
           ..where((table) => table.id.equals(id.value)))
