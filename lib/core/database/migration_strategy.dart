@@ -12,6 +12,10 @@ MigrationStrategy lifeOsMigrationStrategy(AppDatabase database) {
         ON work_shifts ((1))
         WHERE state IN ('running', 'onBreak')
       ''');
+      await database.customStatement(
+        'CREATE INDEX record_events_by_record '
+        'ON record_events (record_kind, record_id, id)',
+      );
       await database
           .into(database.coreMetadata)
           .insert(const CoreMetadataCompanion(id: Value(1)));

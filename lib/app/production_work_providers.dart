@@ -25,10 +25,15 @@ ProductionWorkProviders buildWorkProviders({
   required ShiftIdFactory shiftIds,
   required WorkEvidenceIdFactory evidenceIds,
 }) {
-  final workRepository = DriftWorkRepository(database, timezones: timezones);
+  final workRepository = DriftWorkRepository(
+    database,
+    timezones: timezones,
+    clock: clock,
+  );
   final shiftRepository = DriftShiftRepository(
     database,
     createBreakId: shiftIds.shiftBreakId,
+    clock: clock,
   );
   final employment = EmploymentService(
     workRepository,

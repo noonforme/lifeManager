@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart' show TableUpdateQuery;
 
 import '../../../core/database/app_database.dart' show AppDatabase;
+import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/app_clock.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../core/time/wall_clock.dart';
 import '../application/pay_period_service.dart';
@@ -26,6 +28,7 @@ import 'daos/shift_dao.dart';
 import 'projections/reconciliation_projection.dart';
 import 'projections/work_record_projection.dart';
 import 'projections/work_register_projection.dart';
+import 'work_history.dart';
 import 'work_write_store.dart';
 
 final class DriftWorkRepository
@@ -36,17 +39,22 @@ final class DriftWorkRepository
         PayslipRepository,
         WorkQueryRepository {
   /// Expected pay reads each shift on its own wall clock through
-  /// [timezones].
-  DriftWorkRepository(this._database, {TimezoneService? timezones})
-    : _zoneClocks = zoneClocksOf(timezones ?? IanaTimezoneService()),
-      _employments = EmploymentDao(_database),
-      _agreements = AgreementDao(_database),
-      _periods = PayPeriodDao(_database),
-      _payslips = PayslipDao(_database),
-      _shifts = ShiftDao(_database);
+  /// [timezones]; history entries are stamped by [clock].
+  DriftWorkRepository(
+    this._database, {
+    TimezoneService? timezones,
+    AppClock? clock,
+  }) : _zoneClocks = zoneClocksOf(timezones ?? IanaTimezoneService()),
+       _history = WorkHistoryWriter(_database, clock ?? SystemAppClock()),
+       _employments = EmploymentDao(_database),
+       _agreements = AgreementDao(_database),
+       _periods = PayPeriodDao(_database),
+       _payslips = PayslipDao(_database),
+       _shifts = ShiftDao(_database);
 
   final AppDatabase _database;
   final ZoneClocks _zoneClocks;
+  final WorkHistoryWriter _history;
   final EmploymentDao _employments;
   final AgreementDao _agreements;
   final PayPeriodDao _periods;
@@ -58,13 +66,37 @@ final class DriftWorkRepository
       _database.transaction(() => body(this));
 
   @override
-  Future<int> insertEmployment(Employment value) => _employments.insert(value);
+  Future<int> insertEmployment(Employment value) =>
+      _database.transaction(() async {
+        final inserted = await _employments.insert(value);
+        await _history.record(
+          WorkRecordKinds.employment,
+          value.id.value,
+          kind: RecordEventKind.created,
+          after: employmentFacts(value),
+          revisionAfter: value.revision,
+        );
+        return inserted;
+      });
 
   @override
   Future<int> updateEmployment(
     Employment value, {
     required Revision expected,
-  }) => _employments.update(value, expected);
+  }) => _database.transaction(() async {
+    final before = await _employments.byId(value.id);
+    final changed = await _employments.update(value, expected);
+    if (changed == 0 || before == null) return changed;
+    await _history.record(
+      WorkRecordKinds.employment,
+      value.id.value,
+      kind: RecordEventKind.changed,
+      before: employmentFacts(before),
+      after: employmentFacts(value),
+      revisionAfter: expected.next(),
+    );
+    return changed;
+  });
 
   @override
   Future<Employment?> employmentById(EmploymentId id) => _employments.byId(id);
@@ -75,9 +107,20 @@ final class DriftWorkRepository
 
   @override
   Future<int> deleteEmployment(EmploymentId id, {required Revision expected}) =>
-      _database.transaction(
-        () => _employments.deleteWithAgreements(id, expected),
-      );
+      _database.transaction(() async {
+        final agreements = await _agreements.forEmployment(id);
+        final deleted = await _employments.deleteWithAgreements(id, expected);
+        if (deleted == 0) return 0;
+        // A deleted record takes its history with it.
+        await _history.events.deleteFor(WorkRecordKinds.employment, id.value);
+        for (final agreement in agreements) {
+          await _history.events.deleteFor(
+            WorkRecordKinds.agreement,
+            agreement.id.value,
+          );
+        }
+        return deleted;
+      });
 
   Stream<Employment?> watchEmployment(EmploymentId id) =>
       _employments.watchById(id);
@@ -90,7 +133,20 @@ final class DriftWorkRepository
       _agreements.watchForEmployment(id);
 
   @override
-  Future<int> insertAgreement(PayAgreement value) => _agreements.insert(value);
+  Future<int> insertAgreement(PayAgreement value) =>
+      _database.transaction(() async {
+        final inserted = await _agreements.insert(value);
+        await _recordAgreementCreated(value);
+        return inserted;
+      });
+
+  Future<void> _recordAgreementCreated(PayAgreement value) => _history.record(
+    WorkRecordKinds.agreement,
+    value.id.value,
+    kind: RecordEventKind.created,
+    after: agreementFacts(value),
+    revisionAfter: value.revision,
+  );
 
   Future<MutationOutcome<PayAgreement>> createAgreement(PayAgreement value) {
     return _database.transaction(() async {
@@ -102,6 +158,7 @@ final class DriftWorkRepository
         });
       }
       await _agreements.insert(value);
+      await _recordAgreementCreated(value);
       return Committed<PayAgreement>(value);
     });
   }
@@ -116,7 +173,18 @@ final class DriftWorkRepository
       final withoutCurrent = existing.where((item) => item.id != value.id);
       final validation = validateAgreementSet([...withoutCurrent, value]);
       if (!validation.isValid) return 0;
-      return _agreements.updateUnused(value, expected);
+      final before = existing.where((item) => item.id == value.id).firstOrNull;
+      final changed = await _agreements.updateUnused(value, expected);
+      if (changed == 0 || before == null) return changed;
+      await _history.record(
+        WorkRecordKinds.agreement,
+        value.id.value,
+        kind: RecordEventKind.changed,
+        before: agreementFacts(before),
+        after: agreementFacts(value),
+        revisionAfter: expected.next(),
+      );
+      return changed;
     });
   }
 
@@ -138,6 +206,13 @@ final class DriftWorkRepository
         });
       }
       await _periods.insert(value);
+      await _history.record(
+        WorkRecordKinds.payPeriod,
+        value.id.value,
+        kind: RecordEventKind.created,
+        after: periodFacts(value),
+        revisionAfter: value.revision,
+      );
       return Committed<PayPeriod>(value);
     });
   }
@@ -148,7 +223,7 @@ final class DriftWorkRepository
     required PayPeriodState state,
     required Revision expected,
     required DateTime nowUtc,
-  }) async {
+  }) => _database.transaction(() async {
     final existing = await _periods.byId(id);
     if (existing == null) return const Missing<PayPeriod>();
     final changed = await _periods.setState(
@@ -158,11 +233,32 @@ final class DriftWorkRepository
       nowUtc: nowUtc,
     );
     if (changed == 0) return const Stale<PayPeriod>();
-    return Committed<PayPeriod>((await _periods.byId(id))!);
-  }
+    final after = (await _periods.byId(id))!;
+    await _history.record(
+      WorkRecordKinds.payPeriod,
+      id.value,
+      kind: state == PayPeriodState.reviewed
+          ? RecordEventKind.reviewed
+          : RecordEventKind.changed,
+      before: periodFacts(existing),
+      after: periodFacts(after),
+      revisionAfter: after.revision,
+    );
+    return Committed<PayPeriod>(after);
+  });
 
   @override
-  Future<int> insertPayslip(Payslip value) => _payslips.insert(value);
+  Future<int> insertPayslip(Payslip value) => _database.transaction(() async {
+    final inserted = await _payslips.insert(value);
+    await _history.record(
+      WorkRecordKinds.payslip,
+      value.id.value,
+      kind: RecordEventKind.created,
+      after: payslipFacts(value),
+      revisionAfter: value.revision,
+    );
+    return inserted;
+  });
 
   @override
   Future<Payslip?> payslipById(PayslipId id) => _payslips.byId(id);
@@ -198,6 +294,22 @@ final class DriftWorkRepository
           expected: expected,
         );
         if (changed == 0) throw const _StalePayslipCorrection();
+        await _history.record(
+          WorkRecordKinds.payslip,
+          original.id.value,
+          kind: RecordEventKind.voided,
+          before: payslipFacts(original),
+          after: payslipFacts(prepared.voidedOriginal),
+          revisionAfter: prepared.voidedOriginal.revision,
+          reason: prepared.voidedOriginal.voidReason,
+        );
+        await _history.record(
+          WorkRecordKinds.payslip,
+          replacement.id.value,
+          kind: RecordEventKind.replaced,
+          after: payslipFacts(replacement),
+          revisionAfter: replacement.revision,
+        );
         return Committed<Payslip>(replacement);
       });
     } on _StalePayslipCorrection {

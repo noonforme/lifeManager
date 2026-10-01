@@ -1609,6 +1609,146 @@
           "id"
         ]
       }
+    },
+    {
+      "id": 7,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "record_events",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "PRIMARY KEY AUTOINCREMENT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "PRIMARY KEY AUTOINCREMENT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "auto-increment"
+            ]
+          },
+          {
+            "name": "record_kind",
+            "getter_name": "recordKind",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "record_id",
+            "getter_name": "recordId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "at_utc_micros",
+            "getter_name": "atUtcMicros",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "kind",
+            "getter_name": "kind",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">(\"kind IN ('created', 'changed', 'finalized', 'voided', 'replaced', \" \"'reviewed')\")"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "changes_json",
+            "getter_name": "changesJson",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "reason",
+            "getter_name": "reason",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "revision_after",
+            "getter_name": "revisionAfter",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('revision_after >= 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": []
+      }
     }
   ],
   "fixed_sql": [
@@ -1672,6 +1812,15 @@
         {
           "dialect": "sqlite",
           "sql": "CREATE TABLE IF NOT EXISTS \"payslips\" (\"id\" TEXT NOT NULL, \"period_id\" TEXT NOT NULL REFERENCES pay_periods (id) ON DELETE RESTRICT, \"issued_date\" TEXT NOT NULL, \"paid_date\" TEXT NULL, \"amount_minor_units\" INTEGER NOT NULL CHECK(amount_minor_units > 0), \"currency\" TEXT NOT NULL, \"basis\" TEXT NOT NULL, \"gross_minor_units\" INTEGER NULL CHECK(gross_minor_units IS NULL OR gross_minor_units >= 0), \"net_minor_units\" INTEGER NULL CHECK(net_minor_units IS NULL OR net_minor_units >= 0), \"deduction_minor_units\" INTEGER NULL CHECK(deduction_minor_units IS NULL OR deduction_minor_units >= 0), \"reference\" TEXT NULL, \"note\" TEXT NULL, \"state\" TEXT NOT NULL, \"void_reason\" TEXT NULL, \"replacement_payslip_id\" TEXT NULL REFERENCES payslips (id) ON DELETE RESTRICT, \"replaced_payslip_id\" TEXT NULL REFERENCES payslips (id) ON DELETE RESTRICT, \"created_at_utc_micros\" INTEGER NOT NULL, \"updated_at_utc_micros\" INTEGER NOT NULL, \"revision\" INTEGER NOT NULL CHECK(revision >= 0), PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "record_events",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"record_events\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"record_kind\" TEXT NOT NULL, \"record_id\" TEXT NOT NULL, \"at_utc_micros\" INTEGER NOT NULL, \"kind\" TEXT NOT NULL CHECK(kind IN ('created', 'changed', 'finalized', 'voided', 'replaced', 'reviewed')), \"changes_json\" TEXT NOT NULL, \"reason\" TEXT NULL, \"revision_after\" INTEGER NOT NULL CHECK(revision_after >= 0));"
         }
       ]
     }

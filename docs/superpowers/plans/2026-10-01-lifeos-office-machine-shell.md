@@ -253,9 +253,9 @@ Explanation explainDifference(ReconciliationGroup group);
 ### Task 5: Record history
 
 **Files:**
-- Create: `lib/core/history/record_events.dart`
+- Create: `lib/core/history/record_events.dart` (types, table, `diffFacts`), `lib/core/history/record_event_dao.dart`, `lib/features/work/data/work_history.dart` (fact describers, `WorkHistoryWriter`)
 - Modify: `lib/core/database/app_database.dart` and its generated file (schema per spec 8, joining the reset history from the premiums spec)
-- Modify: Work application services (each command appends its event inside its transaction)
+- Modify: Work repositories (`DriftWorkRepository`, `DriftShiftRepository` take an `AppClock`; each write appends its event inside its transaction)
 - Create: `test/core/history/record_events_test.dart`
 - Modify: Work application tests
 
@@ -277,15 +277,16 @@ abstract interface class RecordHistory {
 }
 ```
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Each Work command (create employment, update employment, create or update agreement, start shift, start or end break, end shift, finalize, manual shift, revise draft, void and replace, create period, review period, record payslip, correct payslip) appends exactly one event with the correct kind.
   - Stale, invalid and missing outcomes append none.
   - An injected commit failure leaves no orphan event.
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** the table, DAO and appends. `changes_json` holds formatted field values for display. It is local data, so it is never logged, never in diagnostics, and never in routes.
-- [ ] **Step 4: Regenerate Drift output and update the fingerprint test.** Run `dart run build_runner build --delete-conflicting-outputs`, then the database tests.
-- [ ] **Step 5: Run** the full suite and analysis. Expected: PASS.
-- [ ] **Step 6: Commit** `feat: record an append-only history for Work records`.
+  - Decisions made while building: a correction touches two records, so it appends `voided` on the original (with the reason) and `replaced` on the replacement, one event per record. A manual shift is `created`, and a revised replacement draft is `finalized`. Deleting an employment deletes its history and its agreements' history.
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** the table, DAO and appends. `changes_json` holds formatted field values for display. It is local data, so it is never logged, never in diagnostics, and never in routes.
+- [x] **Step 4: Regenerate Drift output and update the fingerprint test.** Run `dart run build_runner build --delete-conflicting-outputs`, then the database tests.
+- [x] **Step 5: Run** the full suite and analysis. Expected: PASS.
+- [x] **Step 6: Commit** `feat: record an append-only history for Work records`.
 
 ### Task 6: Work in the shell (Phase 0)
 

@@ -5353,6 +5353,527 @@ class PayslipsCompanion extends UpdateCompanion<Payslip> {
   }
 }
 
+class $RecordEventsTable extends RecordEvents
+    with TableInfo<$RecordEventsTable, RecordEventRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecordEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _recordKindMeta = const VerificationMeta(
+    'recordKind',
+  );
+  @override
+  late final GeneratedColumn<String> recordKind = GeneratedColumn<String>(
+    'record_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _atUtcMicrosMeta = const VerificationMeta(
+    'atUtcMicros',
+  );
+  @override
+  late final GeneratedColumn<int> atUtcMicros = GeneratedColumn<int>(
+    'at_utc_micros',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>(
+      "kind IN ('created', 'changed', 'finalized', 'voided', 'replaced', "
+      "'reviewed')",
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _changesJsonMeta = const VerificationMeta(
+    'changesJson',
+  );
+  @override
+  late final GeneratedColumn<String> changesJson = GeneratedColumn<String>(
+    'changes_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _revisionAfterMeta = const VerificationMeta(
+    'revisionAfter',
+  );
+  @override
+  late final GeneratedColumn<int> revisionAfter = GeneratedColumn<int>(
+    'revision_after',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>('revision_after >= 0'),
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    recordKind,
+    recordId,
+    atUtcMicros,
+    kind,
+    changesJson,
+    reason,
+    revisionAfter,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'record_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RecordEventRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('record_kind')) {
+      context.handle(
+        _recordKindMeta,
+        recordKind.isAcceptableOrUnknown(data['record_kind']!, _recordKindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordKindMeta);
+    }
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('at_utc_micros')) {
+      context.handle(
+        _atUtcMicrosMeta,
+        atUtcMicros.isAcceptableOrUnknown(
+          data['at_utc_micros']!,
+          _atUtcMicrosMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_atUtcMicrosMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('changes_json')) {
+      context.handle(
+        _changesJsonMeta,
+        changesJson.isAcceptableOrUnknown(
+          data['changes_json']!,
+          _changesJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_changesJsonMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    }
+    if (data.containsKey('revision_after')) {
+      context.handle(
+        _revisionAfterMeta,
+        revisionAfter.isAcceptableOrUnknown(
+          data['revision_after']!,
+          _revisionAfterMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_revisionAfterMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RecordEventRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecordEventRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      recordKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_kind'],
+      )!,
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      atUtcMicros: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}at_utc_micros'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      changesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}changes_json'],
+      )!,
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      ),
+      revisionAfter: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision_after'],
+      )!,
+    );
+  }
+
+  @override
+  $RecordEventsTable createAlias(String alias) {
+    return $RecordEventsTable(attachedDatabase, alias);
+  }
+}
+
+class RecordEventRow extends DataClass implements Insertable<RecordEventRow> {
+  final int id;
+  final String recordKind;
+  final String recordId;
+  final int atUtcMicros;
+  final String kind;
+  final String changesJson;
+  final String? reason;
+  final int revisionAfter;
+  const RecordEventRow({
+    required this.id,
+    required this.recordKind,
+    required this.recordId,
+    required this.atUtcMicros,
+    required this.kind,
+    required this.changesJson,
+    this.reason,
+    required this.revisionAfter,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['record_kind'] = Variable<String>(recordKind);
+    map['record_id'] = Variable<String>(recordId);
+    map['at_utc_micros'] = Variable<int>(atUtcMicros);
+    map['kind'] = Variable<String>(kind);
+    map['changes_json'] = Variable<String>(changesJson);
+    if (!nullToAbsent || reason != null) {
+      map['reason'] = Variable<String>(reason);
+    }
+    map['revision_after'] = Variable<int>(revisionAfter);
+    return map;
+  }
+
+  RecordEventsCompanion toCompanion(bool nullToAbsent) {
+    return RecordEventsCompanion(
+      id: Value(id),
+      recordKind: Value(recordKind),
+      recordId: Value(recordId),
+      atUtcMicros: Value(atUtcMicros),
+      kind: Value(kind),
+      changesJson: Value(changesJson),
+      reason: reason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reason),
+      revisionAfter: Value(revisionAfter),
+    );
+  }
+
+  factory RecordEventRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecordEventRow(
+      id: serializer.fromJson<int>(json['id']),
+      recordKind: serializer.fromJson<String>(json['recordKind']),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      atUtcMicros: serializer.fromJson<int>(json['atUtcMicros']),
+      kind: serializer.fromJson<String>(json['kind']),
+      changesJson: serializer.fromJson<String>(json['changesJson']),
+      reason: serializer.fromJson<String?>(json['reason']),
+      revisionAfter: serializer.fromJson<int>(json['revisionAfter']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'recordKind': serializer.toJson<String>(recordKind),
+      'recordId': serializer.toJson<String>(recordId),
+      'atUtcMicros': serializer.toJson<int>(atUtcMicros),
+      'kind': serializer.toJson<String>(kind),
+      'changesJson': serializer.toJson<String>(changesJson),
+      'reason': serializer.toJson<String?>(reason),
+      'revisionAfter': serializer.toJson<int>(revisionAfter),
+    };
+  }
+
+  RecordEventRow copyWith({
+    int? id,
+    String? recordKind,
+    String? recordId,
+    int? atUtcMicros,
+    String? kind,
+    String? changesJson,
+    Value<String?> reason = const Value.absent(),
+    int? revisionAfter,
+  }) => RecordEventRow(
+    id: id ?? this.id,
+    recordKind: recordKind ?? this.recordKind,
+    recordId: recordId ?? this.recordId,
+    atUtcMicros: atUtcMicros ?? this.atUtcMicros,
+    kind: kind ?? this.kind,
+    changesJson: changesJson ?? this.changesJson,
+    reason: reason.present ? reason.value : this.reason,
+    revisionAfter: revisionAfter ?? this.revisionAfter,
+  );
+  RecordEventRow copyWithCompanion(RecordEventsCompanion data) {
+    return RecordEventRow(
+      id: data.id.present ? data.id.value : this.id,
+      recordKind: data.recordKind.present
+          ? data.recordKind.value
+          : this.recordKind,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      atUtcMicros: data.atUtcMicros.present
+          ? data.atUtcMicros.value
+          : this.atUtcMicros,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      changesJson: data.changesJson.present
+          ? data.changesJson.value
+          : this.changesJson,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      revisionAfter: data.revisionAfter.present
+          ? data.revisionAfter.value
+          : this.revisionAfter,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordEventRow(')
+          ..write('id: $id, ')
+          ..write('recordKind: $recordKind, ')
+          ..write('recordId: $recordId, ')
+          ..write('atUtcMicros: $atUtcMicros, ')
+          ..write('kind: $kind, ')
+          ..write('changesJson: $changesJson, ')
+          ..write('reason: $reason, ')
+          ..write('revisionAfter: $revisionAfter')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    recordKind,
+    recordId,
+    atUtcMicros,
+    kind,
+    changesJson,
+    reason,
+    revisionAfter,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecordEventRow &&
+          other.id == this.id &&
+          other.recordKind == this.recordKind &&
+          other.recordId == this.recordId &&
+          other.atUtcMicros == this.atUtcMicros &&
+          other.kind == this.kind &&
+          other.changesJson == this.changesJson &&
+          other.reason == this.reason &&
+          other.revisionAfter == this.revisionAfter);
+}
+
+class RecordEventsCompanion extends UpdateCompanion<RecordEventRow> {
+  final Value<int> id;
+  final Value<String> recordKind;
+  final Value<String> recordId;
+  final Value<int> atUtcMicros;
+  final Value<String> kind;
+  final Value<String> changesJson;
+  final Value<String?> reason;
+  final Value<int> revisionAfter;
+  const RecordEventsCompanion({
+    this.id = const Value.absent(),
+    this.recordKind = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.atUtcMicros = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.changesJson = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.revisionAfter = const Value.absent(),
+  });
+  RecordEventsCompanion.insert({
+    this.id = const Value.absent(),
+    required String recordKind,
+    required String recordId,
+    required int atUtcMicros,
+    required String kind,
+    required String changesJson,
+    this.reason = const Value.absent(),
+    required int revisionAfter,
+  }) : recordKind = Value(recordKind),
+       recordId = Value(recordId),
+       atUtcMicros = Value(atUtcMicros),
+       kind = Value(kind),
+       changesJson = Value(changesJson),
+       revisionAfter = Value(revisionAfter);
+  static Insertable<RecordEventRow> custom({
+    Expression<int>? id,
+    Expression<String>? recordKind,
+    Expression<String>? recordId,
+    Expression<int>? atUtcMicros,
+    Expression<String>? kind,
+    Expression<String>? changesJson,
+    Expression<String>? reason,
+    Expression<int>? revisionAfter,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (recordKind != null) 'record_kind': recordKind,
+      if (recordId != null) 'record_id': recordId,
+      if (atUtcMicros != null) 'at_utc_micros': atUtcMicros,
+      if (kind != null) 'kind': kind,
+      if (changesJson != null) 'changes_json': changesJson,
+      if (reason != null) 'reason': reason,
+      if (revisionAfter != null) 'revision_after': revisionAfter,
+    });
+  }
+
+  RecordEventsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? recordKind,
+    Value<String>? recordId,
+    Value<int>? atUtcMicros,
+    Value<String>? kind,
+    Value<String>? changesJson,
+    Value<String?>? reason,
+    Value<int>? revisionAfter,
+  }) {
+    return RecordEventsCompanion(
+      id: id ?? this.id,
+      recordKind: recordKind ?? this.recordKind,
+      recordId: recordId ?? this.recordId,
+      atUtcMicros: atUtcMicros ?? this.atUtcMicros,
+      kind: kind ?? this.kind,
+      changesJson: changesJson ?? this.changesJson,
+      reason: reason ?? this.reason,
+      revisionAfter: revisionAfter ?? this.revisionAfter,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (recordKind.present) {
+      map['record_kind'] = Variable<String>(recordKind.value);
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (atUtcMicros.present) {
+      map['at_utc_micros'] = Variable<int>(atUtcMicros.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (changesJson.present) {
+      map['changes_json'] = Variable<String>(changesJson.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (revisionAfter.present) {
+      map['revision_after'] = Variable<int>(revisionAfter.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('recordKind: $recordKind, ')
+          ..write('recordId: $recordId, ')
+          ..write('atUtcMicros: $atUtcMicros, ')
+          ..write('kind: $kind, ')
+          ..write('changesJson: $changesJson, ')
+          ..write('reason: $reason, ')
+          ..write('revisionAfter: $revisionAfter')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5363,6 +5884,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ShiftBreaksTable shiftBreaks = $ShiftBreaksTable(this);
   late final $PayPeriodsTable payPeriods = $PayPeriodsTable(this);
   late final $PayslipsTable payslips = $PayslipsTable(this);
+  late final $RecordEventsTable recordEvents = $RecordEventsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5375,6 +5897,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     shiftBreaks,
     payPeriods,
     payslips,
+    recordEvents,
   ];
 }
 
@@ -9402,6 +9925,274 @@ typedef $$PayslipsTableProcessedTableManager =
         bool replacedPayslipId,
       })
     >;
+typedef $$RecordEventsTableCreateCompanionBuilder =
+    RecordEventsCompanion Function({
+      Value<int> id,
+      required String recordKind,
+      required String recordId,
+      required int atUtcMicros,
+      required String kind,
+      required String changesJson,
+      Value<String?> reason,
+      required int revisionAfter,
+    });
+typedef $$RecordEventsTableUpdateCompanionBuilder =
+    RecordEventsCompanion Function({
+      Value<int> id,
+      Value<String> recordKind,
+      Value<String> recordId,
+      Value<int> atUtcMicros,
+      Value<String> kind,
+      Value<String> changesJson,
+      Value<String?> reason,
+      Value<int> revisionAfter,
+    });
+
+class $$RecordEventsTableFilterComposer
+    extends Composer<_$AppDatabase, $RecordEventsTable> {
+  $$RecordEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordKind => $composableBuilder(
+    column: $table.recordKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get atUtcMicros => $composableBuilder(
+    column: $table.atUtcMicros,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get changesJson => $composableBuilder(
+    column: $table.changesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get revisionAfter => $composableBuilder(
+    column: $table.revisionAfter,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RecordEventsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecordEventsTable> {
+  $$RecordEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordKind => $composableBuilder(
+    column: $table.recordKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get atUtcMicros => $composableBuilder(
+    column: $table.atUtcMicros,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get changesJson => $composableBuilder(
+    column: $table.changesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get revisionAfter => $composableBuilder(
+    column: $table.revisionAfter,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RecordEventsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecordEventsTable> {
+  $$RecordEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get recordKind => $composableBuilder(
+    column: $table.recordKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<int> get atUtcMicros => $composableBuilder(
+    column: $table.atUtcMicros,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get changesJson => $composableBuilder(
+    column: $table.changesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<int> get revisionAfter => $composableBuilder(
+    column: $table.revisionAfter,
+    builder: (column) => column,
+  );
+}
+
+class $$RecordEventsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RecordEventsTable,
+          RecordEventRow,
+          $$RecordEventsTableFilterComposer,
+          $$RecordEventsTableOrderingComposer,
+          $$RecordEventsTableAnnotationComposer,
+          $$RecordEventsTableCreateCompanionBuilder,
+          $$RecordEventsTableUpdateCompanionBuilder,
+          (
+            RecordEventRow,
+            BaseReferences<_$AppDatabase, $RecordEventsTable, RecordEventRow>,
+          ),
+          RecordEventRow,
+          PrefetchHooks Function()
+        > {
+  $$RecordEventsTableTableManager(_$AppDatabase db, $RecordEventsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecordEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecordEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecordEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> recordKind = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<int> atUtcMicros = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> changesJson = const Value.absent(),
+                Value<String?> reason = const Value.absent(),
+                Value<int> revisionAfter = const Value.absent(),
+              }) => RecordEventsCompanion(
+                id: id,
+                recordKind: recordKind,
+                recordId: recordId,
+                atUtcMicros: atUtcMicros,
+                kind: kind,
+                changesJson: changesJson,
+                reason: reason,
+                revisionAfter: revisionAfter,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String recordKind,
+                required String recordId,
+                required int atUtcMicros,
+                required String kind,
+                required String changesJson,
+                Value<String?> reason = const Value.absent(),
+                required int revisionAfter,
+              }) => RecordEventsCompanion.insert(
+                id: id,
+                recordKind: recordKind,
+                recordId: recordId,
+                atUtcMicros: atUtcMicros,
+                kind: kind,
+                changesJson: changesJson,
+                reason: reason,
+                revisionAfter: revisionAfter,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$RecordEventsTable, RecordEventRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $RecordEventsTable,
+                    RecordEventRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RecordEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RecordEventsTable,
+      RecordEventRow,
+      $$RecordEventsTableFilterComposer,
+      $$RecordEventsTableOrderingComposer,
+      $$RecordEventsTableAnnotationComposer,
+      $$RecordEventsTableCreateCompanionBuilder,
+      $$RecordEventsTableUpdateCompanionBuilder,
+      (
+        RecordEventRow,
+        BaseReferences<_$AppDatabase, $RecordEventsTable, RecordEventRow>,
+      ),
+      RecordEventRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9420,4 +10211,6 @@ class $AppDatabaseManager {
       $$PayPeriodsTableTableManager(_db, _db.payPeriods);
   $$PayslipsTableTableManager get payslips =>
       $$PayslipsTableTableManager(_db, _db.payslips);
+  $$RecordEventsTableTableManager get recordEvents =>
+      $$RecordEventsTableTableManager(_db, _db.recordEvents);
 }

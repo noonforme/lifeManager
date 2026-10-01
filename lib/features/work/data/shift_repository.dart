@@ -1,7 +1,9 @@
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../../core/database/app_database.dart' show AppDatabase;
+import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/app_clock.dart';
 import '../application/manual_shift_service.dart';
 import '../application/shift_lifecycle_service.dart';
 import '../domain/agreement.dart';
@@ -13,20 +15,27 @@ import '../domain/shift.dart';
 import 'daos/agreement_dao.dart';
 import 'daos/employment_dao.dart';
 import 'daos/shift_dao.dart';
+import 'work_history.dart';
 
 final class DriftShiftRepository
     implements
         ShiftLifecycleRepository,
         ManualShiftRepository,
         ShiftDraftRevisionRepository {
-  DriftShiftRepository(this._database, {ShiftBreakId Function()? createBreakId})
-    : _createBreakId = createBreakId ?? _missingBreakIdFactory,
-      _shifts = ShiftDao(_database),
-      _agreements = AgreementDao(_database),
-      _employments = EmploymentDao(_database);
+  /// History entries are stamped by [clock].
+  DriftShiftRepository(
+    this._database, {
+    ShiftBreakId Function()? createBreakId,
+    AppClock? clock,
+  }) : _createBreakId = createBreakId ?? _missingBreakIdFactory,
+       _history = WorkHistoryWriter(_database, clock ?? SystemAppClock()),
+       _shifts = ShiftDao(_database),
+       _agreements = AgreementDao(_database),
+       _employments = EmploymentDao(_database);
 
   final AppDatabase _database;
   final ShiftBreakId Function() _createBreakId;
+  final WorkHistoryWriter _history;
   final ShiftDao _shifts;
   final AgreementDao _agreements;
   final EmploymentDao _employments;
@@ -64,6 +73,7 @@ final class DriftShiftRepository
           'activeShift': [FieldIssue(FieldIssueCode.conflict)],
         });
       }
+      await _recordShift(shift.id, RecordEventKind.created);
       return Committed<WorkShift>(shift);
     });
   }
@@ -104,10 +114,17 @@ final class DriftShiftRepository
           'break': [FieldIssue(FieldIssueCode.conflict)],
         });
       }
+      final before = await _factsOf(value.shiftId);
       if (await startBreak(value, expectedShift: expectedShift) == 0) {
         return const Stale<WorkShift>();
       }
-      return Committed<WorkShift>((await _shifts.byId(value.shiftId))!);
+      return Committed<WorkShift>(
+        await _recordShift(
+          value.shiftId,
+          RecordEventKind.changed,
+          before: before,
+        ),
+      );
     });
   }
 
@@ -170,6 +187,7 @@ final class DriftShiftRepository
           'break': [FieldIssue(FieldIssueCode.conflict)],
         });
       }
+      final before = await _factsOf(shiftId);
       if (await endBreak(
             id,
             shiftId: shiftId,
@@ -180,7 +198,9 @@ final class DriftShiftRepository
           0) {
         return const Stale<WorkShift>();
       }
-      return Committed<WorkShift>((await _shifts.byId(shiftId))!);
+      return Committed<WorkShift>(
+        await _recordShift(shiftId, RecordEventKind.changed, before: before),
+      );
     });
   }
 
@@ -210,10 +230,13 @@ final class DriftShiftRepository
           'endUtc': [FieldIssue(FieldIssueCode.outOfRange)],
         });
       }
+      final before = await _factsOf(id);
       if (await endShift(id, endUtc: endUtc, expected: expected) == 0) {
         return const Stale<WorkShift>();
       }
-      return Committed<WorkShift>((await _shifts.byId(id))!);
+      return Committed<WorkShift>(
+        await _recordShift(id, RecordEventKind.changed, before: before),
+      );
     });
   }
 
@@ -221,6 +244,27 @@ final class DriftShiftRepository
     ShiftId id, {
     required Revision expected,
     bool failAfterAgreementLinkForTest = false,
+  }) {
+    return _database.transaction(() async {
+      final before = await _factsOf(id);
+      final outcome = await _finalize(id, expected: expected);
+      if (outcome is! Committed<WorkShift>) return outcome;
+      final finalized = await _recordShift(
+        id,
+        RecordEventKind.finalized,
+        before: before,
+      );
+      if (failAfterAgreementLinkForTest) {
+        throw StateError('Synthetic finalization failure.');
+      }
+      return Committed<WorkShift>(finalized);
+    });
+  }
+
+  /// Finalizes without a history entry; callers record their own event.
+  Future<MutationOutcome<WorkShift>> _finalize(
+    ShiftId id, {
+    required Revision expected,
   }) {
     return _database.transaction(() async {
       final shift = await _shifts.byId(id);
@@ -244,9 +288,6 @@ final class DriftShiftRepository
       }
       final changed = await _shifts.finalize(facts.shift, expected: expected);
       if (changed == 0) return const Stale<WorkShift>();
-      if (failAfterAgreementLinkForTest) {
-        throw StateError('Synthetic finalization failure.');
-      }
       return Committed<WorkShift>((await _shifts.byId(id))!);
     });
   }
@@ -284,7 +325,11 @@ final class DriftShiftRepository
       for (final value in breaks) {
         await _shifts.insertBreak(value);
       }
-      return finalizeShift(draft.id, expected: draft.revision);
+      final outcome = await _finalize(draft.id, expected: draft.revision);
+      if (outcome is! Committed<WorkShift>) return outcome;
+      return Committed<WorkShift>(
+        await _recordShift(draft.id, RecordEventKind.created),
+      );
     });
   }
 
@@ -307,6 +352,7 @@ final class DriftShiftRepository
           });
         }
         if (current.revision != expected) return const Stale<WorkShift>();
+        final before = await _factsOf(current.id);
         final agreements = await _agreements.forEmployment(
           current.employmentId,
         );
@@ -327,14 +373,20 @@ final class DriftShiftRepository
         for (final value in breaks) {
           await _shifts.insertBreak(value);
         }
-        final finalized = await finalizeShift(
+        final finalized = await _finalize(
           revised.id,
           expected: expected.next(),
         );
         if (finalized is! Committed<WorkShift>) {
           throw _RevisionRejected(finalized);
         }
-        return finalized;
+        return Committed<WorkShift>(
+          await _recordShift(
+            revised.id,
+            RecordEventKind.finalized,
+            before: before,
+          ),
+        );
       });
     } on _RevisionRejected catch (rejected) {
       return rejected.outcome;
@@ -377,6 +429,7 @@ final class DriftShiftRepository
         final original = await _shifts.byId(originalId);
         if (original == null) return const Missing<WorkShift>();
         if (original.revision != expected) return const Stale<WorkShift>();
+        final before = await _factsOf(originalId);
         final correction = prepareShiftCorrection(
           original: original,
           replacementId: replacement.id,
@@ -404,6 +457,13 @@ final class DriftShiftRepository
             ),
           );
         }
+        await _recordShift(
+          originalId,
+          RecordEventKind.voided,
+          before: before,
+          reason: correction.voidedOriginal.voidReason,
+        );
+        await _recordShift(replacement.id, RecordEventKind.replaced);
         return Committed<WorkShift>(replacement);
       });
     } on _StaleCorrection {
@@ -425,6 +485,35 @@ final class _StaleCorrection implements Exception {
 
 final class _StaleBreakEnd implements Exception {
   const _StaleBreakEnd();
+}
+
+extension on DriftShiftRepository {
+  Future<Map<String, String?>> _factsOf(ShiftId id) async {
+    final shift = await _shifts.byId(id);
+    return shift == null
+        ? const {}
+        : shiftFacts(shift, await _shifts.breaksFor(id));
+  }
+
+  /// Appends the shift's event against its committed state and returns it.
+  Future<WorkShift> _recordShift(
+    ShiftId id,
+    RecordEventKind kind, {
+    Map<String, String?> before = const {},
+    String? reason,
+  }) async {
+    final shift = (await _shifts.byId(id))!;
+    await _history.record(
+      WorkRecordKinds.shift,
+      id.value,
+      kind: kind,
+      before: before,
+      after: shiftFacts(shift, await _shifts.breaksFor(id)),
+      revisionAfter: shift.revision,
+      reason: reason,
+    );
+    return shift;
+  }
 }
 
 ShiftBreakId _missingBreakIdFactory() {
