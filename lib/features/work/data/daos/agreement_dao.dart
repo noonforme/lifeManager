@@ -63,6 +63,31 @@ final class AgreementDao {
     );
   }
 
+  Future<domain.PayAgreement?> byId(AgreementId id) async {
+    final row = await (database.select(
+      database.payAgreements,
+    )..where((table) => table.id.equals(id.value))).getSingleOrNull();
+    if (row == null) return null;
+    return agreementFromRow(
+      row,
+      usedByFinalizedShift: await finishedShiftCount(id) > 0,
+    );
+  }
+
+  /// Shifts whose pay this agreement fixed: finalized ones and the voided
+  /// originals they replaced.
+  Future<int> finishedShiftCount(AgreementId id) async {
+    final row = await database
+        .customSelect(
+          'SELECT COUNT(*) AS count FROM work_shifts '
+          "WHERE agreement_id = ? AND state IN ('finalized', 'voided')",
+          variables: [Variable(id.value)],
+          readsFrom: {database.workShifts},
+        )
+        .getSingle();
+    return row.read<int>('count');
+  }
+
   Future<List<domain.PayAgreement>> forEmployment(EmploymentId id) async {
     final rows = await _rowsFor(id).get();
     return _decodeRows(rows, await _usedAgreementIds(id));

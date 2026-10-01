@@ -38,6 +38,26 @@ final createAgreementProvider = Provider<CreateAgreement>(
   (ref) => throw StateError('CreateAgreement has not been provided.'),
 );
 
+typedef UpdateEmployment = Future<MutationOutcome<Employment>> Function(
+  UpdateEmploymentCommand command,
+);
+typedef RemoveEmployment = Future<MutationOutcome<Employment>> Function(
+  DeleteEmploymentCommand command,
+);
+typedef UpdateAgreement = Future<MutationOutcome<PayAgreement>> Function(
+  UpdateAgreementCommand command,
+);
+
+final updateEmploymentProvider = Provider<UpdateEmployment>(
+  (ref) => throw StateError('UpdateEmployment has not been provided.'),
+);
+final deleteEmploymentProvider = Provider<RemoveEmployment>(
+  (ref) => throw StateError('DeleteEmployment has not been provided.'),
+);
+final updateAgreementProvider = Provider<UpdateAgreement>(
+  (ref) => throw StateError('UpdateAgreement has not been provided.'),
+);
+
 typedef StartShift = Future<MutationOutcome<WorkShift>> Function(
   StartShiftCommand command,
 );
@@ -260,22 +280,80 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       CreateAgreementCommand(
         employmentId: value.employmentId,
         version: 1,
-        terms: AgreementTerms(
-          effectiveStart: value.effectiveStart,
-          effectiveEnd: value.effectiveEnd,
-          hourlyRateMicroEur: value.hourlyRateMicroEur,
-          basis: value.basis,
-          overtimeThresholdMinutes: value.overtimeThresholdMinutes,
-          overtimeMultiplier: RationalMultiplier(
-            numerator: value.multiplierNumerator,
-            denominator: value.multiplierDenominator,
-          ),
-          label: _trimOptional(value.label),
-          note: _trimOptional(value.note),
-        ),
+        terms: value.terms,
       ),
     );
   }
+
+  /// Renames an employment and returns to its header.
+  Future<MutationOutcome<Employment>> updateEmployment(
+    Employment current,
+    EmploymentDraft value,
+  ) async {
+    draft = value;
+    final outcome = await ref.read(updateEmploymentProvider)(
+      UpdateEmploymentCommand(
+        employmentId: current.id,
+        expectedRevision: current.revision,
+        name: value.name.trim(),
+        legalLabel: _trimOptional(value.legalLabel),
+      ),
+    );
+    if (outcome is Committed<Employment>) _showEmployment(current.id);
+    return outcome;
+  }
+
+  /// Deletes an employment with no history and clears it from the route.
+  Future<MutationOutcome<Employment>> deleteEmployment(
+    Employment current,
+  ) async {
+    final outcome = await ref.read(deleteEmploymentProvider)(
+      DeleteEmploymentCommand(
+        employmentId: current.id,
+        expectedRevision: current.revision,
+      ),
+    );
+    if (outcome is Committed<Employment>) {
+      ref.read(replaceWorkRouteProvider)(
+        const WorkRouteState(
+          employmentId: null,
+          scope: null,
+          record: null,
+          mode: WorkInspectorMode.inspect,
+        ),
+      );
+    }
+    return outcome;
+  }
+
+  /// Rewrites an unused agreement and returns to the employment header.
+  Future<MutationOutcome<PayAgreement>> updateAgreement(
+    PayAgreement current,
+    AgreementDraft value,
+  ) async {
+    draft = value;
+    final outcome = await ref.read(updateAgreementProvider)(
+      UpdateAgreementCommand(
+        agreementId: current.id,
+        employmentId: current.employmentId,
+        expectedRevision: current.revision,
+        terms: value.terms,
+      ),
+    );
+    if (outcome is Committed<PayAgreement>) {
+      _showEmployment(current.employmentId);
+    }
+    return outcome;
+  }
+
+  void _showEmployment(EmploymentId id) => ref.read(replaceWorkRouteProvider)(
+    WorkRouteState(
+      employmentId: id,
+      scope: null,
+      record: null,
+      mode: WorkInspectorMode.inspect,
+    ),
+  );
 
   Future<MutationOutcome<WorkShift>> startShift({
     required EmploymentId employmentId,

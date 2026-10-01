@@ -189,6 +189,15 @@ final class _WorkRouteHost extends ConsumerWidget {
             .read(workControllerProvider.notifier)
             .reviseDraftShift,
         timezones: ref.read(timezoneServiceProvider),
+        onUpdateEmployment: ref
+            .read(workControllerProvider.notifier)
+            .updateEmployment,
+        onDeleteEmployment: ref
+            .read(workControllerProvider.notifier)
+            .deleteEmployment,
+        onUpdateAgreement: ref
+            .read(workControllerProvider.notifier)
+            .updateAgreement,
       ),
     );
   }

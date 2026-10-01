@@ -58,8 +58,9 @@ Explanation explainPaidTime(FinalizationFacts facts, TimezoneService zones) {
   );
 }
 
-/// Expected pay under the shift's agreement: regular time at the hourly
-/// rate plus overtime at the rate times the overtime multiplier.
+/// Expected pay under the shift's agreement: each group of paid time with
+/// the same premiums, at the hourly rate times the multiplier they stack
+/// to. The source names how the agreement stacks premiums.
 Explanation explainExpectedPay(FinalizationFacts facts, ExpectedPay pay) {
   final shift = facts.shift;
   final agreement = facts.agreement;
@@ -74,31 +75,43 @@ Explanation explainExpectedPay(FinalizationFacts facts, ExpectedPay pay) {
     agreement.id,
   );
   final rate = formatHourlyRate(agreement.hourlyRateMicroEur);
+  const one = RationalMultiplier(numerator: 1, denominator: 1);
   return Explanation(
     label: 'Est. pay, ${shift.localStartDate}',
     tokens: [
-      const TextToken('regular '),
-      OperandToken(formatDuration(pay.regularPaidSeconds), shiftSource),
-      const TextToken(' × '),
-      OperandToken(rate, agreementSource),
-      if (pay.overtimePaidSeconds > 0) ...[
-        const TextToken(' + overtime '),
-        OperandToken(formatDuration(pay.overtimePaidSeconds), shiftSource),
+      for (final (index, group) in pay.groups.indexed) ...[
+        TextToken('${index == 0 ? '' : ' + '}${_groupName(group)} '),
+        OperandToken(formatDuration(group.seconds), shiftSource),
         const TextToken(' × '),
         OperandToken(rate, agreementSource),
-        const TextToken(' × '),
-        OperandToken(
-          formatMultiplier(agreement.overtimeMultiplier),
-          agreementSource,
-        ),
+        if (group.multiplier != one) ...[
+          const TextToken(' × '),
+          OperandToken(formatMultiplier(group.multiplier), agreementSource),
+        ],
       ],
       const TextToken(' = '),
       ResultToken(formatMoney(pay.amount)),
     ],
     source: agreementSource,
-    sourceLabel: _agreementName(agreement),
+    sourceLabel:
+        '${_agreementName(agreement)}, '
+        '${_stackingWords(agreement.premiumStacking)}',
   );
 }
+
+String _groupName(PayGroup group) => group.isRegular
+    ? 'regular'
+    : [
+        if (group.night) 'night',
+        if (group.holiday) 'holiday',
+        if (group.overtime) 'overtime',
+      ].join(' & ');
+
+String _stackingWords(PremiumStacking stacking) => switch (stacking) {
+  PremiumStacking.highest => 'highest premium wins',
+  PremiumStacking.additive => 'premium extras add up',
+  PremiumStacking.multiplicative => 'premiums multiply',
+};
 
 String _basisWord(ReconciliationGroup group) => switch (group.basis) {
   GrossBasis() => 'gross',

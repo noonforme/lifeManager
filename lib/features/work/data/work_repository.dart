@@ -249,6 +249,7 @@ final class DriftWorkRepository
           canDeleteEmployment:
               employment != null &&
               !await _employments.hasHistory(employmentId),
+          availableEmployments: await _employments.active(),
         );
       }
 
@@ -279,6 +280,8 @@ final class DriftWorkRepository
           payslipRows: const [],
           paid: const Money(minorUnits: 0),
           reconciliation: null,
+          employment: await _employments.byId(employmentId),
+          availableEmployments: await _employments.active(),
         );
       }
       return;
@@ -331,6 +334,8 @@ final class DriftWorkRepository
           payslips: payslips,
           zoneClocks: _zoneClocks,
         ),
+        employment: await _employments.byId(employmentId),
+        availableEmployments: await _employments.active(),
       );
     }
   }
@@ -343,6 +348,7 @@ final class DriftWorkRepository
     await for (final _ in _database.tableUpdates(
       TableUpdateQuery.onAllTables([
         _database.employments,
+        _database.payAgreements,
         _database.payPeriods,
         _database.payslips,
         _database.workShifts,
@@ -370,6 +376,15 @@ final class DriftWorkRepository
       final value = await _shifts.byId(id);
       return value == null ? null : _shiftRecord(value);
     }
+    if (id is AgreementId) {
+      final value = await _agreements.byId(id);
+      return value == null
+          ? null
+          : AgreementRecordProjection(
+              value,
+              finishedShifts: await _agreements.finishedShiftCount(id),
+            );
+    }
     return null;
   }
 
@@ -380,8 +395,32 @@ final class DriftWorkRepository
     }
   }
 
-  Future<ShiftRecordProjection> _shiftRecord(WorkShift shift) async =>
-      ShiftRecordProjection(shift, breaks: await _shifts.breaksFor(shift.id));
+  Future<ShiftRecordProjection> _shiftRecord(WorkShift shift) async {
+    final breaks = await _shifts.breaksFor(shift.id);
+    final agreementId = shift.agreementId;
+    if (shift.state != ShiftState.finalized || agreementId == null) {
+      return ShiftRecordProjection(shift, breaks: breaks);
+    }
+    final agreement = await _agreements.byId(agreementId);
+    final facts = agreement == null
+        ? null
+        : validateFinalization(
+            shift: shift,
+            breaks: breaks,
+            agreements: [agreement],
+          ).facts;
+    if (facts == null) return ShiftRecordProjection(shift, breaks: breaks);
+    final clock = _zoneClocks(shift.timezoneId);
+    return ShiftRecordProjection(
+      shift,
+      breaks: breaks,
+      facts: facts,
+      pay: facts.expectedPay(
+        toLocal: clock.toLocal,
+        toInstants: clock.toInstants,
+      ),
+    );
+  }
 }
 
 final class _StalePayslipCorrection implements Exception {

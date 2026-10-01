@@ -7,6 +7,7 @@ import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/application/agreement_service.dart';
 import 'package:lifeos/features/work/application/employment_service.dart';
 import 'package:lifeos/features/work/application/work_commands.dart';
+import 'package:lifeos/features/work/data/projections/work_record_projection.dart';
 import 'package:lifeos/features/work/data/projections/work_register_projection.dart';
 import 'package:lifeos/features/work/data/work_converters.dart';
 import 'package:lifeos/features/work/data/work_repository.dart';
@@ -337,6 +338,31 @@ void main() {
         expect(projection.canDeleteEmployment, isTrue);
       },
     );
+
+    test('a finalized shift record carries its expected pay', () async {
+      final agreement = await createAgreement();
+      await database
+          .into(database.workShifts)
+          .insert(shiftToCompanion(_finalizedShift(agreement.id)));
+
+      final record =
+          await repository
+                  .watchRecord(
+                    const ShiftId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c31'),
+                  )
+                  .first
+              as ShiftRecordProjection;
+      // 09:00 to 17:00 in Vilnius at EUR 18.40/h.
+      expect(record.pay?.totalPaidSeconds, 8 * 3600);
+      expect(record.pay?.amount.minorUnits, 14720);
+      expect(record.facts?.agreement.id, agreement.id);
+
+      final agreementRecord =
+          await repository.watchRecord(agreement.id).first
+              as AgreementRecordProjection;
+      expect(agreementRecord.finishedShifts, 1);
+      expect(agreementRecord.inUse, isTrue);
+    });
 
     test('history blocks delete and use locks the agreement', () async {
       final agreement = await createAgreement();

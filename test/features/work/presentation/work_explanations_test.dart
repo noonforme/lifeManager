@@ -34,7 +34,33 @@ void main() {
         'Est. pay, 2026-09-29 = regular 8:00 × 18.40/h'
         ' + overtime 0:15 × 18.40/h × 1.5 = EUR 154.10',
       );
-      expect(explanation.sourceLabel, 'Agreement “Standard” v1');
+      expect(
+        explanation.sourceLabel,
+        'Agreement “Standard” v1, highest premium wins',
+      );
+    });
+
+    test('a night shift lists each premium group with its multiplier', () {
+      // 20:00 to 06:00 in Vilnius with no break: 10h, the last 2h overtime.
+      final facts = _facts(
+        start: DateTime.utc(2026, 9, 29, 17),
+        end: DateTime.utc(2026, 9, 30, 3),
+        withBreak: false,
+        zone: 'Europe/Vilnius',
+      );
+      final pay = _pay(facts);
+      final explanation = explainExpectedPay(facts, pay);
+
+      expect(
+        explanation.plainText,
+        'Est. pay, 2026-09-29 = regular 2:00 × 18.40/h'
+        ' + night 6:00 × 18.40/h × 1.5'
+        ' + night & overtime 2:00 × 18.40/h × 1.5 = EUR 257.60',
+      );
+      expect(
+        explanation.tokens.whereType<ResultToken>().single.text,
+        formatMoney(pay.amount),
+      );
     });
 
     test('a shift without overtime shows regular time only', () {
@@ -154,16 +180,21 @@ ExpectedPay _pay(FinalizationFacts facts) {
   );
 }
 
-FinalizationFacts _facts({DateTime? end}) {
+FinalizationFacts _facts({
+  DateTime? start,
+  DateTime? end,
+  bool withBreak = true,
+  String zone = 'Europe/Berlin',
+}) {
   final shift = WorkShift(
     id: _shiftId,
     employmentId: _employment,
     agreementId: null,
     state: ShiftState.draft,
     // 07:00 to 15:45 in Berlin (UTC+2) with a 30-minute break.
-    startUtc: DateTime.utc(2026, 9, 29, 5),
+    startUtc: start ?? DateTime.utc(2026, 9, 29, 5),
     endUtc: end ?? DateTime.utc(2026, 9, 29, 13, 45),
-    timezoneId: 'Europe/Berlin',
+    timezoneId: zone,
     localStartDate: LocalDate.parse('2026-09-29'),
     note: null,
     voidReason: null,
@@ -202,7 +233,7 @@ FinalizationFacts _facts({DateTime? end}) {
   );
   return validateFinalization(
     shift: shift,
-    breaks: breaks,
+    breaks: withBreak ? breaks : const [],
     agreements: [agreement],
   ).facts!;
 }

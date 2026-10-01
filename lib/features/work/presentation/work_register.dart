@@ -6,6 +6,7 @@ import '../../../shared/workbench/operational_state.dart';
 import '../data/daos/payslip_dao.dart';
 import '../data/daos/shift_dao.dart';
 import '../data/projections/work_register_projection.dart';
+import '../domain/employment.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay.dart';
@@ -20,6 +21,8 @@ final class WorkRegister extends StatelessWidget {
     required this.onPrimaryAction,
     this.onOpenEmployment,
     this.onNewPeriod,
+    this.onAllEmployments,
+    this.onCreateEmployment,
     super.key,
   });
 
@@ -29,6 +32,12 @@ final class WorkRegister extends StatelessWidget {
   final VoidCallback onPrimaryAction;
   final ValueChanged<EmploymentId>? onOpenEmployment;
   final VoidCallback? onNewPeriod;
+
+  /// Clears the employment from the route.
+  final VoidCallback? onAllEmployments;
+
+  /// Opens the employment form in the inspector.
+  final VoidCallback? onCreateEmployment;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +50,7 @@ final class WorkRegister extends StatelessWidget {
       );
     }
     final open = onOpenEmployment;
+    final create = onCreateEmployment ?? onPrimaryAction;
     if (value.scope.employmentId == null &&
         value.availableEmployments.isNotEmpty &&
         open != null) {
@@ -59,7 +69,7 @@ final class WorkRegister extends StatelessWidget {
                 child: Text(employment.name),
               ),
             FilledButton(
-              onPressed: onPrimaryAction,
+              onPressed: create,
               child: const Text('Create employment'),
             ),
           ],
@@ -69,10 +79,12 @@ final class WorkRegister extends StatelessWidget {
     if (value.scope.employmentId == null) {
       return OperationalState(
         kind: OperationalStateKind.empty,
-        title: 'Create an employment to begin.',
-        message: 'An employment anchors agreements, shifts, and pay evidence.',
+        title: 'Work',
+        message:
+            'Track shifts, see what you should be paid, and compare it with '
+            'your payslips. Start by adding where you work.',
         action: FilledButton(
-          onPressed: onPrimaryAction,
+          onPressed: create,
           child: const Text('Create employment'),
         ),
       );
@@ -90,6 +102,9 @@ final class WorkRegister extends StatelessWidget {
           projection: value,
           onPrimaryAction: onPrimaryAction,
           onNewPeriod: onNewPeriod,
+          onOpenEmployment: onOpenEmployment,
+          onAllEmployments: onAllEmployments,
+          onCreateEmployment: create,
         ),
         _Summary(projection: value),
         Expanded(
@@ -150,11 +165,17 @@ final class _Toolbar extends StatelessWidget {
     required this.projection,
     required this.onPrimaryAction,
     required this.onNewPeriod,
+    required this.onOpenEmployment,
+    required this.onAllEmployments,
+    required this.onCreateEmployment,
   });
 
   final WorkRegisterProjection projection;
   final VoidCallback onPrimaryAction;
   final VoidCallback? onNewPeriod;
+  final ValueChanged<EmploymentId>? onOpenEmployment;
+  final VoidCallback? onAllEmployments;
+  final VoidCallback onCreateEmployment;
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +187,14 @@ final class _Toolbar extends StatelessWidget {
         runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          _Control(label: 'Employment', detail: projection.employment?.name),
+          _EmploymentSwitcher(
+            current: projection.employment?.id,
+            currentName: projection.employment?.name,
+            employments: projection.availableEmployments,
+            onOpen: onOpenEmployment,
+            onAll: onAllEmployments,
+            onCreate: onCreateEmployment,
+          ),
           _Control(
             label: 'Scope',
             detail: switch (scope) {
@@ -187,6 +215,85 @@ final class _Toolbar extends StatelessWidget {
               child: const Text('New pay period'),
             ),
         ],
+      ),
+    );
+  }
+}
+
+sealed class _SwitcherChoice {
+  const _SwitcherChoice();
+}
+
+final class _OpenEmployment extends _SwitcherChoice {
+  const _OpenEmployment(this.id);
+
+  final EmploymentId id;
+}
+
+final class _AllEmployments extends _SwitcherChoice {
+  const _AllEmployments();
+}
+
+final class _CreateEmployment extends _SwitcherChoice {
+  const _CreateEmployment();
+}
+
+/// The toolbar's Employment control (spec 8.4): each active employment with
+/// a check on the current one, then All employments and Create employment.
+final class _EmploymentSwitcher extends StatelessWidget {
+  const _EmploymentSwitcher({
+    required this.current,
+    required this.currentName,
+    required this.employments,
+    required this.onOpen,
+    required this.onAll,
+    required this.onCreate,
+  });
+
+  final EmploymentId? current;
+  final String? currentName;
+  final List<Employment> employments;
+  final ValueChanged<EmploymentId>? onOpen;
+  final VoidCallback? onAll;
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_SwitcherChoice>(
+      tooltip: 'Switch employment',
+      onSelected: (choice) => switch (choice) {
+        _OpenEmployment(:final id) => onOpen?.call(id),
+        _AllEmployments() => onAll?.call(),
+        _CreateEmployment() => onCreate(),
+      },
+      itemBuilder: (context) => [
+        for (final employment in employments)
+          PopupMenuItem(
+            value: _OpenEmployment(employment.id),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  child: employment.id == current
+                      ? const Icon(Icons.check, size: 18)
+                      : null,
+                ),
+                Text(employment.name),
+              ],
+            ),
+          ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: _AllEmployments(),
+          child: Text('All employments'),
+        ),
+        const PopupMenuItem(
+          value: _CreateEmployment(),
+          child: Text('Create employment'),
+        ),
+      ],
+      child: IgnorePointer(
+        child: _Control(label: 'Employment', detail: currentName),
       ),
     );
   }

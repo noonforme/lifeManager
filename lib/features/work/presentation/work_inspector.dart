@@ -10,6 +10,7 @@ import '../domain/shift.dart';
 import 'correction_confirmation.dart';
 import 'period_payslip_forms.dart';
 import 'shift_forms.dart';
+import 'work_formats.dart';
 
 typedef MutateShift = Future<MutationOutcome<WorkShift>> Function(
   WorkShift shift,
@@ -107,7 +108,8 @@ final class _WorkInspectorState extends State<WorkInspector> {
         payslip: payslip,
         onCorrect: payslip.isEffective ? widget.onCorrect : null,
       ),
-      EmploymentRecordProjection() => const _UnavailableRecord(),
+      EmploymentRecordProjection() ||
+      AgreementRecordProjection() => const _UnavailableRecord(),
     };
   }
 
@@ -166,7 +168,10 @@ final class _WorkInspectorState extends State<WorkInspector> {
         container: true,
         explicitChildNodes: true,
         label: 'Finalized shift',
-        child: _FinalizedShift(onCorrect: widget.onCorrect),
+        child: _FinalizedShift(
+          pay: projection.pay,
+          onCorrect: widget.onCorrect,
+        ),
       ),
       ShiftState.draft || ShiftState.voided => const _UnavailableShift(),
     };
@@ -193,8 +198,9 @@ final class _WorkInspectorState extends State<WorkInspector> {
 }
 
 final class _FinalizedShift extends StatelessWidget {
-  const _FinalizedShift({this.onCorrect});
+  const _FinalizedShift({this.pay, this.onCorrect});
 
+  final ExpectedPay? pay;
   final VoidCallback? onCorrect;
 
   @override
@@ -207,8 +213,36 @@ final class _FinalizedShift extends StatelessWidget {
           'Shift finalized',
           style: Theme.of(context).textTheme.headlineSmall,
         ),
-        const SizedBox(height: 8),
-        const Text('The recorded agreement now determines the estimate.'),
+        const SizedBox(height: 12),
+        if (pay case final pay?) ...[
+          _Fact(label: 'Expected pay', value: formatMoney(pay.amount)),
+          _Fact(
+            label: 'Paid time',
+            value: formatDuration(pay.totalPaidSeconds),
+          ),
+          _Fact(
+            label: 'Regular hours',
+            value: formatDuration(pay.regularPaidSeconds),
+          ),
+          _Fact(
+            label: 'Night hours',
+            value: formatDuration(pay.nightPaidSeconds),
+          ),
+          _Fact(
+            label: 'Holiday hours',
+            value: formatDuration(pay.holidayPaidSeconds),
+          ),
+          _Fact(
+            label: 'Overtime hours',
+            value: formatDuration(pay.overtimePaidSeconds),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Expected pay is an estimate until a payslip confirms it. '
+            'Hours can count in more than one premium.',
+          ),
+        ] else
+          const Text('The recorded agreement now determines the estimate.'),
         if (onCorrect != null) ...[
           const SizedBox(height: 18),
           OutlinedButton(

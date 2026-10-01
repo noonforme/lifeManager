@@ -159,7 +159,12 @@ void main() {
       router.routeInformationProvider.value.uri.toString(),
       contains('employment='),
     );
-    expect(find.text('Create an employment to begin.'), findsNothing);
+    expect(
+      find.text(
+        'Track shifts, see what you should be paid, and compare it with your payslips. Start by adding where you work.',
+      ),
+      findsNothing,
+    );
     expect(
       find.descendant(
         of: find.bySemanticsLabel('Work register'),
@@ -175,7 +180,12 @@ void main() {
     router.go('/work');
     await tester.pumpAndSettle();
 
-    expect(find.text('Create an employment to begin.'), findsNothing);
+    expect(
+      find.text(
+        'Track shifts, see what you should be paid, and compare it with your payslips. Start by adding where you work.',
+      ),
+      findsNothing,
+    );
     expect(
       find.descendant(
         of: find.bySemanticsLabel('Work register'),
@@ -274,17 +284,16 @@ Future<void> _setUpEmployment(WidgetTester tester) async {
     find.byKey(const ValueKey('agreement-hourly-rate')),
     '20.00',
   );
-  await tester.enterText(
-    find.byKey(const ValueKey('agreement-threshold')),
-    '480',
-  );
-  await tester.enterText(
-    find.byKey(const ValueKey('agreement-multiplier-numerator')),
-    '3',
-  );
-  await tester.enterText(
-    find.byKey(const ValueKey('agreement-multiplier-denominator')),
-    '2',
+  final save = find.byKey(const ValueKey('save-agreement'));
+  await tester.scrollUntilVisible(
+    save,
+    240,
+    scrollable: find
+        .descendant(
+          of: find.bySemanticsLabel('Create agreement'),
+          matching: find.byType(Scrollable),
+        )
+        .first,
   );
   await tester.tap(find.byKey(const ValueKey('save-agreement')));
   await tester.pumpAndSettle();

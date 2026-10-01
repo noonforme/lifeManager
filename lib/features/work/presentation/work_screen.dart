@@ -8,6 +8,8 @@ import '../../../shared/workbench/lifeos_theme.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
+import '../domain/agreement.dart';
+import '../domain/employment.dart';
 import '../domain/ids.dart';
 import '../domain/pay_period.dart';
 import '../domain/payslip.dart';
@@ -46,6 +48,9 @@ final class WorkScreen extends StatefulWidget {
     this.onCorrectPayslip,
     this.onReviseDraft,
     this.timezones,
+    this.onUpdateEmployment,
+    this.onDeleteEmployment,
+    this.onUpdateAgreement,
     super.key,
   });
 
@@ -89,6 +94,17 @@ final class WorkScreen extends StatefulWidget {
   )?
   onReviseDraft;
   final TimezoneService? timezones;
+  final Future<MutationOutcome<Employment>> Function(
+    Employment current,
+    EmploymentDraft value,
+  )?
+  onUpdateEmployment;
+  final DeleteEmployment? onDeleteEmployment;
+  final Future<MutationOutcome<PayAgreement>> Function(
+    PayAgreement current,
+    AgreementDraft value,
+  )?
+  onUpdateAgreement;
 
   @override
   State<WorkScreen> createState() => _WorkScreenState();
@@ -181,8 +197,13 @@ final class _WorkScreenState extends State<WorkScreen> {
       AsyncLoading() || AsyncError() => null,
     };
     final routeRecord = ready is WorkReady ? ready.route.record : null;
+    final creating =
+        ready is WorkReady && ready.route.mode == WorkInspectorMode.create;
     final inspectorActive =
-        (routeRecord != null || _creatingPeriod || _payslipPeriod != null) &&
+        (routeRecord != null ||
+            creating ||
+            _creatingPeriod ||
+            _payslipPeriod != null) &&
         !_showRegister;
     return ShellFrame(
       desk: _RegisterLandmark(child: _register(ready)),
@@ -235,6 +256,22 @@ final class _WorkScreenState extends State<WorkScreen> {
                 _creatingPeriod = true;
                 _showRegister = false;
               }),
+        onAllEmployments: () => _go(
+          const WorkRouteState(
+            employmentId: null,
+            scope: null,
+            record: null,
+            mode: WorkInspectorMode.inspect,
+          ),
+        ),
+        onCreateEmployment: () => _go(
+          const WorkRouteState(
+            employmentId: null,
+            scope: null,
+            record: null,
+            mode: WorkInspectorMode.create,
+          ),
+        ),
       ),
       null => const OperationalState(
         kind: OperationalStateKind.unavailable,
@@ -291,6 +328,12 @@ final class _WorkScreenState extends State<WorkScreen> {
       }
       return EmploymentForm(onSubmit: widget.onCreateEmployment);
     }
+    if (route.record == null &&
+        route.mode == WorkInspectorMode.inspect &&
+        employment != null &&
+        state.inspector is WorkInspectorEmpty) {
+      return _employmentHeader(state.register, employment);
+    }
     final save = widget.onSaveManualShift;
     if (route.mode == WorkInspectorMode.edit &&
         route.record == null &&
@@ -316,6 +359,12 @@ final class _WorkScreenState extends State<WorkScreen> {
       WorkInspectorRecord(:final record)
           when route.mode == WorkInspectorMode.correct =>
         _correction(record),
+      WorkInspectorRecord(
+        record: EmploymentRecordProjection(:final employment),
+      ) =>
+        _employmentEditor(employment),
+      WorkInspectorRecord(record: final AgreementRecordProjection record) =>
+        _agreement(record, edit: route.mode == WorkInspectorMode.edit),
       WorkInspectorRecord(:final record)
           when route.mode == WorkInspectorMode.edit &&
               record is ShiftRecordProjection &&
@@ -333,6 +382,99 @@ final class _WorkScreenState extends State<WorkScreen> {
 }
 
 extension on _WorkScreenState {
+  void _go(WorkRouteState route) =>
+      widget.onNavigate(workRouteUri(route).toString());
+
+  void _showEmployment(
+    EmploymentId id, {
+    WorkRecordRef? record,
+    bool edit = false,
+  }) => _go(
+    WorkRouteState(
+      employmentId: id,
+      scope: null,
+      record: record,
+      mode: edit ? WorkInspectorMode.edit : WorkInspectorMode.inspect,
+    ),
+  );
+
+  Widget _employmentHeader(
+    WorkRegisterProjection register,
+    Employment employment,
+  ) {
+    final agreement = register.currentAgreement;
+    final agreementRef = agreement == null
+        ? null
+        : WorkRecordRef(kind: WorkRecordKind.agreement, id: agreement.id);
+    final delete = widget.onDeleteEmployment;
+    return EmploymentHeader(
+      key: ValueKey(('employment', employment.id, employment.revision)),
+      employment: employment,
+      canDelete: register.canDeleteEmployment && delete != null,
+      agreementInUse: register.agreementInUse,
+      onEdit: () => _showEmployment(
+        employment.id,
+        record: WorkRecordRef(
+          kind: WorkRecordKind.employment,
+          id: employment.id,
+        ),
+        edit: true,
+      ),
+      onDelete:
+          delete ??
+          (_) async =>
+              const Unavailable<Employment>(SafeFailureCode.storageUnavailable),
+      onEditAgreement: agreementRef == null || widget.onUpdateAgreement == null
+          ? null
+          : () => _showEmployment(
+              employment.id,
+              record: agreementRef,
+              edit: true,
+            ),
+      onViewAgreement: agreementRef == null
+          ? null
+          : () => _showEmployment(employment.id, record: agreementRef),
+    );
+  }
+
+  Widget _employmentEditor(Employment employment) {
+    final update = widget.onUpdateEmployment;
+    if (update == null) return const MissingRecordInspector();
+    return EmploymentForm(
+      key: ValueKey(('edit-employment', employment.id, employment.revision)),
+      initial: employment,
+      onSubmit: (value) => update(employment, value),
+    );
+  }
+
+  Widget _agreement(AgreementRecordProjection record, {required bool edit}) {
+    final agreement = record.agreement;
+    final update = widget.onUpdateAgreement;
+    if (edit && !record.inUse && update != null) {
+      return AgreementForm(
+        key: ValueKey(('edit-agreement', agreement.id, agreement.revision)),
+        employmentId: agreement.employmentId,
+        initial: agreement,
+        onSubmit: (value) => update(agreement, value),
+      );
+    }
+    return AgreementView(
+      key: ValueKey(('agreement', agreement.id, agreement.revision)),
+      agreement: agreement,
+      finishedShifts: record.finishedShifts,
+      onEdit: update == null
+          ? null
+          : () => _showEmployment(
+              agreement.employmentId,
+              record: WorkRecordRef(
+                kind: WorkRecordKind.agreement,
+                id: agreement.id,
+              ),
+              edit: true,
+            ),
+    );
+  }
+
   Widget _startOutcome(
     MutationOutcome<WorkShift> outcome, {
     VoidCallback? dismiss,

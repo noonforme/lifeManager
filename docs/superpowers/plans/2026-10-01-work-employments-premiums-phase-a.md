@@ -233,8 +233,9 @@ final class UpdateAgreementCommand  { /* agreementId, employmentId, expectedRevi
 **Files:**
 - Modify: `lib/features/work/presentation/work_register.dart`, `employment_agreement_forms.dart`, `shift_forms.dart`, `work_inspector.dart`, `work_screen.dart`, `work_controller.dart`, `work_explanations.dart`, `lib/app/app_router.dart`
 - Modify: presentation tests
+- Also: `AgreementRecordProjection` (agreement routes, finished-shift count), `ShiftRecordProjection.facts`/`pay`, `ExpectedPay.groups` (`PayGroup`) for the explanation
 
-- [ ] **Step 1: Write failing widget tests**, each matching spec section 8:
+- [x] **Step 1: Write failing widget tests**, each matching spec section 8:
   - **First launch:** the first-launch copy, and a one-press **Create employment** that opens the form in the inspector.
   - **Employment form:** hints, and the same form edits an employment.
   - **Agreement form:**
@@ -246,9 +247,9 @@ final class UpdateAgreementCommand  { /* agreementId, employmentId, expectedRevi
   - **Employment header:** **Edit**, **Edit agreement** only when the agreement is unused, and **Delete** only when `canDeleteEmployment`, with the inline confirmation copy. With history it reads "Has work history — archiving arrives in a later update."
   - **Finalized shift:** shows the expected amount and the regular, night, holiday and overtime hours, with the estimate note.
   - **Errors:** stale and in-use messages from section 9.
-- [ ] **Step 2: Extend the formula-bar explanations** for expected pay to list each premium group, for example `regular 6:00 × 18.40/h + night 2:00 × 18.40/h × 1.5 = …`, built from the same `ExpectedPay`, with the stacking mode named in the source label.
-- [ ] **Step 3: Run, implement, run.** Expected: FAIL, then PASS.
-- [ ] **Step 4: Commit** `feat: set up employments and agreements with premium defaults`.
+- [x] **Step 2: Extend the formula-bar explanations** for expected pay to list each premium group, for example `regular 6:00 × 18.40/h + night 2:00 × 18.40/h × 1.5 = …`, built from the same `ExpectedPay`, with the stacking mode named in the source label.
+- [x] **Step 3: Run, implement, run.** Expected: FAIL, then PASS.
+- [x] **Step 4: Commit** `feat: set up employments and agreements with premium defaults`.
 
 ### Task 7: Integration and verification
 
