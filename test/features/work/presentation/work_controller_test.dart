@@ -120,6 +120,9 @@ final class _ReactiveWorkQueryRepository implements WorkQueryRepository {
   @override
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) =>
       Stream.value(null);
+
+  @override
+  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
 }
 
 final class _FakeWorkQueryRepository implements WorkQueryRepository {
@@ -137,4 +140,7 @@ final class _FakeWorkQueryRepository implements WorkQueryRepository {
     watchedRecords.add(id);
     return Stream.value(null);
   }
+
+  @override
+  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
 }

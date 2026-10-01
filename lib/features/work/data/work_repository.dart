@@ -12,6 +12,7 @@ import '../domain/ids.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart';
 import '../domain/payslip.dart';
+import '../domain/shift.dart';
 import 'daos/agreement_dao.dart';
 import 'daos/employment_dao.dart';
 import 'daos/pay_period_dao.dart';
@@ -280,12 +281,41 @@ final class DriftWorkRepository
     }
     if (id is ShiftId) {
       final value = await _shifts.byId(id);
-      yield value == null
-          ? null
-          : ShiftRecordProjection(value, breaks: await _shifts.breaksFor(id));
+      yield value == null ? null : await _shiftRecord(value);
       return;
     }
     yield null;
+  }
+
+  @override
+  Stream<ShiftRecordProjection?> watchActiveShift() async* {
+    await for (final shift in _shifts.watchActive()) {
+      yield shift == null ? null : await _shiftRecord(shift);
+    }
+  }
+
+  Future<ShiftRecordProjection> _shiftRecord(WorkShift shift) async {
+    final breaks = await _shifts.breaksFor(shift.id);
+    int? suggestion;
+    if (shift.state == ShiftState.draft && shift.endUtc != null) {
+      final validation = validateFinalization(
+        shift: shift,
+        breaks: breaks,
+        agreements: await _agreements.forEmployment(shift.employmentId),
+      );
+      final facts = validation.facts;
+      if (facts != null) {
+        suggestion = suggestedOvertimeMinutes(
+          paidWholeMinutes: facts.paidSeconds ~/ 60,
+          agreement: facts.agreement,
+        );
+      }
+    }
+    return ShiftRecordProjection(
+      shift,
+      breaks: breaks,
+      suggestedOvertimeMinutes: suggestion,
+    );
   }
 }
 

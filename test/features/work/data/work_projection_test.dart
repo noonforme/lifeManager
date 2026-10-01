@@ -148,6 +148,67 @@ void main() {
     expect(shiftDetail.breaks, isEmpty);
   });
 
+  test(
+    'ended draft shift detail carries the agreement overtime suggestion',
+    () async {
+      final draft = _draftShift(
+        _insideShiftId,
+        start: DateTime.utc(2026, 9, 10, 6),
+        end: DateTime.utc(2026, 9, 10, 15, 30),
+      );
+      await database.into(database.workShifts).insert(shiftToCompanion(draft));
+      await database
+          .into(database.shiftBreaks)
+          .insert(
+            shiftBreakToCompanion(
+              ShiftBreak(
+                id: _breakId,
+                shiftId: _insideShiftId,
+                startUtc: DateTime.utc(2026, 9, 10, 11),
+                endUtc: DateTime.utc(2026, 9, 10, 11, 30),
+                createdAtUtc: DateTime.utc(2026, 9, 10, 11),
+                updatedAtUtc: DateTime.utc(2026, 9, 10, 11, 30),
+                revision: const Revision(1),
+              ),
+            ),
+          );
+
+      final detail =
+          await repository.watchRecord(_insideShiftId).first
+              as ShiftRecordProjection;
+
+      expect(detail.suggestedOvertimeMinutes, 60);
+    },
+  );
+
+  test('active shift projection follows the single running shift', () async {
+    final running = WorkShift(
+      id: _insideShiftId,
+      employmentId: _employmentId,
+      agreementId: null,
+      state: ShiftState.running,
+      startUtc: DateTime.utc(2026, 9, 10, 8),
+      endUtc: null,
+      timezoneId: 'Europe/Berlin',
+      localStartDate: const LocalDate(2026, 9, 10),
+      overtimeMinutes: 0,
+      note: null,
+      voidReason: null,
+      replacementShiftId: null,
+      replacedShiftId: null,
+      createdAtUtc: DateTime.utc(2026, 9, 10, 8),
+      updatedAtUtc: DateTime.utc(2026, 9, 10, 8),
+      revision: const Revision(0),
+    );
+
+    expect(await repository.watchActiveShift().first, isNull);
+    await database.into(database.workShifts).insert(shiftToCompanion(running));
+
+    final active = await repository.watchActiveShift().first;
+    expect(active?.shift.id, _insideShiftId);
+    expect(active?.breaks, isEmpty);
+  });
+
   test('stale payslip correction rolls back replacement insertion', () async {
     await repository.insertPayslip(_original);
     final replacement = _payslip(
@@ -177,6 +238,7 @@ const _originalId = PayslipId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c61');
 const _replacementId = PayslipId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c62');
 const _agreementId = AgreementId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21');
 const _insideShiftId = ShiftId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c31');
+const _breakId = ShiftBreakId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c33');
 const _outsideShiftId = ShiftId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c32');
 
 Employment _employment() => Employment.create(
@@ -261,4 +323,27 @@ Payslip _payslip({
   createdAtUtc: createdAtUtc,
   updatedAtUtc: createdAtUtc,
   revision: const Revision(0),
+);
+
+WorkShift _draftShift(
+  ShiftId id, {
+  required DateTime start,
+  required DateTime end,
+}) => WorkShift(
+  id: id,
+  employmentId: _employmentId,
+  agreementId: null,
+  state: ShiftState.draft,
+  startUtc: start,
+  endUtc: end,
+  timezoneId: 'Europe/Berlin',
+  localStartDate: LocalDate(start.year, start.month, start.day),
+  overtimeMinutes: 0,
+  note: null,
+  voidReason: null,
+  replacementShiftId: null,
+  replacedShiftId: null,
+  createdAtUtc: start,
+  updatedAtUtc: end,
+  revision: const Revision(2),
 );

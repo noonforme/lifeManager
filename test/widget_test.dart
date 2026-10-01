@@ -48,4 +48,7 @@ final class _EmptyWorkQueryRepository implements WorkQueryRepository {
   @override
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) =>
       Stream.value(null);
+
+  @override
+  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
 }

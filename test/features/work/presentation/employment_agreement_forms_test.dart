@@ -286,6 +286,9 @@ final class _QueryRepository implements WorkQueryRepository {
   @override
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) =>
       Stream.value(null);
+
+  @override
+  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
 }
 
 final _agreement = PayAgreement(

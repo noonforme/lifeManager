@@ -172,6 +172,9 @@ final class _FixedQueryRepository implements WorkQueryRepository {
   @override
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) =>
       Stream.value(null);
+
+  @override
+  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
 }
 
 Payslip _payslip(PayslipId id, int amount, RateBasis basis) => Payslip(

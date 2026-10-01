@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
@@ -138,6 +140,11 @@ final workRegisterProjectionProvider =
 final workRecordProjectionProvider = StreamProvider.autoDispose
     .family<WorkRecordProjection?, WorkRecordId>(
       (ref, id) => ref.watch(workQueryRepositoryProvider).watchRecord(id),
+    );
+
+final workActiveShiftProvider =
+    StreamProvider.autoDispose<ShiftRecordProjection?>(
+      (ref) => ref.watch(workQueryRepositoryProvider).watchActiveShift(),
     );
 
 final workControllerProvider =
@@ -436,6 +443,25 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       return WorkInvalidScope(reason);
     }
     final route = (parsed as ValidWorkRoute).state;
+    if (route.record == null &&
+        route.scope == null &&
+        route.mode == WorkInspectorMode.inspect) {
+      final active = await _valueOf(
+        ref.watch(workActiveShiftProvider),
+        ref.watch(workActiveShiftProvider.future),
+      );
+      if (active != null &&
+          (route.employmentId == null ||
+              route.employmentId == active.shift.employmentId)) {
+        final restored = routeForCommittedShift(active.shift);
+        final replace = ref.read(replaceWorkRouteProvider);
+        unawaited(
+          Future.microtask(() {
+            if (ref.mounted) replace(restored);
+          }),
+        );
+      }
+    }
     final register = await _valueOf(
       ref.watch(workRegisterProjectionProvider),
       ref.watch(workRegisterProjectionProvider.future),

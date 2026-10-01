@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../shared/workbench/inspector_pane.dart';
 import '../../../shared/workbench/lifeos_frame.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../../../shared/workbench/system_rail.dart';
+import '../data/projections/work_record_projection.dart';
+import '../domain/shift.dart';
 import 'employment_agreement_forms.dart';
 import 'work_controller.dart';
 import 'work_inspector.dart';
@@ -19,6 +22,10 @@ final class WorkScreen extends StatefulWidget {
     required this.onCreateEmployment,
     required this.onCreateAgreement,
     required this.onNavigate,
+    this.onStartBreak,
+    this.onEndBreak,
+    this.onEndShift,
+    this.onFinalize,
     super.key,
   });
 
@@ -28,6 +35,18 @@ final class WorkScreen extends StatefulWidget {
   final SubmitEmployment onCreateEmployment;
   final SubmitAgreement onCreateAgreement;
   final ValueChanged<String> onNavigate;
+  final MutateShift? onStartBreak;
+  final Future<MutationOutcome<WorkShift>> Function(
+    WorkShift shift,
+    ShiftBreak value,
+  )?
+  onEndBreak;
+  final MutateShift? onEndShift;
+  final Future<MutationOutcome<WorkShift>> Function(
+    WorkShift shift,
+    int overtimeMinutes,
+  )?
+  onFinalize;
 
   @override
   State<WorkScreen> createState() => _WorkScreenState();
@@ -124,10 +143,28 @@ final class _WorkScreenState extends State<WorkScreen> {
         title: 'Work record unavailable',
         message: 'The requested record is not available in this scope.',
       ),
-      WorkInspectorRecord(:final record) => WorkInspector.fromRecord(
-        projection: record,
-      ),
+      WorkInspectorRecord(:final record) => _recordInspector(record),
     };
+  }
+}
+
+extension on _WorkScreenState {
+  Widget _recordInspector(WorkRecordProjection record) {
+    final onEndBreak = widget.onEndBreak;
+    final onFinalize = widget.onFinalize;
+    final shift = record is ShiftRecordProjection ? record.shift : null;
+    return WorkInspector.fromRecord(
+      key: ValueKey(record.id),
+      projection: record,
+      onStartBreak: widget.onStartBreak,
+      onEndBreak: onEndBreak == null || shift == null
+          ? null
+          : (value) => onEndBreak(shift, value),
+      onEndShift: widget.onEndShift,
+      onFinalize: onFinalize == null || shift == null
+          ? null
+          : (minutes) => onFinalize(shift, minutes),
+    );
   }
 }
 

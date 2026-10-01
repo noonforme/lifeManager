@@ -133,6 +133,12 @@ final class _WorkRouteHost extends ConsumerWidget {
             .read(workControllerProvider.notifier)
             .submitAgreement,
         onNavigate: context.go,
+        onStartBreak: ref.read(workControllerProvider.notifier).startBreak,
+        onEndBreak: ref.read(workControllerProvider.notifier).endBreak,
+        onEndShift: ref.read(workControllerProvider.notifier).endShift,
+        onFinalize: (shift, minutes) => ref
+            .read(workControllerProvider.notifier)
+            .finalizeShift(shift, overtimeMinutes: minutes),
       ),
     );
   }
