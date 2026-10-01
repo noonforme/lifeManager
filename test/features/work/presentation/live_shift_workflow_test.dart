@@ -11,11 +11,15 @@ import 'package:lifeos/features/work/data/projections/work_register_projection.d
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
+import 'package:lifeos/features/work/presentation/correction_confirmation.dart';
 import 'package:lifeos/features/work/presentation/shift_forms.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_inspector.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
+import 'package:lifeos/shared/workbench/inspector_pane.dart';
+import 'package:lifeos/shared/workbench/lifeos_frame.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/shared/workbench/operational_state.dart';
 
 void main() {
   testWidgets(
@@ -127,6 +131,152 @@ void main() {
     await tester.tap(find.text('Confirm finalization'));
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('Finalized shift'), findsOneWidget);
+  });
+
+  testWidgets('all inspector states remain explicit', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 760);
+    addTearDown(tester.view.reset);
+    const privateNote = 'PRIVATE-NOTE-MARKER';
+    const privateAmount = '987654.32';
+    final fixtures = <_InspectorFixture>[
+      const _InspectorFixture(
+        name: 'noSelection',
+        title: 'Select a Work record',
+        child: OperationalState(
+          kind: OperationalStateKind.empty,
+          title: 'Select a Work record',
+          message: 'The selected record will remain beside the register.',
+        ),
+      ),
+      _InspectorFixture(
+        name: 'inspect',
+        title: 'Shift finalized',
+        child: WorkInspector.fromProjection(
+          projection: ShiftRecordProjection(
+            finalizedShift,
+            breaks: [closedBreak],
+          ),
+          onStartBreak: (_) async => Committed(onBreakShift),
+          onEndBreak: (_) async => Committed(runningAfterBreak),
+          onEndShift: (_) async => Committed(endedShift),
+          onFinalize: (_) async => Committed(finalizedShift),
+        ),
+      ),
+      _InspectorFixture(
+        name: 'create',
+        title: 'Record work',
+        child: ShiftCreateInspector(
+          onStartShift: () {},
+          onAddManualShift: () {},
+        ),
+      ),
+      _InspectorFixture(
+        name: 'editDraft',
+        title: 'Manual shift',
+        child: ShiftEditInspector(
+          employmentId: employmentId,
+          onSubmit: (_) async => Committed(finalizedShift),
+        ),
+      ),
+      _InspectorFixture(
+        name: 'running',
+        title: 'Shift running',
+        child: WorkInspector.fromProjection(
+          projection: ShiftRecordProjection(runningShift, breaks: const []),
+          onStartBreak: (_) async => Committed(onBreakShift),
+          onEndBreak: (_) async => Committed(runningAfterBreak),
+          onEndShift: (_) async => Committed(endedShift),
+          onFinalize: (_) async => Committed(finalizedShift),
+        ),
+      ),
+      _InspectorFixture(
+        name: 'onBreak',
+        title: 'Break in progress',
+        child: WorkInspector.fromProjection(
+          projection: ShiftRecordProjection(onBreakShift, breaks: [openBreak]),
+          onStartBreak: (_) async => Committed(onBreakShift),
+          onEndBreak: (_) async => Committed(runningAfterBreak),
+          onEndShift: (_) async => Committed(endedShift),
+          onFinalize: (_) async => Committed(finalizedShift),
+        ),
+      ),
+      _InspectorFixture(
+        name: 'validationFailure',
+        title: 'Overtime suggestion unavailable.',
+        child: WorkInspector.fromProjection(
+          projection: ShiftRecordProjection(endedShift, breaks: [closedBreak]),
+          onStartBreak: (_) async => Committed(onBreakShift),
+          onEndBreak: (_) async => Committed(runningAfterBreak),
+          onEndShift: (_) async => Committed(endedShift),
+          onFinalize: (_) async => Committed(finalizedShift),
+        ),
+      ),
+      const _InspectorFixture(
+        name: 'staleConflict',
+        title: 'Your record is out of date. Reload and review before trying again.',
+        child: StaleConflictInspector(
+          draft: Text('Preserved draft'),
+          onReload: _noop,
+        ),
+      ),
+      _InspectorFixture(
+        name: 'voidAndReplaceConfirmation',
+        title: 'Correct Shift on 2026-10-01',
+        child: CorrectionConfirmationInspector<WorkShift>(
+          recordName: 'Shift on 2026-10-01',
+          original: finalizedShift,
+          onConfirm: (_, _) async => Committed(finalizedShift),
+          onCancel: _noop,
+        ),
+      ),
+      const _InspectorFixture(
+        name: 'unavailable',
+        title: 'Local storage is unavailable. Your draft has been kept.',
+        child: UnavailableInspector(code: SafeFailureCode.storageUnavailable),
+      ),
+      const _InspectorFixture(
+        name: 'uncertainOutcome',
+        title: 'The save result is uncertain. Reload and inspect the record before trying again.',
+        child: UncertainOutcomeInspector(),
+      ),
+    ];
+
+    for (final fixture in fixtures) {
+      await tester.pumpWidget(
+        _TestWorkbench(key: ValueKey(fixture.name), inspector: fixture.child),
+      );
+
+      expect(
+        find.bySemanticsLabel('Record inspector'),
+        findsOneWidget,
+        reason: fixture.name,
+      );
+      expect(
+        find.bySemanticsLabel('Work register'),
+        findsOneWidget,
+        reason: fixture.name,
+      );
+      expect(find.text(fixture.title), findsOneWidget, reason: fixture.name);
+
+      final route = Uri(
+        path: '/work',
+        queryParameters: {
+          'record': 'shift:${shiftId.value}',
+          'mode': 'inspect',
+        },
+      );
+      expect(
+        route.toString(),
+        isNot(contains(privateNote)),
+        reason: fixture.name,
+      );
+      expect(
+        route.toString(),
+        isNot(contains(privateAmount)),
+        reason: fixture.name,
+      );
+    }
   });
 
   test('committed shift route uses its captured local date and safe ID', () {
@@ -253,6 +403,44 @@ void main() {
     },
   );
 }
+
+final class _InspectorFixture {
+  const _InspectorFixture({
+    required this.name,
+    required this.title,
+    required this.child,
+  });
+
+  final String name;
+  final String title;
+  final Widget child;
+}
+
+final class _TestWorkbench extends StatelessWidget {
+  const _TestWorkbench({required this.inspector, super.key});
+
+  final Widget inspector;
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+    theme: buildLifeOSTheme(highContrast: false),
+    home: Scaffold(
+      body: SizedBox(
+        width: 1280,
+        height: 760,
+        child: LifeOSFrame(
+          rail: const Text('Work'),
+          register: const Text('Synthetic register'),
+          inspector: InspectorPane(child: inspector),
+          inspectorIsActive: true,
+          onBackToRegister: _noop,
+        ),
+      ),
+    ),
+  );
+}
+
+void _noop() {}
 
 final class _QueryRepository implements WorkQueryRepository {
   @override

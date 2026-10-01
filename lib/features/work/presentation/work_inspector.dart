@@ -181,7 +181,7 @@ final class _WorkInspectorState extends State<WorkInspector> {
       ShiftState.draft when shift.endUtc != null =>
         const ValidationFailureInspector(
           message: 'Overtime suggestion unavailable.',
-          child: _UnavailableShift(),
+          child: _UnavailableShift(title: 'Overtime suggestion unavailable.'),
         ),
       ShiftState.finalized => Semantics(
         container: true,
@@ -351,11 +351,22 @@ String _money(Money money) {
 }
 
 final class _UnavailableShift extends StatelessWidget {
-  const _UnavailableShift();
+  const _UnavailableShift({this.title});
+
+  final String? title;
 
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.all(20),
-    child: Text('This shift is not available for the live workflow.'),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (title != null) ...[
+          Text(title!, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+        ],
+        const Text('This shift is not available for the live workflow.'),
+      ],
+    ),
   );
 }
