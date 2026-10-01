@@ -11,10 +11,14 @@ final class KeyButton extends StatefulWidget {
     required this.onPressed,
     this.kind = KeyKind.secondary,
     this.leading,
+    this.semanticLabel,
     super.key,
   });
 
   final String label;
+
+  /// Announced instead of [label], for example "Back, unavailable".
+  final String? semanticLabel;
 
   /// Null disables the key.
   final VoidCallback? onPressed;
@@ -88,7 +92,7 @@ final class _KeyButtonState extends State<KeyButton> {
       child: Semantics(
         button: true,
         enabled: _enabled,
-        label: widget.label,
+        label: widget.semanticLabel ?? widget.label,
         child: FocusableActionDetector(
           enabled: _enabled,
           mouseCursor: _enabled

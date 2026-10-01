@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../workbench/cell_selection.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/lifeos_tokens.dart';
+import 'navigation_history.dart';
 import 'shell_frame.dart';
 
 /// The shell's menu bar (spec 5.3). Items whose feature has not shipped
@@ -19,7 +20,6 @@ final class LifeOSMenuBar extends StatelessWidget {
   static const _desks = 'Desks arrive in a later update';
   static const _history = 'Record history arrives in a later update';
   static const _quickAdd = 'Quick add arrives in a later update';
-  static const _navigation = 'Back and forward arrive in a later update';
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +27,7 @@ final class LifeOSMenuBar extends StatelessWidget {
     final tokens = skin.tokens;
     final appearance = LifeOSAppearanceScope.maybeOf(context);
     final view = ShellViewScope.maybeOf(context);
+    final history = NavigationHistoryScope.maybeOf(context);
     final cell = CellSelectionScope.maybeOf(context)?.value;
     final explanation = cell?.explanation;
     final menuStyle = MenuStyle(
@@ -206,8 +207,18 @@ final class LifeOSMenuBar extends StatelessWidget {
                   later('Show history', _history),
                 ]),
                 menu('Window', [
-                  later('Back', _navigation),
-                  later('Forward', _navigation),
+                  item(
+                    'Back',
+                    history != null && history.canGoBack
+                        ? history.goBack
+                        : null,
+                  ),
+                  item(
+                    'Forward',
+                    history != null && history.canGoForward
+                        ? history.goForward
+                        : null,
+                  ),
                   later('Today', _desks),
                   later('Journal', 'The Journal arrives in a later update'),
                 ]),

@@ -314,14 +314,14 @@ abstract interface class RecordHistory {
 - Modify: `toolbar.dart`, `menu_bar.dart`, `shell_frame.dart`
 - Create: `test/shared/shell/navigation_history_test.dart`
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Back returns to the previous location and Forward re-applies it.
   - New navigation clears the forward stack.
   - The stack caps at 100 entries.
   - Pointer buttons 4 and 5 (`kBackMouseButton`, `kForwardMouseButton`) trigger Back and Forward.
   - Disabled buttons announce "Back, unavailable".
-- [ ] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
-- [ ] **Step 3: Commit** `feat: add back and forward navigation`.
+- [x] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
+- [x] **Step 3: Commit** `feat: add back and forward navigation`.
 
 ### Task 8: Quick add and "from last time"
 

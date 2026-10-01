@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 
 import '../workbench/lifeos_skin.dart';
 import '../workbench/office_controls.dart';
 import 'formula_bar.dart';
+import 'navigation_history.dart';
 
 /// Fixed shell geometry (spec 5.1–5.2).
 abstract final class ShellMetrics {
@@ -307,6 +309,7 @@ final class _Toolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
+    final history = NavigationHistoryScope.maybeOf(context);
     return Container(
       constraints: const BoxConstraints(minHeight: ShellMetrics.toolbarHeight),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -316,6 +319,24 @@ final class _Toolbar extends StatelessWidget {
       ),
       child: Row(
         children: [
+          if (history != null) ...[
+            KeyButton(
+              label: 'Back',
+              leading: Icon(Icons.arrow_back, size: 16, color: tokens.ink),
+              semanticLabel: history.canGoBack ? 'Back' : 'Back, unavailable',
+              onPressed: history.canGoBack ? history.goBack : null,
+            ),
+            const SizedBox(width: 6),
+            KeyButton(
+              label: 'Forward',
+              leading: Icon(Icons.arrow_forward, size: 16, color: tokens.ink),
+              semanticLabel: history.canGoForward
+                  ? 'Forward'
+                  : 'Forward, unavailable',
+              onPressed: history.canGoForward ? history.goForward : null,
+            ),
+            const SizedBox(width: 10),
+          ],
           if (showBooks) ...[
             KeyButton(
               label: booksOpen ? 'Close books' : 'Books',
