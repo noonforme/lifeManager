@@ -69,6 +69,16 @@ final class DriftWorkRepository
   @override
   Future<Employment?> employmentById(EmploymentId id) => _employments.byId(id);
 
+  @override
+  Future<bool> employmentHasHistory(EmploymentId id) =>
+      _employments.hasHistory(id);
+
+  @override
+  Future<int> deleteEmployment(EmploymentId id, {required Revision expected}) =>
+      _database.transaction(
+        () => _employments.deleteWithAgreements(id, expected),
+      );
+
   Stream<Employment?> watchEmployment(EmploymentId id) =>
       _employments.watchById(id);
 
@@ -217,24 +227,39 @@ final class DriftWorkRepository
     if (temporal == null) {
       // Re-read on setup changes too, so a new agreement moves the selected
       // employment out of setup without re-selection.
-      Future<WorkRegisterProjection> load() async => WorkRegisterProjection(
-        scope: scope,
-        period: null,
-        shiftRows: const [],
-        payslipRows: const [],
-        paid: const Money(minorUnits: 0),
-        reconciliation: null,
-        periodRows: await _periods.forEmployment(employmentId),
-        employment: await _employments.byId(employmentId),
-        hasAgreement: (await _agreements.forEmployment(employmentId))
-            .isNotEmpty,
-      );
+      Future<WorkRegisterProjection> load() async {
+        final agreements = await _agreements.forEmployment(employmentId);
+        final employment = await _employments.byId(employmentId);
+        return WorkRegisterProjection(
+          scope: scope,
+          period: null,
+          shiftRows: const [],
+          payslipRows: const [],
+          paid: const Money(minorUnits: 0),
+          reconciliation: null,
+          periodRows: await _periods.forEmployment(employmentId),
+          employment: employment,
+          hasAgreement: agreements.isNotEmpty,
+          currentAgreement: agreements.isEmpty
+              ? null
+              : agreements.reduce(
+                  (a, b) =>
+                      a.effectiveStart.compareTo(b.effectiveStart) >= 0 ? a : b,
+                ),
+          canDeleteEmployment:
+              employment != null &&
+              !await _employments.hasHistory(employmentId),
+        );
+      }
+
       yield await load();
       await for (final _ in _database.tableUpdates(
         TableUpdateQuery.onAllTables([
           _database.employments,
           _database.payAgreements,
           _database.payPeriods,
+          _database.workShifts,
+          _database.payslips,
         ]),
       )) {
         yield await load();

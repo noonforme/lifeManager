@@ -260,15 +260,19 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       CreateAgreementCommand(
         employmentId: value.employmentId,
         version: 1,
-        effectiveStart: value.effectiveStart,
-        effectiveEnd: value.effectiveEnd,
-        hourlyRateMicroEur: value.hourlyRateMicroEur,
-        basis: value.basis,
-        overtimeThresholdMinutes: value.overtimeThresholdMinutes,
-        overtimeMultiplierNumerator: value.multiplierNumerator,
-        overtimeMultiplierDenominator: value.multiplierDenominator,
-        label: _trimOptional(value.label),
-        note: _trimOptional(value.note),
+        terms: AgreementTerms(
+          effectiveStart: value.effectiveStart,
+          effectiveEnd: value.effectiveEnd,
+          hourlyRateMicroEur: value.hourlyRateMicroEur,
+          basis: value.basis,
+          overtimeThresholdMinutes: value.overtimeThresholdMinutes,
+          overtimeMultiplier: RationalMultiplier(
+            numerator: value.multiplierNumerator,
+            denominator: value.multiplierDenominator,
+          ),
+          label: _trimOptional(value.label),
+          note: _trimOptional(value.note),
+        ),
       ),
     );
   }

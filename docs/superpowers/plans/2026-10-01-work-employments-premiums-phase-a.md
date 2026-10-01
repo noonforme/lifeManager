@@ -206,26 +206,27 @@ Removing the overtime field touches the domain, the schema, the services and the
 **Files:**
 - Modify: `lib/features/work/application/work_commands.dart`, `employment_service.dart`, `agreement_service.dart`, `shift_lifecycle_service.dart`, `manual_shift_service.dart`, `work_query_service.dart`
 - Modify: `lib/features/work/data/projections/work_register_projection.dart`, `work_repository.dart`
-- Modify: application tests
+- Modify: application tests; create `test/features/work/application/work_setup_service_test.dart` (Drift-backed)
 
 **Interfaces:**
 
 ```dart
 final class UpdateEmploymentCommand { /* employmentId, expectedRevision, name, legalLabel */ }
 final class DeleteEmploymentCommand { /* employmentId, expectedRevision */ }
-final class UpdateAgreementCommand  { /* agreementId, expectedRevision, every editable field */ }
-// CreateAgreementCommand gains the premium fields.
+final class AgreementTerms { /* every editable field; premiums default to AgreementDefaults */ }
+final class UpdateAgreementCommand  { /* agreementId, employmentId, expectedRevision, terms */ }
+// CreateAgreementCommand(employmentId, version, terms).
 // WorkRegisterProjection gains: canDeleteEmployment, currentAgreement, agreementInUse.
 ```
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Updating an employment works.
   - Delete is blocked by a shift, a pay period or a payslip (`Invalid` with `employment.hasHistory`), and otherwise deletes the employment and its unused agreements in one transaction.
   - Updating an agreement is blocked when it is in use (`agreement.inUse`) and revalidates overlaps.
   - Stale revisions return `Stale`, and missing records return `Missing`.
   - The projection reports `canDeleteEmployment`, `currentAgreement` and `agreementInUse`.
-- [ ] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
-- [ ] **Step 3: Commit** `feat: edit and delete Work setup that has no history`.
+- [x] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
+- [x] **Step 3: Commit** `feat: edit and delete Work setup that has no history`.
 
 ### Task 6: Presentation
 

@@ -37,7 +37,12 @@ void main() {
 
   test('invalid multiplier returns issues without opening a write', () async {
     final result = await service.createAgreement(
-      _command(overtimeMultiplierDenominator: 0),
+      _command(
+        overtimeMultiplier: const RationalMultiplier(
+          numerator: 2,
+          denominator: 3,
+        ),
+      ),
     );
 
     expect(result, isA<Invalid<PayAgreement>>());
@@ -78,19 +83,22 @@ final _now = DateTime.utc(2026, 9, 30, 10);
 
 CreateAgreementCommand _command({
   int hourlyRateMicroEur = 20000000,
-  int overtimeMultiplierDenominator = 2,
+  RationalMultiplier overtimeMultiplier = const RationalMultiplier(
+    numerator: 3,
+    denominator: 2,
+  ),
 }) => CreateAgreementCommand(
   employmentId: _employmentId,
   version: 1,
-  effectiveStart: const LocalDate(2026, 9, 1),
-  effectiveEnd: null,
-  hourlyRateMicroEur: hourlyRateMicroEur,
-  basis: const GrossBasis(),
-  overtimeThresholdMinutes: 480,
-  overtimeMultiplierNumerator: 3,
-  overtimeMultiplierDenominator: overtimeMultiplierDenominator,
-  label: '  Synthetic agreement  ',
-  note: '  Synthetic note  ',
+  terms: AgreementTerms(
+    effectiveStart: const LocalDate(2026, 9, 1),
+    effectiveEnd: null,
+    hourlyRateMicroEur: hourlyRateMicroEur,
+    basis: const GrossBasis(),
+    overtimeMultiplier: overtimeMultiplier,
+    label: '  Synthetic agreement  ',
+    note: '  Synthetic note  ',
+  ),
 );
 
 PayAgreement _agreement() => PayAgreement(
@@ -122,6 +130,15 @@ final class _FakeRepository implements WorkCommandRepository {
 }
 
 final class _FakeStore implements WorkWriteStore {
+  @override
+  Future<bool> employmentHasHistory(EmploymentId id) async => false;
+
+  @override
+  Future<int> deleteEmployment(
+    EmploymentId id, {
+    required Revision expected,
+  }) async => 1;
+
   List<PayAgreement> agreements = [];
   int nextAgreementUpdateCount = 1;
 

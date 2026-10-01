@@ -1,4 +1,5 @@
 import '../../../../core/time/local_date.dart';
+import '../../domain/agreement.dart';
 import '../../domain/employment.dart';
 import '../../domain/ids.dart';
 import '../../domain/pay.dart';
@@ -42,6 +43,8 @@ final class WorkRegisterProjection {
     this.periodRows = const [],
     this.employment,
     this.hasAgreement = false,
+    this.currentAgreement,
+    this.canDeleteEmployment = false,
     this.availableEmployments = const [],
   });
 
@@ -61,6 +64,17 @@ final class WorkRegisterProjection {
 
   /// Whether the selected employment has at least one pay agreement.
   final bool hasAgreement;
+
+  /// The selected employment's latest agreement, the one setup edits.
+  final PayAgreement? currentAgreement;
+
+  /// Whether a finalized shift uses [currentAgreement], so it is evidence
+  /// and can no longer be edited.
+  bool get agreementInUse => currentAgreement?.usedByFinalizedShift ?? false;
+
+  /// Whether the selected employment has no shifts, pay periods or payslips
+  /// and can be deleted.
+  final bool canDeleteEmployment;
 
   /// Active employments, listed when no employment is selected so Work can
   /// reopen an existing one instead of restarting setup.

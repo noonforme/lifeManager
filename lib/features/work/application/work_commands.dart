@@ -2,6 +2,7 @@ import '../../../core/time/local_date.dart';
 import '../../../core/time/local_time.dart';
 import '../../../core/time/timezone_service.dart';
 import '../data/work_write_store.dart';
+import '../domain/agreement.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay_period.dart';
@@ -23,6 +24,32 @@ final class CreateEmploymentCommand {
   final String? legalLabel;
 }
 
+final class UpdateEmploymentCommand {
+  const UpdateEmploymentCommand({
+    required this.employmentId,
+    required this.expectedRevision,
+    required this.name,
+    required this.legalLabel,
+  });
+
+  final EmploymentId employmentId;
+  final Revision expectedRevision;
+  final String name;
+  final String? legalLabel;
+}
+
+/// Deletes an employment that has no shifts, pay periods or payslips,
+/// together with its agreements.
+final class DeleteEmploymentCommand {
+  const DeleteEmploymentCommand({
+    required this.employmentId,
+    required this.expectedRevision,
+  });
+
+  final EmploymentId employmentId;
+  final Revision expectedRevision;
+}
+
 final class ArchiveEmploymentCommand {
   const ArchiveEmploymentCommand({
     required this.employmentId,
@@ -33,32 +60,69 @@ final class ArchiveEmploymentCommand {
   final Revision expectedRevision;
 }
 
-final class CreateAgreementCommand {
-  const CreateAgreementCommand({
-    required this.employmentId,
-    required this.version,
+/// Every editable fact of a pay agreement. The premium fields default to
+/// [AgreementDefaults], so a new agreement needs only its range and rate.
+final class AgreementTerms {
+  const AgreementTerms({
     required this.effectiveStart,
     required this.effectiveEnd,
     required this.hourlyRateMicroEur,
     required this.basis,
-    required this.overtimeThresholdMinutes,
-    required this.overtimeMultiplierNumerator,
-    required this.overtimeMultiplierDenominator,
     required this.label,
     required this.note,
+    this.overtimeThresholdMinutes = AgreementDefaults.overtimeThresholdMinutes,
+    this.overtimeMultiplier = AgreementDefaults.overtimeMultiplier,
+    this.nightEnabled = AgreementDefaults.nightEnabled,
+    this.nightStartMinute = AgreementDefaults.nightStartMinute,
+    this.nightEndMinute = AgreementDefaults.nightEndMinute,
+    this.nightMultiplier = AgreementDefaults.nightMultiplier,
+    this.holidayCalendar = AgreementDefaults.holidayCalendar,
+    this.holidayMultiplier = AgreementDefaults.holidayMultiplier,
+    this.premiumStacking = AgreementDefaults.premiumStacking,
   });
 
-  final EmploymentId employmentId;
-  final int version;
   final LocalDate effectiveStart;
   final LocalDate? effectiveEnd;
   final int hourlyRateMicroEur;
   final RateBasis basis;
-  final int overtimeThresholdMinutes;
-  final int overtimeMultiplierNumerator;
-  final int overtimeMultiplierDenominator;
   final String? label;
   final String? note;
+  final int overtimeThresholdMinutes;
+  final RationalMultiplier overtimeMultiplier;
+  final bool nightEnabled;
+  final int nightStartMinute;
+  final int nightEndMinute;
+  final RationalMultiplier nightMultiplier;
+  final HolidayCalendar holidayCalendar;
+  final RationalMultiplier holidayMultiplier;
+  final PremiumStacking premiumStacking;
+}
+
+final class CreateAgreementCommand {
+  const CreateAgreementCommand({
+    required this.employmentId,
+    required this.version,
+    required this.terms,
+  });
+
+  final EmploymentId employmentId;
+  final int version;
+  final AgreementTerms terms;
+}
+
+/// Rewrites an agreement that no finalized shift uses.
+final class UpdateAgreementCommand {
+  const UpdateAgreementCommand({
+    required this.agreementId,
+    required this.employmentId,
+    required this.expectedRevision,
+    required this.terms,
+  });
+
+  final AgreementId agreementId;
+  final EmploymentId employmentId;
+  final Revision expectedRevision;
+  final AgreementTerms terms;
 }
 
 final class CloseAgreementCommand {

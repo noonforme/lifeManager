@@ -124,11 +124,14 @@ void main() {
 
     expect(employmentCommand?.name, 'Studio');
     expect(employmentCommand?.legalLabel, 'Legal');
-    expect(agreementCommand?.hourlyRateMicroEur, 25500000);
-    expect(agreementCommand?.overtimeMultiplierNumerator, 3);
-    expect(agreementCommand?.overtimeMultiplierDenominator, 2);
-    expect(agreementCommand?.label, 'Standard');
-    expect(agreementCommand?.note, 'Initial');
+    final terms = agreementCommand?.terms;
+    expect(terms?.hourlyRateMicroEur, 25500000);
+    expect(
+      terms?.overtimeMultiplier,
+      const RationalMultiplier(numerator: 3, denominator: 2),
+    );
+    expect(terms?.label, 'Standard');
+    expect(terms?.note, 'Initial');
   });
 
   testWidgets('agreement form converts decimal EUR to integer micro-euros', (

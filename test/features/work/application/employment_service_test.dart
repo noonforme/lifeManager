@@ -85,6 +85,15 @@ final class _FakeRepository implements WorkCommandRepository {
 }
 
 final class _FakeStore implements WorkWriteStore {
+  @override
+  Future<bool> employmentHasHistory(EmploymentId id) async => false;
+
+  @override
+  Future<int> deleteEmployment(
+    EmploymentId id, {
+    required Revision expected,
+  }) async => 1;
+
   Employment? employment;
   int insertEmploymentCount = 0;
   int nextUpdateCount = 1;
