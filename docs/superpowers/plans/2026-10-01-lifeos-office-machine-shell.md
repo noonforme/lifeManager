@@ -192,17 +192,17 @@ enum RowState { normal, draft, running, voided }
 final class CellRef { const CellRef(this.rowId, this.columnKey); }
 ```
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Clicking or using the arrow keys moves the cell selection, and Enter opens the row.
   - Group and subtotal lines are not selectable.
   - A voided row is struck and announced as "Void".
   - The entry line calls `onOpen`.
   - The right-click menu lists the actions passed for the row.
   - Optional columns hide before the table scrolls at narrow widths.
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** with tokens only. Publish the selected `CellRef` and its `Explanation` through a provider that the formula bar watches.
-- [ ] **Step 4: Run** the register tests and analysis. Expected: PASS.
-- [ ] **Step 5: Commit** `feat: add typed register lines, cell selection and entry row`.
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** with tokens only. Publish the selected `CellRef` and its `Explanation` through a provider that the formula bar watches.
+- [x] **Step 4: Run** the register tests and analysis. Expected: PASS.
+- [x] **Step 5: Commit** `feat: add typed register lines, cell selection and entry row`.
 
 ### Task 4: Explanations and formula bar
 

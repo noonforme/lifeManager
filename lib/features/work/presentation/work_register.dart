@@ -101,28 +101,35 @@ final class WorkRegister extends StatelessWidget {
                 )
               : DataRegister<_WorkRow>(
                   label: 'Work rows',
-                  rows: rows,
+                  lines: [for (final row in rows) RowLine(row)],
                   columns: [
                     RegisterColumn(
+                      key: 'date',
                       label: 'Date',
+                      kind: ColumnKind.date,
                       width: 150,
                       value: (row) => row.date,
                     ),
                     RegisterColumn(
+                      key: 'record',
                       label: 'Record',
+                      kind: ColumnKind.text,
                       width: 150,
                       value: (row) => row.kindLabel,
                     ),
                     RegisterColumn(
+                      key: 'status',
                       label: 'Status',
+                      kind: ColumnKind.state,
                       width: 140,
                       value: (row) => row.status,
                     ),
                     RegisterColumn(
+                      key: 'value',
                       label: 'Duration / amount',
+                      kind: ColumnKind.quantity,
                       width: 190,
                       value: (row) => row.value,
-                      numeric: true,
                     ),
                   ],
                   rowId: (row) => row.routeValue,
@@ -130,7 +137,7 @@ final class WorkRegister extends StatelessWidget {
                   selectedId: selectedRecord == null
                       ? null
                       : _routeValue(selectedRecord!),
-                  onSelect: (row) => onSelect(row.record),
+                  onOpen: (row) => onSelect(row.record),
                 ),
         ),
       ],

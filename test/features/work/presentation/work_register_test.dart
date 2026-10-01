@@ -12,6 +12,7 @@ import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_register.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
+import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
 void main() {
@@ -127,12 +128,14 @@ final class _TestWorkRegister extends StatelessWidget {
       theme: buildLifeOSTheme(highContrast: false),
       home: MediaQuery(
         data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
-        child: Scaffold(
-          body: WorkRegister(
-            projection: projection,
-            selectedRecord: null,
-            onSelect: onSelect ?? (_) {},
-            onPrimaryAction: () {},
+        child: LifeOSSkinScope(
+          child: Scaffold(
+            body: WorkRegister(
+              projection: projection,
+              selectedRecord: null,
+              onSelect: onSelect ?? (_) {},
+              onPrimaryAction: () {},
+            ),
           ),
         ),
       ),

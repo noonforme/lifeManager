@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../shared/shell/shell_frame.dart';
+import '../shared/workbench/cell_selection.dart';
 import '../shared/workbench/lifeos_skin.dart';
 import '../shared/workbench/lifeos_theme.dart';
 import 'shell_host.dart';
@@ -21,11 +22,13 @@ final class LifeOsApp extends StatefulWidget {
 final class _LifeOsAppState extends State<LifeOsApp> {
   final _appearance = LifeOSAppearanceController();
   final _view = ShellViewController();
+  final _cells = CellSelectionController();
 
   @override
   void dispose() {
     _appearance.dispose();
     _view.dispose();
+    _cells.dispose();
     super.dispose();
   }
 
@@ -44,7 +47,10 @@ final class _LifeOsAppState extends State<LifeOsApp> {
           controller: _appearance,
           child: ShellViewScope(
             controller: _view,
-            child: LifeOSSkinScope(child: child ?? const SizedBox.shrink()),
+            child: CellSelectionScope(
+              controller: _cells,
+              child: LifeOSSkinScope(child: child ?? const SizedBox.shrink()),
+            ),
           ),
         ),
       ),
