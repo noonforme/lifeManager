@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 
 import '../core/database/app_database.dart';
+import '../core/history/record_event_dao.dart';
+import '../core/history/record_events.dart';
 import '../core/time/app_clock.dart';
 import '../core/time/timezone_service.dart';
 import '../features/work/application/agreement_service.dart';
@@ -88,6 +90,7 @@ ProductionWorkProviders buildWorkProviders({
     shiftIds: shiftIds,
     evidenceIds: evidenceIds,
     clock: clock,
+    history: RecordEventDao(database),
   );
 }
 
@@ -106,6 +109,7 @@ final class ProductionWorkProviders {
     required this.shiftIds,
     required this.evidenceIds,
     required this.clock,
+    required this.history,
   });
 
   final DriftWorkRepository workRepository;
@@ -121,6 +125,7 @@ final class ProductionWorkProviders {
   final ShiftIdFactory shiftIds;
   final WorkEvidenceIdFactory evidenceIds;
   final AppClock clock;
+  final RecordHistory history;
 
   List<Override> get _overrides => [
     workQueryRepositoryProvider.overrideWithValue(workRepository),
@@ -144,6 +149,7 @@ final class ProductionWorkProviders {
       draftRevisions.reviseAndFinalize,
     ),
     timezoneServiceProvider.overrideWithValue(timezones),
+    recordHistoryProvider.overrideWithValue(history),
     todayProvider.overrideWithValue(
       () => timezones.localDateAt(clock.nowUtc(), currentTimezoneId() ?? 'UTC'),
     ),

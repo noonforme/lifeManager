@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
@@ -132,6 +133,27 @@ final nextReplacementPayslipIdProvider = Provider<PayslipId Function()>(
 final reviseShiftDraftProvider = Provider<ReviseShiftDraft>(
   (ref) => throw StateError('ReviseShiftDraft has not been provided.'),
 );
+
+/// Record history, read for the inspector's History tab.
+final recordHistoryProvider = Provider<RecordHistory>(
+  (ref) => const _NoHistory(),
+);
+
+final class _NoHistory implements RecordHistory {
+  const _NoHistory();
+
+  @override
+  Stream<List<RecordEvent>> watch(String recordKind, String recordId) =>
+      Stream.value(const []);
+}
+
+/// One record's events, oldest first.
+final recordEventsProvider = StreamProvider.autoDispose
+    .family<List<RecordEvent>, WorkRecordRef>(
+      (ref, record) => ref
+          .watch(recordHistoryProvider)
+          .watch(record.kind.name, record.id.value),
+    );
 
 /// Today's local date, the default start of a new agreement.
 final todayProvider = Provider<LocalDate Function()>(

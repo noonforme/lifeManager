@@ -319,7 +319,7 @@ final class StateFilter extends StatelessWidget {
   );
 }
 
-/// What a toolbar menu looks like closed: "Label: detail ▾".
+/// What a toolbar menu looks like closed: "Label: detail" and a drop arrow.
 final class _MenuFace extends StatelessWidget {
   const _MenuFace({required this.label, this.detail});
 
@@ -345,7 +345,7 @@ final class _MenuFace extends StatelessWidget {
               Text(': ', style: style),
               Text(detail, style: style),
             ],
-            Text(' ▾', style: style),
+            Icon(Icons.arrow_drop_down, size: 18, color: skin.tokens.ink),
           ],
         ),
       ),

@@ -151,11 +151,11 @@ void main() {
 
     expect(
       find.text(
-        'The save result is uncertain. Reload and inspect the record before trying again.',
+        "LifeOS can't tell whether this was saved. Reload to check before "
+        'trying again.',
       ),
       findsOneWidget,
     );
-    expect(find.text('Do not retry yet.'), findsOneWidget);
   });
 
   test(

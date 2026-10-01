@@ -193,6 +193,9 @@ void main() {
           .data!;
     }
 
+    expect(fact('Date'), '2026-09-29');
+    expect(fact('Timezone'), 'Europe/Vilnius');
+    expect(fact('Breaks'), 'None');
     expect(fact('Expected pay'), 'EUR 257.60');
     expect(fact('Regular hours'), '2:00');
     expect(fact('Night hours'), '8:00');

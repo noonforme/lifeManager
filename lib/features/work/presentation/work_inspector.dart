@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/timezone_service.dart';
 import '../data/projections/work_record_projection.dart';
 import '../domain/facts.dart';
 import '../domain/pay.dart';
@@ -27,6 +28,7 @@ final class WorkInspector extends StatefulWidget {
     required this.onEndShift,
     required this.onFinalize,
     this.durationLabel,
+    this.timezones,
     super.key,
   }) : onCorrect = null,
        onSetPeriodState = null,
@@ -43,6 +45,7 @@ final class WorkInspector extends StatefulWidget {
     this.onEndShift,
     this.onFinalize,
     this.onCorrect,
+    this.timezones,
     super.key,
   }) : durationLabel = null;
 
@@ -55,6 +58,9 @@ final class WorkInspector extends StatefulWidget {
   final MutateShift? onEndShift;
   final MutateShift? onFinalize;
   final String? durationLabel;
+
+  /// Reads a shift's facts on its own wall clock.
+  final TimezoneService? timezones;
 
   /// Opens void-and-replace confirmation for a finalized shift or an
   /// effective payslip.
@@ -169,6 +175,9 @@ final class _WorkInspectorState extends State<WorkInspector> {
         explicitChildNodes: true,
         label: 'Finalized shift',
         child: _FinalizedShift(
+          shift: shift,
+          breaks: projection.breaks,
+          timezones: widget.timezones,
           pay: projection.pay,
           onCorrect: widget.onCorrect,
         ),
@@ -198,22 +207,56 @@ final class _WorkInspectorState extends State<WorkInspector> {
 }
 
 final class _FinalizedShift extends StatelessWidget {
-  const _FinalizedShift({this.pay, this.onCorrect});
+  const _FinalizedShift({
+    required this.shift,
+    required this.breaks,
+    this.timezones,
+    this.pay,
+    this.onCorrect,
+  });
 
+  final WorkShift shift;
+  final List<ShiftBreak> breaks;
+  final TimezoneService? timezones;
   final ExpectedPay? pay;
   final VoidCallback? onCorrect;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) {
+    final zones = timezones;
+    String clock(DateTime utc) => zones == null
+        ? '${utc.toIso8601String().substring(11, 16)} UTC'
+        : zones.localTimeAt(utc, shift.timezoneId).toString().substring(0, 5);
+    final breakSeconds = breaks.fold(
+      0,
+      (total, item) => item.endUtc == null
+          ? total
+          : total + item.endUtc!.difference(item.startUtc).inSeconds,
+    );
+    return ListView(
+      padding: const EdgeInsets.all(20),
       children: [
         Text(
           'Shift finalized',
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         const SizedBox(height: 12),
+        _Fact(label: 'Date', value: shift.localStartDate.toString()),
+        _Fact(
+          label: 'Time',
+          value:
+              '${clock(shift.startUtc)}–'
+              '${shift.endUtc == null ? '' : clock(shift.endUtc!)}',
+        ),
+        _Fact(
+          label: 'Breaks',
+          value: breaks.isEmpty
+              ? 'None'
+              : '${breaks.length} · ${formatDuration(breakSeconds)}',
+        ),
+        _Fact(label: 'Timezone', value: shift.timezoneId),
+        if (shift.note case final note?) _Fact(label: 'Note', value: note),
+        const Divider(height: 20),
         if (pay case final pay?) ...[
           _Fact(label: 'Expected pay', value: formatMoney(pay.amount)),
           _Fact(
@@ -245,14 +288,17 @@ final class _FinalizedShift extends StatelessWidget {
           const Text('The recorded agreement now determines the estimate.'),
         if (onCorrect != null) ...[
           const SizedBox(height: 18),
-          OutlinedButton(
-            onPressed: onCorrect,
-            child: const Text('Correct shift'),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton(
+              onPressed: onCorrect,
+              child: const Text('Correct shift'),
+            ),
           ),
         ],
       ],
-    ),
-  );
+    );
+  }
 }
 
 final class _PayslipDetail extends StatelessWidget {

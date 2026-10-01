@@ -18,6 +18,7 @@ import '../domain/shift.dart';
 import 'correction_confirmation.dart';
 import 'employment_agreement_forms.dart';
 import 'period_payslip_forms.dart';
+import 'record_history_panel.dart';
 import 'shift_forms.dart';
 import 'work_controller.dart' hide SetPayPeriodState;
 import 'work_inspector.dart';
@@ -477,20 +478,24 @@ extension on _WorkScreenState {
         onSubmit: (value) => update(agreement, value),
       );
     }
-    return AgreementView(
-      key: ValueKey(('agreement', agreement.id, agreement.revision)),
-      agreement: agreement,
-      finishedShifts: record.finishedShifts,
-      onEdit: update == null
-          ? null
-          : () => _showEmployment(
-              agreement.employmentId,
-              record: WorkRecordRef(
-                kind: WorkRecordKind.agreement,
-                id: agreement.id,
+    return RecordTabs(
+      key: ValueKey(('tabs', agreement.id)),
+      record: WorkRecordRef(kind: WorkRecordKind.agreement, id: agreement.id),
+      details: AgreementView(
+        key: ValueKey(('agreement', agreement.id, agreement.revision)),
+        agreement: agreement,
+        finishedShifts: record.finishedShifts,
+        onEdit: update == null
+            ? null
+            : () => _showEmployment(
+                agreement.employmentId,
+                record: WorkRecordRef(
+                  kind: WorkRecordKind.agreement,
+                  id: agreement.id,
+                ),
+                edit: true,
               ),
-              edit: true,
-            ),
+      ),
     );
   }
 
@@ -597,34 +602,55 @@ extension on _WorkScreenState {
       if (_periodFailure case final failure?) {
         return _periodOutcome(failure);
       }
-      return WorkInspector.fromRecord(
-        key: ValueKey(record.id),
-        projection: record,
-        onSetPeriodState: widget.onSetPeriodState == null
-            ? null
-            : _setPeriodState,
-        onRecordPayslip: widget.onRecordPayslip == null
-            ? null
-            : () => _openPayslip(record.period.id),
-        reconciliation: register.period?.id == record.period.id
-            ? register.reconciliation?.groups ?? const []
-            : const [],
+      return _tabs(
+        WorkRecordKind.payPeriod,
+        record,
+        WorkInspector.fromRecord(
+          key: ValueKey(record.id),
+          projection: record,
+          onSetPeriodState: widget.onSetPeriodState == null
+              ? null
+              : _setPeriodState,
+          onRecordPayslip: widget.onRecordPayslip == null
+              ? null
+              : () => _openPayslip(record.period.id),
+          reconciliation: register.period?.id == record.period.id
+              ? register.reconciliation?.groups ?? const []
+              : const [],
+        ),
       );
     }
     final onEndBreak = widget.onEndBreak;
     final shift = record is ShiftRecordProjection ? record.shift : null;
-    return WorkInspector.fromRecord(
-      key: ValueKey(record.id),
-      projection: record,
-      onStartBreak: widget.onStartBreak,
-      onEndBreak: onEndBreak == null || shift == null
-          ? null
-          : (value) => onEndBreak(shift, value),
-      onEndShift: widget.onEndShift,
-      onFinalize: widget.onFinalize,
-      onCorrect: widget.onOpenCorrection,
+    return _tabs(
+      record is PayslipRecordProjection
+          ? WorkRecordKind.payslip
+          : WorkRecordKind.shift,
+      record,
+      WorkInspector.fromRecord(
+        key: ValueKey(record.id),
+        projection: record,
+        timezones: widget.timezones,
+        onStartBreak: widget.onStartBreak,
+        onEndBreak: onEndBreak == null || shift == null
+            ? null
+            : (value) => onEndBreak(shift, value),
+        onEndShift: widget.onEndShift,
+        onFinalize: widget.onFinalize,
+        onCorrect: widget.onOpenCorrection,
+      ),
     );
   }
+
+  Widget _tabs(
+    WorkRecordKind kind,
+    WorkRecordProjection record,
+    Widget details,
+  ) => RecordTabs(
+    key: ValueKey(('tabs', record.id)),
+    record: WorkRecordRef(kind: kind, id: record.id),
+    details: details,
+  );
 }
 
 WorkRecordRef? _selectedRecord(AsyncValue<WorkViewState> state) {

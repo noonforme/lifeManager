@@ -295,18 +295,19 @@ abstract interface class RecordHistory {
 - Create: `lib/features/work/presentation/work_sheets.dart` (Shifts, Pay periods, Payslips, Agreements)
 - Create: `lib/features/work/presentation/work_toolbar_controls.dart` (employment switcher, period picker, state filter)
 - Modify: `test/features/work/presentation/*`
+- Also built: `record_history_panel.dart` (Details/History tabs over `record_events`), the unified register load in `work_repository.dart` with `ShiftSheetRow`, `PeriodSheetRow` and `AgreementSheetRow`, and `sheet` and `void` route parameters. The forms keep their Material controls inside the shell; restyling them into office controls is left for the finish review (Task 12).
 
-- [ ] **Step 1: Write failing tests for every gap in spec 7.1.**
+- [x] **Step 1: Write failing tests for every gap in spec 7.1.**
   - The employment switcher lists employments, marks the current one, and offers All employments and Create employment.
   - The period picker steps with ‹ › and accepts an explicit range.
   - The state filter hides voided rows by default and shows them on request.
   - Shift columns match spec 7.2, and states read Running, On break, Draft, Finalized and Void.
   - A finalized shift's inspector shows its facts and the regular, night, holiday and overtime breakdown with the estimate note.
-- [ ] **Step 2: Write failing state-matrix tests.** Every inspector mode from foundation spec 15.4, except overtime confirmation, renders inside the shell with one inspector landmark and a stable desk.
-- [ ] **Step 3: Run.** Expected: FAIL.
-- [ ] **Step 4: Implement** the sheets on Register v2, attach explanations to Paid, Night, Holiday, OT, Est. pay, Expected, Paid and Difference, add the History tab, and apply the copy from spec 7.3.
-- [ ] **Step 5: Run** the Work presentation tests, the full suite and analysis. Expected: PASS.
-- [ ] **Step 6: Commit** `feat: move Work into the Office Machine shell`.
+- [x] **Step 2: Write failing state-matrix tests.** Every inspector mode from foundation spec 15.4, except overtime confirmation, renders inside the shell with one inspector landmark and a stable desk.
+- [x] **Step 3: Run.** Expected: FAIL.
+- [x] **Step 4: Implement** the sheets on Register v2, attach explanations to Paid, Night, Holiday, OT, Est. pay, Expected, Paid and Difference, add the History tab, and apply the copy from spec 7.3.
+- [x] **Step 5: Run** the Work presentation tests, the full suite and analysis. Expected: PASS.
+- [x] **Step 6: Commit** `feat: move Work into the Office Machine shell`.
 
 ### Task 7: Back and forward
 

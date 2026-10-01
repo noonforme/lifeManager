@@ -12,6 +12,7 @@ import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/correction_confirmation.dart';
+import 'package:lifeos/features/work/presentation/record_history_panel.dart';
 import 'package:lifeos/features/work/presentation/shift_forms.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_inspector.dart';
@@ -259,11 +260,35 @@ void main() {
       ),
       const _InspectorFixture(
         name: 'uncertainOutcome',
-        title: 'The save result is uncertain. Reload and inspect the record before trying again.',
+        title:
+            "LifeOS can't tell whether this was saved. Reload to check "
+            'before trying again.',
         child: UncertainOutcomeInspector(),
       ),
     ];
 
+    fixtures.addAll([
+      _InspectorFixture(
+        name: 'finalize',
+        title:
+            'Overtime, night and holiday pay are worked out from the '
+            'agreement.',
+        child: FinalizeShiftInspector(
+          shift: endedShift,
+          onFinalize: () async => Committed(finalizedShift),
+        ),
+      ),
+      _InspectorFixture(
+        name: 'recordHistory',
+        title: 'History',
+        child: ProviderScope(
+          child: RecordTabs(
+            record: WorkRecordRef(kind: WorkRecordKind.shift, id: shiftId),
+            details: const Text('Synthetic details'),
+          ),
+        ),
+      ),
+    ]);
     for (final fixture in fixtures) {
       await tester.pumpWidget(
         _TestWorkbench(key: ValueKey(fixture.name), inspector: fixture.child),
