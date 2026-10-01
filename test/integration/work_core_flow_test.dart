@@ -181,10 +181,9 @@ void main() {
 
 /// The value text beside a register summary label.
 String _summary(String label) {
-  final row = find.ancestor(
-    of: find.text(label),
-    matching: find.byType(Row),
-  ).first;
+  final row = find
+      .ancestor(of: find.text(label), matching: find.byType(Row))
+      .first;
   final texts = find
       .descendant(of: row, matching: find.byType(Text))
       .evaluate()
@@ -194,40 +193,39 @@ String _summary(String label) {
 }
 
 Future<void> _setUpEmployment(WidgetTester tester) async {
-    await tester.tap(find.text('Create employment'));
-    await tester.pumpAndSettle();
-    await tester.tap(_inInspector(find.text('Create employment')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('employment-name')),
-      'Synthetic studio',
-    );
-    await tester.tap(find.text('Save employment'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('agreement-effective-start')),
-      '2026-09-01',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('agreement-hourly-rate')),
-      '20.00',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('agreement-threshold')),
-      '480',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('agreement-multiplier-numerator')),
-      '3',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('agreement-multiplier-denominator')),
-      '2',
-    );
-    await tester.tap(find.byKey(const ValueKey('save-agreement')));
-    await tester.pumpAndSettle();
-    expect(find.text('Agreement 1 is effective.'), findsOneWidget);
-
+  await tester.tap(find.text('Create employment'));
+  await tester.pumpAndSettle();
+  await tester.tap(_inInspector(find.text('Create employment')));
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.byKey(const ValueKey('employment-name')),
+    'Synthetic studio',
+  );
+  await tester.tap(find.text('Save employment'));
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.byKey(const ValueKey('agreement-effective-start')),
+    '2026-09-01',
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('agreement-hourly-rate')),
+    '20.00',
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('agreement-threshold')),
+    '480',
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('agreement-multiplier-numerator')),
+    '3',
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('agreement-multiplier-denominator')),
+    '2',
+  );
+  await tester.tap(find.byKey(const ValueKey('save-agreement')));
+  await tester.pumpAndSettle();
+  expect(find.text('Agreement 1 is effective.'), findsOneWidget);
 }
 
 Finder _inInspector(Finder finder) => find.descendant(

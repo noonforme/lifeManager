@@ -83,7 +83,10 @@ void main() {
     final draft = await _draft(repository);
 
     final outcome = await service.reviseAndFinalize(
-      _command(draft, id: const ShiftId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4cff')),
+      _command(
+        draft,
+        id: const ShiftId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4cff'),
+      ),
     );
 
     expect(outcome, isA<Missing<WorkShift>>());

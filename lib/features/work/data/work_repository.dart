@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart' show TableUpdateQuery;
+
 import '../../../core/database/app_database.dart' show AppDatabase;
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../application/pay_period_service.dart';

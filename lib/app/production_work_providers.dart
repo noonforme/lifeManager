@@ -129,7 +129,9 @@ final class ProductionWorkProviders {
     recordPayslipProvider.overrideWithValue(payslips.recordPayslip),
     correctPayslipProvider.overrideWithValue(payslips.correctPayslip),
     correctShiftProvider.overrideWithValue(shifts.correctShift),
-    reviseShiftDraftProvider.overrideWithValue(draftRevisions.reviseAndFinalize),
+    reviseShiftDraftProvider.overrideWithValue(
+      draftRevisions.reviseAndFinalize,
+    ),
     timezoneServiceProvider.overrideWithValue(timezones),
     currentTimezoneIdProvider.overrideWithValue(currentTimezoneId),
     nextReplacementShiftIdProvider.overrideWithValue(shiftIds.shiftId),

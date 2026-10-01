@@ -224,7 +224,8 @@ final class _WorkScreenState extends State<WorkScreen> {
         selectedRecord: route.record,
         onSelect: widget.onSelect,
         onPrimaryAction: widget.onPrimaryAction,
-        onNewPeriod: widget.onCreatePayPeriod == null || route.employmentId == null
+        onNewPeriod:
+            widget.onCreatePayPeriod == null || route.employmentId == null
             ? null
             : () => setState(() {
                 _creatingPeriod = true;
@@ -503,10 +504,7 @@ final class _Rejected extends StatelessWidget {
       children: [
         Text(message),
         const SizedBox(height: 14),
-        OutlinedButton(
-          onPressed: onDismiss,
-          child: Text(action),
-        ),
+        OutlinedButton(onPressed: onDismiss, child: Text(action)),
       ],
     ),
   );

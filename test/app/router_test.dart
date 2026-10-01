@@ -1154,8 +1154,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
     await tester.pumpAndSettle();
 
-    expect(router.routeInformationProvider.value.uri.toString(),
-        _replacementEditLocation);
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      _replacementEditLocation,
+    );
     expect(find.text('Reload record'), findsOneWidget);
   });
 }
@@ -1384,9 +1386,7 @@ final class _PeriodQueryRepository implements WorkQueryRepository {
 }
 
 const _replacementShiftId = ShiftId('00000000-0000-7000-8000-000000000009');
-const _replacementPayslipId = PayslipId(
-  '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c69',
-);
+const _replacementPayslipId = PayslipId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c69');
 final _finalizedShift = _liveShift(
   ShiftState.finalized,
   const Revision(3),
