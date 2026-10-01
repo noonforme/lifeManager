@@ -1,6 +1,7 @@
 import '../../../core/time/local_date.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/ids.dart';
+import '../domain/shift.dart';
 
 enum WorkInspectorMode { inspect, create, edit, correct }
 
@@ -69,6 +70,13 @@ final class WorkRecordRef {
   static WorkRecordRef? _record(WorkRecordKind kind, WorkRecordId? id) =>
       id == null ? null : WorkRecordRef(kind: kind, id: id);
 }
+
+WorkRouteState routeForCommittedShift(WorkShift shift) => WorkRouteState(
+  employmentId: shift.employmentId,
+  scope: DateRangeScope(start: shift.localStartDate, end: shift.localStartDate),
+  record: WorkRecordRef(kind: WorkRecordKind.shift, id: shift.id),
+  mode: WorkInspectorMode.inspect,
+);
 
 final class WorkRouteState {
   const WorkRouteState({

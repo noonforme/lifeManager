@@ -18,8 +18,64 @@ import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 
 void main() {
-  test('manual overnight shift preserves elapsed UTC facts', () async {
-    final repository = _FakeManualRepository();
+  test(
+    'manual overnight shift preserves elapsed UTC facts and breaks',
+    () async {
+      final repository = _FakeManualRepository();
+      final service = ManualShiftService(
+        repository,
+        idFactory: const _Ids(),
+        clock: const _Clock(),
+        timezones: IanaTimezoneService(),
+      );
+
+      final outcome = await service.createAndFinalize(
+        const CreateManualShiftCommand(
+          employmentId: _employmentId,
+          localStartDate: LocalDate(2026, 10, 24),
+          localStartTime: LocalTime(23, 30),
+          localEndDate: LocalDate(2026, 10, 25),
+          localEndTime: LocalTime(3, 30),
+          timezoneId: 'Europe/Berlin',
+          startFold: FoldChoice.earlier,
+          endFold: FoldChoice.later,
+          breaks: [
+            ManualShiftBreak(
+              localStartDate: LocalDate(2026, 10, 25),
+              localStartTime: LocalTime(1, 30),
+              localEndDate: LocalDate(2026, 10, 25),
+              localEndTime: LocalTime(1, 50),
+              startFold: FoldChoice.earlier,
+              endFold: FoldChoice.earlier,
+            ),
+          ],
+          overtimeMinutes: 0,
+          note: '  Overnight synthetic shift  ',
+        ),
+      );
+
+      final shift = (outcome as Committed<WorkShift>).value;
+      expect(
+        shift.endUtc!.difference(shift.startUtc),
+        const Duration(hours: 5),
+      );
+      expect(shift.localStartDate, const LocalDate(2026, 10, 24));
+      expect(shift.note, 'Overnight synthetic shift');
+      expect(repository.breaks, hasLength(1));
+      expect(
+        repository.breaks.single.endUtc!.difference(
+          repository.breaks.single.startUtc,
+        ),
+        const Duration(minutes: 20),
+      );
+    },
+  );
+
+  test('manual breaks persist atomically with finalized shift', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    await _seedReadyEmployment(database);
+    final repository = DriftShiftRepository(database);
     final service = ManualShiftService(
       repository,
       idFactory: const _Ids(),
@@ -31,21 +87,37 @@ void main() {
       const CreateManualShiftCommand(
         employmentId: _employmentId,
         localStartDate: LocalDate(2026, 10, 24),
-        localStartTime: LocalTime(23, 30),
+        localStartTime: LocalTime(22, 0),
         localEndDate: LocalDate(2026, 10, 25),
-        localEndTime: LocalTime(3, 30),
+        localEndTime: LocalTime(6, 0),
         timezoneId: 'Europe/Berlin',
-        startFold: FoldChoice.earlier,
+        startFold: null,
         endFold: FoldChoice.later,
+        breaks: [
+          ManualShiftBreak(
+            localStartDate: LocalDate(2026, 10, 25),
+            localStartTime: LocalTime(1, 0),
+            localEndDate: LocalDate(2026, 10, 25),
+            localEndTime: LocalTime(1, 30),
+            startFold: FoldChoice.earlier,
+            endFold: FoldChoice.earlier,
+          ),
+        ],
         overtimeMinutes: 0,
-        note: '  Overnight synthetic shift  ',
+        note: null,
       ),
     );
 
-    final shift = (outcome as Committed<WorkShift>).value;
-    expect(shift.endUtc!.difference(shift.startUtc), const Duration(hours: 5));
-    expect(shift.localStartDate, const LocalDate(2026, 10, 24));
-    expect(shift.note, 'Overnight synthetic shift');
+    expect(outcome, isA<Committed<WorkShift>>());
+    expect((await repository.shiftById(_shiftId))?.state, ShiftState.finalized);
+    final persistedBreaks = await repository.breaksFor(_shiftId);
+    expect(persistedBreaks, hasLength(1));
+    expect(
+      persistedBreaks.single.endUtc!.difference(
+        persistedBreaks.single.startUtc,
+      ),
+      const Duration(minutes: 30),
+    );
   });
 
   test('known storage failure returns unavailable', () async {
@@ -182,34 +254,42 @@ final class _UnavailableManualRepository implements ManualShiftRepository {
   const _UnavailableManualRepository();
 
   @override
-  Future<MutationOutcome<WorkShift>> createAndFinalizeManual(WorkShift draft) =>
-      throw const DatabaseOpenFailure();
+  Future<MutationOutcome<WorkShift>> createAndFinalizeManual(
+    WorkShift draft,
+    List<ShiftBreak> breaks,
+  ) => throw const DatabaseOpenFailure();
 }
 
 final class _FakeManualRepository implements ManualShiftRepository {
+  List<ShiftBreak> breaks = const [];
+
   @override
   Future<MutationOutcome<WorkShift>> createAndFinalizeManual(
     WorkShift draft,
-  ) async => Committed<WorkShift>(
-    WorkShift(
-      id: draft.id,
-      employmentId: draft.employmentId,
-      agreementId: const AgreementId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21'),
-      state: ShiftState.finalized,
-      startUtc: draft.startUtc,
-      endUtc: draft.endUtc,
-      timezoneId: draft.timezoneId,
-      localStartDate: draft.localStartDate,
-      overtimeMinutes: draft.overtimeMinutes,
-      note: draft.note,
-      voidReason: null,
-      replacementShiftId: null,
-      replacedShiftId: null,
-      createdAtUtc: draft.createdAtUtc,
-      updatedAtUtc: draft.updatedAtUtc,
-      revision: const Revision(1),
-    ),
-  );
+    List<ShiftBreak> breaks,
+  ) async {
+    this.breaks = breaks;
+    return Committed<WorkShift>(
+      WorkShift(
+        id: draft.id,
+        employmentId: draft.employmentId,
+        agreementId: const AgreementId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21'),
+        state: ShiftState.finalized,
+        startUtc: draft.startUtc,
+        endUtc: draft.endUtc,
+        timezoneId: draft.timezoneId,
+        localStartDate: draft.localStartDate,
+        overtimeMinutes: draft.overtimeMinutes,
+        note: draft.note,
+        voidReason: null,
+        replacementShiftId: null,
+        replacedShiftId: null,
+        createdAtUtc: draft.createdAtUtc,
+        updatedAtUtc: draft.updatedAtUtc,
+        revision: const Revision(1),
+      ),
+    );
+  }
 }
 
 final class _Ids implements ShiftIdFactory {

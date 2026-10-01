@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../data/projections/work_record_projection.dart';
 import '../domain/agreement.dart';
 import '../domain/employment.dart';
+import '../domain/shift.dart';
 import 'employment_agreement_forms.dart';
+import 'shift_forms.dart';
 
 enum _SetupStep { introduction, employment, agreement, ready }
+
+typedef MutateShift = Future<MutationOutcome<WorkShift>> Function(
+  WorkShift shift,
+);
+typedef MutateBreak = Future<MutationOutcome<WorkShift>> Function(
+  ShiftBreak value,
+);
 
 final class WorkInspector extends StatefulWidget {
   const WorkInspector({
@@ -14,12 +24,39 @@ final class WorkInspector extends StatefulWidget {
     this.onStartShift,
     this.onAddManualShift,
     super.key,
-  });
+  }) : projection = null,
+       onStartBreak = null,
+       onEndBreak = null,
+       onEndShift = null,
+       onFinalize = null,
+       durationLabel = null,
+       suggestedOvertimeMinutes = null;
 
-  final SubmitEmployment onCreateEmployment;
-  final SubmitAgreement onCreateAgreement;
+  const WorkInspector.fromProjection({
+    required this.projection,
+    required this.onStartBreak,
+    required this.onEndBreak,
+    required this.onEndShift,
+    required this.onFinalize,
+    this.durationLabel,
+    this.suggestedOvertimeMinutes,
+    super.key,
+  }) : onCreateEmployment = null,
+       onCreateAgreement = null,
+       onStartShift = null,
+       onAddManualShift = null;
+
+  final SubmitEmployment? onCreateEmployment;
+  final SubmitAgreement? onCreateAgreement;
   final VoidCallback? onStartShift;
   final VoidCallback? onAddManualShift;
+  final ShiftRecordProjection? projection;
+  final MutateShift? onStartBreak;
+  final MutateBreak? onEndBreak;
+  final MutateShift? onEndShift;
+  final FinalizeOvertime? onFinalize;
+  final String? durationLabel;
+  final int? suggestedOvertimeMinutes;
 
   @override
   State<WorkInspector> createState() => _WorkInspectorState();
@@ -33,7 +70,7 @@ final class _WorkInspectorState extends State<WorkInspector> {
   Future<MutationOutcome<Employment>> _createEmployment(
     EmploymentDraft draft,
   ) async {
-    final outcome = await widget.onCreateEmployment(draft);
+    final outcome = await widget.onCreateEmployment!(draft);
     if (mounted) {
       if (outcome case Committed<Employment>(:final value)) {
         setState(() {
@@ -48,7 +85,7 @@ final class _WorkInspectorState extends State<WorkInspector> {
   Future<MutationOutcome<PayAgreement>> _createAgreement(
     AgreementDraft draft,
   ) async {
-    final outcome = await widget.onCreateAgreement(draft);
+    final outcome = await widget.onCreateAgreement!(draft);
     if (mounted) {
       if (outcome case Committed<PayAgreement>(:final value)) {
         setState(() {
@@ -62,6 +99,8 @@ final class _WorkInspectorState extends State<WorkInspector> {
 
   @override
   Widget build(BuildContext context) {
+    final projection = widget.projection;
+    if (projection != null) return _projectionInspector(projection);
     return switch (_step) {
       _SetupStep.introduction => _Introduction(
         onCreate: () => setState(() => _step = _SetupStep.employment),
@@ -79,6 +118,46 @@ final class _WorkInspectorState extends State<WorkInspector> {
       ),
     };
   }
+
+  Widget _projectionInspector(ShiftRecordProjection projection) {
+    final shift = projection.shift;
+    return switch (shift.state) {
+      ShiftState.running => RunningShiftInspector(
+        shift: shift,
+        durationLabel: widget.durationLabel,
+        onStartBreak: () => widget.onStartBreak!(shift),
+        onEndShift: () => widget.onEndShift!(shift),
+      ),
+      ShiftState.onBreak => OnBreakShiftInspector(
+        shift: shift,
+        durationLabel: widget.durationLabel,
+        onEndBreak: () => widget.onEndBreak!(
+          projection.breaks.singleWhere((value) => value.endUtc == null),
+        ),
+      ),
+      ShiftState.draft
+          when shift.endUtc != null &&
+              widget.suggestedOvertimeMinutes != null =>
+        OvertimeConfirmationInspector(
+          shift: shift,
+          suggestedOvertimeMinutes: widget.suggestedOvertimeMinutes!,
+          enteredOvertimeMinutes: shift.overtimeMinutes,
+          onFinalize: widget.onFinalize!,
+        ),
+      ShiftState.draft when shift.endUtc != null =>
+        const ValidationFailureInspector(
+          message: 'Overtime suggestion unavailable.',
+          child: _UnavailableShift(),
+        ),
+      ShiftState.finalized => Semantics(
+        container: true,
+        explicitChildNodes: true,
+        label: 'Finalized shift',
+        child: const _FinalizedShift(),
+      ),
+      ShiftState.draft || ShiftState.voided => const _UnavailableShift(),
+    };
+  }
 }
 
 final class _Introduction extends StatelessWidget {
@@ -87,26 +166,24 @@ final class _Introduction extends StatelessWidget {
   final VoidCallback onCreate;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Set up Work', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 10),
-          const Text(
-            'Create an employment and an agreement before recording paid work.',
-          ),
-          const SizedBox(height: 18),
-          FilledButton(
-            onPressed: onCreate,
-            child: const Text('Create employment'),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Set up Work', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 10),
+        const Text(
+          'Create an employment and an agreement before recording paid work.',
+        ),
+        const SizedBox(height: 18),
+        FilledButton(
+          onPressed: onCreate,
+          child: const Text('Create employment'),
+        ),
+      ],
+    ),
+  );
 }
 
 final class _Ready extends StatelessWidget {
@@ -123,30 +200,52 @@ final class _Ready extends StatelessWidget {
   final VoidCallback? onAddManualShift;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            employment.name,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 6),
-          Text('Agreement ${agreement.version} is effective.'),
-          const SizedBox(height: 18),
-          FilledButton(
-            onPressed: onStartShift,
-            child: const Text('Start shift'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: onAddManualShift,
-            child: const Text('Add manual shift'),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(employment.name, style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 6),
+        Text('Agreement ${agreement.version} is effective.'),
+        const SizedBox(height: 18),
+        FilledButton(onPressed: onStartShift, child: const Text('Start shift')),
+        const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: onAddManualShift,
+          child: const Text('Add manual shift'),
+        ),
+      ],
+    ),
+  );
+}
+
+final class _FinalizedShift extends StatelessWidget {
+  const _FinalizedShift();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Shift finalized',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 8),
+        const Text('The recorded agreement now determines the estimate.'),
+      ],
+    ),
+  );
+}
+
+final class _UnavailableShift extends StatelessWidget {
+  const _UnavailableShift();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.all(20),
+    child: Text('This shift is not available for the live workflow.'),
+  );
 }

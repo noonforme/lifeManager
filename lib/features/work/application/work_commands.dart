@@ -222,6 +222,24 @@ final class CorrectShiftCommand {
   final String voidReason;
 }
 
+final class ManualShiftBreak {
+  const ManualShiftBreak({
+    required this.localStartDate,
+    required this.localStartTime,
+    required this.localEndDate,
+    required this.localEndTime,
+    required this.startFold,
+    required this.endFold,
+  });
+
+  final LocalDate localStartDate;
+  final LocalTime localStartTime;
+  final LocalDate localEndDate;
+  final LocalTime localEndTime;
+  final FoldChoice? startFold;
+  final FoldChoice? endFold;
+}
+
 final class CreateManualShiftCommand {
   const CreateManualShiftCommand({
     required this.employmentId,
@@ -232,6 +250,7 @@ final class CreateManualShiftCommand {
     required this.timezoneId,
     required this.startFold,
     required this.endFold,
+    this.breaks = const [],
     required this.overtimeMinutes,
     required this.note,
   });
@@ -244,6 +263,7 @@ final class CreateManualShiftCommand {
   final String timezoneId;
   final FoldChoice? startFold;
   final FoldChoice? endFold;
+  final List<ManualShiftBreak> breaks;
   final int overtimeMinutes;
   final String? note;
 }

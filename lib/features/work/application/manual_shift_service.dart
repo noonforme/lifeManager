@@ -7,7 +7,10 @@ import '../domain/shift.dart';
 import 'work_commands.dart';
 
 abstract interface class ManualShiftRepository {
-  Future<MutationOutcome<WorkShift>> createAndFinalizeManual(WorkShift draft);
+  Future<MutationOutcome<WorkShift>> createAndFinalizeManual(
+    WorkShift draft,
+    List<ShiftBreak> breaks,
+  );
 }
 
 final class ManualShiftService {
@@ -40,8 +43,35 @@ final class ManualShiftService {
         fold: command.endFold,
       );
       final nowUtc = clock.nowUtc();
+      final shiftId = idFactory.shiftId();
+      final breaks = <ShiftBreak>[
+        for (final value in command.breaks)
+          ShiftBreak(
+            id: idFactory.shiftBreakId(),
+            shiftId: shiftId,
+            startUtc: timezones
+                .resolveLocal(
+                  value.localStartDate,
+                  value.localStartTime,
+                  command.timezoneId,
+                  fold: value.startFold,
+                )
+                .utc,
+            endUtc: timezones
+                .resolveLocal(
+                  value.localEndDate,
+                  value.localEndTime,
+                  command.timezoneId,
+                  fold: value.endFold,
+                )
+                .utc,
+            createdAtUtc: nowUtc,
+            updatedAtUtc: nowUtc,
+            revision: const Revision(0),
+          ),
+      ];
       final draft = WorkShift(
-        id: idFactory.shiftId(),
+        id: shiftId,
         employmentId: command.employmentId,
         agreementId: null,
         state: ShiftState.draft,
@@ -58,7 +88,7 @@ final class ManualShiftService {
         updatedAtUtc: nowUtc,
         revision: const Revision(0),
       );
-      return await _repository.createAndFinalizeManual(draft);
+      return await _repository.createAndFinalizeManual(draft, breaks);
     } on AmbiguousLocalTime {
       return const Invalid<WorkShift>({
         'localTime': [FieldIssue(FieldIssueCode.invalid)],

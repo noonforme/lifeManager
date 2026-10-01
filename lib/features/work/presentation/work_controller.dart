@@ -7,7 +7,10 @@ import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/agreement.dart';
 import '../domain/employment.dart';
+import '../domain/ids.dart';
+import '../domain/shift.dart';
 import 'employment_agreement_forms.dart';
+import 'shift_forms.dart';
 import 'work_route_state.dart';
 
 final workQueryRepositoryProvider = Provider<WorkQueryRepository>(
@@ -28,6 +31,46 @@ final createEmploymentProvider = Provider<CreateEmployment>(
 final createAgreementProvider = Provider<CreateAgreement>(
   (ref) => throw StateError('CreateAgreement has not been provided.'),
 );
+
+typedef StartShift = Future<MutationOutcome<WorkShift>> Function(
+  StartShiftCommand command,
+);
+typedef StartBreak = Future<MutationOutcome<WorkShift>> Function(
+  StartBreakCommand command,
+);
+typedef EndBreak = Future<MutationOutcome<WorkShift>> Function(
+  EndBreakCommand command,
+);
+typedef EndShift = Future<MutationOutcome<WorkShift>> Function(
+  EndShiftCommand command,
+);
+typedef FinalizeShift = Future<MutationOutcome<WorkShift>> Function(
+  FinalizeShiftCommand command,
+);
+typedef SaveManualShift = Future<MutationOutcome<WorkShift>> Function(
+  CreateManualShiftCommand command,
+);
+typedef ReplaceWorkRoute = void Function(WorkRouteState route);
+
+final startShiftProvider = Provider<StartShift>(
+  (ref) => throw StateError('StartShift has not been provided.'),
+);
+final startBreakProvider = Provider<StartBreak>(
+  (ref) => throw StateError('StartBreak has not been provided.'),
+);
+final endBreakProvider = Provider<EndBreak>(
+  (ref) => throw StateError('EndBreak has not been provided.'),
+);
+final endShiftProvider = Provider<EndShift>(
+  (ref) => throw StateError('EndShift has not been provided.'),
+);
+final finalizeShiftProvider = Provider<FinalizeShift>(
+  (ref) => throw StateError('FinalizeShift has not been provided.'),
+);
+final saveManualShiftProvider = Provider<SaveManualShift>(
+  (ref) => throw StateError('SaveManualShift has not been provided.'),
+);
+final replaceWorkRouteProvider = Provider<ReplaceWorkRoute>((ref) => (_) {});
 
 final workRouteProvider = Provider<WorkRouteParseResult>(
   (ref) => const ValidWorkRoute(
@@ -115,6 +158,105 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
         note: _trimOptional(value.note),
       ),
     );
+  }
+
+  Future<MutationOutcome<WorkShift>> startShift({
+    required EmploymentId employmentId,
+    required String timezoneId,
+    String? note,
+  }) => _replaceRouteOnCommit(
+    ref.read(startShiftProvider)(
+      StartShiftCommand(
+        employmentId: employmentId,
+        timezoneId: timezoneId.trim(),
+        note: _trimOptional(note),
+      ),
+    ),
+  );
+
+  Future<MutationOutcome<WorkShift>> startBreak(WorkShift shift) =>
+      _replaceRouteOnCommit(
+        ref.read(startBreakProvider)(
+          StartBreakCommand(
+            shiftId: shift.id,
+            expectedShiftRevision: shift.revision,
+          ),
+        ),
+      );
+
+  Future<MutationOutcome<WorkShift>> endBreak(
+    WorkShift shift,
+    ShiftBreak value,
+  ) => _replaceRouteOnCommit(
+    ref.read(endBreakProvider)(
+      EndBreakCommand(
+        shiftId: shift.id,
+        breakId: value.id,
+        expectedShiftRevision: shift.revision,
+        expectedBreakRevision: value.revision,
+      ),
+    ),
+  );
+
+  Future<MutationOutcome<WorkShift>> endShift(WorkShift shift) =>
+      _replaceRouteOnCommit(
+        ref.read(endShiftProvider)(
+          EndShiftCommand(id: shift.id, expectedRevision: shift.revision),
+        ),
+      );
+
+  Future<MutationOutcome<WorkShift>> finalizeShift(
+    WorkShift shift, {
+    required int overtimeMinutes,
+  }) => _replaceRouteOnCommit(
+    ref.read(finalizeShiftProvider)(
+      FinalizeShiftCommand(
+        id: shift.id,
+        overtimeMinutes: overtimeMinutes,
+        expectedRevision: shift.revision,
+      ),
+    ),
+  );
+
+  Future<MutationOutcome<WorkShift>> saveManualShift(ManualShiftDraft value) {
+    draft = value;
+    return _replaceRouteOnCommit(
+      ref.read(saveManualShiftProvider)(
+        CreateManualShiftCommand(
+          employmentId: value.employmentId,
+          localStartDate: value.localStartDate,
+          localStartTime: value.localStartTime,
+          localEndDate: value.localEndDate,
+          localEndTime: value.localEndTime,
+          timezoneId: value.timezoneId.trim(),
+          startFold: value.startFold,
+          endFold: value.endFold,
+          breaks: [
+            for (final item in value.breaks)
+              ManualShiftBreak(
+                localStartDate: item.startDate,
+                localStartTime: item.start,
+                localEndDate: item.endDate,
+                localEndTime: item.end,
+                startFold: null,
+                endFold: null,
+              ),
+          ],
+          overtimeMinutes: value.overtimeMinutes,
+          note: _trimOptional(value.note),
+        ),
+      ),
+    );
+  }
+
+  Future<MutationOutcome<WorkShift>> _replaceRouteOnCommit(
+    Future<MutationOutcome<WorkShift>> pending,
+  ) async {
+    final outcome = await pending;
+    if (outcome case Committed<WorkShift>(:final value)) {
+      ref.read(replaceWorkRouteProvider)(routeForCommittedShift(value));
+    }
+    return outcome;
   }
 
   @override

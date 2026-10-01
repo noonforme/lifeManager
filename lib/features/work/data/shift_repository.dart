@@ -289,7 +289,10 @@ final class DriftShiftRepository
   }
 
   @override
-  Future<MutationOutcome<WorkShift>> createAndFinalizeManual(WorkShift draft) {
+  Future<MutationOutcome<WorkShift>> createAndFinalizeManual(
+    WorkShift draft,
+    List<ShiftBreak> breaks,
+  ) {
     return _database.transaction(() async {
       final employment = await _employments.byId(draft.employmentId);
       if (employment == null || employment.status != EmploymentStatus.active) {
@@ -300,7 +303,7 @@ final class DriftShiftRepository
       final agreements = await _agreements.forEmployment(draft.employmentId);
       final validation = validateFinalization(
         shift: draft,
-        breaks: const [],
+        breaks: breaks,
         agreements: agreements,
       );
       if (!validation.isValid) {
@@ -309,6 +312,9 @@ final class DriftShiftRepository
         });
       }
       await _shifts.insert(draft);
+      for (final value in breaks) {
+        await _shifts.insertBreak(value);
+      }
       return finalizeShift(draft.id, expected: draft.revision);
     });
   }
