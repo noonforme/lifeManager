@@ -8,8 +8,12 @@ abstract interface class BootstrapDatabase {
 }
 
 final class BootstrapProviders {
-  const BootstrapProviders();
+  const BootstrapProviders({this.scope = _identityScope});
+
+  final Widget Function(Widget child) scope;
 }
+
+Widget _identityScope(Widget child) => child;
 
 final class BootstrapDependencies {
   const BootstrapDependencies({

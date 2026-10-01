@@ -104,7 +104,10 @@ final finalizeShiftProvider = Provider<FinalizeShift>(
 final saveManualShiftProvider = Provider<SaveManualShift>(
   (ref) => throw StateError('SaveManualShift has not been provided.'),
 );
-final replaceWorkRouteProvider = Provider<ReplaceWorkRoute>((ref) => (_) {});
+final replaceWorkRouteProvider = Provider<ReplaceWorkRoute>(
+  (ref) => (_) {},
+  dependencies: const [],
+);
 
 final workRouteProvider = Provider<WorkRouteParseResult>(
   (ref) => const ValidWorkRoute(
@@ -115,11 +118,36 @@ final workRouteProvider = Provider<WorkRouteParseResult>(
       mode: WorkInspectorMode.inspect,
     ),
   ),
+  dependencies: const [],
 );
+
+final workRegisterProjectionProvider =
+    StreamProvider.autoDispose<WorkRegisterProjection>((ref) {
+      final parsed = ref.watch(workRouteProvider);
+      if (parsed case InvalidWorkRoute()) {
+        return const Stream.empty();
+      }
+      final route = (parsed as ValidWorkRoute).state;
+      return ref
+          .watch(workQueryRepositoryProvider)
+          .watchRegister(
+            WorkScope(employmentId: route.employmentId, temporal: route.scope),
+          );
+    }, dependencies: [workRouteProvider]);
+
+final workRecordProjectionProvider = StreamProvider.autoDispose
+    .family<WorkRecordProjection?, WorkRecordId>(
+      (ref, id) => ref.watch(workQueryRepositoryProvider).watchRecord(id),
+    );
 
 final workControllerProvider =
     AsyncNotifierProvider.autoDispose<WorkController, WorkViewState>(
       WorkController.new,
+      dependencies: [
+        workRouteProvider,
+        replaceWorkRouteProvider,
+        workRegisterProjectionProvider,
+      ],
     );
 
 sealed class WorkViewState {
@@ -408,18 +436,20 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       return WorkInvalidScope(reason);
     }
     final route = (parsed as ValidWorkRoute).state;
-    final repository = ref.watch(workQueryRepositoryProvider);
-    final register = await repository
-        .watchRegister(
-          WorkScope(employmentId: route.employmentId, temporal: route.scope),
-        )
-        .first;
+    final register = await _valueOf(
+      ref.watch(workRegisterProjectionProvider),
+      ref.watch(workRegisterProjectionProvider.future),
+    );
     final recordRef = route.record;
     final WorkInspectorState inspector;
     if (recordRef == null) {
       inspector = const WorkInspectorEmpty();
     } else {
-      final record = await repository.watchRecord(recordRef.id).first;
+      final recordProvider = workRecordProjectionProvider(recordRef.id);
+      final record = await _valueOf(
+        ref.watch(recordProvider),
+        ref.watch(recordProvider.future),
+      );
       inspector = record == null
           ? const WorkInspectorUnavailable()
           : WorkInspectorRecord(record);
@@ -427,6 +457,16 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     return WorkReady(register: register, route: route, inspector: inspector);
   }
 }
+
+Future<T> _valueOf<T>(AsyncValue<T> value, Future<T> loading) =>
+    switch (value) {
+      AsyncData(:final value) => Future.value(value),
+      AsyncError(:final error, :final stackTrace) => Future.error(
+        error,
+        stackTrace,
+      ),
+      AsyncLoading() => loading,
+    };
 
 String? _trimOptional(String? value) {
   if (value == null) return null;

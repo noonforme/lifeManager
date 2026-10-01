@@ -51,6 +51,32 @@ void main() {
     ]);
   });
 
+  test('provider composition scopes the mounted router', () async {
+    Widget? mounted;
+    final providers = BootstrapProviders(
+      scope: (child) =>
+          Directionality(textDirection: TextDirection.ltr, child: child),
+    );
+    final dependencies = BootstrapDependencies(
+      initializeBindings: () async {},
+      resolveSupportDirectory: () async {},
+      initializeDiagnostics: () async {},
+      initializeTimezone: () async {},
+      initializeClock: () async {},
+      openDatabase: () async => _FakeDatabase(<String>[]),
+      validateSchema: (_) async {},
+      buildProviders: (_) async => providers,
+      buildRouter: (value) async => value.scope(const SizedBox()),
+      mountApp: (app) async => mounted = app,
+      showWindow: () async {},
+      showRecovery: (_) async => fail('recovery should not be shown'),
+    );
+
+    await bootstrap(dependencies);
+
+    expect(mounted, isA<Directionality>());
+  });
+
   test('startup failure closes an opened database before recovery', () async {
     final trace = <String>[];
     final database = _FakeDatabase(trace);

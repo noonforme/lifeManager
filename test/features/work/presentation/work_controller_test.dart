@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/features/work/application/work_query_service.dart';
@@ -29,6 +31,46 @@ void main() {
       expect(repository.watchedScopes, isEmpty);
     },
   );
+
+  test('controller remains subscribed to register changes', () async {
+    final repository = _ReactiveWorkQueryRepository();
+    final container = ProviderContainer(
+      overrides: [
+        workQueryRepositoryProvider.overrideWithValue(repository),
+        workRouteProvider.overrideWithValue(
+          const ValidWorkRoute(
+            WorkRouteState(
+              employmentId: _employmentId,
+              scope: null,
+              record: null,
+              mode: WorkInspectorMode.inspect,
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(repository.close);
+
+    final updated = WorkRegisterProjection.empty(repository.scope);
+    final updatedState = Completer<WorkReady>();
+    final subscription = container.listen(workControllerProvider, (_, next) {
+      if (next case AsyncData(value: final WorkReady value)
+          when identical(value.register, updated)) {
+        updatedState.complete(value);
+      }
+    });
+    addTearDown(subscription.close);
+    repository.add(WorkRegisterProjection.empty(repository.scope));
+    await container.read(workControllerProvider.future);
+
+    repository.add(updated);
+
+    expect(
+      (await updatedState.future.timeout(const Duration(seconds: 1))).register,
+      same(updated),
+    );
+  });
 
   test('controller subscribes to explicit scope and selected record', () async {
     final repository = _FakeWorkQueryRepository();
@@ -62,6 +104,23 @@ void main() {
 const _employmentId = EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11');
 const _periodId = PayPeriodId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c51');
 const _payslipId = PayslipId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c61');
+
+final class _ReactiveWorkQueryRepository implements WorkQueryRepository {
+  final controller = StreamController<WorkRegisterProjection>();
+  final scope = const WorkScope(employmentId: _employmentId, temporal: null);
+
+  void add(WorkRegisterProjection value) => controller.add(value);
+
+  Future<void> close() => controller.close();
+
+  @override
+  Stream<WorkRegisterProjection> watchRegister(WorkScope scope) =>
+      controller.stream;
+
+  @override
+  Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) =>
+      Stream.value(null);
+}
 
 final class _FakeWorkQueryRepository implements WorkQueryRepository {
   final watchedScopes = <WorkScope>[];

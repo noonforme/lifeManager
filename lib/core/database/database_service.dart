@@ -16,6 +16,8 @@ abstract interface class DatabaseService {
     return DriftDatabaseService.open(config);
   }
 
+  AppDatabase get database;
+
   Future<T> transaction<T>(Future<T> Function() operation);
   Future<void> createSnapshot(File destination, SnapshotMetadata metadata);
   Future<DatabaseIdentity> validateReadOnly(File snapshot);
@@ -30,6 +32,9 @@ final class DriftDatabaseService implements DatabaseService {
 
   final File _file;
   final AppDatabase _database;
+
+  @override
+  AppDatabase get database => _database;
 
   static Future<DriftDatabaseService> open(
     DatabaseConfig config, {

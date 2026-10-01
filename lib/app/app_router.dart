@@ -1,75 +1,123 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_route_state.dart';
+import '../features/work/presentation/work_screen.dart';
 
 GoRouter createAppRouter({String initialLocation = '/work'}) {
   return GoRouter(
     initialLocation: initialLocation,
     routes: [
-      ShellRoute(
-        builder: (context, state, child) =>
-            _NativeFrame(location: state.uri.path, child: child),
-        routes: [
-          GoRoute(
-            path: '/today',
-            builder: (_, _) => const _UnavailableSurface(
-              title: 'Today',
-              message: 'Today is not available in this release.',
-            ),
+      GoRoute(
+        path: '/today',
+        builder: (_, _) => const _NativeFrame(
+          location: '/today',
+          child: _UnavailableSurface(
+            title: 'Today',
+            message: 'Today is not available in this release.',
           ),
-          GoRoute(
-            path: '/work',
-            builder: (_, state) => _workSurface(state.uri),
+        ),
+      ),
+      GoRoute(
+        path: '/work',
+        builder: (context, state) => _workSurface(context, state.uri),
+      ),
+      GoRoute(
+        path: '/money',
+        builder: (_, _) => const _NativeFrame(
+          location: '/money',
+          child: _UnavailableSurface(
+            title: 'Money',
+            message: 'Money is not available in this release.',
           ),
-          GoRoute(
-            path: '/money',
-            builder: (_, _) => const _UnavailableSurface(
-              title: 'Money',
-              message: 'Money is not available in this release.',
-            ),
+        ),
+      ),
+      GoRoute(
+        path: '/habits',
+        builder: (_, _) => const _NativeFrame(
+          location: '/habits',
+          child: _UnavailableSurface(
+            title: 'Habits',
+            message: 'Habits are not available in this release.',
           ),
-          GoRoute(
-            path: '/habits',
-            builder: (_, _) => const _UnavailableSurface(
-              title: 'Habits',
-              message: 'Habits are not available in this release.',
-            ),
+        ),
+      ),
+      GoRoute(
+        path: '/system/files',
+        builder: (_, _) => const _NativeFrame(
+          location: '/system/files',
+          child: _UnavailableSurface(
+            title: 'Backup and export',
+            message: 'File tools are not available yet.',
           ),
-          GoRoute(
-            path: '/system/files',
-            builder: (_, _) => const _UnavailableSurface(
-              title: 'Backup and export',
-              message: 'File tools are not available yet.',
-            ),
-          ),
-        ],
+        ),
       ),
     ],
     redirect: (_, state) => state.uri.path == '/' ? '/work' : null,
   );
 }
 
-Widget _workSurface(Uri uri) {
+Widget _workSurface(BuildContext routerContext, Uri uri) {
   final route = parseWorkRoute(uri);
   if (route is InvalidWorkRoute) {
-    return _UnavailableSurface(
-      title: switch (route.reason) {
-        WorkRouteProblem.malformedId => 'Work record unavailable',
-        WorkRouteProblem.malformedScope => 'Invalid Work scope',
-        WorkRouteProblem.invalidMode => 'Invalid Work mode',
-      },
-      message: switch (route.reason) {
-        WorkRouteProblem.malformedId =>
-          'The requested Work record identifier is invalid.',
-        WorkRouteProblem.malformedScope =>
-          'Choose a valid period or date range to inspect Work records.',
-        WorkRouteProblem.invalidMode =>
-          'Choose a valid inspector mode to continue.',
-      },
+    return _NativeFrame(
+      location: '/work',
+      child: _UnavailableSurface(
+        title: switch (route.reason) {
+          WorkRouteProblem.malformedId => 'Work record unavailable',
+          WorkRouteProblem.malformedScope => 'Invalid Work scope',
+          WorkRouteProblem.invalidMode => 'Invalid Work mode',
+        },
+        message: switch (route.reason) {
+          WorkRouteProblem.malformedId =>
+            'The requested Work record identifier is invalid.',
+          WorkRouteProblem.malformedScope =>
+            'Choose a valid period or date range to inspect Work records.',
+          WorkRouteProblem.invalidMode =>
+            'Choose a valid inspector mode to continue.',
+        },
+      ),
     );
   }
-  return const _WorkSkeleton();
+  return ProviderScope(
+    overrides: [
+      workRouteProvider.overrideWithValue(route),
+      replaceWorkRouteProvider.overrideWithValue(
+        (route) => routerContext.go(workRouteUri(route).toString()),
+      ),
+    ],
+    child: const _WorkRouteHost(),
+  );
+}
+
+final class _WorkRouteHost extends ConsumerWidget {
+  const _WorkRouteHost();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      body: WorkScreen(
+        state: ref.watch(workControllerProvider),
+        onSelect: (record) {
+          final parsed = ref.read(workRouteProvider);
+          if (parsed case ValidWorkRoute(:final state)) {
+            ref.read(replaceWorkRouteProvider)(
+              WorkRouteState(
+                employmentId: state.employmentId,
+                scope: state.scope,
+                record: record,
+                mode: WorkInspectorMode.inspect,
+              ),
+            );
+          }
+        },
+        onPrimaryAction: () {},
+        onNavigate: context.go,
+      ),
+    );
+  }
 }
 
 final class _NativeFrame extends StatelessWidget {
@@ -160,52 +208,6 @@ final class _RailDestination extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-final class _WorkSkeleton extends StatelessWidget {
-  const _WorkSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 3,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 24, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Work', style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 6),
-                const Text('Work records will appear here.'),
-                const SizedBox(height: 24),
-                const Divider(height: 1),
-                const Expanded(
-                  child: Center(
-                    child: Text(
-                      'Create an employment and pay agreement to begin.',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const VerticalDivider(width: 1),
-        const SizedBox(
-          width: 356,
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: Text('Select a record to inspect it.'),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

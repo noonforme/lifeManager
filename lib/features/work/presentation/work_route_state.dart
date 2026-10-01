@@ -114,6 +114,26 @@ final class WorkRouteState {
   final WorkInspectorMode mode;
 }
 
+Uri workRouteUri(WorkRouteState state) {
+  final parameters = <String>[];
+  if (state.employmentId case final employmentId?) {
+    parameters.add('employment=${employmentId.value}');
+  }
+  switch (state.scope) {
+    case PayPeriodScope(:final periodId):
+      parameters.add('period=${periodId.value}');
+    case DateRangeScope(:final start, :final end):
+      parameters.add('from=$start');
+      parameters.add('to=$end');
+    case null:
+  }
+  if (state.record case final record?) {
+    parameters.add('record=${record.kind.name}:${record.id.value}');
+  }
+  parameters.add('mode=${state.mode.name}');
+  return Uri(path: '/work', query: parameters.join('&'));
+}
+
 WorkRouteParseResult parseWorkRoute(Uri uri) {
   if (uri.path != '/work') {
     return const InvalidWorkRoute(WorkRouteProblem.malformedScope);
