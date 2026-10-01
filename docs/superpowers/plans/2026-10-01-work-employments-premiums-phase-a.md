@@ -70,13 +70,13 @@ bool isLithuanianPublicHoliday(LocalDate date);
 bool isPublicHoliday(HolidayCalendar calendar, LocalDate date);
 ```
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - All 16 dates in spec section 3 for 2026 are holidays, including Easter Sunday and Monday, and the first Sundays of May and June.
   - Easter for 2024–2030 matches the published dates: 31 Mar 2024, 20 Apr 2025, 5 Apr 2026, 28 Mar 2027, 16 Apr 2028, 1 Apr 2029, 21 Apr 2030.
   - Non-holidays such as 3 November and 2 January are not holidays.
   - `HolidayCalendar.none` has no holidays.
-- [ ] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
-- [ ] **Step 3: Commit** `feat: add the Lithuanian public holiday calendar`.
+- [x] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
+- [x] **Step 3: Commit** `feat: add the Lithuanian public holiday calendar`.
 
 ### Task 2: Agreement premium fields
 
