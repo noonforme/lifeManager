@@ -71,6 +71,8 @@ components:
 
 # Design System: LifeOS
 
+> **Superseded direction (2026-10-01).** The owner approved a replacement world: Office Machine, with a book tree, desks, journal, formula bar and record history. The target system is specified in `docs/superpowers/specs/2026-10-01-lifeos-office-machine-shell-design.md` (section 4 holds the tokens). This file still describes the shipped implementation and will be rewritten from the built shell when plan `2026-10-01-lifeos-office-machine-shell.md` finishes.
+
 ## Overview
 
 **Creative North Star: "The Neutral Operations Desk"**
