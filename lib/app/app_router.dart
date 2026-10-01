@@ -180,6 +180,10 @@ final class _WorkRouteHost extends ConsumerWidget {
         onCorrectPayslip: ref
             .read(workControllerProvider.notifier)
             .correctPayslipWithReason,
+        onReviseDraft: ref
+            .read(workControllerProvider.notifier)
+            .reviseDraftShift,
+        timezones: ref.read(timezoneServiceProvider),
       ),
     );
   }

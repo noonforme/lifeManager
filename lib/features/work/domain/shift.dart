@@ -121,6 +121,37 @@ final class WorkShift {
     );
   }
 
+  /// The same shift with owner-revised facts; identity, lineage, agreement and
+  /// revision are kept so the write stays revision-checked.
+  WorkShift revisedFacts({
+    required DateTime startUtc,
+    required DateTime endUtc,
+    required String timezoneId,
+    required LocalDate localStartDate,
+    required int overtimeMinutes,
+    required String? note,
+    DateTime? updatedAtUtc,
+  }) {
+    return WorkShift(
+      id: id,
+      employmentId: employmentId,
+      agreementId: agreementId,
+      state: state,
+      startUtc: startUtc,
+      endUtc: endUtc,
+      timezoneId: timezoneId,
+      localStartDate: localStartDate,
+      overtimeMinutes: overtimeMinutes,
+      note: note,
+      voidReason: voidReason,
+      replacementShiftId: replacementShiftId,
+      replacedShiftId: replacedShiftId,
+      createdAtUtc: createdAtUtc,
+      updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+      revision: revision,
+    );
+  }
+
   WorkShift replacementDraft({
     required ShiftId replacementId,
     required DateTime nowUtc,

@@ -179,6 +179,88 @@ void main() {
     },
   );
 
+  test('replacement draft is revised and finalized atomically', () async {
+    final draft = await _replacementDraftWithCopiedBreak(repository);
+    final revised = draft.revisedFacts(
+      startUtc: DateTime.utc(2026, 9, 29, 9),
+      endUtc: DateTime.utc(2026, 9, 29, 17),
+      timezoneId: 'Europe/Berlin',
+      localStartDate: const LocalDate(2026, 9, 29),
+      overtimeMinutes: 0,
+      note: 'Corrected start',
+    );
+    final newBreak = ShiftBreak(
+      id: _revisedBreakId,
+      shiftId: draft.id,
+      startUtc: DateTime.utc(2026, 9, 29, 13),
+      endUtc: DateTime.utc(2026, 9, 29, 13, 45),
+      createdAtUtc: DateTime.utc(2026, 9, 30),
+      updatedAtUtc: DateTime.utc(2026, 9, 30),
+      revision: const Revision(0),
+    );
+
+    final result = await repository.reviseAndFinalizeDraft(
+      revised,
+      expected: draft.revision,
+      breaks: [newBreak],
+    );
+
+    final shift = (result as Committed<WorkShift>).value;
+    expect(shift.state, ShiftState.finalized);
+    expect(shift.startUtc, DateTime.utc(2026, 9, 29, 9));
+    expect(shift.note, 'Corrected start');
+    expect(shift.agreementId, _agreementId);
+    expect(shift.replacedShiftId, _shiftA);
+    final breaks = await repository.breaksFor(draft.id);
+    expect(breaks.map((value) => value.id), [_revisedBreakId]);
+  });
+
+  test('stale draft revision leaves the draft and breaks unchanged', () async {
+    final draft = await _replacementDraftWithCopiedBreak(repository);
+    final revised = draft.revisedFacts(
+      startUtc: DateTime.utc(2026, 9, 29, 9),
+      endUtc: DateTime.utc(2026, 9, 29, 17),
+      timezoneId: 'Europe/Berlin',
+      localStartDate: const LocalDate(2026, 9, 29),
+      overtimeMinutes: 0,
+      note: null,
+    );
+
+    final result = await repository.reviseAndFinalizeDraft(
+      revised,
+      expected: const Revision(7),
+      breaks: const [],
+    );
+
+    expect(result, isA<Stale<WorkShift>>());
+    final persisted = (await repository.shiftById(draft.id))!;
+    expect(persisted.state, ShiftState.draft);
+    expect(persisted.startUtc, draft.startUtc);
+    expect(await repository.breaksFor(draft.id), hasLength(1));
+  });
+
+  test('finalized shifts are never revised as drafts', () async {
+    final draft = await _replacementDraftWithCopiedBreak(repository);
+    final original = (await repository.shiftById(_shiftA))!;
+
+    final result = await repository.reviseAndFinalizeDraft(
+      original.revisedFacts(
+        startUtc: DateTime.utc(2026, 9, 29, 9),
+        endUtc: DateTime.utc(2026, 9, 29, 17),
+        timezoneId: 'Europe/Berlin',
+        localStartDate: const LocalDate(2026, 9, 29),
+        overtimeMinutes: 0,
+        note: null,
+      ),
+      expected: original.revision,
+      breaks: const [],
+    );
+
+    expect(result, isA<Invalid<WorkShift>>());
+    expect((await repository.shiftById(_shiftA))!.state, ShiftState.voided);
+    expect((await repository.shiftById(draft.id))!.state, ShiftState.draft);
+  });
+
   test(
     'stale correction creates no replacement and leaves original finalized',
     () async {
@@ -225,6 +307,46 @@ const _breakId = ShiftBreakId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c39');
 const _replacementBreakId = ShiftBreakId(
   '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c3a',
 );
+
+const _revisedBreakId = ShiftBreakId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c3b');
+
+Future<WorkShift> _replacementDraftWithCopiedBreak(
+  DriftShiftRepository repository,
+) async {
+  await repository.start(_runningShift(_shiftA));
+  await repository.startBreak(_openBreak(), expectedShift: const Revision(0));
+  final onBreak = (await repository.shiftById(_shiftA))!;
+  await repository.endBreak(
+    _breakId,
+    shiftId: _shiftA,
+    endUtc: DateTime.utc(2026, 9, 29, 12, 30),
+    expectedBreak: const Revision(0),
+    expectedShift: onBreak.revision,
+  );
+  final running = (await repository.shiftById(_shiftA))!;
+  await repository.endShift(
+    _shiftA,
+    endUtc: DateTime.utc(2026, 9, 29, 16),
+    expected: running.revision,
+  );
+  final ended = (await repository.shiftById(_shiftA))!;
+  final finalized = await repository.finalizeShift(
+    _shiftA,
+    expected: ended.revision,
+  );
+  final original = (finalized as Committed<WorkShift>).value;
+  final corrected = await repository.correctShift(
+    original.id,
+    expected: original.revision,
+    replacement: original.replacementDraft(
+      replacementId: _shiftB,
+      nowUtc: DateTime.utc(2026, 9, 30),
+    ),
+    voidReason: 'Synthetic correction',
+    nowUtc: DateTime.utc(2026, 9, 30),
+  );
+  return (corrected as Committed<WorkShift>).value;
+}
 
 Future<void> _seedEmploymentAndAgreement(AppDatabase database) async {
   final work = DriftWorkRepository(database);

@@ -240,6 +240,38 @@ final class ManualShiftBreak {
   final FoldChoice? endFold;
 }
 
+/// Owner-entered facts that replace a draft shift's facts before it
+/// finalizes, such as a correction's replacement.
+final class ReviseShiftDraftCommand {
+  const ReviseShiftDraftCommand({
+    required this.id,
+    required this.expectedRevision,
+    required this.localStartDate,
+    required this.localStartTime,
+    required this.localEndDate,
+    required this.localEndTime,
+    required this.timezoneId,
+    required this.startFold,
+    required this.endFold,
+    this.breaks = const [],
+    required this.overtimeMinutes,
+    required this.note,
+  });
+
+  final ShiftId id;
+  final Revision expectedRevision;
+  final LocalDate localStartDate;
+  final LocalTime localStartTime;
+  final LocalDate localEndDate;
+  final LocalTime localEndTime;
+  final String timezoneId;
+  final FoldChoice? startFold;
+  final FoldChoice? endFold;
+  final List<ManualShiftBreak> breaks;
+  final int overtimeMinutes;
+  final String? note;
+}
+
 final class CreateManualShiftCommand {
   const CreateManualShiftCommand({
     required this.employmentId,

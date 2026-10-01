@@ -15,7 +15,10 @@ import 'daos/employment_dao.dart';
 import 'daos/shift_dao.dart';
 
 final class DriftShiftRepository
-    implements ShiftLifecycleRepository, ManualShiftRepository {
+    implements
+        ShiftLifecycleRepository,
+        ManualShiftRepository,
+        ShiftDraftRevisionRepository {
   DriftShiftRepository(this._database, {ShiftBreakId Function()? createBreakId})
     : _createBreakId = createBreakId ?? _missingBreakIdFactory,
       _shifts = ShiftDao(_database),
@@ -69,6 +72,7 @@ final class DriftShiftRepository
 
   Stream<WorkShift?> watchActiveShift() => _shifts.watchActive();
 
+  @override
   Future<WorkShift?> shiftById(ShiftId id) => _shifts.byId(id);
 
   Future<List<ShiftBreak>> breaksFor(ShiftId id) => _shifts.breaksFor(id);
@@ -319,6 +323,59 @@ final class DriftShiftRepository
     });
   }
 
+  /// Replaces a draft's facts and breaks and finalizes it in one transaction.
+  /// Nothing is written unless the revised facts finalize.
+  @override
+  Future<MutationOutcome<WorkShift>> reviseAndFinalizeDraft(
+    WorkShift revised, {
+    required Revision expected,
+    required List<ShiftBreak> breaks,
+  }) async {
+    try {
+      return await _database.transaction(() async {
+        final current = await _shifts.byId(revised.id);
+        if (current == null) return const Missing<WorkShift>();
+        if (current.state != ShiftState.draft ||
+            breaks.any((value) => value.shiftId != revised.id)) {
+          return const Invalid<WorkShift>({
+            'shift': [FieldIssue(FieldIssueCode.invalid)],
+          });
+        }
+        if (current.revision != expected) return const Stale<WorkShift>();
+        final agreements = await _agreements.forEmployment(
+          current.employmentId,
+        );
+        final validation = validateFinalization(
+          shift: revised,
+          breaks: breaks,
+          agreements: agreements,
+        );
+        if (!validation.isValid) {
+          return const Invalid<WorkShift>({
+            'shift': [FieldIssue(FieldIssueCode.invalid)],
+          });
+        }
+        if (await _shifts.reviseDraft(revised, expected: expected) == 0) {
+          return const Stale<WorkShift>();
+        }
+        await _shifts.deleteBreaksFor(revised.id);
+        for (final value in breaks) {
+          await _shifts.insertBreak(value);
+        }
+        final finalized = await finalizeShift(
+          revised.id,
+          expected: expected.next(),
+        );
+        if (finalized is! Committed<WorkShift>) {
+          throw _RevisionRejected(finalized);
+        }
+        return finalized;
+      });
+    } on _RevisionRejected catch (rejected) {
+      return rejected.outcome;
+    }
+  }
+
   @override
   Future<MutationOutcome<WorkShift>> commitCorrection(
     ShiftId originalId, {
@@ -408,6 +465,13 @@ WorkShift _withOvertime(WorkShift shift, int overtimeMinutes) => WorkShift(
   updatedAtUtc: shift.updatedAtUtc,
   revision: shift.revision,
 );
+
+/// Rolls back a draft revision whose finalization did not commit.
+final class _RevisionRejected implements Exception {
+  const _RevisionRejected(this.outcome);
+
+  final MutationOutcome<WorkShift> outcome;
+}
 
 final class _StaleCorrection implements Exception {
   const _StaleCorrection();

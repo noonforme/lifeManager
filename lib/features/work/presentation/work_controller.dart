@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/timezone_service.dart';
 import '../application/work_commands.dart';
 import '../application/work_query_service.dart';
 import '../data/projections/work_record_projection.dart';
@@ -70,6 +71,9 @@ typedef CorrectPayslip = Future<MutationOutcome<Payslip>> Function(
 typedef CorrectShift = Future<MutationOutcome<WorkShift>> Function(
   CorrectShiftCommand command,
 );
+typedef ReviseShiftDraft = Future<MutationOutcome<WorkShift>> Function(
+  ReviseShiftDraftCommand command,
+);
 typedef ReplaceWorkRoute = void Function(WorkRouteState route);
 typedef CurrentTimezoneId = String? Function();
 
@@ -102,6 +106,15 @@ final nextReplacementShiftIdProvider = Provider<ShiftId Function()>(
 );
 final nextReplacementPayslipIdProvider = Provider<PayslipId Function()>(
   (ref) => throw StateError('Replacement payslip IDs have not been provided.'),
+);
+
+final reviseShiftDraftProvider = Provider<ReviseShiftDraft>(
+  (ref) => throw StateError('ReviseShiftDraft has not been provided.'),
+);
+
+/// Converts stored UTC facts into wall-clock values for prefilled forms.
+final timezoneServiceProvider = Provider<TimezoneService>(
+  (ref) => IanaTimezoneService(),
 );
 
 final startShiftProvider = Provider<StartShift>(
@@ -321,6 +334,43 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       ref.read(saveManualShiftProvider)(
         CreateManualShiftCommand(
           employmentId: value.employmentId,
+          localStartDate: value.localStartDate,
+          localStartTime: value.localStartTime,
+          localEndDate: value.localEndDate,
+          localEndTime: value.localEndTime,
+          timezoneId: value.timezoneId.trim(),
+          startFold: value.startFold,
+          endFold: value.endFold,
+          breaks: [
+            for (final item in value.breaks)
+              ManualShiftBreak(
+                localStartDate: item.startDate,
+                localStartTime: item.start,
+                localEndDate: item.endDate,
+                localEndTime: item.end,
+                startFold: null,
+                endFold: null,
+              ),
+          ],
+          overtimeMinutes: value.overtimeMinutes,
+          note: _trimOptional(value.note),
+        ),
+      ),
+    );
+  }
+
+  /// Revises a draft shift (such as a correction's replacement) and selects
+  /// the finalized result for inspection.
+  Future<MutationOutcome<WorkShift>> reviseDraftShift(
+    WorkShift draftShift,
+    ManualShiftDraft value,
+  ) {
+    draft = value;
+    return _replaceRouteOnCommit(
+      ref.read(reviseShiftDraftProvider)(
+        ReviseShiftDraftCommand(
+          id: draftShift.id,
+          expectedRevision: draftShift.revision,
           localStartDate: value.localStartDate,
           localStartTime: value.localStartTime,
           localEndDate: value.localEndDate,

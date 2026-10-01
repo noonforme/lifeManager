@@ -49,6 +49,58 @@ final class ManualShiftDraft {
   final String? note;
 }
 
+/// Wall-clock values that seed the shift form when revising a draft.
+final class ShiftFormPrefill {
+  const ShiftFormPrefill({
+    required this.startDate,
+    required this.startTime,
+    required this.endDate,
+    required this.endTime,
+    required this.timezoneId,
+    required this.breaks,
+    required this.overtimeMinutes,
+    required this.note,
+  });
+
+  /// Converts a draft's stored UTC facts into its own zone's wall clock.
+  factory ShiftFormPrefill.fromShift(
+    WorkShift shift,
+    List<ShiftBreak> breaks,
+    TimezoneService zones,
+  ) {
+    final zone = shift.timezoneId;
+    final end = shift.endUtc;
+    return ShiftFormPrefill(
+      startDate: zones.localDateAt(shift.startUtc, zone),
+      startTime: zones.localTimeAt(shift.startUtc, zone),
+      endDate: end == null ? null : zones.localDateAt(end, zone),
+      endTime: end == null ? null : zones.localTimeAt(end, zone),
+      timezoneId: zone,
+      breaks: [
+        for (final value in breaks)
+          if (value.endUtc case final breakEnd?)
+            ManualBreakDraft(
+              startDate: zones.localDateAt(value.startUtc, zone),
+              start: zones.localTimeAt(value.startUtc, zone),
+              endDate: zones.localDateAt(breakEnd, zone),
+              end: zones.localTimeAt(breakEnd, zone),
+            ),
+      ],
+      overtimeMinutes: shift.overtimeMinutes,
+      note: shift.note,
+    );
+  }
+
+  final LocalDate startDate;
+  final LocalTime startTime;
+  final LocalDate? endDate;
+  final LocalTime? endTime;
+  final String timezoneId;
+  final List<ManualBreakDraft> breaks;
+  final int overtimeMinutes;
+  final String? note;
+}
+
 typedef SubmitManualShift = Future<MutationOutcome<WorkShift>> Function(
   ManualShiftDraft draft,
 );
@@ -231,28 +283,49 @@ final class ShiftEditInspector extends StatefulWidget {
     required this.employmentId,
     required this.onSubmit,
     this.initialTimezoneId,
+    this.prefill,
+    this.title = 'Manual shift',
     super.key,
   });
 
   final EmploymentId employmentId;
   final SubmitManualShift onSubmit;
   final String? initialTimezoneId;
+  final ShiftFormPrefill? prefill;
+  final String title;
 
   @override
   State<ShiftEditInspector> createState() => _ShiftEditInspectorState();
 }
 
 final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
-  final _startDate = TextEditingController();
-  final _startTime = TextEditingController();
-  final _endDate = TextEditingController();
-  final _endTime = TextEditingController();
-  late final _timezone = TextEditingController(
-    text: widget.initialTimezoneId ?? '',
+  late final _startDate = TextEditingController(
+    text: widget.prefill?.startDate.toString() ?? '',
   );
-  final _overtime = TextEditingController(text: '0');
-  final _note = TextEditingController();
-  final _breaks = <_BreakControllers>[];
+  late final _startTime = TextEditingController(
+    text: _formatTime(widget.prefill?.startTime),
+  );
+  late final _endDate = TextEditingController(
+    text: widget.prefill?.endDate?.toString() ?? '',
+  );
+  late final _endTime = TextEditingController(
+    text: _formatTime(widget.prefill?.endTime),
+  );
+  late final _timezone = TextEditingController(
+    text: widget.prefill?.timezoneId ?? widget.initialTimezoneId ?? '',
+  );
+  late final _overtime = TextEditingController(
+    text: '${widget.prefill?.overtimeMinutes ?? 0}',
+  );
+  late final _note = TextEditingController(text: widget.prefill?.note ?? '');
+  late final _breaks = <_BreakControllers>[
+    for (final value in widget.prefill?.breaks ?? const <ManualBreakDraft>[])
+      _BreakControllers()
+        ..startDate.text = value.startDate.toString()
+        ..start.text = _formatTime(value.start)
+        ..endDate.text = value.endDate.toString()
+        ..end.text = _formatTime(value.end),
+  ];
   final _errors = <String, String>{};
 
   @override
@@ -356,11 +429,11 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
   Widget build(BuildContext context) => Semantics(
     container: true,
     explicitChildNodes: true,
-    label: 'Add manual shift',
+    label: widget.prefill == null ? 'Add manual shift' : widget.title,
     child: ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text('Manual shift', style: Theme.of(context).textTheme.headlineSmall),
+        Text(widget.title, style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 14),
         _field(
           key: const ValueKey('shift-start-date'),
@@ -529,6 +602,13 @@ Widget _field({
     ),
   ),
 );
+
+/// Formats as HH:MM, adding seconds only when they are set.
+String _formatTime(LocalTime? value) {
+  if (value == null) return '';
+  final text = value.toString();
+  return value.second == 0 ? text.substring(0, 5) : text;
+}
 
 LocalTime? _parseTime(String value) {
   final match = RegExp(r'^(\d{2}):(\d{2})(?::(\d{2}))?$').firstMatch(value);

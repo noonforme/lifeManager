@@ -52,6 +52,12 @@ ProductionWorkProviders buildWorkProviders({
     clock: clock,
     timezones: timezones,
   );
+  final draftRevisions = ShiftDraftRevisionService(
+    shiftRepository,
+    idFactory: shiftIds,
+    clock: clock,
+    timezones: timezones,
+  );
   final periods = PayPeriodService(
     workRepository,
     idFactory: evidenceIds,
@@ -69,6 +75,8 @@ ProductionWorkProviders buildWorkProviders({
     agreement: agreement,
     shifts: shifts,
     manualShifts: manualShifts,
+    draftRevisions: draftRevisions,
+    timezones: timezones,
     periods: periods,
     payslips: payslips,
     currentTimezoneId: currentTimezoneId,
@@ -84,6 +92,8 @@ final class ProductionWorkProviders {
     required this.agreement,
     required this.shifts,
     required this.manualShifts,
+    required this.draftRevisions,
+    required this.timezones,
     required this.periods,
     required this.payslips,
     required this.currentTimezoneId,
@@ -96,6 +106,8 @@ final class ProductionWorkProviders {
   final AgreementService agreement;
   final ShiftLifecycleService shifts;
   final ManualShiftService manualShifts;
+  final ShiftDraftRevisionService draftRevisions;
+  final TimezoneService timezones;
   final PayPeriodService periods;
   final PayslipService payslips;
   final CurrentTimezoneId currentTimezoneId;
@@ -117,6 +129,8 @@ final class ProductionWorkProviders {
     recordPayslipProvider.overrideWithValue(payslips.recordPayslip),
     correctPayslipProvider.overrideWithValue(payslips.correctPayslip),
     correctShiftProvider.overrideWithValue(shifts.correctShift),
+    reviseShiftDraftProvider.overrideWithValue(draftRevisions.reviseAndFinalize),
+    timezoneServiceProvider.overrideWithValue(timezones),
     currentTimezoneIdProvider.overrideWithValue(currentTimezoneId),
     nextReplacementShiftIdProvider.overrideWithValue(shiftIds.shiftId),
     nextReplacementPayslipIdProvider.overrideWithValue(evidenceIds.payslipId),

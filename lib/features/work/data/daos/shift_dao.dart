@@ -235,6 +235,44 @@ final class ShiftDao {
     );
   }
 
+  /// Rewrites a draft's facts and bumps its revision; finalized and voided
+  /// shifts never match.
+  Future<int> reviseDraft(
+    domain.WorkShift value, {
+    required Revision expected,
+  }) {
+    return database.customUpdate(
+      '''
+      UPDATE work_shifts
+      SET start_utc_micros = ?, end_utc_micros = ?, timezone_id = ?,
+          local_start_date = ?, overtime_minutes = ?, note = ?,
+          updated_at_utc_micros = ?, revision = revision + 1
+      WHERE id = ? AND revision = ? AND state = 'draft'
+      ''',
+      variables: [
+        Variable(value.startUtc.microsecondsSinceEpoch),
+        Variable(value.endUtc?.microsecondsSinceEpoch),
+        Variable(value.timezoneId),
+        Variable(value.localStartDate.toString()),
+        Variable(value.overtimeMinutes),
+        Variable(value.note),
+        Variable(value.updatedAtUtc.microsecondsSinceEpoch),
+        Variable(value.id.value),
+        Variable(expected.value),
+      ],
+      updates: {database.workShifts},
+    );
+  }
+
+  Future<int> deleteBreaksFor(ShiftId id) {
+    return database.customUpdate(
+      'DELETE FROM shift_breaks WHERE shift_id = ?',
+      variables: [Variable(id.value)],
+      updates: {database.shiftBreaks},
+      updateKind: UpdateKind.delete,
+    );
+  }
+
   Future<int> finalize(domain.WorkShift value, {required Revision expected}) {
     return database.customUpdate(
       '''

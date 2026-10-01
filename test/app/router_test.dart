@@ -7,6 +7,8 @@ import 'package:lifeos/app/app_router.dart';
 import 'package:lifeos/app/lifeos_app.dart';
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/core/time/local_time.dart';
+import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/features/work/application/work_commands.dart';
 import 'package:lifeos/features/work/application/work_query_service.dart';
 import 'package:lifeos/features/work/data/daos/shift_dao.dart';
@@ -1064,6 +1066,98 @@ void main() {
 
     expect(find.textContaining('private-marker'), findsNothing);
   });
+
+  testWidgets('replacement draft in edit mode is revised and finalized', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1400);
+    addTearDown(tester.view.reset);
+    ReviseShiftDraftCommand? issued;
+    final router = createAppRouter(initialLocation: _replacementEditLocation);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _DraftQueryRepository(),
+          ),
+          timezoneServiceProvider.overrideWithValue(IanaTimezoneService()),
+          reviseShiftDraftProvider.overrideWithValue((command) async {
+            issued = command;
+            return Committed(_revisedFinalized);
+          }),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Revise replacement shift'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('shift-start-time')))
+          .controller!
+          .text,
+      '10:00',
+    );
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('shift-end-time')))
+          .controller!
+          .text,
+      '18:00',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('shift-end-time')),
+      '17:00',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
+    await tester.pumpAndSettle();
+
+    expect(issued?.id, _replacementShiftId);
+    expect(issued?.expectedRevision, const Revision(0));
+    expect(issued?.localEndTime, const LocalTime(17, 0));
+    expect(issued?.timezoneId, 'Europe/Amsterdam');
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      _replacementEditLocation.replaceFirst('mode=edit', 'mode=inspect'),
+    );
+  });
+
+  testWidgets('stale draft revision keeps edit mode and explains', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1400);
+    addTearDown(tester.view.reset);
+    final router = createAppRouter(initialLocation: _replacementEditLocation);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _DraftQueryRepository(),
+          ),
+          timezoneServiceProvider.overrideWithValue(IanaTimezoneService()),
+          reviseShiftDraftProvider.overrideWithValue(
+            (_) async => const Stale<WorkShift>(),
+          ),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.toString(),
+        _replacementEditLocation);
+    expect(find.text('Reload record'), findsOneWidget);
+  });
 }
 
 final class _EmptyWorkQueryRepository implements WorkQueryRepository {
@@ -1315,6 +1409,45 @@ final class _PayslipQueryRepository implements WorkQueryRepository {
   @override
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) =>
       Stream.value(id == _payslipId ? PayslipRecordProjection(_payslip) : null);
+
+  @override
+  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
+}
+
+final _replacementEditLocation =
+    '/work?employment=${_employmentId.value}'
+    '&from=2026-09-29&to=2026-09-29'
+    '&record=shift:${_replacementShiftId.value}&mode=edit';
+final _revisedFinalized = WorkShift(
+  id: _replacementShiftId,
+  employmentId: _employmentId,
+  agreementId: _agreementId,
+  state: ShiftState.finalized,
+  startUtc: DateTime.utc(2026, 9, 29, 8),
+  endUtc: DateTime.utc(2026, 9, 29, 15),
+  timezoneId: 'Europe/Amsterdam',
+  localStartDate: const LocalDate(2026, 9, 29),
+  overtimeMinutes: 0,
+  note: null,
+  voidReason: null,
+  replacementShiftId: null,
+  replacedShiftId: _shiftId,
+  createdAtUtc: DateTime.utc(2026, 10, 1),
+  updatedAtUtc: DateTime.utc(2026, 10, 1),
+  revision: const Revision(1),
+);
+
+final class _DraftQueryRepository implements WorkQueryRepository {
+  @override
+  Stream<WorkRegisterProjection> watchRegister(WorkScope scope) =>
+      Stream.value(WorkRegisterProjection.empty(scope));
+
+  @override
+  Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) => Stream.value(
+    id == _replacementShiftId
+        ? ShiftRecordProjection(_replacementDraft, breaks: const [])
+        : null,
+  );
 
   @override
   Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);

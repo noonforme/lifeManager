@@ -31,6 +31,8 @@ abstract interface class TimezoneService {
   });
 
   LocalDate localDateAt(DateTime utc, String zoneId);
+
+  LocalTime localTimeAt(DateTime utc, String zoneId);
 }
 
 final class IanaTimezoneService implements TimezoneService {
@@ -103,6 +105,12 @@ final class IanaTimezoneService implements TimezoneService {
   LocalDate localDateAt(DateTime utc, String zoneId) {
     final local = tz.TZDateTime.from(utc.toUtc(), _location(zoneId));
     return LocalDate(local.year, local.month, local.day);
+  }
+
+  @override
+  LocalTime localTimeAt(DateTime utc, String zoneId) {
+    final local = tz.TZDateTime.from(utc.toUtc(), _location(zoneId));
+    return LocalTime(local.hour, local.minute, local.second);
   }
 
   tz.Location _location(String zoneId) {

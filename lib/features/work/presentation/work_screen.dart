@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/timezone_service.dart';
 import '../../../shared/workbench/inspector_pane.dart';
 import '../../../shared/workbench/lifeos_frame.dart';
 import '../../../shared/workbench/operational_state.dart';
@@ -44,6 +45,8 @@ final class WorkScreen extends StatefulWidget {
     this.onCancelCorrection,
     this.onCorrectShift,
     this.onCorrectPayslip,
+    this.onReviseDraft,
+    this.timezones,
     super.key,
   });
 
@@ -85,6 +88,12 @@ final class WorkScreen extends StatefulWidget {
     String reason,
   )?
   onCorrectPayslip;
+  final Future<MutationOutcome<WorkShift>> Function(
+    WorkShift draft,
+    ManualShiftDraft value,
+  )?
+  onReviseDraft;
+  final TimezoneService? timezones;
 
   @override
   State<WorkScreen> createState() => _WorkScreenState();
@@ -96,8 +105,26 @@ final class _WorkScreenState extends State<WorkScreen> {
   MutationOutcome<PayPeriod>? _periodFailure;
   bool _creatingPeriod = false;
   PayPeriodId? _payslipPeriod;
+  MutationOutcome<WorkShift>? _reviseFailure;
 
   void _clearStartFailure() => setState(() => _startFailure = null);
+
+  void _clearReviseFailure() => setState(() => _reviseFailure = null);
+
+  Future<MutationOutcome<WorkShift>> _reviseDraft(
+    WorkShift draft,
+    ManualShiftDraft value,
+  ) async {
+    final outcome = await widget.onReviseDraft!(draft, value);
+    if (!mounted) return outcome;
+    setState(() {
+      _reviseFailure =
+          outcome is Committed<WorkShift> || outcome is Invalid<WorkShift>
+          ? null
+          : outcome;
+    });
+    return outcome;
+  }
 
   void _clearPeriodFailure() => setState(() => _periodFailure = null);
 
@@ -147,6 +174,7 @@ final class _WorkScreenState extends State<WorkScreen> {
     }
     if (_routeMode(oldWidget.state) != _routeMode(widget.state)) {
       _startFailure = null;
+      _reviseFailure = null;
       _creatingPeriod = false;
     }
   }
@@ -278,6 +306,14 @@ final class _WorkScreenState extends State<WorkScreen> {
       WorkInspectorRecord(:final record)
           when route.mode == WorkInspectorMode.correct =>
         _correction(record),
+      WorkInspectorRecord(:final record)
+          when route.mode == WorkInspectorMode.edit &&
+              record is ShiftRecordProjection &&
+              record.shift.state == ShiftState.draft &&
+              record.shift.endUtc != null &&
+              widget.onReviseDraft != null &&
+              widget.timezones != null =>
+        _revision(record),
       WorkInspectorRecord(:final record) => _recordInspector(
         record,
         state.register,
@@ -287,8 +323,11 @@ final class _WorkScreenState extends State<WorkScreen> {
 }
 
 extension on _WorkScreenState {
-  Widget _startOutcome(MutationOutcome<WorkShift> outcome) {
-    final dismiss = _clearStartFailure;
+  Widget _startOutcome(
+    MutationOutcome<WorkShift> outcome, {
+    VoidCallback? dismiss,
+  }) {
+    dismiss ??= _clearStartFailure;
     return switch (outcome) {
       Invalid<WorkShift>(:final fields) when fields.containsKey('timezoneId') =>
         _rejected(
@@ -328,6 +367,24 @@ extension on _WorkScreenState {
       Uncertain<PayPeriod>() => const UncertainOutcomeInspector(),
       Committed<PayPeriod>() => const SizedBox.shrink(),
     };
+  }
+
+  Widget _revision(ShiftRecordProjection record) {
+    if (_reviseFailure case final failure?) {
+      return _startOutcome(failure, dismiss: _clearReviseFailure);
+    }
+    final shift = record.shift;
+    return ShiftEditInspector(
+      key: ValueKey(('revise', record.id, shift.revision)),
+      employmentId: shift.employmentId,
+      title: 'Revise replacement shift',
+      prefill: ShiftFormPrefill.fromShift(
+        shift,
+        record.breaks,
+        widget.timezones!,
+      ),
+      onSubmit: (value) => _reviseDraft(shift, value),
+    );
   }
 
   Widget _correction(WorkRecordProjection record) {

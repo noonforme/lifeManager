@@ -550,6 +550,10 @@ final class _Zones implements TimezoneService {
       const LocalDate(2026, 9, 30);
 
   @override
+  LocalTime localTimeAt(DateTime utc, String zoneId) =>
+      throw UnimplementedError();
+
+  @override
   ZonedInstant resolveLocal(
     LocalDate date,
     LocalTime time,

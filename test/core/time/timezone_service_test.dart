@@ -10,6 +10,17 @@ void main() {
     zones = IanaTimezoneService();
   });
 
+  test('UTC instants convert to the zone wall clock time', () {
+    expect(
+      zones.localTimeAt(DateTime.utc(2026, 9, 29, 7, 15), 'Europe/Berlin'),
+      const LocalTime(9, 15),
+    );
+    expect(
+      zones.localTimeAt(DateTime.utc(2026, 1, 5, 23, 30), 'Europe/Berlin'),
+      const LocalTime(0, 30),
+    );
+  });
+
   test('fold requires an explicit occurrence', () {
     const date = LocalDate(2026, 10, 25);
     const time = LocalTime(2, 30);
