@@ -172,6 +172,29 @@ final class _WorkRouteHost extends ConsumerWidget {
         onRecordPayslip: ref
             .read(workControllerProvider.notifier)
             .recordPayslip,
+        onOpenCorrection: () => _replaceMode(ref, WorkInspectorMode.correct),
+        onCancelCorrection: () => _replaceMode(ref, WorkInspectorMode.inspect),
+        onCorrectShift: ref
+            .read(workControllerProvider.notifier)
+            .correctShiftWithReason,
+        onCorrectPayslip: ref
+            .read(workControllerProvider.notifier)
+            .correctPayslipWithReason,
+      ),
+    );
+  }
+}
+
+/// Switches the selected record's inspector mode, keeping scope and record.
+void _replaceMode(WidgetRef ref, WorkInspectorMode mode) {
+  final parsed = ref.read(workRouteProvider);
+  if (parsed case ValidWorkRoute(:final state)) {
+    ref.read(replaceWorkRouteProvider)(
+      WorkRouteState(
+        employmentId: state.employmentId,
+        scope: state.scope,
+        record: state.record,
+        mode: mode,
       ),
     );
   }

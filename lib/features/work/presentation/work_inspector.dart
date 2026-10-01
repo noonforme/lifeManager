@@ -32,6 +32,7 @@ final class WorkInspector extends StatefulWidget {
     this.onAddManualShift,
     super.key,
   }) : projection = null,
+       onCorrect = null,
        onSetPeriodState = null,
        onRecordPayslip = null,
        reconciliation = const [],
@@ -51,7 +52,8 @@ final class WorkInspector extends StatefulWidget {
     this.durationLabel,
     this.suggestedOvertimeMinutes,
     super.key,
-  }) : onSetPeriodState = null,
+  }) : onCorrect = null,
+       onSetPeriodState = null,
        onRecordPayslip = null,
        reconciliation = const [],
        onCreateEmployment = null,
@@ -68,6 +70,7 @@ final class WorkInspector extends StatefulWidget {
     this.onEndBreak,
     this.onEndShift,
     this.onFinalize,
+    this.onCorrect,
     super.key,
   }) : onCreateEmployment = null,
        onCreateAgreement = null,
@@ -90,6 +93,10 @@ final class WorkInspector extends StatefulWidget {
   final FinalizeOvertime? onFinalize;
   final String? durationLabel;
   final int? suggestedOvertimeMinutes;
+
+  /// Opens void-and-replace confirmation for a finalized shift or an
+  /// effective payslip.
+  final VoidCallback? onCorrect;
 
   @override
   State<WorkInspector> createState() => _WorkInspectorState();
@@ -171,6 +178,7 @@ final class _WorkInspectorState extends State<WorkInspector> {
         ),
         PayslipRecordProjection(:final payslip) => _PayslipDetail(
           payslip: payslip,
+          onCorrect: payslip.isEffective ? widget.onCorrect : null,
         ),
         EmploymentRecordProjection() => const _UnavailableRecord(),
       };
@@ -255,7 +263,7 @@ final class _WorkInspectorState extends State<WorkInspector> {
         container: true,
         explicitChildNodes: true,
         label: 'Finalized shift',
-        child: const _FinalizedShift(),
+        child: _FinalizedShift(onCorrect: widget.onCorrect),
       ),
       ShiftState.draft || ShiftState.voided => const _UnavailableShift(),
     };
@@ -348,7 +356,9 @@ final class _Ready extends StatelessWidget {
 }
 
 final class _FinalizedShift extends StatelessWidget {
-  const _FinalizedShift();
+  const _FinalizedShift({this.onCorrect});
+
+  final VoidCallback? onCorrect;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -362,15 +372,23 @@ final class _FinalizedShift extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text('The recorded agreement now determines the estimate.'),
+        if (onCorrect != null) ...[
+          const SizedBox(height: 18),
+          OutlinedButton(
+            onPressed: onCorrect,
+            child: const Text('Correct shift'),
+          ),
+        ],
       ],
     ),
   );
 }
 
 final class _PayslipDetail extends StatelessWidget {
-  const _PayslipDetail({required this.payslip});
+  const _PayslipDetail({required this.payslip, this.onCorrect});
 
   final Payslip payslip;
+  final VoidCallback? onCorrect;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -389,6 +407,16 @@ final class _PayslipDetail extends StatelessWidget {
           _Fact(label: 'Paid', value: payslip.paidDate.toString()),
         if (payslip.reference != null)
           _Fact(label: 'Reference', value: payslip.reference!),
+        if (onCorrect != null) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton(
+              onPressed: onCorrect,
+              child: const Text('Correct payslip'),
+            ),
+          ),
+        ],
       ],
     ),
   );

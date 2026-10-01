@@ -10,6 +10,7 @@ import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/ids.dart';
 import '../domain/pay_period.dart';
+import '../domain/payslip.dart';
 import '../domain/shift.dart';
 import 'correction_confirmation.dart';
 import 'employment_agreement_forms.dart';
@@ -39,6 +40,10 @@ final class WorkScreen extends StatefulWidget {
     this.onCreatePayPeriod,
     this.onSetPeriodState,
     this.onRecordPayslip,
+    this.onOpenCorrection,
+    this.onCancelCorrection,
+    this.onCorrectShift,
+    this.onCorrectPayslip,
     super.key,
   });
 
@@ -68,6 +73,18 @@ final class WorkScreen extends StatefulWidget {
   final SubmitPayPeriod? onCreatePayPeriod;
   final SetPayPeriodState? onSetPeriodState;
   final SubmitPayslip? onRecordPayslip;
+  final VoidCallback? onOpenCorrection;
+  final VoidCallback? onCancelCorrection;
+  final Future<MutationOutcome<WorkShift>> Function(
+    WorkShift original,
+    String reason,
+  )?
+  onCorrectShift;
+  final Future<MutationOutcome<Payslip>> Function(
+    Payslip original,
+    String reason,
+  )?
+  onCorrectPayslip;
 
   @override
   State<WorkScreen> createState() => _WorkScreenState();
@@ -258,6 +275,9 @@ final class _WorkScreenState extends State<WorkScreen> {
         title: 'Work record unavailable',
         message: 'The requested record is not available in this scope.',
       ),
+      WorkInspectorRecord(:final record)
+          when route.mode == WorkInspectorMode.correct =>
+        _correction(record),
       WorkInspectorRecord(:final record) => _recordInspector(
         record,
         state.register,
@@ -310,6 +330,37 @@ extension on _WorkScreenState {
     };
   }
 
+  Widget _correction(WorkRecordProjection record) {
+    final cancel = widget.onCancelCorrection ?? () {};
+    final correctShift = widget.onCorrectShift;
+    final correctPayslip = widget.onCorrectPayslip;
+    return switch (record) {
+      ShiftRecordProjection(:final shift)
+          when shift.state == ShiftState.finalized && correctShift != null =>
+        CorrectionConfirmationInspector<WorkShift>(
+          key: ValueKey(('correct', record.id)),
+          recordName: 'shift',
+          original: shift,
+          onConfirm: correctShift,
+          onCancel: cancel,
+        ),
+      PayslipRecordProjection(:final payslip)
+          when payslip.isEffective && correctPayslip != null =>
+        CorrectionConfirmationInspector<Payslip>(
+          key: ValueKey(('correct', record.id)),
+          recordName: 'payslip',
+          original: payslip,
+          onConfirm: correctPayslip,
+          onCancel: cancel,
+        ),
+      _ => const OperationalState(
+        kind: OperationalStateKind.unavailable,
+        title: 'Correction unavailable',
+        message: 'Only finalized shifts and effective payslips are corrected.',
+      ),
+    };
+  }
+
   Widget _recordInspector(
     WorkRecordProjection record,
     WorkRegisterProjection register,
@@ -346,6 +397,7 @@ extension on _WorkScreenState {
       onFinalize: onFinalize == null || shift == null
           ? null
           : (minutes) => onFinalize(shift, minutes),
+      onCorrect: widget.onOpenCorrection,
     );
   }
 }

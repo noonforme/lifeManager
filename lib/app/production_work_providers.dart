@@ -72,6 +72,8 @@ ProductionWorkProviders buildWorkProviders({
     periods: periods,
     payslips: payslips,
     currentTimezoneId: currentTimezoneId,
+    shiftIds: shiftIds,
+    evidenceIds: evidenceIds,
   );
 }
 
@@ -85,6 +87,8 @@ final class ProductionWorkProviders {
     required this.periods,
     required this.payslips,
     required this.currentTimezoneId,
+    required this.shiftIds,
+    required this.evidenceIds,
   });
 
   final DriftWorkRepository workRepository;
@@ -95,6 +99,8 @@ final class ProductionWorkProviders {
   final PayPeriodService periods;
   final PayslipService payslips;
   final CurrentTimezoneId currentTimezoneId;
+  final ShiftIdFactory shiftIds;
+  final WorkEvidenceIdFactory evidenceIds;
 
   List<Override> get _overrides => [
     workQueryRepositoryProvider.overrideWithValue(workRepository),
@@ -112,6 +118,8 @@ final class ProductionWorkProviders {
     correctPayslipProvider.overrideWithValue(payslips.correctPayslip),
     correctShiftProvider.overrideWithValue(shifts.correctShift),
     currentTimezoneIdProvider.overrideWithValue(currentTimezoneId),
+    nextReplacementShiftIdProvider.overrideWithValue(shiftIds.shiftId),
+    nextReplacementPayslipIdProvider.overrideWithValue(evidenceIds.payslipId),
   ];
 
   ProviderContainer createContainer() =>

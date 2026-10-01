@@ -96,6 +96,14 @@ final correctShiftProvider = Provider<CorrectShift>(
   (ref) => throw StateError('CorrectShift has not been provided.'),
 );
 
+/// Supplies the typed ID for a correction's replacement record.
+final nextReplacementShiftIdProvider = Provider<ShiftId Function()>(
+  (ref) => throw StateError('Replacement shift IDs have not been provided.'),
+);
+final nextReplacementPayslipIdProvider = Provider<PayslipId Function()>(
+  (ref) => throw StateError('Replacement payslip IDs have not been provided.'),
+);
+
 final startShiftProvider = Provider<StartShift>(
   (ref) => throw StateError('StartShift has not been provided.'),
 );
@@ -414,6 +422,24 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       ),
     ),
     mode: WorkInspectorMode.edit,
+  );
+
+  Future<MutationOutcome<WorkShift>> correctShiftWithReason(
+    WorkShift original,
+    String reason,
+  ) => correctShift(
+    original,
+    replacementId: ref.read(nextReplacementShiftIdProvider)(),
+    voidReason: reason,
+  );
+
+  Future<MutationOutcome<Payslip>> correctPayslipWithReason(
+    Payslip original,
+    String reason,
+  ) => correctPayslip(
+    original,
+    replacementId: ref.read(nextReplacementPayslipIdProvider)(),
+    voidReason: reason,
   );
 
   Future<MutationOutcome<PayPeriod>> _replacePayPeriodRouteOnCommit(

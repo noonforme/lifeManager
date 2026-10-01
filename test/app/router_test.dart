@@ -801,6 +801,211 @@ void main() {
     );
   });
 
+  testWidgets('finalized shift correction voids and selects the replacement', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 900);
+    addTearDown(tester.view.reset);
+    final repository = _LiveShiftQueryRepository(
+      ShiftRecordProjection(_finalizedShift, breaks: const []),
+    );
+    addTearDown(repository.close);
+    CorrectShiftCommand? issued;
+    final router = createAppRouter(initialLocation: _finalizedLocation);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(repository),
+          nextReplacementShiftIdProvider.overrideWithValue(
+            () => _replacementShiftId,
+          ),
+          correctShiftProvider.overrideWithValue((command) async {
+            issued = command;
+            return Committed(_replacementDraft);
+          }),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Correct shift'));
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      _finalizedLocation.replaceFirst('mode=inspect', 'mode=correct'),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('correction-reason')),
+      '  Wrong end time  ',
+    );
+    await tester.tap(find.text('Void original and create replacement'));
+    await tester.pumpAndSettle();
+
+    expect(issued?.originalId, _shiftId);
+    expect(issued?.replacementId, _replacementShiftId);
+    expect(issued?.expectedRevision, const Revision(3));
+    expect(issued?.voidReason, 'Wrong end time');
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/work?employment=${_employmentId.value}'
+      '&from=2026-09-29&to=2026-09-29'
+      '&record=shift:${_replacementShiftId.value}&mode=edit',
+    );
+  });
+
+  testWidgets('canceling a correction returns to inspect without mutation', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 900);
+    addTearDown(tester.view.reset);
+    final repository = _LiveShiftQueryRepository(
+      ShiftRecordProjection(_finalizedShift, breaks: const []),
+    );
+    addTearDown(repository.close);
+    var issued = false;
+    final router = createAppRouter(
+      initialLocation: _finalizedLocation.replaceFirst(
+        'mode=inspect',
+        'mode=correct',
+      ),
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(repository),
+          correctShiftProvider.overrideWithValue((command) async {
+            issued = true;
+            return Committed(_replacementDraft);
+          }),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Correct shift'), findsWidgets);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(issued, isFalse);
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      _finalizedLocation,
+    );
+  });
+
+  testWidgets('stale correction keeps the correction route and explains', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 900);
+    addTearDown(tester.view.reset);
+    final repository = _LiveShiftQueryRepository(
+      ShiftRecordProjection(_finalizedShift, breaks: const []),
+    );
+    addTearDown(repository.close);
+    final location = _finalizedLocation.replaceFirst(
+      'mode=inspect',
+      'mode=correct',
+    );
+    final router = createAppRouter(initialLocation: location);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(repository),
+          nextReplacementShiftIdProvider.overrideWithValue(
+            () => _replacementShiftId,
+          ),
+          correctShiftProvider.overrideWithValue(
+            (command) async => const Stale<WorkShift>(),
+          ),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('correction-reason')),
+      'Wrong end time',
+    );
+    await tester.tap(find.text('Void original and create replacement'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Your record is out of date. Reload and review before trying again.',
+      ),
+      findsOneWidget,
+    );
+    expect(router.routeInformationProvider.value.uri.toString(), location);
+  });
+
+  testWidgets('effective payslip correction selects the replacement', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 900);
+    addTearDown(tester.view.reset);
+    CorrectPayslipCommand? issued;
+    final location =
+        '/work?employment=${_employmentId.value}&period=${_periodId.value}'
+        '&record=payslip:${_payslipId.value}&mode=inspect';
+    final router = createAppRouter(initialLocation: location);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _PayslipQueryRepository(),
+          ),
+          nextReplacementPayslipIdProvider.overrideWithValue(
+            () => _replacementPayslipId,
+          ),
+          correctPayslipProvider.overrideWithValue((command) async {
+            issued = command;
+            return Committed(
+              _payslip.replacement(
+                replacementId: _replacementPayslipId,
+                nowUtc: DateTime.utc(2026, 10, 1),
+              ),
+            );
+          }),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Correct payslip'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('correction-reason')),
+      'Amount misread',
+    );
+    await tester.tap(find.text('Void original and create replacement'));
+    await tester.pumpAndSettle();
+
+    expect(issued?.originalId, _payslipId);
+    expect(issued?.replacementId, _replacementPayslipId);
+    expect(issued?.voidReason, 'Amount misread');
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/work?employment=${_employmentId.value}&period=${_periodId.value}'
+      '&record=payslip:${_replacementPayslipId.value}&mode=inspect',
+    );
+  });
+
   testWidgets('safe top-level navigation remains available from Work', (
     tester,
   ) async {
@@ -1079,6 +1284,37 @@ final class _PeriodQueryRepository implements WorkQueryRepository {
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) => Stream.value(
     id == _periodId ? PayPeriodRecordProjection(_openPeriod) : null,
   );
+
+  @override
+  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
+}
+
+const _replacementShiftId = ShiftId('00000000-0000-7000-8000-000000000009');
+const _replacementPayslipId = PayslipId(
+  '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c69',
+);
+final _finalizedShift = _liveShift(
+  ShiftState.finalized,
+  const Revision(3),
+  endUtc: DateTime.utc(2026, 9, 29, 16),
+);
+final _replacementDraft = _finalizedShift.replacementDraft(
+  replacementId: _replacementShiftId,
+  nowUtc: DateTime.utc(2026, 10, 1),
+);
+final _finalizedLocation =
+    '/work?employment=${_employmentId.value}'
+    '&from=2026-09-29&to=2026-09-29'
+    '&record=shift:${_shiftId.value}&mode=inspect';
+
+final class _PayslipQueryRepository implements WorkQueryRepository {
+  @override
+  Stream<WorkRegisterProjection> watchRegister(WorkScope scope) =>
+      Stream.value(WorkRegisterProjection.empty(scope));
+
+  @override
+  Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) =>
+      Stream.value(id == _payslipId ? PayslipRecordProjection(_payslip) : null);
 
   @override
   Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
