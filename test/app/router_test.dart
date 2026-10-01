@@ -417,6 +417,162 @@ void main() {
     expect(issued?.expectedRevision, const Revision(3));
   });
 
+  testWidgets('create mode starts a shift in the system timezone', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 760);
+    addTearDown(tester.view.reset);
+    StartShiftCommand? issued;
+    final router = createAppRouter(
+      initialLocation: '/work?employment=${_employmentId.value}&mode=create',
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _EmptyWorkQueryRepository(),
+          ),
+          currentTimezoneIdProvider.overrideWithValue(() => 'Europe/Amsterdam'),
+          startShiftProvider.overrideWithValue((command) async {
+            issued = command;
+            return Committed(_liveShift(ShiftState.running, const Revision(0)));
+          }),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Record work'), findsOneWidget);
+    await tester.tap(find.text('Start shift'));
+    await tester.pumpAndSettle();
+
+    expect(issued?.employmentId, _employmentId);
+    expect(issued?.timezoneId, 'Europe/Amsterdam');
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/work?employment=${_employmentId.value}'
+      '&from=2026-09-29&to=2026-09-29'
+      '&record=shift:${_shiftId.value}&mode=inspect',
+    );
+  });
+
+  testWidgets('unknown system timezone blocks start without navigating', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 760);
+    addTearDown(tester.view.reset);
+    var called = false;
+    final location = '/work?employment=${_employmentId.value}&mode=create';
+    final router = createAppRouter(initialLocation: location);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _EmptyWorkQueryRepository(),
+          ),
+          currentTimezoneIdProvider.overrideWithValue(() => null),
+          startShiftProvider.overrideWithValue((command) async {
+            called = true;
+            return Committed(_liveShift(ShiftState.running, const Revision(0)));
+          }),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Start shift'));
+    await tester.pumpAndSettle();
+
+    expect(called, isFalse);
+    expect(router.routeInformationProvider.value.uri.toString(), location);
+    expect(
+      find.text(
+        'The system timezone is unavailable. Set a known IANA timezone and try again.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('manual shift opens through edit route and saves', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1400);
+    addTearDown(tester.view.reset);
+    CreateManualShiftCommand? issued;
+    final router = createAppRouter(
+      initialLocation: '/work?employment=${_employmentId.value}&mode=create',
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _EmptyWorkQueryRepository(),
+          ),
+          currentTimezoneIdProvider.overrideWithValue(() => 'Europe/Amsterdam'),
+          saveManualShiftProvider.overrideWithValue((command) async {
+            issued = command;
+            return Committed(
+              _liveShift(
+                ShiftState.finalized,
+                const Revision(0),
+                endUtc: DateTime.utc(2026, 9, 29, 16),
+              ),
+            );
+          }),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Add manual shift'));
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/work?employment=${_employmentId.value}&mode=edit',
+    );
+    expect(find.text('Europe/Amsterdam'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('shift-start-date')),
+      '2026-09-29',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('shift-start-time')),
+      '10:00',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('shift-end-date')),
+      '2026-09-29',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('shift-end-time')),
+      '18:00',
+    );
+    await tester.tap(find.text('Save manual shift'));
+    await tester.pumpAndSettle();
+
+    expect(issued?.employmentId, _employmentId);
+    expect(issued?.timezoneId, 'Europe/Amsterdam');
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/work?employment=${_employmentId.value}'
+      '&from=2026-09-29&to=2026-09-29'
+      '&record=shift:${_shiftId.value}&mode=inspect',
+    );
+  });
+
   testWidgets('safe top-level navigation remains available from Work', (
     tester,
   ) async {

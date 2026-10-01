@@ -10,6 +10,7 @@ import 'core/database/app_database.dart';
 import 'core/database/database_config.dart';
 import 'core/database/database_service.dart';
 import 'core/time/app_clock.dart';
+import 'core/time/system_timezone.dart';
 import 'core/time/timezone_service.dart';
 import 'features/work/application/uuid_v7_work_id_factory.dart';
 
@@ -17,6 +18,7 @@ Future<void> main() async {
   final window = WindowManagerDesktopWindowService();
   final clock = SystemAppClock();
   final timezones = IanaTimezoneService();
+  final systemZone = SystemTimezoneSource.platform();
   final ids = UuidV7WorkIdFactory();
   await bootstrap(
     BootstrapDependencies(
@@ -36,6 +38,7 @@ Future<void> main() async {
           database: adapter.database,
           clock: clock,
           timezones: timezones,
+          currentTimezoneId: systemZone.currentZoneId,
           workIds: ids,
           shiftIds: ids,
           evidenceIds: ids,

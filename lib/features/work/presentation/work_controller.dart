@@ -71,6 +71,14 @@ typedef CorrectShift = Future<MutationOutcome<WorkShift>> Function(
   CorrectShiftCommand command,
 );
 typedef ReplaceWorkRoute = void Function(WorkRouteState route);
+typedef CurrentTimezoneId = String? Function();
+
+/// The operating system's IANA zone, or null when it is unknown. Shifts never
+/// start in a guessed zone.
+final currentTimezoneIdProvider = Provider<CurrentTimezoneId>(
+  (ref) =>
+      () => null,
+);
 
 final createPayPeriodProvider = Provider<CreatePayPeriod>(
   (ref) => throw StateError('CreatePayPeriod has not been provided.'),
@@ -242,6 +250,18 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       ),
     ),
   );
+
+  Future<MutationOutcome<WorkShift>> startShiftInSystemZone(
+    EmploymentId employmentId,
+  ) async {
+    final zone = ref.read(currentTimezoneIdProvider)();
+    if (zone == null) {
+      return const Invalid<WorkShift>({
+        'timezoneId': [FieldIssue(FieldIssueCode.unavailable)],
+      });
+    }
+    return startShift(employmentId: employmentId, timezoneId: zone);
+  }
 
   Future<MutationOutcome<WorkShift>> startBreak(WorkShift shift) =>
       _replaceRouteOnCommit(

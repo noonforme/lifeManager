@@ -139,6 +139,26 @@ final class _WorkRouteHost extends ConsumerWidget {
         onFinalize: (shift, minutes) => ref
             .read(workControllerProvider.notifier)
             .finalizeShift(shift, overtimeMinutes: minutes),
+        onStartShift: ref
+            .read(workControllerProvider.notifier)
+            .startShiftInSystemZone,
+        onOpenManualShift: (employment) {
+          final parsed = ref.read(workRouteProvider);
+          if (parsed case ValidWorkRoute(:final state)) {
+            ref.read(replaceWorkRouteProvider)(
+              WorkRouteState(
+                employmentId: employment,
+                scope: state.scope,
+                record: null,
+                mode: WorkInspectorMode.edit,
+              ),
+            );
+          }
+        },
+        onSaveManualShift: ref
+            .read(workControllerProvider.notifier)
+            .saveManualShift,
+        systemTimezoneId: ref.read(currentTimezoneIdProvider)(),
       ),
     );
   }

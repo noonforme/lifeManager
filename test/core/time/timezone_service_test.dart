@@ -78,4 +78,11 @@ void main() {
       throwsA(isA<UnknownTimezone>()),
     );
   });
+
+  test('IANA link zones such as Europe/Amsterdam resolve', () {
+    expect(
+      zones.localDateAt(DateTime.utc(2026, 9, 29, 22, 30), 'Europe/Amsterdam'),
+      const LocalDate(2026, 9, 30),
+    );
+  });
 }

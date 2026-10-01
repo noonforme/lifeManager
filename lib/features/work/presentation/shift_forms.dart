@@ -63,8 +63,8 @@ final class ShiftCreateInspector extends StatelessWidget {
     super.key,
   });
 
-  final VoidCallback onStartShift;
-  final VoidCallback onAddManualShift;
+  final VoidCallback? onStartShift;
+  final VoidCallback? onAddManualShift;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -230,11 +230,13 @@ final class ShiftEditInspector extends StatefulWidget {
   const ShiftEditInspector({
     required this.employmentId,
     required this.onSubmit,
+    this.initialTimezoneId,
     super.key,
   });
 
   final EmploymentId employmentId;
   final SubmitManualShift onSubmit;
+  final String? initialTimezoneId;
 
   @override
   State<ShiftEditInspector> createState() => _ShiftEditInspectorState();
@@ -245,7 +247,9 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
   final _startTime = TextEditingController();
   final _endDate = TextEditingController();
   final _endTime = TextEditingController();
-  final _timezone = TextEditingController();
+  late final _timezone = TextEditingController(
+    text: widget.initialTimezoneId ?? '',
+  );
   final _overtime = TextEditingController(text: '0');
   final _note = TextEditingController();
   final _breaks = <_BreakControllers>[];

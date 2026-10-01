@@ -31,6 +31,7 @@ void main() {
       database: database,
       clock: _Clock(),
       timezones: IanaTimezoneService(),
+      currentTimezoneId: () => 'Europe/Amsterdam',
       workIds: ids,
       shiftIds: ids,
       evidenceIds: ids,
@@ -52,6 +53,7 @@ void main() {
     expect(container.read(recordPayslipProvider), isNotNull);
     expect(container.read(correctPayslipProvider), isNotNull);
     expect(container.read(correctShiftProvider), isNotNull);
+    expect(container.read(currentTimezoneIdProvider)(), 'Europe/Amsterdam');
   });
 
   testWidgets('production Work composition scopes its child', (tester) async {
@@ -62,6 +64,7 @@ void main() {
       database: database,
       clock: _Clock(),
       timezones: IanaTimezoneService(),
+      currentTimezoneId: () => 'Europe/Amsterdam',
       workIds: ids,
       shiftIds: ids,
       evidenceIds: ids,

@@ -5,6 +5,7 @@ import '../data/projections/work_record_projection.dart';
 import '../domain/agreement.dart';
 import '../domain/employment.dart';
 import '../domain/facts.dart';
+import '../domain/ids.dart';
 import '../domain/pay.dart';
 import '../domain/payslip.dart';
 import '../domain/shift.dart';
@@ -70,8 +71,8 @@ final class WorkInspector extends StatefulWidget {
 
   final SubmitEmployment? onCreateEmployment;
   final SubmitAgreement? onCreateAgreement;
-  final VoidCallback? onStartShift;
-  final VoidCallback? onAddManualShift;
+  final ValueChanged<EmploymentId>? onStartShift;
+  final ValueChanged<EmploymentId>? onAddManualShift;
   final WorkRecordProjection? projection;
   final SetPayPeriodState? onSetPeriodState;
   final MutateShift? onStartBreak;
@@ -305,8 +306,8 @@ final class _Ready extends StatelessWidget {
 
   final Employment employment;
   final PayAgreement agreement;
-  final VoidCallback? onStartShift;
-  final VoidCallback? onAddManualShift;
+  final ValueChanged<EmploymentId>? onStartShift;
+  final ValueChanged<EmploymentId>? onAddManualShift;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -318,15 +319,21 @@ final class _Ready extends StatelessWidget {
         const SizedBox(height: 6),
         Text('Agreement ${agreement.version} is effective.'),
         const SizedBox(height: 18),
-        FilledButton(onPressed: onStartShift, child: const Text('Start shift')),
+        FilledButton(
+          onPressed: _bind(onStartShift),
+          child: const Text('Start shift'),
+        ),
         const SizedBox(height: 8),
         OutlinedButton(
-          onPressed: onAddManualShift,
+          onPressed: _bind(onAddManualShift),
           child: const Text('Add manual shift'),
         ),
       ],
     ),
   );
+
+  VoidCallback? _bind(ValueChanged<EmploymentId>? action) =>
+      action == null ? null : () => action(employment.id);
 }
 
 final class _FinalizedShift extends StatelessWidget {

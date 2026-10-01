@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 
 import '../core/database/app_database.dart';
 import '../core/time/app_clock.dart';
@@ -19,6 +20,7 @@ ProductionWorkProviders buildWorkProviders({
   required AppDatabase database,
   required AppClock clock,
   required TimezoneService timezones,
+  required CurrentTimezoneId currentTimezoneId,
   required WorkIdFactory workIds,
   required ShiftIdFactory shiftIds,
   required WorkEvidenceIdFactory evidenceIds,
@@ -69,6 +71,7 @@ ProductionWorkProviders buildWorkProviders({
     manualShifts: manualShifts,
     periods: periods,
     payslips: payslips,
+    currentTimezoneId: currentTimezoneId,
   );
 }
 
@@ -81,6 +84,7 @@ final class ProductionWorkProviders {
     required this.manualShifts,
     required this.periods,
     required this.payslips,
+    required this.currentTimezoneId,
   });
 
   final DriftWorkRepository workRepository;
@@ -90,43 +94,29 @@ final class ProductionWorkProviders {
   final ManualShiftService manualShifts;
   final PayPeriodService periods;
   final PayslipService payslips;
+  final CurrentTimezoneId currentTimezoneId;
 
-  ProviderContainer createContainer() => ProviderContainer(
-    overrides: [
-      workQueryRepositoryProvider.overrideWithValue(workRepository),
-      createEmploymentProvider.overrideWithValue(employment.createEmployment),
-      createAgreementProvider.overrideWithValue(agreement.createAgreement),
-      startShiftProvider.overrideWithValue(shifts.startShift),
-      startBreakProvider.overrideWithValue(shifts.startBreak),
-      endBreakProvider.overrideWithValue(shifts.endBreak),
-      endShiftProvider.overrideWithValue(shifts.endShift),
-      finalizeShiftProvider.overrideWithValue(shifts.finalizeShift),
-      saveManualShiftProvider.overrideWithValue(manualShifts.createAndFinalize),
-      createPayPeriodProvider.overrideWithValue(periods.createPeriod),
-      setPayPeriodStateProvider.overrideWithValue(periods.setState),
-      recordPayslipProvider.overrideWithValue(payslips.recordPayslip),
-      correctPayslipProvider.overrideWithValue(payslips.correctPayslip),
-      correctShiftProvider.overrideWithValue(shifts.correctShift),
-    ],
-  );
+  List<Override> get _overrides => [
+    workQueryRepositoryProvider.overrideWithValue(workRepository),
+    createEmploymentProvider.overrideWithValue(employment.createEmployment),
+    createAgreementProvider.overrideWithValue(agreement.createAgreement),
+    startShiftProvider.overrideWithValue(shifts.startShift),
+    startBreakProvider.overrideWithValue(shifts.startBreak),
+    endBreakProvider.overrideWithValue(shifts.endBreak),
+    endShiftProvider.overrideWithValue(shifts.endShift),
+    finalizeShiftProvider.overrideWithValue(shifts.finalizeShift),
+    saveManualShiftProvider.overrideWithValue(manualShifts.createAndFinalize),
+    createPayPeriodProvider.overrideWithValue(periods.createPeriod),
+    setPayPeriodStateProvider.overrideWithValue(periods.setState),
+    recordPayslipProvider.overrideWithValue(payslips.recordPayslip),
+    correctPayslipProvider.overrideWithValue(payslips.correctPayslip),
+    correctShiftProvider.overrideWithValue(shifts.correctShift),
+    currentTimezoneIdProvider.overrideWithValue(currentTimezoneId),
+  ];
 
-  Widget scope(Widget child) => ProviderScope(
-    overrides: [
-      workQueryRepositoryProvider.overrideWithValue(workRepository),
-      createEmploymentProvider.overrideWithValue(employment.createEmployment),
-      createAgreementProvider.overrideWithValue(agreement.createAgreement),
-      startShiftProvider.overrideWithValue(shifts.startShift),
-      startBreakProvider.overrideWithValue(shifts.startBreak),
-      endBreakProvider.overrideWithValue(shifts.endBreak),
-      endShiftProvider.overrideWithValue(shifts.endShift),
-      finalizeShiftProvider.overrideWithValue(shifts.finalizeShift),
-      saveManualShiftProvider.overrideWithValue(manualShifts.createAndFinalize),
-      createPayPeriodProvider.overrideWithValue(periods.createPeriod),
-      setPayPeriodStateProvider.overrideWithValue(periods.setState),
-      recordPayslipProvider.overrideWithValue(payslips.recordPayslip),
-      correctPayslipProvider.overrideWithValue(payslips.correctPayslip),
-      correctShiftProvider.overrideWithValue(shifts.correctShift),
-    ],
-    child: child,
-  );
+  ProviderContainer createContainer() =>
+      ProviderContainer(overrides: _overrides);
+
+  Widget scope(Widget child) =>
+      ProviderScope(overrides: _overrides, child: child);
 }
