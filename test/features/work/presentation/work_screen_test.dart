@@ -297,7 +297,7 @@ final class _TestScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: buildLifeOSTheme(highContrast: false),
+      theme: buildLifeOSTheme(),
       home: LifeOSSkinScope(
         child: Scaffold(
           body: WorkScreen(

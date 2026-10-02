@@ -3,10 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
-/// The owner's appearance choice. [system] follows the platform brightness
-/// and high-contrast setting.
-enum LifeOSAppearance { system, day, night, highContrast, millennium }
-
 /// The four LifeOS areas, each with its own keycap colour.
 enum LifeOSArea {
   work('Work', 'W'),
@@ -115,7 +111,8 @@ final class LifeOSTokens {
 
   final Map<LifeOSArea, AreaKeyColors> areaKeys;
 
-  static const _dayKeys = {
+  /// The area keycap colours.
+  static const standardAreaKeys = {
     LifeOSArea.work: AreaKeyColors(
       fill: Color(0xff3a6ea5),
       ink: Color(0xffffffff),
@@ -134,98 +131,28 @@ final class LifeOSTokens {
     ),
   };
 
-  /// The day area keys, which other light palettes share.
-  static const dayAreaKeys = _dayKeys;
-
-  static const _nightKeys = {
-    LifeOSArea.work: AreaKeyColors(
-      fill: Color(0xff6e9fd4),
-      ink: Color(0xff161715),
-    ),
-    LifeOSArea.finance: AreaKeyColors(
-      fill: Color(0xffe8b923),
-      ink: Color(0xff161715),
-    ),
-    LifeOSArea.tracking: AreaKeyColors(
-      fill: Color(0xff7cbf62),
-      ink: Color(0xff161715),
-    ),
-    LifeOSArea.knowledge: AreaKeyColors(
-      fill: Color(0xffa98bd2),
-      ink: Color(0xff161715),
-    ),
-  };
-
-  /// Office Machine day palette.
-  static const day = LifeOSTokens(
-    ground: Color(0xffcfd1cc),
-    paper: Color(0xfff4f5f2),
-    ink: Color(0xff1d1d1b),
-    muted: Color(0xff60635e),
-    rule: Color(0xffdcded9),
-    band: Color(0xffebede8),
-    chrome: Color(0xffe2e4df),
-    chromeLine: Color(0xffa9aca5),
-    head: Color(0xff2b2c2a),
-    headInk: Color(0xfff4f5f2),
-    signal: Color(0xffe8590c),
-    actionFill: Color(0xffc2410c),
-    actionInk: Color(0xffffffff),
-    runInk: Color(0xffb03a0a),
-    selWash: Color(0xfffde3d2),
-    selInk: Color(0xff1d1d1b),
-    negative: Color(0xffb8261b),
-    positive: Color(0xff2a6f2d),
-    focus: Color(0xff1d1d1b),
-    areaKeys: _dayKeys,
-  );
-
-  /// Office Machine night palette.
-  static const night = LifeOSTokens(
-    ground: Color(0xff161715),
-    paper: Color(0xff242523),
-    ink: Color(0xffecebe6),
-    muted: Color(0xffa3a49e),
-    rule: Color(0xff383936),
-    band: Color(0xff2b2c29),
-    chrome: Color(0xff1d1e1c),
-    chromeLine: Color(0xff454642),
-    head: Color(0xff0f100e),
-    headInk: Color(0xffecebe6),
-    signal: Color(0xffff6a1a),
-    actionFill: Color(0xffff6a1a),
-    actionInk: Color(0xff161715),
-    runInk: Color(0xffff8a4c),
-    selWash: Color(0xff4a2b18),
-    selInk: Color(0xffecebe6),
-    negative: Color(0xffff7d70),
-    positive: Color(0xff94d394),
-    focus: Color(0xffecebe6),
-    areaKeys: _nightKeys,
-  );
-
-  /// Office Machine high-contrast palette.
-  static const highContrast = LifeOSTokens(
-    ground: Color(0xffbfc1bc),
+  /// The LifeOS palette: the 2001 office PC (Millennium shell spec 3.3).
+  static const millennium = LifeOSTokens(
+    ground: Color(0xffece9d8),
     paper: Color(0xffffffff),
     ink: Color(0xff000000),
-    muted: Color(0xff3d3f3b),
-    rule: Color(0xff7a7d77),
-    band: Color(0xfff0f1ee),
-    chrome: Color(0xffe2e4df),
-    chromeLine: Color(0xff3d3f3b),
-    head: Color(0xff000000),
+    muted: Color(0xff555555),
+    rule: Color(0xffecebe5),
+    band: Color(0xfff1efe2),
+    chrome: Color(0xffece9d8),
+    chromeLine: Color(0xffc5c2b2),
+    head: Color(0xff0046d5),
     headInk: Color(0xffffffff),
-    signal: Color(0xffa83600),
-    actionFill: Color(0xffa83600),
-    actionInk: Color(0xffffffff),
-    runInk: Color(0xffa83600),
-    selWash: Color(0xffffd9c2),
-    selInk: Color(0xff000000),
-    negative: Color(0xffa0150b),
-    positive: Color(0xff1f5e22),
+    signal: Color(0xffd9500b),
+    actionFill: Color(0xffffffff),
+    actionInk: Color(0xff000000),
+    runInk: Color(0xffb83d0b),
+    selWash: Color(0xff316ac5),
+    selInk: Color(0xffffffff),
+    negative: Color(0xffcc0000),
+    positive: Color(0xff2a752d),
     focus: Color(0xff000000),
-    areaKeys: _dayKeys,
+    areaKeys: standardAreaKeys,
   );
 }
 

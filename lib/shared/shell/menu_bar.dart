@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 import '../workbench/cell_selection.dart';
 import '../workbench/lifeos_skin.dart';
-import '../workbench/lifeos_tokens.dart';
 import 'navigation_history.dart';
 import 'shell_frame.dart';
 
@@ -24,7 +23,6 @@ final class LifeOSMenuBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
-    final appearance = LifeOSAppearanceScope.maybeOf(context);
     final view = ShellViewScope.maybeOf(context);
     final history = NavigationHistoryScope.maybeOf(context);
     final cell = CellSelectionScope.maybeOf(context)?.value;
@@ -84,19 +82,6 @@ final class LifeOSMenuBar extends StatelessWidget {
       menuChildren: children,
       child: Text(label),
     );
-
-    Widget appearanceItem(String label, LifeOSAppearance value) =>
-        RadioMenuButton<LifeOSAppearance>(
-          style: itemStyle,
-          value: value,
-          groupValue: appearance?.value ?? LifeOSAppearance.system,
-          onChanged: appearance == null
-              ? null
-              : (selected) {
-                  if (selected != null) appearance.value = selected;
-                },
-          child: Text(label),
-        );
 
     Widget viewItem(
       String label,
@@ -171,19 +156,6 @@ final class LifeOSMenuBar extends StatelessWidget {
                   ),
                 ]),
                 menu('View', [
-                  menu('Appearance', [
-                    appearanceItem('System', LifeOSAppearance.system),
-                    appearanceItem('Office Machine Day', LifeOSAppearance.day),
-                    appearanceItem(
-                      'Office Machine Night',
-                      LifeOSAppearance.night,
-                    ),
-                    appearanceItem(
-                      'High contrast',
-                      LifeOSAppearance.highContrast,
-                    ),
-                    appearanceItem('Millennium', LifeOSAppearance.millennium),
-                  ]),
                   viewItem(
                     'Show book tree',
                     (v) => v.showTree,

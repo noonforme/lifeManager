@@ -89,7 +89,7 @@ final class BookTree extends StatelessWidget {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
     return ColoredBox(
-      color: skin.painters.treeBackground(tokens),
+      color: tokens.paper,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 
 import 'lifeos_skin.dart';
-import 'lifeos_tokens.dart';
+import 'millennium_style.dart';
 
-/// The Material theme of the active skin, so forms, dialogs and menus that
-/// still use Material controls follow the appearance like every LifeOS
-/// control does. Buttons are painted with the skin's key surfaces.
+/// The Material theme of the LifeOS style, so forms, dialogs and menus that
+/// use Material controls look like every LifeOS control. Buttons are
+/// painted with the style's key surfaces.
 ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
   final t = skin.tokens;
   final type = skin.typography;
-  final dark = relativeLuminance(t.paper) < 0.4;
   final scheme = ColorScheme(
-    brightness: dark ? Brightness.dark : Brightness.light,
+    brightness: Brightness.light,
     primary: t.ink,
     onPrimary: t.paper,
     primaryContainer: t.selWash,
@@ -61,17 +60,12 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
         borderRadius: BorderRadius.all(Radius.circular(4)),
       ),
     ),
-    // A 30-pixel face over its 2-pixel edge.
-    minimumSize: const WidgetStatePropertyAll(Size(24, 32)),
-    padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 10)),
+    minimumSize: const WidgetStatePropertyAll(Size(24, 24)),
+    padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 12)),
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    textStyle: WidgetStatePropertyAll(
-      type.body.copyWith(
-        fontWeight: kind == KeyKind.primary ? FontWeight.w700 : FontWeight.w500,
-      ),
-    ),
-    // The same face, edge and press travel as a KeyButton, so a form's
-    // keys stand beside the inspector's at one height.
+    textStyle: WidgetStatePropertyAll(type.body),
+    // The same face and rings as a KeyButton, so a form's keys match the
+    // property sheet's.
     backgroundBuilder: (context, states, child) {
       final surface = skin.painters.key(
         t,
@@ -80,16 +74,19 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
           enabled: !states.contains(WidgetState.disabled),
           pressed: states.contains(WidgetState.pressed),
           hovered: states.contains(WidgetState.hovered),
+          focused: states.contains(WidgetState.focused),
         ),
       );
-      return Container(
-        margin: EdgeInsets.only(top: surface.topInset),
-        padding: EdgeInsets.only(bottom: surface.edgeWidth),
-        decoration: BoxDecoration(
-          color: surface.edgeColor,
-          borderRadius: surface.radius,
-        ),
-        child: DecoratedBox(decoration: surface.decoration, child: child),
+      final rings = surface.rings;
+      return DecoratedBox(
+        decoration: surface.decoration,
+        child: rings == null
+            ? child
+            : DecoratedBox(
+                decoration: InsetRings(rings.$1, rings.$2),
+                position: DecorationPosition.foreground,
+                child: child,
+              ),
       );
     },
   );
@@ -252,15 +249,6 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
   );
 }
 
-/// The Office Machine theme without a skin scope, for the app's base
-/// theme and for widget tests that pump a form on its own.
-ThemeData buildLifeOSTheme({required bool highContrast}) {
-  const skin = OfficeMachineSkin();
-  return lifeOSThemeFor(
-    LifeOSSkinData(
-      skin: skin,
-      tokens: skin.tokensFor(Brightness.light, highContrast: highContrast),
-      typography: skin.typographyFor(TextScaler.noScaling),
-    ),
-  );
-}
+/// The LifeOS Material theme without a skin scope, for the app's base theme
+/// and for widget tests that pump a form on its own.
+ThemeData buildLifeOSTheme() => lifeOSThemeFor(LifeOSSkinData.standard);

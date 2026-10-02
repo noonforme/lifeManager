@@ -22,7 +22,7 @@ void main() {
             recordHistoryProvider.overrideWithValue(_History(events)),
           ],
           child: MaterialApp(
-            theme: buildLifeOSTheme(highContrast: false),
+            theme: buildLifeOSTheme(),
             home: LifeOSSkinScope(
               child: Scaffold(
                 body: RecordTabs(

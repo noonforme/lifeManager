@@ -5,31 +5,16 @@ import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
 
-Widget _host(
-  Widget child, {
-  double textScale = 1,
-  Brightness brightness = Brightness.light,
-  bool highContrast = false,
-  LifeOSAppearance appearance = LifeOSAppearance.system,
-}) {
+Widget _host(Widget child, {double textScale = 1}) {
   return MediaQuery(
-    data: MediaQueryData(
-      textScaler: TextScaler.linear(textScale),
-      platformBrightness: brightness,
-      highContrast: highContrast,
-    ),
+    data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
     child: MaterialApp(
       home: LifeOSSkinScope(
-        appearance: appearance,
         child: Scaffold(body: Center(child: child)),
       ),
     ),
   );
 }
-
-BoxDecoration _faceDecoration(WidgetTester tester) =>
-    tester.widget<Container>(find.byKey(const ValueKey('key-face'))).decoration!
-        as BoxDecoration;
 
 void main() {
   group('KeyButton', () {
@@ -61,29 +46,6 @@ void main() {
       semantics.dispose();
     });
 
-    testWidgets('pressing narrows the bottom edge and lowers the face', (
-      tester,
-    ) async {
-      await tester.pumpWidget(_host(KeyButton(label: 'Add', onPressed: () {})));
-      Container edge() =>
-          tester.widget<Container>(find.byKey(const ValueKey('key-edge')));
-      final restingHeight = tester.getSize(find.byType(KeyButton)).height;
-      expect(edge().padding, const EdgeInsets.only(bottom: 2));
-      expect(edge().margin, EdgeInsets.zero);
-
-      final gesture = await tester.startGesture(
-        tester.getCenter(find.text('Add')),
-      );
-      await tester.pump();
-      expect(edge().padding, const EdgeInsets.only(bottom: 1));
-      expect(edge().margin, const EdgeInsets.only(top: 1));
-      expect(tester.getSize(find.byType(KeyButton)).height, restingHeight);
-
-      await gesture.up();
-      await tester.pump();
-      expect(edge().padding, const EdgeInsets.only(bottom: 2));
-    });
-
     testWidgets('keyboard focus shows a ring and Enter activates', (
       tester,
     ) async {
@@ -106,17 +68,6 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pump();
       expect(pressed, 1);
-    });
-
-    testWidgets('primary keys use the action fill and ink', (tester) async {
-      await tester.pumpWidget(
-        _host(
-          KeyButton(label: '+ Add', kind: KeyKind.primary, onPressed: () {}),
-        ),
-      );
-      expect(_faceDecoration(tester).color, LifeOSTokens.day.actionFill);
-      final text = tester.widget<Text>(find.text('+ Add'));
-      expect(text.style!.color, LifeOSTokens.day.actionInk);
     });
 
     testWidgets('200% text scale in a narrow slot does not overflow', (
@@ -193,80 +144,9 @@ void main() {
     await tester.pump();
     expect(selected, 1);
     final history = tester.widget<Text>(find.text('History'));
-    expect(history.style!.color, LifeOSTokens.day.headInk);
+    expect(history.style!.color, LifeOSTokens.millennium.ink);
     // Selection is a filled segment, never the focus ring.
     expect(find.byKey(const ValueKey('focus-ring')), findsNothing);
     semantics.dispose();
-  });
-
-  group('LifeOSSkinScope', () {
-    Future<LifeOSTokens> resolve(
-      WidgetTester tester, {
-      Brightness brightness = Brightness.light,
-      bool highContrast = false,
-      LifeOSAppearance appearance = LifeOSAppearance.system,
-    }) async {
-      late LifeOSTokens tokens;
-      await tester.pumpWidget(
-        _host(
-          Builder(
-            builder: (context) {
-              tokens = LifeOSSkinScope.of(context).tokens;
-              return const SizedBox();
-            },
-          ),
-          brightness: brightness,
-          highContrast: highContrast,
-          appearance: appearance,
-        ),
-      );
-      return tokens;
-    }
-
-    testWidgets('system appearance follows the platform', (tester) async {
-      expect(await resolve(tester), LifeOSTokens.day);
-      expect(
-        await resolve(tester, brightness: Brightness.dark),
-        LifeOSTokens.night,
-      );
-      expect(
-        await resolve(tester, highContrast: true),
-        LifeOSTokens.highContrast,
-      );
-    });
-
-    testWidgets('a pinned appearance overrides the platform brightness', (
-      tester,
-    ) async {
-      expect(
-        await resolve(
-          tester,
-          brightness: Brightness.dark,
-          appearance: LifeOSAppearance.day,
-        ),
-        LifeOSTokens.day,
-      );
-      expect(
-        await resolve(tester, appearance: LifeOSAppearance.night),
-        LifeOSTokens.night,
-      );
-      expect(
-        await resolve(tester, appearance: LifeOSAppearance.highContrast),
-        LifeOSTokens.highContrast,
-      );
-    });
-
-    testWidgets('the platform high-contrast setting wins over day or night', (
-      tester,
-    ) async {
-      expect(
-        await resolve(
-          tester,
-          highContrast: true,
-          appearance: LifeOSAppearance.night,
-        ),
-        LifeOSTokens.highContrast,
-      );
-    });
   });
 }

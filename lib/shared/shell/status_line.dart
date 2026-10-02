@@ -44,7 +44,13 @@ final class StatusLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
-    final paint = skin.painters.statusLine(skin.tokens);
+    final tokens = skin.tokens;
+    final paint = (
+      fill: BoxDecoration(color: tokens.chrome),
+      ink: tokens.ink,
+      alertInk: tokens.negative,
+      indicator: tokens.signal,
+    );
     final style = skin.typography.small.copyWith(color: paint.ink);
     final running = snapshot.runningShift;
     final save = snapshot.lastSaveUncertain
@@ -115,9 +121,7 @@ final class _Segment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
-    final divider = BorderSide(
-      color: skin.painters.statusLine(skin.tokens).divider,
-    );
+    final divider = BorderSide(color: skin.tokens.chromeLine);
     final segment = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,

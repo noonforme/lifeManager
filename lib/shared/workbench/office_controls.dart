@@ -54,41 +54,32 @@ final class _KeyButtonState extends State<KeyButton> {
       KeyState(enabled: _enabled, pressed: _pressed, hovered: _hovered),
     );
     final face = Container(
-      key: const ValueKey('key-edge'),
-      margin: EdgeInsets.only(top: surface.topInset),
-      padding: EdgeInsets.only(bottom: surface.edgeWidth),
-      decoration: BoxDecoration(
-        color: surface.edgeColor,
-        borderRadius: surface.radius,
-      ),
-      child: Container(
-        key: const ValueKey('key-face'),
-        constraints: BoxConstraints(minHeight: small ? 26 : 30, minWidth: 24),
-        padding: EdgeInsets.symmetric(horizontal: small ? 9 : 10),
-        decoration: surface.decoration,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (widget.leading != null) ...[
-              widget.leading!,
-              const SizedBox(width: 6),
-            ],
-            Flexible(
-              child: Text(
-                widget.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: (small ? skin.typography.small : skin.typography.body)
-                    .copyWith(
-                      color: surface.ink,
-                      fontWeight: widget.kind == KeyKind.primary
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                    ),
-              ),
-            ),
+      key: const ValueKey('key-face'),
+      constraints: BoxConstraints(minHeight: small ? 22 : 24, minWidth: 24),
+      padding: EdgeInsets.symmetric(horizontal: small ? 9 : 10),
+      decoration: surface.decoration,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.leading != null) ...[
+            widget.leading!,
+            const SizedBox(width: 6),
           ],
-        ),
+          Flexible(
+            child: Text(
+              widget.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: (small ? skin.typography.small : skin.typography.body)
+                  .copyWith(
+                    color: surface.ink,
+                    fontWeight: widget.kind == KeyKind.primary
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                  ),
+            ),
+          ),
+        ],
       ),
     );
     // One merged node per key: label, button, enabled, focus and tap.
@@ -321,11 +312,11 @@ final class _SegmentState extends State<_Segment> {
                     horizontal: 8,
                     vertical: 4,
                   ),
-                  decoration: skin.painters.segment(
-                    skin.tokens,
-                    selected: widget.selected,
-                    first: widget.first,
-                    last: widget.last,
+                  decoration: BoxDecoration(
+                    color: widget.selected
+                        ? skin.tokens.paper
+                        : skin.tokens.chrome,
+                    border: Border.all(color: skin.tokens.chromeLine),
                   ),
                   child: Center(
                     widthFactor: 1,
@@ -335,10 +326,7 @@ final class _SegmentState extends State<_Segment> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: skin.typography.body.copyWith(
-                        color: skin.painters.segmentInk(
-                          skin.tokens,
-                          selected: widget.selected,
-                        ),
+                        color: skin.tokens.ink,
                         fontWeight: widget.selected
                             ? FontWeight.w700
                             : FontWeight.w500,

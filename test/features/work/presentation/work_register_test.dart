@@ -403,7 +403,7 @@ final class _TestWorkRegister extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: buildLifeOSTheme(highContrast: false),
+      theme: buildLifeOSTheme(),
       home: MediaQuery(
         data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
         child: LifeOSSkinScope(

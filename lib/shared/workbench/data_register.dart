@@ -681,12 +681,7 @@ final class _DataRow<T> extends StatelessWidget {
                       ? Alignment.centerRight
                       : Alignment.centerLeft,
                   foregroundDecoration: cursorColumn == column.key
-                      ? BoxDecoration(
-                          border: Border.all(
-                            color: skin.painters.cellCursor(tokens),
-                            width: 2,
-                          ),
-                        )
+                      ? skin.painters.cellCursor(tokens, onSelection: selected)
                       : null,
                   child:
                       column.cell?.call(line.row) ??
