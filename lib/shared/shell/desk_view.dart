@@ -78,7 +78,7 @@ final class DeskView extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: SegmentedTabs(
+                    child: PropertySheetTabs(
                       labels: [for (final desk in desks) desk.name],
                       selectedIndex: desks.indexWhere(
                         (desk) => desk.id == selected.id,

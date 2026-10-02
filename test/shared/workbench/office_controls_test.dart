@@ -177,7 +177,7 @@ void main() {
     expect(find.bySemanticsLabel('3 due to confirm'), findsOneWidget);
   });
 
-  testWidgets('segmented tabs mark the selected segment and switch', (
+  testWidgets('property-sheet tabs mark the selected tab and switch', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
@@ -187,7 +187,7 @@ void main() {
         StatefulBuilder(
           builder: (context, setState) => SizedBox(
             width: 240,
-            child: SegmentedTabs(
+            child: PropertySheetTabs(
               labels: const ['Record', 'History'],
               selectedIndex: selected,
               onSelected: (index) => setState(() => selected = index),

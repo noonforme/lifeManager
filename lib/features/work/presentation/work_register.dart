@@ -163,7 +163,7 @@ final class WorkRegister extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: SegmentedTabs(
+          child: PropertySheetTabs(
             labels: const ['Shifts', 'Pay periods', 'Payslips', 'Agreements'],
             selectedIndex: route.sheet.index,
             onSelected: (index) =>

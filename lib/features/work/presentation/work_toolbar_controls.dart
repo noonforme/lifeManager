@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/time/local_date.dart';
+import '../../../shared/workbench/era_dialog.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../data/projections/work_register_projection.dart';
@@ -266,9 +267,9 @@ final class _RangeDialogState extends State<_RangeDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Date range'),
-    content: Column(
+  Widget build(BuildContext context) => EraDialog(
+    title: 'Date range',
+    body: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         TextField(
@@ -276,6 +277,7 @@ final class _RangeDialogState extends State<_RangeDialog> {
           controller: _from,
           decoration: const InputDecoration(labelText: 'From'),
         ),
+        const SizedBox(height: 10),
         TextField(
           key: const ValueKey('range-to'),
           controller: _to,
@@ -284,14 +286,12 @@ final class _RangeDialogState extends State<_RangeDialog> {
       ],
     ),
     actions: [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('Cancel'),
-      ),
-      FilledButton(
+      KeyButton(label: 'Cancel', onPressed: () => Navigator.of(context).pop()),
+      KeyButton(
         key: const ValueKey('range-apply'),
+        label: 'Apply',
+        kind: KeyKind.primary,
         onPressed: _apply,
-        child: const Text('Apply'),
       ),
     ],
   );

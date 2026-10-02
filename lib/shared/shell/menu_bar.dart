@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../workbench/cell_selection.dart';
+import '../workbench/era_dialog.dart';
 import '../workbench/lifeos_skin.dart';
+import '../workbench/office_controls.dart';
 import 'navigation_history.dart';
 import 'shell_frame.dart';
 
@@ -204,12 +206,28 @@ final class LifeOSMenuBar extends StatelessWidget {
                 menu('Help', [
                   item(
                     'About LifeOS',
-                    () => showAboutDialog(
+                    () => showDialog<void>(
                       context: context,
-                      applicationName: 'LifeOS',
-                      applicationLegalese:
-                          'Private, local-first records. Nothing leaves this '
-                          'computer.',
+                      builder: (context) => EraDialog(
+                        title: 'About LifeOS',
+                        body: const Text(
+                          'LifeOS\nPrivate, local-first records. Nothing leaves this computer.',
+                        ),
+                        actions: [
+                          KeyButton(
+                            label: 'Licenses',
+                            onPressed: () => showLicensePage(
+                              context: context,
+                              applicationName: 'LifeOS',
+                            ),
+                          ),
+                          KeyButton(
+                            label: 'OK',
+                            kind: KeyKind.primary,
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ]),

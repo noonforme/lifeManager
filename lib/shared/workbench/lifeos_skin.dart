@@ -94,12 +94,13 @@ final class LifeOSSkinScope extends StatelessWidget {
 
   final Widget child;
 
-  static LifeOSSkinData of(BuildContext context) {
-    final scope = context
-        .dependOnInheritedWidgetOfExactType<_InheritedLifeOSSkin>();
-    assert(scope != null, 'No LifeOSSkinScope above this widget.');
-    return scope!.data;
-  }
+  /// The style above [context]. There is one style, so a dialog or popup
+  /// route pushed above a scope still gets it.
+  static LifeOSSkinData of(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<_InheritedLifeOSSkin>()
+          ?.data ??
+      LifeOSSkinData.standard;
 
   @override
   Widget build(BuildContext context) =>

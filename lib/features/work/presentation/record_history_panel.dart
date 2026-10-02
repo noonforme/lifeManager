@@ -34,8 +34,8 @@ final class _RecordTabsState extends State<RecordTabs> {
     children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        child: SegmentedTabs(
-          labels: const ['Details', 'History'],
+        child: PropertySheetTabs(
+          labels: const ['General', 'History'],
           selectedIndex: _history ? 1 : 0,
           onSelected: (index) => setState(() => _history = index == 1),
         ),

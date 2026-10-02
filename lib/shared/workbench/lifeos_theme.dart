@@ -96,10 +96,8 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
         borderRadius: const BorderRadius.all(Radius.circular(2)),
         borderSide: BorderSide(color: color, width: width),
       );
-  final menuShape = RoundedRectangleBorder(
-    borderRadius: const BorderRadius.all(Radius.circular(4)),
-    side: BorderSide(color: t.muted),
-  );
+  // Era menus are square with a thin grey outline.
+  final menuShape = RoundedRectangleBorder(side: BorderSide(color: t.muted));
 
   return ThemeData(
     useMaterial3: true,
@@ -142,33 +140,40 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
       filled: true,
       fillColor: t.paper,
       isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+      floatingLabelBehavior: FloatingLabelBehavior.always,
       labelStyle: type.small.copyWith(color: t.muted),
       floatingLabelStyle: type.small.copyWith(color: t.ink),
       hintStyle: type.body.copyWith(color: t.muted),
       helperStyle: type.small.copyWith(color: t.muted),
       errorStyle: type.small.copyWith(color: t.negative),
-      border: outline(t.muted),
-      enabledBorder: outline(t.muted),
+      border: outline(MillenniumColors.fieldLine),
+      enabledBorder: outline(MillenniumColors.fieldLine),
       disabledBorder: outline(t.chromeLine),
-      focusedBorder: outline(t.focus, 2),
+      // Keyboard focus turns the border key-outline blue (spec 5.6).
+      focusedBorder: outline(MillenniumColors.keyLine),
       errorBorder: outline(t.negative),
-      focusedErrorBorder: outline(t.negative, 2),
+      focusedErrorBorder: outline(t.negative),
     ),
     textSelectionTheme: TextSelectionThemeData(
       cursorColor: t.ink,
       selectionColor: t.selWash,
       selectionHandleColor: t.ink,
     ),
+    // A white box with a green tick, and a green radio dot (spec 5.6).
     checkboxTheme: CheckboxThemeData(
-      fillColor: WidgetStateProperty.resolveWith(
-        (states) =>
-            states.contains(WidgetState.selected) ? t.ink : Colors.transparent,
-      ),
-      checkColor: WidgetStatePropertyAll(t.paper),
-      side: BorderSide(color: t.muted, width: 1.5),
+      fillColor: WidgetStatePropertyAll(t.paper),
+      checkColor: const WidgetStatePropertyAll(MillenniumColors.orbGreen),
+      side: const BorderSide(color: MillenniumColors.fieldLine),
+      shape: const RoundedRectangleBorder(),
     ),
-    radioTheme: RadioThemeData(fillColor: WidgetStatePropertyAll(t.ink)),
+    radioTheme: RadioThemeData(
+      fillColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? MillenniumColors.orbGreen
+            : MillenniumColors.fieldLine,
+      ),
+    ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.selected) ? t.paper : t.muted,
@@ -221,10 +226,12 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
       ),
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: t.paper,
+      backgroundColor: t.chrome,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      shape: menuShape,
+      shape: const RoundedRectangleBorder(
+        side: BorderSide(color: MillenniumColors.keyLine),
+      ),
       titleTextStyle: type.title.copyWith(color: t.ink),
       contentTextStyle: type.body.copyWith(color: t.ink),
     ),
