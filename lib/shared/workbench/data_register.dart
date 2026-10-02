@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../core/explain/explanation.dart';
 import 'cell_selection.dart';
 import 'lifeos_skin.dart';
+import 'millennium_style.dart';
 import 'office_controls.dart';
 
 /// What a column holds. Numeric kinds are right-aligned in tabular figures.
@@ -145,6 +146,8 @@ final class DataRegister<T> extends StatefulWidget {
     required this.selectedId,
     required this.onOpen,
     this.actions,
+    this.sortedColumn,
+    this.sortDescending = false,
     super.key,
   });
 
@@ -160,6 +163,12 @@ final class DataRegister<T> extends StatefulWidget {
 
   /// Right-click actions for a row. The register adds nothing of its own.
   final List<RowAction> Function(T row)? actions;
+
+  /// The column the lines are ordered by, marked in its header.
+  final String? sortedColumn;
+
+  /// Whether that order is descending.
+  final bool sortDescending;
 
   @override
   State<DataRegister<T>> createState() => _DataRegisterState<T>();
@@ -408,7 +417,12 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
                           : MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _HeaderRow<T>(columns: visible, skin: skin),
+                        _HeaderRow<T>(
+                          columns: visible,
+                          skin: skin,
+                          sortedColumn: widget.sortedColumn,
+                          sortDescending: widget.sortDescending,
+                        ),
                         if (constraints.maxHeight.isFinite)
                           Expanded(child: ListView(children: body))
                         else
@@ -443,35 +457,57 @@ TextStyle _cellStyle(LifeOSSkinData skin, ColumnKind kind) =>
     );
 
 final class _HeaderRow<T> extends StatelessWidget {
-  const _HeaderRow({required this.columns, required this.skin});
+  const _HeaderRow({
+    required this.columns,
+    required this.skin,
+    required this.sortedColumn,
+    required this.sortDescending,
+  });
 
   final List<RegisterColumn<T>> columns;
   final LifeOSSkinData skin;
+  final String? sortedColumn;
+  final bool sortDescending;
 
   @override
   Widget build(BuildContext context) {
     final tokens = skin.tokens;
     return Container(
       decoration: BoxDecoration(
-        color: tokens.band,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [tokens.paper, tokens.band],
+        ),
         border: Border(bottom: BorderSide(color: tokens.chromeLine)),
       ),
       child: Row(
         children: [
           for (final column in columns)
-            SizedBox(
+            Container(
               width: column.width,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                child: Text(
-                  column.label.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: column.kind.isNumeric
-                      ? TextAlign.right
-                      : TextAlign.left,
-                  style: skin.typography.label.copyWith(color: tokens.muted),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+              decoration: BoxDecoration(
+                border: Border(
+                  right: BorderSide(color: tokens.chromeLine),
+                  bottom: column.key == sortedColumn
+                      ? const BorderSide(
+                          color: MillenniumColors.sortAccent,
+                          width: 3,
+                        )
+                      : BorderSide.none,
                 ),
+              ),
+              child: Text(
+                column.key == sortedColumn
+                    ? '${column.label} ${sortDescending ? '▾' : '▴'}'
+                    : column.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: column.kind.isNumeric
+                    ? TextAlign.right
+                    : TextAlign.left,
+                style: skin.typography.label.copyWith(color: tokens.ink),
               ),
             ),
         ],
@@ -495,7 +531,7 @@ final class _GroupRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = skin.tokens;
     final style = skin.typography.body.copyWith(
-      color: tokens.headInk,
+      color: tokens.head,
       fontWeight: FontWeight.w700,
     );
     return Semantics(
@@ -503,9 +539,14 @@ final class _GroupRow extends StatelessWidget {
       label: summary == null ? label : '$label, $summary',
       excludeSemantics: true,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 25),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        color: tokens.head,
+        constraints: const BoxConstraints(minHeight: 22),
+        padding: const EdgeInsets.fromLTRB(5, 5, 5, 1),
+        decoration: BoxDecoration(
+          color: tokens.paper,
+          border: const Border(
+            bottom: BorderSide(color: MillenniumColors.groupRowRule),
+          ),
+        ),
         child: Row(
           children: [
             Expanded(child: Text(label, style: style)),
@@ -541,7 +582,7 @@ final class _SubtotalRow<T> extends StatelessWidget {
       decoration: BoxDecoration(
         color: tokens.band,
         border: Border(
-          top: BorderSide(color: tokens.ink, width: 2),
+          top: BorderSide(color: tokens.ink),
           bottom: BorderSide(color: tokens.rule),
         ),
       ),
@@ -551,7 +592,7 @@ final class _SubtotalRow<T> extends StatelessWidget {
             SizedBox(
               width: columns[index].width,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 child: Text(
                   cells[columns[index].key] ?? (index == 0 ? label ?? '' : ''),
                   maxLines: 1,
@@ -599,8 +640,8 @@ final class _EntryRow extends StatelessWidget {
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: Container(
-            constraints: const BoxConstraints(minHeight: 25),
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            constraints: const BoxConstraints(minHeight: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 5),
             alignment: Alignment.centerLeft,
             decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: tokens.rule)),
@@ -657,10 +698,9 @@ final class _DataRow<T> extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: selected ? tokens.selWash : tokens.paper,
-          border: Border(bottom: BorderSide(color: tokens.rule)),
         ),
         foregroundDecoration: cursor && cursorColumn == null
-            ? BoxDecoration(border: Border.all(color: tokens.focus, width: 2))
+            ? skin.painters.cellCursor(tokens, onSelection: selected)
             : null,
         child: Row(
           children: [
@@ -672,10 +712,10 @@ final class _DataRow<T> extends StatelessWidget {
                     onSecondaryTap(column.key, details.globalPosition),
                 child: Container(
                   width: column.width,
-                  constraints: const BoxConstraints(minHeight: 25),
+                  constraints: const BoxConstraints(minHeight: 20),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 5,
+                    vertical: 2,
                   ),
                   alignment: column.kind.isNumeric
                       ? Alignment.centerRight

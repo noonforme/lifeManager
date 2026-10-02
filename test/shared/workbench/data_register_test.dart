@@ -8,12 +8,61 @@ import 'package:lifeos/core/explain/explanation.dart';
 import 'package:lifeos/shared/workbench/cell_selection.dart';
 import 'package:lifeos/shared/workbench/data_register.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
+import 'package:lifeos/shared/workbench/millennium_style.dart';
 
 const _first = _Row(id: 'shift:1', label: 'First shift', amount: '123.45');
 const _second = _Row(id: 'shift:2', label: 'Second shift', amount: '67.89');
 const _void = _Row(id: 'shift:3', label: 'Voided shift', amount: '10.00');
 
 void main() {
+  testWidgets('headers are not uppercased and the sorted column says so', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _TestRegister(onOpen: (_) {}, sortedColumn: 'record'),
+    );
+    expect(find.text('Record ▴'), findsOneWidget);
+    expect(find.text('Amount'), findsOneWidget);
+    expect(find.text('RECORD'), findsNothing);
+  });
+
+  testWidgets('rows are 20 px and a selected row is solid blue', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _TestRegister(selectedId: 'shift:2', onOpen: (_) {}),
+    );
+    expect(tester.getSize(find.bySemanticsLabel('First shift')).height, 20);
+    final fills = tester
+        .widgetList<Container>(
+          find.descendant(
+            of: find.bySemanticsLabel('Second shift'),
+            matching: find.byType(Container),
+          ),
+        )
+        .map((value) => value.decoration)
+        .whereType<BoxDecoration>()
+        .map((value) => value.color);
+    expect(fills, contains(LifeOSTokens.millennium.selWash));
+  });
+
+  testWidgets('the cell cursor on a selected row is dotted in white', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _TestRegister(selectedId: 'shift:2', onOpen: (_) {}),
+    );
+    await tester.tap(find.text('67.89'));
+    await tester.pump();
+    final cursor = tester
+        .widgetList<Container>(find.byType(Container))
+        .map((value) => value.foregroundDecoration)
+        .whereType<DottedFocusRectangle>()
+        .single;
+    expect(cursor.color, LifeOSTokens.millennium.selInk);
+  });
+
   testWidgets('arrow keys move the cursor and only Enter opens a row', (
     tester,
   ) async {
@@ -140,11 +189,11 @@ void main() {
     tester.view.physicalSize = const Size(1400, 800);
     addTearDown(tester.view.reset);
     await tester.pumpWidget(_TestRegister(width: 640, onOpen: (_) {}));
-    expect(find.text('NOTE'), findsNothing);
-    expect(find.text('AMOUNT'), findsOneWidget);
+    expect(find.text('Note'), findsNothing);
+    expect(find.text('Amount'), findsOneWidget);
 
     await tester.pumpWidget(_TestRegister(width: 1200, onOpen: (_) {}));
-    expect(find.text('NOTE'), findsOneWidget);
+    expect(find.text('Note'), findsOneWidget);
   });
 
   testWidgets('a table still too wide scrolls inside its own viewport', (
@@ -194,6 +243,7 @@ final class _TestRegister extends StatelessWidget {
     this.cells,
     this.onEntry,
     this.actions,
+    this.sortedColumn,
   });
 
   final ValueChanged<String> onOpen;
@@ -202,6 +252,7 @@ final class _TestRegister extends StatelessWidget {
   final CellSelectionController? cells;
   final VoidCallback? onEntry;
   final List<RowAction> Function(_Row row)? actions;
+  final String? sortedColumn;
 
   @override
   Widget build(BuildContext context) {
@@ -262,6 +313,7 @@ final class _TestRegister extends StatelessWidget {
                 selectedId: selectedId,
                 onOpen: (row) => onOpen(row.id),
                 actions: actions,
+                sortedColumn: sortedColumn,
               ),
             ),
           ),

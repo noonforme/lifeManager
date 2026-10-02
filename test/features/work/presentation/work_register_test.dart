@@ -216,7 +216,12 @@ void main() {
         'Est. pay',
         'State',
       ]) {
-        expect(find.text(column.toUpperCase()), findsOneWidget, reason: column);
+        // The Shifts list is ordered by date, which its header says.
+        expect(
+          find.text(column == 'Date' ? 'Date ▴' : column),
+          findsOneWidget,
+          reason: column,
+        );
       }
       expect(find.text('Finalized'), findsOneWidget);
       expect(find.text('Running'), findsOneWidget);
@@ -276,7 +281,7 @@ void main() {
         ),
       );
       expect(find.text('Shifts'), findsWidgets);
-      expect(find.text('EXPECTED'), findsOneWidget);
+      expect(find.text('Expected'), findsOneWidget);
       expect(find.text('Open'), findsNWidgets(2));
     });
 
