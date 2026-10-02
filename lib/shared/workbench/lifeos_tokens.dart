@@ -5,7 +5,7 @@ import 'package:flutter/painting.dart';
 
 /// The owner's appearance choice. [system] follows the platform brightness
 /// and high-contrast setting.
-enum LifeOSAppearance { system, day, night, highContrast }
+enum LifeOSAppearance { system, day, night, highContrast, millennium }
 
 /// The four LifeOS areas, each with its own keycap colour.
 enum LifeOSArea {
@@ -133,6 +133,9 @@ final class LifeOSTokens {
       ink: Color(0xffffffff),
     ),
   };
+
+  /// The day area keys, which other light palettes share.
+  static const dayAreaKeys = _dayKeys;
 
   static const _nightKeys = {
     LifeOSArea.work: AreaKeyColors(

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show Icons;
+import 'package:flutter/material.dart' show Icons, Material, MaterialType;
 import 'package:flutter/widgets.dart';
 
 import '../workbench/lifeos_skin.dart';
@@ -168,115 +168,120 @@ final class _ShellFrameState extends State<ShellFrame> {
     final tokens = skin.tokens;
     final chrome = ShellChrome.maybeOf(context);
     final view = ShellViewScope.maybeOf(context)?.value ?? const ShellView();
-    return ColoredBox(
-      color: tokens.ground,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          // A hidden region behaves like a narrower window: the tree folds
-          // into Books and the inspector alternates with the desk, so
-          // navigation and open records are never lost.
-          final full = width >= ShellMetrics.fullWidth && view.showInspector;
-          final treeFolded =
-              width < ShellMetrics.treeFoldWidth || !view.showTree;
-          final tree = _Landmark(
-            label: 'Books',
-            child: chrome?.tree(_closeTree) ?? const SizedBox.expand(),
-          );
-          final desk = _Landmark(label: 'Desk workspace', child: widget.desk);
-          final inspecting = widget.inspector;
-          final inspector = inspecting == null
-              ? null
-              : _Landmark(
-                  label: 'Record inspector',
-                  child: _InspectorRegion(
-                    showBackToDesk: !full,
-                    onBackToDesk: widget.onBackToDesk,
-                    child: inspecting,
-                  ),
-                );
-
-          // Desk and inspector sit side by side at full width; otherwise
-          // they alternate, both staying mounted.
-          final Widget work = inspector == null
-              ? desk
-              : full
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: desk),
-                    _Divider(color: tokens.chromeLine),
-                    SizedBox(
-                      width: ShellMetrics.inspectorWidth,
-                      child: inspector,
+    // Every surface gets a text style and ink, with or without a Scaffold.
+    return Material(
+      type: MaterialType.transparency,
+      textStyle: skin.typography.body.copyWith(color: tokens.ink),
+      child: ColoredBox(
+        color: tokens.ground,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            // A hidden region behaves like a narrower window: the tree folds
+            // into Books and the inspector alternates with the desk, so
+            // navigation and open records are never lost.
+            final full = width >= ShellMetrics.fullWidth && view.showInspector;
+            final treeFolded =
+                width < ShellMetrics.treeFoldWidth || !view.showTree;
+            final tree = _Landmark(
+              label: 'Books',
+              child: chrome?.tree(_closeTree) ?? const SizedBox.expand(),
+            );
+            final desk = _Landmark(label: 'Desk workspace', child: widget.desk);
+            final inspecting = widget.inspector;
+            final inspector = inspecting == null
+                ? null
+                : _Landmark(
+                    label: 'Record inspector',
+                    child: _InspectorRegion(
+                      showBackToDesk: !full,
+                      onBackToDesk: widget.onBackToDesk,
+                      child: inspecting,
                     ),
-                  ],
-                )
-              : IndexedStack(
-                  index: widget.inspectorOpen ? 1 : 0,
-                  sizing: StackFit.expand,
-                  children: [desk, inspector],
-                );
-          final Widget body = treeFolded
-              ? IndexedStack(
-                  index: _treeOpen ? 1 : 0,
-                  sizing: StackFit.expand,
-                  children: [work, tree],
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(width: ShellMetrics.treeWidth, child: tree),
-                    _Divider(color: tokens.chromeLine),
-                    Expanded(child: work),
-                  ],
-                );
+                  );
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Landmark(
-                label: 'Menu bar',
-                child: SizedBox(
-                  height: ShellMetrics.menuBarHeight,
-                  child: chrome?.menuBar ?? const SizedBox.shrink(),
-                ),
-              ),
-              _Landmark(
-                label: 'Toolbar',
-                child: _Toolbar(
-                  title: chrome?.title ?? '',
-                  showBooks: treeFolded,
-                  booksOpen: _treeOpen,
-                  onBooks: _toggleTree,
-                  quickAdd: chrome?.quickAdd ?? const [],
-                  fromLastTime: chrome?.fromLastTime ?? const [],
-                ),
-              ),
-              if (view.showFormulaBar)
+            // Desk and inspector sit side by side at full width; otherwise
+            // they alternate, both staying mounted.
+            final Widget work = inspector == null
+                ? desk
+                : full
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: desk),
+                      _Divider(color: tokens.chromeLine),
+                      SizedBox(
+                        width: ShellMetrics.inspectorWidth,
+                        child: inspector,
+                      ),
+                    ],
+                  )
+                : IndexedStack(
+                    index: widget.inspectorOpen ? 1 : 0,
+                    sizing: StackFit.expand,
+                    children: [desk, inspector],
+                  );
+            final Widget body = treeFolded
+                ? IndexedStack(
+                    index: _treeOpen ? 1 : 0,
+                    sizing: StackFit.expand,
+                    children: [work, tree],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(width: ShellMetrics.treeWidth, child: tree),
+                      _Divider(color: tokens.chromeLine),
+                      Expanded(child: work),
+                    ],
+                  );
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
                 _Landmark(
-                  label: 'Formula bar',
-                  liveRegion: true,
-                  child: _FormulaBarRegion(
-                    child:
-                        widget.formulaBar ??
-                        FormulaBar(
-                          onNavigate: (route) =>
-                              chrome?.onNavigate(route.toString()),
-                        ),
+                  label: 'Menu bar',
+                  child: SizedBox(
+                    height: ShellMetrics.menuBarHeight,
+                    child: chrome?.menuBar ?? const SizedBox.shrink(),
                   ),
                 ),
-              Expanded(child: body),
-              _Landmark(
-                label: 'Status line',
-                child: SizedBox(
-                  height: ShellMetrics.statusLineHeight,
-                  child: chrome?.status ?? const SizedBox.shrink(),
+                _Landmark(
+                  label: 'Toolbar',
+                  child: _Toolbar(
+                    title: chrome?.title ?? '',
+                    showBooks: treeFolded,
+                    booksOpen: _treeOpen,
+                    onBooks: _toggleTree,
+                    quickAdd: chrome?.quickAdd ?? const [],
+                    fromLastTime: chrome?.fromLastTime ?? const [],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+                if (view.showFormulaBar)
+                  _Landmark(
+                    label: 'Formula bar',
+                    liveRegion: true,
+                    child: _FormulaBarRegion(
+                      child:
+                          widget.formulaBar ??
+                          FormulaBar(
+                            onNavigate: (route) =>
+                                chrome?.onNavigate(route.toString()),
+                          ),
+                    ),
+                  ),
+                Expanded(child: body),
+                _Landmark(
+                  label: 'Status line',
+                  child: SizedBox(
+                    height: ShellMetrics.statusLineHeight,
+                    child: chrome?.status ?? const SizedBox.shrink(),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -338,10 +343,7 @@ final class _Toolbar extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(minHeight: ShellMetrics.toolbarHeight),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: tokens.chrome,
-        border: Border(bottom: BorderSide(color: tokens.chromeLine)),
-      ),
+      decoration: skin.painters.toolbar(tokens),
       child: Row(
         children: [
           if (history != null) ...[

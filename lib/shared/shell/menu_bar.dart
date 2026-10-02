@@ -45,8 +45,12 @@ final class LifeOSMenuBar extends StatelessWidget {
     final itemStyle = ButtonStyle(
       textStyle: WidgetStatePropertyAll(skin.typography.body),
       foregroundColor: WidgetStateProperty.resolveWith(
-        (states) =>
-            states.contains(WidgetState.disabled) ? tokens.muted : tokens.ink,
+        (states) => states.contains(WidgetState.disabled)
+            ? tokens.muted
+            : states.contains(WidgetState.hovered) ||
+                  states.contains(WidgetState.focused)
+            ? tokens.selInk
+            : tokens.ink,
       ),
       backgroundColor: WidgetStateProperty.resolveWith(
         (states) =>
@@ -178,6 +182,7 @@ final class LifeOSMenuBar extends StatelessWidget {
                       'High contrast',
                       LifeOSAppearance.highContrast,
                     ),
+                    appearanceItem('Millennium', LifeOSAppearance.millennium),
                   ]),
                   viewItem(
                     'Show book tree',

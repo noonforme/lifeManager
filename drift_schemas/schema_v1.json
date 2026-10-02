@@ -2107,6 +2107,63 @@
           "id"
         ]
       }
+    },
+    {
+      "id": 11,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "preferences",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "key",
+            "getter_name": "key",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">(\"key IN ('appearance')\")"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "value",
+            "getter_name": "value",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "key"
+        ]
+      }
     }
   ],
   "fixed_sql": [
@@ -2206,6 +2263,15 @@
         {
           "dialect": "sqlite",
           "sql": "CREATE TABLE IF NOT EXISTS \"desk_tiles\" (\"id\" TEXT NOT NULL, \"desk_id\" TEXT NOT NULL REFERENCES desks (id) ON DELETE CASCADE, \"position\" INTEGER NOT NULL, \"sheet_ref\" TEXT NOT NULL, \"view_id\" TEXT NULL REFERENCES saved_views (id) ON DELETE CASCADE, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "preferences",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"preferences\" (\"key\" TEXT NOT NULL CHECK(key IN ('appearance')), \"value\" TEXT NOT NULL, PRIMARY KEY (\"key\"));"
         }
       ]
     }

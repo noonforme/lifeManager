@@ -8,6 +8,7 @@ import '../core/desks/desk_repository.dart';
 import '../core/desks/saved_view_repository.dart';
 import '../core/history/record_event_dao.dart';
 import '../core/history/record_events.dart';
+import '../core/preferences/preference_repository.dart';
 import '../core/time/app_clock.dart';
 import '../core/time/timezone_service.dart';
 import '../features/journal/journal_controller.dart';
@@ -104,6 +105,7 @@ ProductionWorkProviders buildWorkProviders({
     ),
     desks: DeskRepository(database, newId: () => const Uuid().v7()),
     views: SavedViewRepository(database, newId: () => const Uuid().v7()),
+    preferences: PreferenceRepository(database),
   );
 }
 
@@ -126,6 +128,7 @@ final class ProductionWorkProviders {
     required this.journal,
     required this.desks,
     required this.views,
+    required this.preferences,
   });
 
   final DriftWorkRepository workRepository;
@@ -145,6 +148,7 @@ final class ProductionWorkProviders {
   final JournalSource journal;
   final DeskRepository desks;
   final SavedViewRepository views;
+  final PreferenceRepository preferences;
 
   List<Override> get _overrides => [
     workQueryRepositoryProvider.overrideWithValue(workRepository),

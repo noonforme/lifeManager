@@ -2,20 +2,30 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/preferences/preference_repository.dart';
 import '../shared/shell/navigation_history.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/workbench/cell_selection.dart';
 import '../shared/workbench/lifeos_skin.dart';
 import '../shared/workbench/lifeos_theme.dart';
+import '../shared/workbench/lifeos_tokens.dart';
 import 'shell_host.dart';
 
 final class LifeOsApp extends StatefulWidget {
-  const LifeOsApp({required this.router, this.onQuit, super.key});
+  const LifeOsApp({
+    required this.router,
+    this.onQuit,
+    this.preferences,
+    super.key,
+  });
 
   final GoRouter router;
 
   /// Closes the window from File › Quit. Null disables Quit.
   final VoidCallback? onQuit;
+
+  /// Keeps the appearance across restarts. Null keeps it for this run only.
+  final PreferenceRepository? preferences;
 
   @override
   State<LifeOsApp> createState() => _LifeOsAppState();
@@ -32,7 +42,29 @@ final class _LifeOsAppState extends State<LifeOsApp> {
     super.initState();
     widget.router.routeInformationProvider.addListener(_recordLocation);
     _recordLocation();
+    _restoreAppearance();
   }
+
+  /// Restores the saved appearance, then saves every later choice.
+  Future<void> _restoreAppearance() async {
+    final preferences = widget.preferences;
+    if (preferences == null) return;
+    final saved = await preferences.read(PreferenceKey.appearance);
+    final appearance = LifeOSAppearance.values
+        .where((value) => value.name == saved)
+        .firstOrNull;
+    if (!mounted) return;
+    // A choice made while the preference was loading wins.
+    if (appearance != null && _appearance.value == LifeOSAppearance.system) {
+      _appearance.value = appearance;
+    }
+    _appearance.addListener(_saveAppearance);
+  }
+
+  void _saveAppearance() => widget.preferences?.write(
+    PreferenceKey.appearance,
+    _appearance.value.name,
+  );
 
   @override
   void didUpdateWidget(covariant LifeOsApp oldWidget) {
@@ -55,7 +87,9 @@ final class _LifeOsAppState extends State<LifeOsApp> {
 
   @override
   void dispose() {
-    _appearance.dispose();
+    _appearance
+      ..removeListener(_saveAppearance)
+      ..dispose();
     _view.dispose();
     _cells.dispose();
     widget.router.routeInformationProvider.removeListener(_recordLocation);

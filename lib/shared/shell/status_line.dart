@@ -44,8 +44,8 @@ final class StatusLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
-    final tokens = skin.tokens;
-    final style = skin.typography.small.copyWith(color: tokens.headInk);
+    final paint = skin.painters.statusLine(skin.tokens);
+    final style = skin.typography.small.copyWith(color: paint.ink);
     final running = snapshot.runningShift;
     final save = snapshot.lastSaveUncertain
         ? 'Last save uncertain. Reload to check'
@@ -54,7 +54,7 @@ final class StatusLine extends StatelessWidget {
         : 'Local database · saved ${snapshot.lastSave}';
     return Container(
       height: 24,
-      color: tokens.head,
+      decoration: paint.fill,
       child: Row(
         children: [
           if (running != null)
@@ -67,7 +67,7 @@ final class StatusLine extends StatelessWidget {
                     width: 7,
                     height: 7,
                     decoration: BoxDecoration(
-                      color: tokens.signal,
+                      color: paint.indicator,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -95,7 +95,7 @@ final class StatusLine extends StatelessWidget {
             child: Text(
               save,
               style: snapshot.lastSaveUncertain
-                  ? style.copyWith(color: tokens.negative)
+                  ? style.copyWith(color: paint.alertInk)
                   : style,
             ),
           ),
@@ -114,8 +114,10 @@ final class _Segment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = LifeOSSkinScope.of(context).tokens;
-    final divider = BorderSide(color: tokens.headInk.withValues(alpha: 0.25));
+    final skin = LifeOSSkinScope.of(context);
+    final divider = BorderSide(
+      color: skin.painters.statusLine(skin.tokens).divider,
+    );
     final segment = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,

@@ -434,16 +434,40 @@ final class DeskTile { /* id, position, sheetRef, viewId */ }
 - Modify: `pubspec.yaml` and `assets/fonts/` (the Millennium face after licence review)
 - Create: `test/shared/workbench/skins_test.dart`, goldens under `test/goldens/skins_*`
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Every Millennium text pair meets 4.5:1, and every indicator 3:1 (spec 4.7).
   - The semantics tree and hit-test regions of the 1280 × 800 shell are identical under Office Machine and Millennium.
   - With the system high-contrast flag on, Millennium falls back to the Office Machine high-contrast tokens.
   - Choosing an appearance persists it as a preference and restores it on restart.
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Choose and bundle the Millennium face.** Review candidate Tahoma-metric faces' licences, and bundle one with its notice, or fall back to Noto Sans. Record the decision and licence in `assets/fonts/README.md`.
-- [ ] **Step 4: Implement the skin** with the tokens and painting rules from spec 4.7. Use no Microsoft names, logos, icons, wallpapers or sounds.
-- [ ] **Step 5: Run** the skin tests, the full suite and analysis. Expected: PASS.
-- [ ] **Step 6: Commit** `feat: add the Millennium appearance`.
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Choose and bundle the Millennium face.** Review candidate Tahoma-metric faces' licences, and bundle one with its notice, or fall back to Noto Sans. Record the decision and licence in `assets/fonts/README.md`.
+- [x] **Step 4: Implement the skin** with the tokens and painting rules from spec 4.7. Use no Microsoft names, logos, icons, wallpapers or sounds.
+- [x] **Step 5: Run** the skin tests, the full suite and analysis. Expected: PASS.
+- [x] **Step 6: Commit** `feat: add the Millennium appearance`.
+
+  *As built:*
+  - **Face:** Noto Sans (OFL). Wine's Tahoma is LGPL and published only as
+    FontForge source, so it would need a font build step; the decision is
+    in `assets/fonts/README.md`.
+  - **Tokens:** `runInk` (#b83d0b), `positive` (#2a752d) and `signal`
+    (#d9500b) are a shade darker than the spec table, which missed 4.5:1 on
+    `band`/`chrome` and 3:1 on `chrome`.
+  - **Painting only:** keys, area keys, badge, dotted focus, property-sheet
+    tabs, toolbar gloss, tree pane, a face-coloured status line and a warm
+    cell cursor come from new painter hooks. The structural extras in spec
+    4.7 (task-pane groups, a Go to source button) were left out because
+    they would add or move controls; a test asserts that every semantics
+    node keeps its label, flags and position under Millennium.
+  - **Selection:** selected register rows, tree rows and hovered menu items
+    now draw their text in `selInk` in every skin, so text never sits on a
+    saturated selection in a lower-contrast colour.
+  - **Preference:** a `preferences` table with whitelisted keys holds the
+    appearance; `LifeOsApp` restores it at start and saves each change.
+  - **Goldens:** not added. Headless renders use the test font, so the
+    identical-layout test guards the shell instead.
+  - **Also fixed:** surfaces without a Scaffold (Today, Journal) lacked a
+    Material ancestor and showed debug-underlined text; `ShellFrame` now
+    provides one.
 
 ### Task 12: Verification, finish review and documentation
 

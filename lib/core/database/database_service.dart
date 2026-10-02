@@ -103,6 +103,7 @@ final class DriftDatabaseService implements DatabaseService {
       'desks',
       'desk_tiles',
       'saved_views',
+      'preferences',
     ])) {
       return true;
     }

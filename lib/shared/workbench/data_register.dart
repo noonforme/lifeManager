@@ -680,7 +680,10 @@ final class _DataRow<T> extends StatelessWidget {
                       : Alignment.centerLeft,
                   foregroundDecoration: cursorColumn == column.key
                       ? BoxDecoration(
-                          border: Border.all(color: tokens.signal, width: 2),
+                          border: Border.all(
+                            color: skin.painters.cellCursor(tokens),
+                            width: 2,
+                          ),
                         )
                       : null,
                   child:
@@ -693,13 +696,15 @@ final class _DataRow<T> extends StatelessWidget {
                             ? TextAlign.right
                             : TextAlign.left,
                         style: _cellStyle(skin, column.kind).copyWith(
-                          color: voided
+                          // Selection wins, so every cell of a selected
+                          // row reads on selWash in every skin.
+                          color: selected
+                              ? tokens.selInk
+                              : voided
                               ? tokens.muted
                               : column.kind == ColumnKind.state &&
                                     line.state == RowState.running
                               ? tokens.runInk
-                              : selected
-                              ? tokens.selInk
                               : tokens.ink,
                           fontWeight:
                               column.kind == ColumnKind.state &&

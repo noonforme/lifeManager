@@ -20,6 +20,7 @@ Future<void> main() async {
   final timezones = IanaTimezoneService();
   final systemZone = SystemTimezoneSource.platform();
   final ids = UuidV7WorkIdFactory();
+  ProductionWorkProviders? work;
   await bootstrap(
     BootstrapDependencies(
       initializeBindings: () async {
@@ -34,7 +35,7 @@ Future<void> main() async {
       validateSchema: (_) async {},
       buildProviders: (database) async {
         final adapter = database as _BootstrapDatabaseAdapter;
-        final work = buildWorkProviders(
+        final built = work = buildWorkProviders(
           database: adapter.database,
           clock: clock,
           timezones: timezones,
@@ -43,10 +44,14 @@ Future<void> main() async {
           shiftIds: ids,
           evidenceIds: ids,
         );
-        return BootstrapProviders(scope: work.scope);
+        return BootstrapProviders(scope: built.scope);
       },
       buildRouter: (providers) async => providers.scope(
-        LifeOsApp(router: createAppRouter(), onQuit: window.close),
+        LifeOsApp(
+          router: createAppRouter(),
+          onQuit: window.close,
+          preferences: work?.preferences,
+        ),
       ),
       mountApp: (app) async => runApp(app),
       showWindow: window.show,

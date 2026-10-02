@@ -220,7 +220,7 @@ final class CountBadge extends StatelessWidget {
           child: Text(
             '$count',
             style: skin.typography.figure.copyWith(
-              color: skin.tokens.actionInk,
+              color: skin.painters.countBadgeInk(skin.tokens),
               fontSize: 11,
               fontWeight: FontWeight.w600,
               height: 1,

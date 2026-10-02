@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'lifeos_tokens.dart';
+import 'skins/millennium_skin.dart';
 
 /// Text styles of one skin. Colours are applied by the widget from tokens.
 @immutable
@@ -75,8 +76,32 @@ final class KeySurface {
   final BorderRadius radius;
 }
 
+/// How the status line is painted.
+@immutable
+final class StatusLineStyle {
+  const StatusLineStyle({
+    required this.fill,
+    required this.ink,
+    required this.alertInk,
+    required this.indicator,
+    required this.divider,
+  });
+
+  final Decoration fill;
+  final Color ink;
+
+  /// Text of an uncertain save.
+  final Color alertInk;
+
+  /// The running-shift dot.
+  final Color indicator;
+  final Color divider;
+}
+
 /// The painting a skin supplies for LifeOS-owned controls. Widgets ask the
-/// skin how to look; they never branch on which skin is active.
+/// skin how to look; they never branch on which skin is active. No painter
+/// may change a control's size: borders keep the widths the Office Machine
+/// painters use.
 abstract interface class SkinPainters {
   KeySurface key(LifeOSTokens tokens, KeyKind kind, KeyState state);
 
@@ -84,8 +109,22 @@ abstract interface class SkinPainters {
 
   BoxDecoration countBadge(LifeOSTokens tokens);
 
+  /// The count's text on [countBadge].
+  Color countBadgeInk(LifeOSTokens tokens);
+
   /// The keyboard focus ring drawn around a focused control.
-  BoxDecoration focusRing(LifeOSTokens tokens);
+  Decoration focusRing(LifeOSTokens tokens);
+
+  /// The toolbar under the menu bar, with its 1-pixel bottom line.
+  Decoration toolbar(LifeOSTokens tokens);
+
+  /// Behind the book tree's rows.
+  Color treeBackground(LifeOSTokens tokens);
+
+  StatusLineStyle statusLine(LifeOSTokens tokens);
+
+  /// The outline of the register's selected cell, drawn on [selWash].
+  Color cellCursor(LifeOSTokens tokens);
 
   BoxDecoration segment(
     LifeOSTokens tokens, {
@@ -234,10 +273,34 @@ final class _OfficeMachinePainters implements SkinPainters {
       BoxDecoration(color: tokens.actionFill, borderRadius: _radius);
 
   @override
+  Color countBadgeInk(LifeOSTokens tokens) => tokens.actionInk;
+
+  @override
   BoxDecoration focusRing(LifeOSTokens tokens) => BoxDecoration(
     borderRadius: const BorderRadius.all(Radius.circular(6)),
     border: Border.all(color: tokens.focus, width: 2),
   );
+
+  @override
+  Decoration toolbar(LifeOSTokens tokens) => BoxDecoration(
+    color: tokens.chrome,
+    border: Border(bottom: BorderSide(color: tokens.chromeLine)),
+  );
+
+  @override
+  Color treeBackground(LifeOSTokens tokens) => tokens.paper;
+
+  @override
+  StatusLineStyle statusLine(LifeOSTokens tokens) => StatusLineStyle(
+    fill: BoxDecoration(color: tokens.head),
+    ink: tokens.headInk,
+    alertInk: tokens.negative,
+    indicator: tokens.signal,
+    divider: tokens.headInk.withValues(alpha: 0.25),
+  );
+
+  @override
+  Color cellCursor(LifeOSTokens tokens) => tokens.signal;
 
   @override
   BoxDecoration segment(
@@ -278,14 +341,7 @@ final class LifeOSSkinData {
 /// Resolves the owner's appearance against the platform and provides the
 /// active skin to every LifeOS-owned widget below it.
 final class LifeOSSkinScope extends StatelessWidget {
-  const LifeOSSkinScope({
-    required this.child,
-    this.skin = const OfficeMachineSkin(),
-    this.appearance,
-    super.key,
-  });
-
-  final LifeOSSkin skin;
+  const LifeOSSkinScope({required this.child, this.appearance, super.key});
 
   /// The appearance to resolve. Null uses the nearest
   /// [LifeOSAppearanceScope], or [LifeOSAppearance.system] without one.
@@ -299,20 +355,47 @@ final class LifeOSSkinScope extends StatelessWidget {
     return scope!.data;
   }
 
+  /// The skin, brightness and contrast an appearance resolves to. The
+  /// system's high-contrast setting wins over every skin (spec 4.7).
+  static (LifeOSSkin, Brightness, bool) resolve(
+    LifeOSAppearance appearance, {
+    required Brightness platformBrightness,
+    required bool platformHighContrast,
+  }) {
+    const office = OfficeMachineSkin();
+    return switch (appearance) {
+      LifeOSAppearance.system => (
+        office,
+        platformBrightness,
+        platformHighContrast,
+      ),
+      LifeOSAppearance.day => (office, Brightness.light, platformHighContrast),
+      LifeOSAppearance.night => (office, Brightness.dark, platformHighContrast),
+      LifeOSAppearance.highContrast => (office, Brightness.light, true),
+      LifeOSAppearance.millennium when platformHighContrast => (
+        office,
+        Brightness.light,
+        true,
+      ),
+      LifeOSAppearance.millennium => (
+        const MillenniumSkin(),
+        Brightness.light,
+        false,
+      ),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final platformBrightness = MediaQuery.platformBrightnessOf(context);
-    final platformHighContrast = MediaQuery.highContrastOf(context);
     final chosen =
         appearance ??
         LifeOSAppearanceScope.maybeOf(context)?.value ??
         LifeOSAppearance.system;
-    final (brightness, highContrast) = switch (chosen) {
-      LifeOSAppearance.system => (platformBrightness, platformHighContrast),
-      LifeOSAppearance.day => (Brightness.light, platformHighContrast),
-      LifeOSAppearance.night => (Brightness.dark, platformHighContrast),
-      LifeOSAppearance.highContrast => (Brightness.light, true),
-    };
+    final (skin, brightness, highContrast) = resolve(
+      chosen,
+      platformBrightness: MediaQuery.platformBrightnessOf(context),
+      platformHighContrast: MediaQuery.highContrastOf(context),
+    );
     return _InheritedLifeOSSkin(
       data: LifeOSSkinData(
         skin: skin,

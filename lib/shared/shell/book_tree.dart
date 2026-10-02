@@ -89,7 +89,7 @@ final class BookTree extends StatelessWidget {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
     return ColoredBox(
-      color: tokens.paper,
+      color: skin.painters.treeBackground(tokens),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -201,7 +201,11 @@ final class _AreaRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: skin.typography.body.copyWith(
-                color: node.built ? tokens.ink : tokens.muted,
+                color: selected
+                    ? tokens.selInk
+                    : node.built
+                    ? tokens.ink
+                    : tokens.muted,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -292,7 +296,11 @@ final class _SheetRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: skin.typography.body.copyWith(
-                color: node.built ? tokens.ink : tokens.muted,
+                color: selected
+                    ? tokens.selInk
+                    : node.built
+                    ? tokens.ink
+                    : tokens.muted,
               ),
             ),
           ),
@@ -310,7 +318,9 @@ final class _SheetRow extends StatelessWidget {
                             ? skin.typography.figure
                             : skin.typography.small)
                         .copyWith(
-                          color: node.liveValueIsActive
+                          color: selected
+                              ? tokens.selInk
+                              : node.liveValueIsActive
                               ? tokens.runInk
                               : tokens.muted,
                           fontWeight: node.liveValueIsActive
