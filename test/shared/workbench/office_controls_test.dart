@@ -1,8 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
+import 'package:lifeos/shared/workbench/millennium_style.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
 
 Widget _host(Widget child, {double textScale = 1}) {
@@ -18,6 +20,72 @@ Widget _host(Widget child, {double textScale = 1}) {
 
 void main() {
   group('KeyButton', () {
+    testWidgets('pressing changes the face but never the size', (tester) async {
+      await tester.pumpWidget(
+        _host(KeyButton(label: 'Save', onPressed: () {})),
+      );
+      final before = tester.getSize(find.byKey(const ValueKey('key-face')));
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('Save')),
+      );
+      await tester.pump();
+      expect(tester.getSize(find.byKey(const ValueKey('key-face'))), before);
+      await gesture.up();
+    });
+
+    testWidgets('push buttons are at least 24 high and 24 wide', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_host(KeyButton(label: 'x', onPressed: () {})));
+      final size = tester.getSize(find.byKey(const ValueKey('key-face')));
+      expect(size.height, greaterThanOrEqualTo(24));
+      expect(size.width, greaterThanOrEqualTo(24));
+    });
+
+    testWidgets('the default key carries the blue double ring', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          KeyButton(label: 'Save', kind: KeyKind.primary, onPressed: () {}),
+        ),
+      );
+      final face = tester.widget<Container>(
+        find.byKey(const ValueKey('key-face')),
+      );
+      expect(
+        face.foregroundDecoration,
+        const InsetRings(
+          MillenniumColors.defaultRingOuter,
+          MillenniumColors.defaultRingInner,
+        ),
+      );
+    });
+
+    testWidgets('a toolbar key is flat until hovered', (tester) async {
+      // Desktop highlight mode, as with a mouse attached.
+      FocusManager.instance.highlightStrategy =
+          FocusHighlightStrategy.alwaysTraditional;
+      addTearDown(
+        () => FocusManager.instance.highlightStrategy =
+            FocusHighlightStrategy.automatic,
+      );
+      await tester.pumpWidget(
+        _host(
+          KeyButton(label: 'Back', kind: KeyKind.toolbar, onPressed: () {}),
+        ),
+      );
+      BoxDecoration face() =>
+          tester
+                  .widget<Container>(find.byKey(const ValueKey('key-face')))
+                  .decoration!
+              as BoxDecoration;
+      expect(face().gradient, isNull);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(tester.getCenter(find.text('Back')));
+      await tester.pump();
+      expect(face().gradient, isNotNull);
+      await mouse.removePointer();
+    });
     testWidgets('pointer press calls the action', (tester) async {
       var pressed = 0;
       await tester.pumpWidget(

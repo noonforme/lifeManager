@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'lifeos_skin.dart';
 import 'lifeos_tokens.dart';
+import 'millennium_style.dart';
 
 /// The height of a popup menu row: the register's density, not a touch
 /// target, and still above the 24-pixel minimum.
@@ -15,6 +16,7 @@ final class KeyButton extends StatefulWidget {
     required this.onPressed,
     this.kind = KeyKind.secondary,
     this.leading,
+    this.trailing,
     this.semanticLabel,
     super.key,
   });
@@ -28,6 +30,9 @@ final class KeyButton extends StatefulWidget {
   final VoidCallback? onPressed;
   final KeyKind kind;
   final Widget? leading;
+
+  /// Shown after the label, for example a drop arrow.
+  final Widget? trailing;
 
   @override
   State<KeyButton> createState() => _KeyButtonState();
@@ -47,38 +52,52 @@ final class _KeyButtonState extends State<KeyButton> {
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
-    final small = widget.kind == KeyKind.small;
+    final kind = widget.kind;
     final surface = skin.painters.key(
       skin.tokens,
-      widget.kind,
-      KeyState(enabled: _enabled, pressed: _pressed, hovered: _hovered),
+      kind,
+      KeyState(
+        enabled: _enabled,
+        pressed: _pressed,
+        hovered: _hovered,
+        focused: _focused,
+      ),
     );
+    final rings = surface.rings;
     final face = Container(
       key: const ValueKey('key-face'),
-      constraints: BoxConstraints(minHeight: small ? 22 : 24, minWidth: 24),
-      padding: EdgeInsets.symmetric(horizontal: small ? 9 : 10),
+      constraints: BoxConstraints(
+        minHeight: kind == KeyKind.toolbar ? 30 : 24,
+        minWidth: 24,
+      ),
+      padding: EdgeInsets.symmetric(horizontal: kind == KeyKind.small ? 7 : 10),
       decoration: surface.decoration,
+      foregroundDecoration: rings == null
+          ? null
+          : InsetRings(rings.$1, rings.$2),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (widget.leading != null) ...[
-            widget.leading!,
-            const SizedBox(width: 6),
+          if (widget.leading case final leading?) ...[
+            leading,
+            const SizedBox(width: 5),
           ],
           Flexible(
             child: Text(
               widget.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: (small ? skin.typography.small : skin.typography.body)
-                  .copyWith(
-                    color: surface.ink,
-                    fontWeight: widget.kind == KeyKind.primary
-                        ? FontWeight.w700
-                        : FontWeight.w500,
-                  ),
+              style:
+                  (kind == KeyKind.small
+                          ? skin.typography.small
+                          : skin.typography.body)
+                      .copyWith(color: surface.ink),
             ),
           ),
+          if (widget.trailing case final trailing?) ...[
+            const SizedBox(width: 4),
+            trailing,
+          ],
         ],
       ),
     );
@@ -135,10 +154,10 @@ final class _FocusRing extends StatelessWidget {
       children: [
         child,
         Positioned(
-          left: -4,
-          top: -4,
-          right: -4,
-          bottom: -4,
+          left: 0,
+          top: 0,
+          right: 0,
+          bottom: 0,
           child: IgnorePointer(
             child: DecoratedBox(
               key: const ValueKey('focus-ring'),
