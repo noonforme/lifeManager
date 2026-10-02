@@ -56,6 +56,9 @@ final class LifeOSMenuBar extends StatelessWidget {
             : Colors.transparent,
       ),
       minimumSize: const WidgetStatePropertyAll(Size(0, menuRowHeight)),
+      // Era menus are dense: no padding up to a touch target.
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
       padding: const WidgetStatePropertyAll(
         EdgeInsets.symmetric(horizontal: 8),
       ),

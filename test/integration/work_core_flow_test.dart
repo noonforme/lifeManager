@@ -339,7 +339,6 @@ void main() {
   });
 }
 
-/// The value text beside a register summary label.
 /// The value beside [label] in the Work Details group of the task pane.
 String _summary(String label) {
   final row = find
@@ -348,7 +347,7 @@ String _summary(String label) {
           of: find.bySemanticsLabel('Task pane'),
           matching: find.text(label),
         ),
-        matching: find.byType(Row),
+        matching: find.byType(InspectorFactRow),
       )
       .first;
   final texts = find

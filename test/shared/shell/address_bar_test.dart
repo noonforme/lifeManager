@@ -31,5 +31,14 @@ void main() {
     await tester.tap(find.text('Go'));
     expect(reloaded, 1);
     expect(find.bySemanticsLabel('Address'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Work')),
+      isSemantics(
+        isLink: true,
+        hasTapAction: true,
+        isFocusable: true,
+        hasFocusAction: true,
+      ),
+    );
   });
 }

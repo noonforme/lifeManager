@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/workbench/era_controls.dart';
+import 'package:lifeos/shared/workbench/era_dialog.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
 
@@ -84,6 +85,29 @@ void main() {
               '${file.path}:${index + 1}',
     ];
     expect(offenders, isEmpty);
+  });
+
+  testWidgets('a caption close key is a focusable button', (tester) async {
+    var closed = 0;
+    await tester.pumpWidget(
+      _scoped(
+        SizedBox(
+          width: 300,
+          child: CaptionBar(title: 'Needs you', onClose: () => closed++),
+        ),
+      ),
+    );
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Close Needs you')),
+      isSemantics(
+        isButton: true,
+        hasTapAction: true,
+        isFocusable: true,
+        hasFocusAction: true,
+      ),
+    );
+    await tester.tap(find.bySemanticsLabel('Close Needs you'));
+    expect(closed, 1);
   });
 }
 

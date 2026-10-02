@@ -209,10 +209,7 @@ final class _WorkScreenState extends State<WorkScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ready = switch (widget.state) {
-      AsyncData(:final value) => value,
-      AsyncLoading() || AsyncError() => null,
-    };
+    final ready = _current(widget.state);
     final routeRecord = ready is WorkReady ? ready.route.record : null;
     final creating =
         ready is WorkReady &&
@@ -280,7 +277,9 @@ final class _WorkScreenState extends State<WorkScreen> {
   }
 
   Widget _register(WorkViewState? state) {
-    if (widget.state.isLoading) {
+    // A refresh keeps showing the previous register, so opening a record
+    // does not tear the list down (and with it the cell selection).
+    if (widget.state.isLoading && !widget.state.hasValue) {
       return const OperationalState(
         kind: OperationalStateKind.loading,
         title: 'Loading Work records',
@@ -773,11 +772,13 @@ extension on _WorkScreenState {
   );
 }
 
+/// The state to show: the current value, or the previous one while a
+/// refresh is loading. Nothing while loading for the first time or failed.
+WorkViewState? _current(AsyncValue<WorkViewState> state) =>
+    state.hasError ? null : state.value;
+
 WorkRecordRef? _selectedRecord(AsyncValue<WorkViewState> state) {
-  final value = switch (state) {
-    AsyncData(:final value) => value,
-    AsyncLoading() || AsyncError() => null,
-  };
+  final value = _current(state);
   return value is WorkReady ? value.route.record : null;
 }
 
@@ -791,10 +792,7 @@ Widget _rejected(
 );
 
 WorkInspectorMode? _routeMode(AsyncValue<WorkViewState> state) {
-  final value = switch (state) {
-    AsyncData(:final value) => value,
-    AsyncLoading() || AsyncError() => null,
-  };
+  final value = _current(state);
   return value is WorkReady ? value.route.mode : null;
 }
 

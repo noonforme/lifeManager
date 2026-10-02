@@ -1,4 +1,5 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/shell/task_pane.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
@@ -62,5 +63,45 @@ void main() {
       ),
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a collapse key is a focusable button that Enter presses', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: SizedBox(
+              width: 200,
+              height: 600,
+              child: TaskPane(
+                groups: [
+                  TaskGroup(
+                    title: 'Books',
+                    child: TaskLink(label: 'Today', onPressed: () {}),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Collapse Books')),
+      isSemantics(
+        isButton: true,
+        hasTapAction: true,
+        isFocusable: true,
+        hasFocusAction: true,
+      ),
+    );
+    // The header's collapse key is the first stop on Tab.
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(find.text('Today'), findsNothing);
   });
 }

@@ -137,39 +137,27 @@ final class _CloseKey extends StatelessWidget {
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
+  Widget build(BuildContext context) => EraPressable(
     label: label,
-    excludeSemantics: true,
-    child: GestureDetector(
-      onTap: onPressed,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          width: 24,
-          height: 24,
-          alignment: Alignment.center,
-          child: Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.all(Radius.circular(3)),
-              border: Border.all(
-                color: LifeOSSkinScope.of(context).tokens.paper,
-              ),
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  MillenniumColors.closeTop,
-                  MillenniumColors.closeBottom,
-                ],
-              ),
-            ),
-            child: CustomPaint(
-              painter: _Cross(LifeOSSkinScope.of(context).tokens.headInk),
-            ),
+    onPressed: onPressed,
+    child: Container(
+      width: 24,
+      height: 24,
+      alignment: Alignment.center,
+      child: Container(
+        width: 18,
+        height: 18,
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.all(Radius.circular(3)),
+          border: Border.all(color: LifeOSSkinScope.of(context).tokens.paper),
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [MillenniumColors.closeTop, MillenniumColors.closeBottom],
           ),
+        ),
+        child: CustomPaint(
+          painter: _Cross(LifeOSSkinScope.of(context).tokens.headInk),
         ),
       ),
     ),

@@ -4,6 +4,25 @@ import '../workbench/era_controls.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/millennium_style.dart';
 
+/// Lets a task-pane choice close the pane when it is an overlay (spec 4.1:
+/// "closed by Escape or a choice").
+final class TaskChoiceScope extends InheritedWidget {
+  const TaskChoiceScope({
+    required this.onChoice,
+    required super.child,
+    super.key,
+  });
+
+  final VoidCallback onChoice;
+
+  static VoidCallback? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<TaskChoiceScope>()?.onChoice;
+
+  @override
+  bool updateShouldNotify(TaskChoiceScope oldWidget) =>
+      onChoice != oldWidget.onChoice;
+}
+
 /// The blue task pane on the left (spec 5.2): rounded groups of links.
 final class TaskPane extends StatelessWidget {
   const TaskPane({required this.groups, super.key});
@@ -143,38 +162,27 @@ final class _CollapseKey extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
-    return Semantics(
-      button: true,
+    return EraPressable(
       label: open ? 'Collapse $title' : 'Expand $title',
-      excludeSemantics: true,
-      child: GestureDetector(
-        onTap: onPressed,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: Center(
-              child: Container(
-                width: 17,
-                height: 17,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: special
-                      ? MillenniumColors.specialHeaderEnd
-                      : tokens.paper,
-                  border: Border.all(
-                    color: special
-                        ? tokens.paper
-                        : MillenniumColors.groupHeaderEnd,
-                  ),
-                ),
-                child: EraGlyph(
-                  open ? EraGlyphKind.collapse : EraGlyphKind.expand,
-                  color: special ? tokens.headInk : tokens.head,
-                ),
+      onPressed: onPressed,
+      child: SizedBox(
+        width: 24,
+        height: 24,
+        child: Center(
+          child: Container(
+            width: 17,
+            height: 17,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: special ? MillenniumColors.specialHeaderEnd : tokens.paper,
+              border: Border.all(
+                color: special ? tokens.paper : MillenniumColors.groupHeaderEnd,
               ),
+            ),
+            child: EraGlyph(
+              open ? EraGlyphKind.collapse : EraGlyphKind.expand,
+              color: special ? tokens.headInk : tokens.head,
             ),
           ),
         ),
@@ -199,6 +207,13 @@ final class _TaskLinkState extends State<TaskLink> {
   bool _hovered = false;
   bool _focused = false;
 
+  void _choose() {
+    final choose = widget.onPressed;
+    if (choose == null) return;
+    TaskChoiceScope.maybeOf(context)?.call();
+    choose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
@@ -219,14 +234,14 @@ final class _TaskLinkState extends State<TaskLink> {
           actions: {
             ActivateIntent: CallbackAction<ActivateIntent>(
               onInvoke: (_) {
-                widget.onPressed?.call();
+                _choose();
                 return null;
               },
             ),
           },
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: widget.onPressed,
+            onTap: enabled ? _choose : null,
             child: ExcludeSemantics(
               child: Container(
                 constraints: const BoxConstraints(minHeight: 24),

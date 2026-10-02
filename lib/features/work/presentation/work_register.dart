@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/shell/task_pane.dart';
+import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/millennium_style.dart';
 import '../../../shared/workbench/operational_state.dart';
@@ -9,6 +10,8 @@ import '../data/projections/work_register_projection.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay.dart';
+import '../domain/pay_period.dart';
+import '../domain/shift.dart';
 import 'work_route_state.dart';
 import 'work_sheets.dart';
 import 'work_toolbar_controls.dart';
@@ -221,14 +224,10 @@ final class WorkDetails extends StatelessWidget {
     final figure = skin.typography.figure.copyWith(color: skin.tokens.ink);
     final period = projection.period;
     final groups = projection.reconciliation?.groups ?? const [];
-    Widget pair(String label, String value) => Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: Text(label)),
-        const SizedBox(width: 6),
-        Text(value, style: figure),
-      ],
-    );
+    // Label and value share a line when they fit, otherwise the value
+    // moves under its label (the property sheet's fact row).
+    Widget pair(String label, String value) =>
+        InspectorFactRow(fact: Fact(label, value));
     return TaskDetails(
       lines: [
         if (projection.employment case final employment?)
@@ -236,14 +235,20 @@ final class WorkDetails extends StatelessWidget {
             employment.name,
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
-        if (period != null)
+        if (period != null) ...[
           Text('${period.start} – ${period.end}', style: figure),
+          Text(period.state == PayPeriodState.reviewed ? 'Reviewed' : 'Open'),
+        ],
         Text(
           projection.shiftSheet.length == 1
               ? '1 shift'
               : '${projection.shiftSheet.length} shifts',
         ),
-        if (groups.isEmpty) pair('Paid evidence', _money(projection.paid)),
+        if (groups.isEmpty) ...[
+          if (_estimatedTotal(projection) case final total?)
+            pair('Estimated pay', _money(total)),
+          pair('Paid evidence', _money(projection.paid)),
+        ],
         for (final group in groups) ...[
           Text(
             '${_basis(group.basis)} · ${group.currency.value}',
@@ -260,6 +265,20 @@ final class WorkDetails extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The expected pay of the effective shifts in scope, or null when none has
+/// an estimate yet. Only one currency is summed; Work records are in euros.
+Money? _estimatedTotal(WorkRegisterProjection projection) {
+  final pays = [
+    for (final row in projection.shiftSheet)
+      if (row.shift.state != ShiftState.voided) ?row.pay?.amount,
+  ];
+  if (pays.isEmpty) return null;
+  return Money(
+    minorUnits: pays.fold(0, (sum, pay) => sum + pay.minorUnits),
+    currency: pays.first.currency,
+  );
 }
 
 String _basis(RateBasis? basis) => switch (basis) {

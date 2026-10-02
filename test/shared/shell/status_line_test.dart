@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/shell/status_line.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
@@ -75,5 +76,32 @@ void main() {
     expect(find.text('2 drafts'), findsOneWidget);
     expect(find.text('Local database'), findsOneWidget);
     expect(find.byKey(const ValueKey('status-panel')), findsNWidgets(3));
+  });
+
+  testWidgets('the status bar grows with 200 % text', (tester) async {
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+        child: MaterialApp(
+          home: LifeOSSkinScope(
+            child: Scaffold(
+              body: Align(
+                alignment: Alignment.topLeft,
+                child: StatusLine(snapshot: StatusSnapshot()),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.text('Local database'),
+    );
+    expect(
+      tester.getSize(find.byType(StatusLine)).height,
+      greaterThanOrEqualTo(
+        paragraph.getMinIntrinsicHeight(paragraph.size.width) + 4,
+      ),
+    );
   });
 }

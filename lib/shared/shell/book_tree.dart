@@ -146,28 +146,33 @@ final class _AreaRow extends StatelessWidget {
       semanticValue: node.built ? null : 'Not built yet',
       selected: selected,
       onOpen: onOpen,
-      child: Row(
+      // The name keeps its whole width; "Not built yet" takes what is left
+      // and moves under the name when the two do not fit on one line.
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
         children: [
-          AreaKey(area: node.area),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              node.area.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: skin.typography.body.copyWith(
-                color: _ink(tokens, selected: selected, built: node.built),
-                fontWeight: FontWeight.w700,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AreaKey(area: node.area),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  node.area.label,
+                  style: skin.typography.body.copyWith(
+                    color: _ink(tokens, selected: selected, built: node.built),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
           if (!node.built)
-            // Shrinks before it overflows the 200 px pane at large text.
-            Flexible(
+            Padding(
+              padding: const EdgeInsets.only(left: 24),
               child: Text(
                 'Not built yet',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: skin.typography.small.copyWith(color: tokens.muted),
               ),
             ),

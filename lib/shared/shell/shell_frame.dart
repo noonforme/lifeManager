@@ -188,16 +188,20 @@ final class _ShellFrameState extends State<ShellFrame> {
             }
             final pane = _Landmark(
               label: 'Task pane',
-              child: TaskPane(
-                groups: [
-                  ...widget.tasks,
-                  TaskGroup(
-                    title: 'Books',
-                    child: chrome?.tree(_closeTasks) ?? const SizedBox.shrink(),
-                  ),
-                  if (widget.details case final details?)
-                    TaskGroup(title: 'Details', child: details),
-                ],
+              child: TaskChoiceScope(
+                onChoice: _closeTasks,
+                child: TaskPane(
+                  groups: [
+                    ...widget.tasks,
+                    TaskGroup(
+                      title: 'Books',
+                      child:
+                          chrome?.tree(_closeTasks) ?? const SizedBox.shrink(),
+                    ),
+                    if (widget.details case final details?)
+                      TaskGroup(title: 'Details', child: details),
+                  ],
+                ),
               ),
             );
             final desk = _Landmark(label: 'Desk workspace', child: widget.desk);
@@ -263,8 +267,12 @@ final class _ShellFrameState extends State<ShellFrame> {
               children: [
                 _Landmark(
                   label: 'Menu bar',
-                  child: SizedBox(
-                    height: ShellMetrics.menuBarHeight,
+                  // A minimum, so 200 % text grows the bar instead of
+                  // clipping it.
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minHeight: ShellMetrics.menuBarHeight,
+                    ),
                     child: chrome?.menuBar ?? const SizedBox.shrink(),
                   ),
                 ),
@@ -290,8 +298,10 @@ final class _ShellFrameState extends State<ShellFrame> {
                 Expanded(child: body),
                 _Landmark(
                   label: 'Status line',
-                  child: SizedBox(
-                    height: ShellMetrics.statusBarHeight,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minHeight: ShellMetrics.statusBarHeight,
+                    ),
                     child: chrome?.status ?? const SizedBox.shrink(),
                   ),
                 ),

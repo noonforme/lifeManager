@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/shell/address_bar.dart';
 import 'package:lifeos/shared/shell/shell_frame.dart';
+import 'package:lifeos/shared/shell/task_pane.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 
 const _landmarks = [
@@ -154,6 +156,50 @@ void main() {
     expect(find.text('Desk content'), findsOneWidget);
   });
 
+  testWidgets('menu and status bars grow with 200 % text', (tester) async {
+    await _pump(tester, width: 1280, textScale: 2);
+    for (final (bar, content) in [
+      ('Menu bar', 'Menu content'),
+      ('Status line', 'Status content'),
+    ]) {
+      // A squeezed Text reports its clipped size; ask for the height it
+      // needs instead.
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.text(content),
+      );
+      expect(
+        tester.getSize(find.bySemanticsLabel(bar)).height,
+        greaterThanOrEqualTo(
+          paragraph.getMinIntrinsicHeight(paragraph.size.width),
+        ),
+        reason: bar,
+      );
+    }
+  });
+
+  testWidgets('choosing a task closes the Tasks overlay', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(960, 760);
+    addTearDown(tester.view.reset);
+    var done = 0;
+    await tester.pumpWidget(
+      _Harness(
+        view: ShellViewController(),
+        inspectorOpen: false,
+        hasInspector: true,
+        textScale: 1,
+        onTask: () => done++,
+      ),
+    );
+    await tester.tap(find.text('Tasks'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Do thing'));
+    await tester.pumpAndSettle();
+    expect(done, 1);
+    expect(find.text('Do thing'), findsNothing);
+    expect(find.text('Tasks'), findsOneWidget);
+  });
+
   for (final width in [1280.0, 1100.0, 960.0, 800.0]) {
     testWidgets('no overflow at $width wide and 200% text', (tester) async {
       await _pump(tester, width: width, textScale: 2);
@@ -170,12 +216,16 @@ final class _Harness extends StatefulWidget {
     required this.inspectorOpen,
     required this.hasInspector,
     required this.textScale,
+    this.onTask,
   });
 
   final ShellViewController view;
   final bool inspectorOpen;
   final bool hasInspector;
   final double textScale;
+
+  /// When set, the frame shows a task group with one link, "Do thing".
+  final VoidCallback? onTask;
 
   @override
   State<_Harness> createState() => _HarnessState();
@@ -221,6 +271,14 @@ final class _HarnessState extends State<_Harness> {
                   inspector: widget.hasInspector
                       ? const Text('Inspector content')
                       : null,
+                  tasks: [
+                    if (widget.onTask case final onTask?)
+                      TaskGroup(
+                        title: 'Test tasks',
+                        special: true,
+                        child: TaskLink(label: 'Do thing', onPressed: onTask),
+                      ),
+                  ],
                 ),
               ),
             ),

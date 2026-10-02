@@ -330,3 +330,65 @@ final class _GlyphPainter extends CustomPainter {
   bool shouldRepaint(_GlyphPainter oldDelegate) =>
       oldDelegate.kind != kind || oldDelegate.color != color;
 }
+
+/// A small pressable control: reachable by Tab, pressed by Enter, Space or
+/// a click, announced as a button (or [link]) with [label], and showing the
+/// era's dotted focus rectangle.
+final class EraPressable extends StatefulWidget {
+  const EraPressable({
+    required this.label,
+    required this.onPressed,
+    required this.child,
+    this.link = false,
+    super.key,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+  final Widget child;
+  final bool link;
+
+  @override
+  State<EraPressable> createState() => _EraPressableState();
+}
+
+final class _EraPressableState extends State<EraPressable> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = LifeOSSkinScope.of(context);
+    return MergeSemantics(
+      child: Semantics(
+        button: !widget.link,
+        link: widget.link,
+        label: widget.label,
+        child: FocusableActionDetector(
+          mouseCursor: SystemMouseCursors.click,
+          onShowFocusHighlight: (value) => setState(() => _focused = value),
+          actions: {
+            ActivateIntent: CallbackAction<ActivateIntent>(
+              onInvoke: (_) {
+                widget.onPressed();
+                return null;
+              },
+            ),
+          },
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onPressed,
+            child: ExcludeSemantics(
+              child: DecoratedBox(
+                position: DecorationPosition.foreground,
+                decoration: _focused
+                    ? DottedFocusRectangle(color: skin.tokens.focus, inset: 0.5)
+                    : const BoxDecoration(),
+                child: widget.child,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

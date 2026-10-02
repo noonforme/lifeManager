@@ -126,12 +126,11 @@ final class _Crumb extends StatelessWidget {
       ),
     );
     if (route == null || last) return text;
-    return Semantics(
+    return EraPressable(
+      label: crumb.label,
       link: true,
-      child: GestureDetector(
-        onTap: () => onNavigate(route),
-        child: MouseRegion(cursor: SystemMouseCursors.click, child: text),
-      ),
+      onPressed: () => onNavigate(route),
+      child: text,
     );
   }
 }

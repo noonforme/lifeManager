@@ -54,65 +54,69 @@ final class StatusLine extends StatelessWidget {
         ? 'Local database'
         : 'Local database · saved ${snapshot.lastSave}';
     return Container(
-      height: 22,
+      constraints: const BoxConstraints(minHeight: 22),
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: tokens.chrome,
         border: Border(top: BorderSide(color: tokens.paper)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: running == null
-                ? const SizedBox.shrink()
-                : _Panel(
-                    onTap: running.onOpen,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            color: tokens.signal,
-                            shape: BoxShape.circle,
+      // Panels share the tallest panel's height at any text size.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: running == null
+                  ? const SizedBox.shrink()
+                  : _Panel(
+                      onTap: running.onOpen,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: tokens.signal,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            running.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: style.copyWith(color: tokens.runInk),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              running.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: style.copyWith(color: tokens.runInk),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-          ),
-          if (snapshot.needsYou > 0)
-            _Panel(
-              child: Text('Needs you: ${snapshot.needsYou}', style: style),
             ),
-          if (snapshot.openDrafts > 0)
+            if (snapshot.needsYou > 0)
+              _Panel(
+                child: Text('Needs you: ${snapshot.needsYou}', style: style),
+              ),
+            if (snapshot.openDrafts > 0)
+              _Panel(
+                child: Text(
+                  snapshot.openDrafts == 1
+                      ? '1 draft'
+                      : '${snapshot.openDrafts} drafts',
+                  style: style,
+                ),
+              ),
             _Panel(
               child: Text(
-                snapshot.openDrafts == 1
-                    ? '1 draft'
-                    : '${snapshot.openDrafts} drafts',
-                style: style,
+                save,
+                style: snapshot.lastSaveUncertain
+                    ? style.copyWith(color: tokens.negative)
+                    : style,
               ),
             ),
-          _Panel(
-            child: Text(
-              save,
-              style: snapshot.lastSaveUncertain
-                  ? style.copyWith(color: tokens.negative)
-                  : style,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
