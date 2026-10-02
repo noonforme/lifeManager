@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/time/timezone_service.dart';
 import '../../shared/workbench/data_register.dart';
 import '../../shared/workbench/lifeos_skin.dart';
+import '../../shared/workbench/millennium_style.dart';
 import '../../shared/workbench/office_controls.dart';
 import '../../shared/workbench/operational_state.dart';
 import '../work/presentation/work_formats.dart';
@@ -35,12 +36,14 @@ final class JournalSheet extends StatelessWidget {
     final skin = LifeOSSkinScope.of(context);
     final loaded = entries;
     return ColoredBox(
-      color: skin.tokens.paper,
+      color: skin.tokens.chrome,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+          // The range strip, like Work's filter row (spec 5.8).
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: skin.painters.toolbar(skin.tokens),
             child: Row(
               children: [
                 KeyButton(
@@ -65,19 +68,26 @@ final class JournalSheet extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: switch (loaded) {
-              null => const OperationalState(
-                kind: OperationalStateKind.loading,
-                title: 'Reading the Journal',
-                message: 'Collecting what happened on these days.',
+            child: Container(
+              margin: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: skin.tokens.paper,
+                border: Border.all(color: MillenniumColors.fieldLine),
               ),
-              [] => const OperationalState(
-                kind: OperationalStateKind.empty,
-                title: 'Nothing recorded on these days',
-                message: 'Work events appear here as they happen.',
-              ),
-              final rows => _register(rows),
-            },
+              child: switch (loaded) {
+                null => const OperationalState(
+                  kind: OperationalStateKind.loading,
+                  title: 'Reading the Journal',
+                  message: 'Collecting what happened on these days.',
+                ),
+                [] => const OperationalState(
+                  kind: OperationalStateKind.empty,
+                  title: 'Nothing recorded on these days',
+                  message: 'Work events appear here as they happen.',
+                ),
+                final rows => _register(rows),
+              },
+            ),
           ),
         ],
       ),

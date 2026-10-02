@@ -25,6 +25,7 @@ void main() {
     'shell': (employment, _) => '/work?employment=$employment',
     'period': (employment, period) =>
         '/work?employment=$employment&record=payPeriod:$period',
+    'today': (_, _) => '/today',
   };
 
   for (final MapEntry(key: screen, value: location) in screens.entries) {

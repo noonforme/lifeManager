@@ -14,6 +14,7 @@ import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/features/work/application/work_commands.dart';
 import 'package:lifeos/features/work/domain/employment.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
+import 'package:lifeos/shared/shell/task_pane.dart';
 
 /// Today's desks on the production composition, with a fixed clock so
 /// today is 2026-10-03 in Vilnius.
@@ -47,6 +48,23 @@ void main() {
     await tester.pumpAndSettle();
     return () => router.routeInformationProvider.value.uri.toString();
   }
+
+  testWidgets('desk actions live in Desk tasks', (tester) async {
+    await launch(tester);
+    final pane = find.bySemanticsLabel('Task pane');
+    for (final task in ['New desk', 'Rename desk…', 'Reset desk']) {
+      expect(
+        find.descendant(of: pane, matching: find.text(task)),
+        findsOneWidget,
+        reason: task,
+      );
+    }
+    // Today cannot be deleted.
+    final delete = tester.widget<TaskLink>(
+      find.widgetWithText(TaskLink, 'Delete desk'),
+    );
+    expect(delete.onPressed, isNull);
+  });
 
   testWidgets('first launch opens Today with the starter desks', (
     tester,
@@ -149,7 +167,8 @@ void main() {
 
     await tester.tap(find.byTooltip('Desk menu'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete desk'));
+    // The open menu's item; Desk tasks shows the same words.
+    await tester.tap(find.text('Delete desk').last);
     await tester.pumpAndSettle();
     expect(find.text('Desk 4'), findsNothing);
     expect(location(), '/today');
