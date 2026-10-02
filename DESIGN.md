@@ -1,196 +1,245 @@
 ---
 name: LifeOS
-description: Private local-first operations desk for personal reconciliation records.
+description: Private, local-first desktop records for one person, shaped as an office machine.
 colors:
-  ground: "#eef0f3"
-  surface: "#fff"
-  ink: "#202731"
-  muted: "#526071"
-  boundary: "#8290a1"
-  action: "#23569b"
-  action-ink: "#fff"
-  confirmed: "#e3edf8"
-  confirmed-ink: "#163c70"
-  work: "#23569b"
-  money: "#6b551d"
-  habits: "#3b662f"
-  focus: "#164d91"
-  rail: "#e3e7ed"
-  rail-ink: "#202731"
-  error: "#a32532"
-  hover: "#e9eef5"
+  ground: "#cfd1cc"
+  paper: "#f4f5f2"
+  ink: "#1d1d1b"
+  muted: "#60635e"
+  rule: "#dcded9"
+  band: "#ebede8"
+  chrome: "#e2e4df"
+  chrome-line: "#a9aca5"
+  head: "#2b2c2a"
+  head-ink: "#f4f5f2"
+  signal: "#e8590c"
+  action-fill: "#c2410c"
+  action-ink: "#ffffff"
+  run-ink: "#b03a0a"
+  sel-wash: "#fde3d2"
+  sel-ink: "#1d1d1b"
+  negative: "#b8261b"
+  positive: "#2a6f2d"
+  focus: "#1d1d1b"
+  area-work: "#3a6ea5"
+  area-finance: "#d9a400"
+  area-tracking: "#3f7a2e"
+  area-knowledge: "#7b5ea7"
 typography:
-  display:
-    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
-    fontSize: "1.5rem"
-    fontWeight: 700
-    lineHeight: 1.3
-  headline:
-    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
-    fontSize: "1.2rem"
+  title:
+    fontFamily: "Archivo"
+    fontSize: "16px"
     fontWeight: 600
-    lineHeight: 1.3
+    lineHeight: "20px"
+  label:
+    fontFamily: "Archivo"
+    fontSize: "10.5px"
+    fontWeight: 700
+    lineHeight: "14px"
+    letterSpacing: "0.08em"
+    textTransform: "uppercase"
   body:
-    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
-    fontSize: "15px"
+    fontFamily: "Archivo"
+    fontSize: "13px"
+    fontWeight: 500
+    lineHeight: "18px"
+  small:
+    fontFamily: "Archivo"
+    fontSize: "11.5px"
     fontWeight: 400
-    lineHeight: 1.5
-  mono:
-    fontFamily: "ui-monospace, SFMono-Regular, Consolas, monospace"
+    lineHeight: "16px"
+  figure:
+    fontFamily: "Azeret Mono"
+    fontSize: "12.5px"
+    fontWeight: 400
+    lineHeight: "18px"
+    fontFeature: "tabular-nums"
+  counter:
+    fontFamily: "Azeret Mono"
+    fontSize: "20px"
+    fontWeight: 700
+    lineHeight: "22px"
     fontFeature: "tabular-nums"
 rounded:
-  control: "2px"
+  key: "4px"
+  field: "2px"
+  pane: "0px"
 spacing:
-  2: "0.5rem"
-  3: "0.75rem"
-  4: "1rem"
-  5: "1.25rem"
+  1: "4px"
+  2: "8px"
+  3: "12px"
+  4: "16px"
 components:
-  button-primary:
-    backgroundColor: "{colors.action}"
+  key-primary:
+    backgroundColor: "{colors.action-fill}"
     textColor: "{colors.action-ink}"
     typography: "{typography.body}"
-    rounded: "{rounded.control}"
-    padding: "0.55rem 0.9rem"
-    height: "44px"
-  button-secondary:
-    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.key}"
+    height: "30px"
+    edge: "2px bottom, darker shade of the fill"
+  key-secondary:
+    backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.control}"
-    padding: "0.55rem 0.9rem"
-    height: "44px"
+    border: "1px {colors.muted}"
+    rounded: "{rounded.key}"
+    height: "30px"
   field:
-    backgroundColor: "{colors.ground}"
+    backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.control}"
-    padding: "0.55rem"
-    height: "44px"
+    border: "1px {colors.muted}, 2px {colors.focus} when focused"
+    rounded: "{rounded.field}"
+  register-row:
+    backgroundColor: "{colors.paper}"
+    height: "25px"
+    selected: "{colors.sel-wash} with {colors.sel-ink} text"
 ---
 
 # Design System: LifeOS
 
-> **Superseded direction (2026-10-01).** The owner approved a replacement world: Office Machine, with a book tree, desks, journal, formula bar and record history. The target system is specified in `docs/superpowers/specs/2026-10-01-lifeos-office-machine-shell-design.md` (section 4 holds the tokens). This file still describes the shipped implementation and will be rewritten from the built shell when plan `2026-10-01-lifeos-office-machine-shell.md` finishes.
-
 ## Overview
 
-**Creative North Star: "The Neutral Operations Desk"**
+**Creative North Star: "The Office Machine"**
 
-LifeOS is implemented as a desktop-first operations desk: cool-gray surfaces, flat bounded panes, compact system typography, and tabular values place truthful monthly records and their correction ahead of decorative staging. The Work workspace keeps the monthly table visible while an adjacent inspector handles the selected record; at narrower widths the panes stack without removing either workflow.
+LifeOS is a calculating machine for one person's records. Every figure sits in a register and can show its working in the formula bar; nothing is a detached KPI card. The shell is a grey casing around paper-white registers, with black keys for headers and the status line, one signal orange for the thing to press and anything running, and one coloured keycap per area.
 
-The native Flutter workbench implements the light theme with a high-contrast variant. This record makes no claim of visual approval until the release visual review is complete.
+The shipped shell, at 1280 × 800:
+
+- **Menu bar** (28 px): File, Edit, View, Desk, Record, Window, Help.
+- **Toolbar** (44 px): Back, Forward, the orange **+ Add**, up to four "from last time" keys, and the current location.
+- **Formula bar** (34 px): the selected cell's calculation, with operand links.
+- **Book tree** (228 px, left): Today, Journal, Views, each area with its sheets and live values, and Backup and export at the foot.
+- **Desk** (centre): a Work register with its sheets, or a desk of tiles at `/today`.
+- **Inspector** (320 px, right): Details and History tabs for the open record. Surfaces with nothing to inspect, such as Today and the Journal, leave it out.
+- **Status line** (24 px): the running shift and the save state.
+
+Below 1280 px the inspector alternates with the desk (**Back to desk**). Below 1024 px the tree folds into a **Books** key. Nothing is lost at any width, and every layout holds at 200 % text.
+
+This record is derived from the built Flutter shell (`lib/shared/shell`, `lib/shared/workbench`) and its goldens in `test/goldens/`.
 
 **Key Characteristics:**
-- Light cool-neutral shell with graphite dark-mode counterpart.
-- Flat white panes, 1px boundaries, and restrained blue actions and selection.
-- Compact system UI type with monospaced tabular record values.
-- Persistent 10.5rem rail and a work-table/inspector workspace.
+- Grey casing, paper registers, black heads; flat, square panes.
+- One orange for action and running state; colour supports words and never replaces them.
+- Archivo for words, Azeret Mono with tabular figures for every date, time, duration and amount.
+- Keys with a 2-pixel pressable edge are the only depth.
+- Every derived number explains itself in the formula bar, and every record has a History.
 
 ## Colors
 
-Cool neutrals organize the workspace; blue is the principal action, Work, focus, and selection signal, while Money, Habits, and error retain narrow semantic roles.
+The palette is a set of named tokens (`LifeOSTokens`); widgets take every colour from tokens and never use a literal. Each palette passes a contrast test: text pairs at 4.5:1, indicators and outlines at 3:1.
 
-### Primary
-- **Operations Blue:** action links and buttons, Work identity, and interactive focus.
-- **Confirmed Blue:** selected table row and selected theme-control background, paired with confirmed ink.
+### Neutrals
+- **Ground** `#cfd1cc`: the casing behind panes and tiles.
+- **Paper** `#f4f5f2`: registers, tiles, inspector and tree.
+- **Ink** `#1d1d1b` and **Muted** `#60635e`: text and secondary text.
+- **Rule** `#dcded9`: row and cell separators. **Band** `#ebede8`: column headers.
+- **Chrome** `#e2e4df` with **Chrome line** `#a9aca5`: menu bar, toolbar and pane dividers.
+- **Head** `#2b2c2a` with **Head ink**: tile headers, group rows, the active segment and the status line.
 
-### Secondary
-- **Money Olive-Brown:** Money’s domain role.
-- **Habits Green:** Habits’ domain role.
-- **Error Red:** invalid controls, error text, and destructive links.
+### Signal
+- **Signal** `#e8590c`: the running dot and the selected-cell outline.
+- **Action fill** `#c2410c` with white ink: the primary key.
+- **Run ink** `#b03a0a`: "Running" text.
+- **Selection wash** `#fde3d2` with **Selection ink**: the selected row. A selected row draws every cell in selection ink.
 
-### Neutral
-- **Cool Ground:** application background and field fill.
-- **White Surface:** panes, panels, context strip, and secondary actions.
-- **Graphite Ink:** primary text and rail text.
-- **Muted Slate:** supporting labels and qualifications.
-- **Boundary Slate:** shell, pane, row, and control divisions.
-- **Rail Gray:** desktop navigation rail.
-- **Hover Wash:** table-row and secondary-action hover fill.
+### Meaning
+- **Negative** `#b8261b` and **Positive** `#2a6f2d`: short-paid and over amounts, always beside the words "under" and "over".
+- **Area keys:** Work `#3a6ea5`, Finance `#d9a400`, Tracking `#3f7a2e`, Knowledge `#7b5ea7`, each with a letter (W, F, T, K) at 4.5:1.
 
 ### Named Rules
-**The Blue-For-Operation Rule.** Use the action role for navigation, primary actions, Work identity, focus, and selected-state emphasis; do not spread it as decoration.
+**The One-Orange Rule.** Orange means "press this" or "this is running". It is never decoration.
 
-**The Semantic-State Rule.** Error red and confirmed blue supplement explicit text, underlines, and selected-state semantics; color does not stand alone.
+**The Words-First Rule.** Draft, Void, Running, over and under are always written. Colour only supports the word.
 
 ## Typography
 
-**Display Font:** system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif.
-**Body Font:** system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif.
-**Label/Mono Font:** ui-monospace, SFMono-Regular, Consolas, monospace.
-
-**Character:** The system UI stack maintains compact desktop-tool language. Monospace and tabular figures make dates, rates, hours, and financial values inspectable in tables and summaries.
+- **Interface:** Archivo (OFL), bundled.
+- **Figures:** Azeret Mono (OFL), bundled, with tabular figures.
 
 ### Hierarchy
-- **Display** (700, 1.5rem, 1.3): page headings.
-- **Headline** (600, 1.2rem, 1.3): register titles.
-- **Section Heading** (default weight, 1.15rem, 1.3): panel summaries and workspace headings.
-- **Body** (400, 15px, 1.5): controls, records, and explanatory content.
-- **Data** (400, tabular numerals): `.mono` values, with `time` also using tabular figures.
+- **Title** (600, 16/20): the inspector record title.
+- **Label** (700, 10.5/14, +0.08em, uppercase): column headers, section labels and the tree header.
+- **Body** (500, 13/18): controls, entries and menus.
+- **Small** (400, 11.5/16): secondary lines and hints.
+- **Figure** (400/600, 12.5/18, tabular): dates, times, durations, money and counts.
+- **Counter** (700, 20/22): counter tiles.
 
 ### Named Rules
-**The Fixed-Scale Rule.** Preserve the compact implemented type scale; page headings are 1.5rem rather than oversized display treatment.
+**The Figures-Line-Up Rule.** Anything a person might compare down a column is set in Figure and right-aligned.
 
 ## Layout
 
-The desktop shell is a two-column grid with a 10.5rem rail and flexible workspace. The context strip uses `0.5rem 1.25rem` padding and main uses `1.25rem`; panels repeatedly use 1rem or 1.25rem padding and 1rem gaps.
-
-The Work workspace is a grid of `minmax(0, 1.8fr)` table pane and `minmax(20rem, 1fr)` inspector. At 1100px and below it becomes one column; the inspector exposes a scroll margin for return navigation. Registers are vertically stacked bounded sections. Wide tables scroll only within their own horizontal-scroll region.
-
-At 700px and below, the rail becomes a top header, navigation links wrap, main padding becomes 1rem, and metric grids use two columns. At 400px, metric grids become one column.
+- **Spacing:** a 4-pixel base, using steps of 4, 6, 8, 10, 12, 14 and 16.
+- **Heights:** toolbar keys 30, small keys 26, register rows 25, tree rows 23–25, desk tabs 26, popup menu rows 32. Every target is at least 24 × 24.
+- **Register v2:** group rows in Head (for example a pay period or "October 2026"), data rows on Paper with Rule separators, and an entry row at the foot ("Add a manual shift"). Optional columns (Break, Night, Holiday) hide first when space runs short.
+- **Desks:** single, two columns, or main and side (one main tile, up to three stacked). Each tile has a Head header with its area key, name, menu (Replace, Open full size, Remove) and close key. The starter desks are Today, Weekly review and Month close; Today cannot be deleted.
 
 ## Elevation & Depth
 
-The system has no shadows. White surfaces on cool ground, 1px boundary lines, table header grounds, and controlled hover/selection washes establish hierarchy. Motion is immediate; reduced-motion mode shortens animation and transition duration and disables smooth scrolling.
+There are no shadows, blur or glow in Office Machine. Hierarchy comes from Ground versus Paper, 1-pixel Chrome lines, and Head bands. The only depth is the key edge: a 2-pixel bottom edge in a darker shade, which a pressed key loses as its face moves down 1 pixel. Neighbouring controls never move.
+
+Motion is immediate, or a 120 ms cross-fade. With reduced motion it is zero. Nothing pulses.
 
 ### Named Rules
-**The Flat-Pane Rule.** Distinguish workspace regions with bounds and tonal changes, never with floating elevation, blur, glass, or gradient effects.
+**The Flat-Casing Rule.** Regions are told apart by tone and lines, never by elevation.
 
 ## Shapes
 
-The form language is almost square. Inputs and button-like controls use a 2px radius; panes, summary panels, tables, and the rail use straight 1px boundaries. All interactive controls target at least 44px in height or width as implemented.
+- **Keys,** chips, tabs and tiles: 4-pixel radius.
+- **Fields:** 2-pixel radius.
+- **Registers,** panes and the tree: square.
+- **Keyboard focus:** a 2-pixel ring offset by 2, always distinct from selection. A selected cell has a 2-pixel Signal outline.
 
 ## Components
 
-### Buttons
-- **Shape:** minimally softened (2px radius) and at least 44px tall.
-- **Primary:** Operations Blue fill and action ink, 1px action border, 600 weight, `0.55rem 0.9rem` padding; hover darkens via brightness filter.
-- **Secondary:** white-surface `.button-link` with boundary border and ink; hover changes to the hover wash.
-- **Focus:** shared visible 2px focus outline offset by 3px.
+### Keys (`KeyButton`)
+- **Primary:** Action fill with white bold text.
+- **Secondary:** Paper with a Muted outline.
+- **Small:** 26 high.
+- **Disabled:** Chrome with Muted text, and no edge.
+- **Shared rules:** the label is always shown. Material buttons in forms are painted with the same key surfaces through the skin-derived theme.
 
-### Cards / Containers
-- **Corner Style:** square bounded panes.
-- **Background:** white surface on cool ground.
-- **Shadow Strategy:** none.
-- **Border:** 1px boundary; selected table records receive confirmed fill instead of extra elevation.
-- **Internal Padding:** 1rem or 1.25rem according to the panel.
+### Segmented tabs
+Sheet tabs, inspector tabs and desk tabs. The active segment is Head with Head ink, inactive segments are Paper, and all share a Muted outline.
 
-### Inputs / Fields
-- **Style:** cool-ground fill, 1px boundary, 2px radius, ink text, and `0.55rem` padding.
-- **Focus:** shared visible focus outline.
-- **Error:** a 2px error border with error-colored field label/text.
+### Book tree
+- **Rows:** area rows on Band with their keycap, and sheet rows indented with a right-aligned live value. Unbuilt areas say "Not built yet".
+- **Selection:** the selected row is Selection wash with Selection ink.
+- **Right-click:** offers Open, plus each node's own actions (for a saved view: Add to a desk, Rename view…, Delete view).
 
-### Navigation
-- **Style:** a 10.5rem rail with rail-gray background, 1px end boundary, 700-weight LifeOS mark, and native `details` disclosure.
-- **State:** links are text-labelled; the current page has white surface, boundary border, 700 weight, and underline. Hover uses white surface.
-- **Mobile treatment:** rail becomes an inline-start header at 700px and links wrap.
+### Formula bar
+`ƒx`, then the reference, the calculation with operand links, and the source. It is empty when nothing is selected; it never shows placeholder text.
 
-### Work Workspace
-- **Character:** a table-first monthly review pane beside a record inspector.
-- **Table:** compact `.65rem .8rem` cells, cool-ground header, hover wash, right-aligned numeric Work columns, and confirmed selection state.
-- **Responsive behavior:** stack table and inspector at 1100px; selection navigation keeps the monthly snapshot available while the inspector opens nearby or below.
+### Inspector
+Details and History tabs. Facts are label/value pairs with figures right-aligned. History lists created, changed, finalized, voided, replaced and reviewed events, newest first.
+
+### Status line
+A Head strip showing "● Shift running since 07:02" (the start on the shift's own clock), then counts, then "Local database" or "Last save uncertain. Reload to check".
+
+### Forms, dialogs and menus
+These use Material widgets themed from the active skin. Fields are Paper with a Muted outline and a 2-pixel focus outline. Dialogs and menus are Paper with a Muted outline and no elevation. Menu rows are 32 high.
+
+## Appearances
+
+The shell paints through a `LifeOSSkin`, which supplies tokens, typography and painters. Layout, regions, menus, copy and behaviour are identical in every appearance; a test checks that every semantics node keeps its label and position. Choose an appearance under **View › Appearance**. The choice is kept in the database and restored at start.
+
+- **Office Machine Day** (default), **Night** (charcoal with glowing orange) and **High contrast**. **System** follows the platform's brightness and high-contrast setting.
+- **Millennium:** a glossy 2001-era office PC.
+  - **Palette:** `#ece9d8` face, `#0046d5` heads and `#316ac5` selection.
+  - **Type:** Noto Sans (OFL).
+  - **Painting:** gradient keys with a dark-blue outline, glossy area keys, property-sheet tabs with a warm top edge, a dotted focus rectangle, a task-pane tree and a face-coloured status line.
+  - **Rules:** it has no night palette. The system high-contrast setting replaces it with Office Machine high contrast. It uses no vendor names, logos, icons, wallpapers or sounds.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** preserve the 10.5rem desktop rail, the 1100px Work-pane stack, and the 700px shell reflow.
-- **Do** use flat surface panes with 1px boundary lines and restrained hover/confirmed washes.
-- **Do** keep controls at least 44px and retain the 2px, 3px-offset focus outline.
-- **Do** use system UI for interface language and monospaced tabular figures for inspectable values.
+- **Do** put every figure in a register and give every derived figure an explanation.
+- **Do** take colours only from tokens and painting only from the skin's painters.
+- **Do** keep keys labelled, targets at least 24 × 24, and focus distinct from selection.
+- **Do** keep routes, view filters and tile references structural: ids, dates, states and flags only.
+- **Do** use synthetic data in tests, goldens and screenshots.
 
 ### Don't:
-- **Don't** add large editorial headings, paper-ledger styling, display fonts, or ornamental animation; the implemented world is a compact system-UI operations desk.
-- **Don't** add shadows, gradients, glass effects, or rounded floating cards.
-- **Don't** replace text-labelled native navigation and selection links with glyph-only or script-dependent controls.
-- **Don't** claim visual approval or finished screenshot review; no desktop or mobile screenshots were inspected.
+- **Don't** add KPI cards, dashboards or a scaled-up tablet layout.
+- **Don't** add shadows, blur, glow or gradients to Office Machine; gradients belong to Millennium chrome only, never to data rows.
+- **Don't** let a skin move, resize or re-word a control.
+- **Don't** signal state by colour alone.

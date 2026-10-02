@@ -476,13 +476,20 @@ final class DeskTile { /* id, position, sheetRef, viewId */ }
 - Create: `integration_test/shell_work_flow_test.dart`
 - Modify: `app.sh` (only if commands changed), `README.md`, `DESIGN.md`, `.impeccable/design.json`
 
-- [ ] **Step 1: Add the integration flow from spec 10.** Fresh install → Today → create employment from Needs you → agreement with defaults → start shift → end → finalize. Then check the formula bar explanation, four History events and the Journal row.
-- [ ] **Step 2: Add goldens** at 1280 × 800 and 960 × 760 for every appearance: Office Machine day, night and high contrast; Millennium.
-- [ ] **Step 3: Run** `dart format --set-exit-if-changed lib test tool`, `flutter analyze`, `flutter test`, and the integration test against a guarded disposable root. Expected: all PASS.
-- [ ] **Step 4: Run the bounded Impeccable finish.** One batched capture of the shipped device classes, the finish reviewer against the direction contract, one batch of fixes and at most one confirmation pass.
-- [ ] **Step 5: Rewrite `DESIGN.md` and `.impeccable/design.json` from the built shell** using the Impeccable documenter. Remove the superseded-direction note at the top of `DESIGN.md`.
-- [ ] **Step 6: Verify `./app.sh`** starts and tests the app (repository rule in `CLAUDE.md`), and update it if commands changed.
-- [ ] **Step 7: Commit** `docs: document the shipped Office Machine shell`.
+- [x] **Step 1: Add the integration flow from spec 10.** Fresh install → Today → create employment from Needs you → agreement with defaults → start shift → end → finalize. Then check the formula bar explanation, four History events and the Journal row.
+- [x] **Step 2: Add goldens** at 1280 × 800 and 960 × 760 for every appearance: Office Machine day, night and high contrast; Millennium.
+- [x] **Step 3: Run** `dart format --set-exit-if-changed lib test tool`, `flutter analyze`, `flutter test`, and the integration test against a guarded disposable root. Expected: all PASS.
+- [x] **Step 4: Run the bounded Impeccable finish.** One batched capture of the shipped device classes, the finish reviewer against the direction contract, one batch of fixes and at most one confirmation pass.
+- [x] **Step 5: Rewrite `DESIGN.md` and `.impeccable/design.json` from the built shell** using the Impeccable documenter. Remove the superseded-direction note at the top of `DESIGN.md`.
+- [x] **Step 6: Verify `./app.sh`** starts and tests the app (repository rule in `CLAUDE.md`), and update it if commands changed.
+- [x] **Step 7: Commit** `docs: document the shipped Office Machine shell`.
+
+  *As built:*
+  - **Flow test:** the spec 10 flow is `test/integration/shell_work_flow_test.dart`, a headless widget test on the production composition, because `integration_test` needs a native device and the build container has no GTK. History shows three events (Created, Changed, Finalized), one per command; spec 10's "four" contradicts its own one-event-per-command rule.
+  - **Needs you:** on an empty install it now offers an **Add employment** key, so the flow can start from Today.
+  - **Goldens:** the Work shell in four appearances at two sizes. Text renders in the test font, so they guard colour, painting and layout.
+  - **Finish review,** done in-session rather than by subagents. Material forms, dialogs and menus used the pre-redesign theme and ignored Night and Millennium; the theme is now built from the active skin, with buttons painted by its key painters, and `LifeOSColors` is gone. Popup menu rows are 32 px. The status line's uncertain-save text passes 4.5:1. Form tests scroll their submit key on screen before tapping.
+  - **`./app.sh`:** options 2 (tests) and 3 (checks) pass unchanged. Option 1 (`flutter run -d linux`) cannot run in the build container, which has no GTK development files.
 
 ## Plan self-review
 

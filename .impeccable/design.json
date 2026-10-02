@@ -1,44 +1,230 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-27T00:00:00Z",
+  "generatedAt": "2026-10-02T00:00:00Z",
   "title": "Design System: LifeOS",
   "extensions": {
     "colorMeta": {
-      "ground":{"role":"neutral","displayName":"Cool Ground","canonical":"#eef0f3","tonalRamp":["#171a1f","#30363e","#4b535e","#68727e","#88929e","#abb3bc","#d0d5dc","#eef0f3"]},
-      "surface":{"role":"neutral","displayName":"White Surface","canonical":"#fff","tonalRamp":["#1c2026","#383e47","#565e69","#77818c","#9da6af","#c4cad0","#e4e7ea","#fff"]},
-      "ink":{"role":"neutral","displayName":"Graphite Ink","canonical":"#202731","tonalRamp":["#12161c","#202731","#3d4652","#5a6572","#788390","#9aa3ad","#c3c9ce","#edf1f4"]},
-      "muted":{"role":"neutral","displayName":"Muted Slate","canonical":"#526071","tonalRamp":["#1c222b","#303943","#46515e","#5f6d7d","#7e8b99","#a1aab4","#c7cdd3","#ebeff2"]},
-      "boundary":{"role":"neutral","displayName":"Boundary Slate","canonical":"#8290a1","tonalRamp":["#252c35","#414b57","#5c6878","#778595","#95a1af","#b3bdc6","#d1d7dc","#eef1f4"]},
-      "action":{"role":"primary","displayName":"Operations Blue","canonical":"#23569b","tonalRamp":["#0b1b33","#102b51","#193e70","#23569b","#3e74ba","#6c9bdb","#a0c7ff","#d9ebff"]},
-      "confirmed":{"role":"primary","displayName":"Confirmed Blue","canonical":"#e3edf8","tonalRamp":["#17283e","#2b4260","#47617f","#66819f","#86a1bd","#abc3d9","#cee0ee","#e3edf8"]},
-      "work":{"role":"secondary","displayName":"Work Blue","canonical":"#23569b","tonalRamp":["#0b1b33","#102b51","#193e70","#23569b","#3e74ba","#6c9bdb","#a0c7ff","#d9ebff"]},
-      "money":{"role":"secondary","displayName":"Money Olive-Brown","canonical":"#6b551d","tonalRamp":["#211907","#382a0d","#503d14","#6b551d","#897134","#aa925b","#cfba88","#f0dfba"]},
-      "habits":{"role":"secondary","displayName":"Habits Green","canonical":"#3b662f","tonalRamp":["#12200e","#203718","#2c4d24","#3b662f","#57824a","#7ca66e","#abd09b","#dcefd0"]},
-      "error":{"role":"secondary","displayName":"Error Red","canonical":"#a32532","tonalRamp":["#350b13","#57111d","#781824","#a32532","#c34d59","#de7a84","#f4a9b0","#ffd9dc"]}
+      "ground": {
+        "role": "neutral",
+        "displayName": "Casing Grey",
+        "canonical": "#cfd1cc"
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Register Paper",
+        "canonical": "#f4f5f2"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Machine Ink",
+        "canonical": "#1d1d1b"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#60635e"
+      },
+      "chrome": {
+        "role": "neutral",
+        "displayName": "Chrome",
+        "canonical": "#e2e4df"
+      },
+      "head": {
+        "role": "neutral",
+        "displayName": "Black Key Head",
+        "canonical": "#2b2c2a"
+      },
+      "signal": {
+        "role": "primary",
+        "displayName": "Signal Orange",
+        "canonical": "#e8590c"
+      },
+      "action-fill": {
+        "role": "primary",
+        "displayName": "Action Orange",
+        "canonical": "#c2410c"
+      },
+      "sel-wash": {
+        "role": "primary",
+        "displayName": "Selection Wash",
+        "canonical": "#fde3d2"
+      },
+      "negative": {
+        "role": "secondary",
+        "displayName": "Short-paid Red",
+        "canonical": "#b8261b"
+      },
+      "positive": {
+        "role": "secondary",
+        "displayName": "Over Green",
+        "canonical": "#2a6f2d"
+      },
+      "area-work": {
+        "role": "secondary",
+        "displayName": "Work Keycap",
+        "canonical": "#3a6ea5"
+      },
+      "area-finance": {
+        "role": "secondary",
+        "displayName": "Finance Keycap",
+        "canonical": "#d9a400"
+      },
+      "area-tracking": {
+        "role": "secondary",
+        "displayName": "Tracking Keycap",
+        "canonical": "#3f7a2e"
+      },
+      "area-knowledge": {
+        "role": "secondary",
+        "displayName": "Knowledge Keycap",
+        "canonical": "#7b5ea7"
+      }
     },
     "typographyMeta": {
-      "display":{"displayName":"Page Heading","purpose":"Compact 1.5rem page headings."},
-      "headline":{"displayName":"Register Heading","purpose":"Compact register titles."},
-      "body":{"displayName":"System UI","purpose":"Default controls, records, and prose."},
-      "mono":{"displayName":"Record Data","purpose":"Tabular dates and numeric values."}
+      "title": {
+        "displayName": "Record Title",
+        "purpose": "Inspector record title, Archivo 600 16/20."
+      },
+      "label": {
+        "displayName": "Column Label",
+        "purpose": "Uppercase column headers and section labels, Archivo 700 10.5/14."
+      },
+      "body": {
+        "displayName": "Interface",
+        "purpose": "Controls, entries and menus, Archivo 500 13/18."
+      },
+      "figure": {
+        "displayName": "Figures",
+        "purpose": "Dates, times, durations and money, Azeret Mono tabular 12.5/18."
+      }
     },
     "shadows": [],
-    "motion":[{"name":"reduced-motion","value":"scroll-behavior:auto; transition-duration:.01ms; animation-duration:.01ms; animation-iteration-count:1","purpose":"Implemented for prefers-reduced-motion."}],
-    "breakpoints":[{"name":"work-stack","value":"1100px"},{"name":"narrow-shell","value":"700px"},{"name":"single-metric","value":"400px"}]
+    "motion": [
+      {
+        "name": "cross-fade",
+        "value": "120ms, zero with reduced motion",
+        "purpose": "Pane and inspector content changes."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "full",
+        "value": "1280px",
+        "purpose": "Tree, desk and inspector side by side."
+      },
+      {
+        "name": "inspector-alternates",
+        "value": "<1280px",
+        "purpose": "The inspector replaces the desk until Back to desk."
+      },
+      {
+        "name": "tree-folds",
+        "value": "<1024px",
+        "purpose": "The book tree folds into the Books key."
+      }
+    ],
+    "appearances": [
+      {
+        "name": "Office Machine Day",
+        "default": true
+      },
+      {
+        "name": "Office Machine Night"
+      },
+      {
+        "name": "High contrast"
+      },
+      {
+        "name": "Millennium",
+        "note": "Painting only; Noto Sans; no night palette; system high contrast falls back to Office Machine."
+      }
+    ]
   },
   "components": [
-    {"name":"Primary Button","kind":"button","refersTo":"button-primary","description":"Blue server-rendered form action.","html":"<button class=\"ds-button\">Save record</button>","css":".ds-button{background:#23569b;border:1px solid #23569b;border-radius:2px;color:#fff;cursor:pointer;font:600 15px system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:44px;min-width:44px;padding:.55rem .9rem}.ds-button:hover{filter:brightness(.92)}.ds-button:focus-visible{outline:2px solid #164d91;outline-offset:3px}"},
-    {"name":"Secondary Action","kind":"button","refersTo":"button-secondary","description":"Bounded white-surface text action.","html":"<a class=\"ds-button-link\" href=\"#\">New shift</a>","css":".ds-button-link{align-items:center;background:#fff;border:1px solid #8290a1;border-radius:2px;color:#202731;display:inline-flex;font:600 15px system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:44px;padding:.55rem .9rem;text-decoration:none}.ds-button-link:hover{background:#e9eef5}.ds-button-link:focus-visible{outline:2px solid #164d91;outline-offset:3px}"},
-    {"name":"Text Field","kind":"input","refersTo":"field","description":"Cool-ground native field with bounded error treatment.","html":"<label class=\"ds-label\">Hourly rate<input class=\"ds-field\" value=\"24.00\"></label>","css":".ds-label{color:#202731;display:grid;font:600 15px system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;gap:.35rem}.ds-field{background:#eef0f3;border:1px solid #8290a1;border-radius:2px;color:#202731;font:400 15px system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:44px;padding:.55rem;width:100%}.ds-field:focus-visible{outline:2px solid #164d91;outline-offset:3px}.ds-field[aria-invalid=\"true\"]{border:2px solid #a32532}"},
-    {"name":"Rail Navigation","kind":"nav","description":"Compact desktop rail with a native disclosure and current-page state.","html":"<nav class=\"ds-rail\"><a class=\"ds-mark\" href=\"#\">LifeOS</a><details class=\"ds-nav\" open><summary>Registers</summary><a href=\"#\" aria-current=\"page\">Overview</a><a href=\"#\">Work</a></details></nav>","css":".ds-rail{background:#e3e7ed;border-right:1px solid #8290a1;color:#202731;padding:1rem;width:10.5rem}.ds-mark{align-items:center;color:inherit;display:inline-flex;font:700 1.2rem system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:44px;text-decoration:none}.ds-nav{margin-top:1.5rem}.ds-nav summary{cursor:pointer;font:600 15px system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:44px;padding:.7rem 0}.ds-nav a{align-items:center;border:1px solid transparent;color:inherit;display:flex;font:400 15px system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:44px;padding:.55rem .7rem;text-decoration:none}.ds-nav a:hover{background:#fff}.ds-nav a[aria-current=\"page\"]{background:#fff;border-color:#8290a1;font-weight:700;text-decoration:underline;text-underline-offset:.3em}.ds-rail :focus-visible{outline:2px solid #164d91;outline-offset:3px}"},
-    {"name":"Work Pane","kind":"card","description":"Flat bounded register pane with tabular selected state.","html":"<section class=\"ds-pane\"><header>Shifts</header><table><thead><tr><th>Date</th><th>Worked</th></tr></thead><tbody><tr class=\"ds-selected\"><td>27 Sep</td><td>8.00</td></tr></tbody></table></section>","css":".ds-pane{background:#fff;border:1px solid #8290a1;color:#202731}.ds-pane header{border-bottom:1px solid #8290a1;font:600 1.15rem system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:.5rem .8rem}.ds-pane table{border-collapse:collapse;font:400 15px system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;width:100%}.ds-pane th,.ds-pane td{border-bottom:1px solid #8290a1;padding:.65rem .8rem;text-align:left}.ds-pane thead{background:#eef0f3;font-size:.85rem}.ds-pane tbody tr:hover{background:#e9eef5}.ds-pane .ds-selected{background:#e3edf8;color:#163c70}"}
+    {
+      "name": "Primary Key",
+      "kind": "button",
+      "refersTo": "key-primary",
+      "description": "Orange key with a 2px pressable edge.",
+      "html": "<button class=\"om-key om-key--primary\">+ Add</button>",
+      "css": ".om-key{background:#f4f5f2;border:1px solid #60635e;border-bottom-width:3px;border-radius:4px;color:#1d1d1b;font:500 13px/18px 'Archivo',sans-serif;min-height:30px;padding:0 10px}.om-key--primary{background:#c2410c;border-color:#c2410c #c2410c #7e2a08;color:#fff;font-weight:700}.om-key:active{border-bottom-width:2px;transform:translateY(1px)}.om-key:focus-visible{outline:2px solid #1d1d1b;outline-offset:2px}"
+    },
+    {
+      "name": "Secondary Key",
+      "kind": "button",
+      "refersTo": "key-secondary",
+      "description": "Paper key with a muted outline.",
+      "html": "<button class=\"om-key\">Save view</button>",
+      "css": ".om-key{background:#f4f5f2;border:1px solid #60635e;border-bottom:3px solid #3e403d;border-radius:4px;color:#1d1d1b;font:500 13px/18px 'Archivo',sans-serif;min-height:30px;padding:0 10px}"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Paper field with a muted outline and a 2px focus outline.",
+      "html": "<label class=\"om-field\"><span>Hourly rate</span><input value=\"18.40\"></label>",
+      "css": ".om-field{display:grid;gap:4px;font:400 11.5px/16px 'Archivo',sans-serif;color:#60635e}.om-field input{background:#f4f5f2;border:1px solid #60635e;border-radius:2px;color:#1d1d1b;font:500 13px/18px 'Archivo',sans-serif;padding:10px}.om-field input:focus{outline:none;border:2px solid #1d1d1b}"
+    },
+    {
+      "name": "Register",
+      "kind": "table",
+      "refersTo": "register-row",
+      "description": "Head group rows, paper data rows, tabular figures, selection wash.",
+      "html": "<table class=\"om-reg\"><thead><tr><th>Date</th><th>Paid</th><th>Est. pay</th></tr></thead><tbody><tr class=\"om-group\"><td colspan=\"3\">2026-09-01 – 2026-09-30</td></tr><tr><td>2026-09-07</td><td>8:00</td><td>EUR 147.20</td></tr><tr class=\"om-sel\"><td>2026-09-08</td><td>8:00</td><td>EUR 220.80</td></tr></tbody></table>",
+      "css": ".om-reg{border-collapse:collapse;background:#f4f5f2;color:#1d1d1b;font:500 13px/18px 'Archivo',sans-serif}.om-reg th{background:#ebede8;color:#60635e;font:700 10.5px/14px 'Archivo',sans-serif;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;text-align:left}.om-reg td{border-bottom:1px solid #dcded9;height:25px;padding:4px 8px;font-family:'Azeret Mono',monospace;font-variant-numeric:tabular-nums}.om-group td{background:#2b2c2a;color:#f4f5f2;font:700 13px/18px 'Archivo',sans-serif}.om-sel td{background:#fde3d2}"
+    },
+    {
+      "name": "Desk Tile",
+      "kind": "card",
+      "description": "Square paper tile under a black head with area key, name, menu and close.",
+      "html": "<section class=\"om-tile\"><header><b class=\"om-area\">W</b>Work this period</header><p>Warehouse: 8:00 paid, EUR 147.20 expected so far</p></section>",
+      "css": ".om-tile{background:#f4f5f2;border:1px solid #dcded9}.om-tile header{align-items:center;background:#2b2c2a;color:#f4f5f2;display:flex;font:700 10.5px/14px 'Archivo',sans-serif;gap:8px;height:32px;padding:0 8px;text-transform:uppercase;letter-spacing:.08em}.om-area{background:#3a6ea5;border-radius:4px;color:#fff;padding:0 4px}.om-tile p{font:500 13px/18px 'Archivo',sans-serif;margin:0;padding:12px}"
+    }
   ],
   "narrative": {
-    "northStar":"The Neutral Operations Desk",
-    "overview":"LifeOS is implemented as a desktop-first operations desk: cool-gray surfaces, flat bounded panes, compact system typography, and tabular values place truthful monthly records and their correction ahead of decorative staging. The Work workspace keeps the monthly table visible while an adjacent inspector handles the selected record; at narrower widths the panes stack without removing either workflow.\n\nSystem, light, and dark themes are implemented. Theme choice is an optional JavaScript convenience stored locally; Django-rendered navigation, forms, and records remain authoritative without scripts. This record is code-derived and makes no claim of visual approval because desktop and mobile screenshots were not inspected.",
-    "keyCharacteristics":["Light cool-neutral shell with graphite dark-mode counterpart.","Flat white panes, 1px boundaries, and restrained blue actions and selection.","Compact system UI type with monospaced tabular record values.","Persistent 10.5rem rail and a work-table/inspector workspace."],
-    "rules":[{"name":"The Blue-For-Operation Rule","body":"Use the action role for navigation, primary actions, Work identity, focus, and selected-state emphasis; do not spread it as decoration.","section":"colors"},{"name":"The Semantic-State Rule","body":"Error red and confirmed blue supplement explicit text, underlines, and selected-state semantics; color does not stand alone.","section":"colors"},{"name":"The Fixed-Scale Rule","body":"Preserve the compact implemented type scale; page headings are 1.5rem rather than oversized display treatment.","section":"typography"},{"name":"The Flat-Pane Rule","body":"Distinguish workspace regions with bounds and tonal changes, never with floating elevation, blur, glass, or gradient effects.","section":"elevation"}],
-    "dos":["Do preserve the 10.5rem desktop rail, the 1100px Work-pane stack, and the 700px shell reflow.","Do use flat surface panes with 1px boundary lines and restrained hover/confirmed washes.","Do keep controls at least 44px and retain the 2px, 3px-offset focus outline.","Do use system UI for interface language and monospaced tabular figures for inspectable values.","Do keep theme controls progressive and local; server-rendered Django behavior remains authoritative."],
-    "donts":["Don't add large editorial headings, paper-ledger styling, display fonts, or ornamental animation; the implemented world is a compact system-UI operations desk.","Don't add shadows, gradients, glass effects, or rounded floating cards.","Don't replace text-labelled native navigation and selection links with glyph-only or script-dependent controls.","Don't claim visual approval or finished screenshot review; no desktop or mobile screenshots were inspected."]
+    "northStar": "The Office Machine",
+    "overview": "LifeOS is a calculating machine for one person's records. A grey casing holds paper-white registers under black heads; one signal orange marks the thing to press and anything running; each area has its own keycap. Every derived figure explains itself in the formula bar and every record keeps a History. Desks arrange sheets as tiles, the Journal reads every area's events by day, and saved views name filtered sheets. Millennium reskins the same shell without moving anything.\n\nDerived from the built Flutter shell and its goldens (test/goldens), with synthetic data only.",
+    "keyCharacteristics": [
+      "Grey casing, paper registers, black heads; flat and square.",
+      "One orange for action and running state.",
+      "Archivo for words; Azeret Mono tabular figures for every number.",
+      "Keys with a 2px pressable edge are the only depth.",
+      "Formula bar explanations and per-record History."
+    ],
+    "rules": [
+      {
+        "name": "The One-Orange Rule",
+        "body": "Orange means press this or this is running; never decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Words-First Rule",
+        "body": "Draft, Void, Running, over and under are always written; colour only supports the word.",
+        "section": "colors"
+      },
+      {
+        "name": "The Figures-Line-Up Rule",
+        "body": "Anything compared down a column is set in Figure and right-aligned.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-Casing Rule",
+        "body": "Regions differ by tone and lines, never by elevation.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do put every figure in a register and give derived figures an explanation.",
+      "Do take colours only from tokens and painting only from the skin's painters.",
+      "Do keep keys labelled, targets at least 24×24, and focus distinct from selection.",
+      "Do keep routes, view filters and tile references structural.",
+      "Do use synthetic data in tests, goldens and screenshots."
+    ],
+    "donts": [
+      "Don't add KPI cards, dashboards or a scaled-up tablet layout.",
+      "Don't add shadows, blur, glow or gradients to Office Machine.",
+      "Don't let a skin move, resize or re-word a control.",
+      "Don't signal state by colour alone."
+    ]
   }
 }
