@@ -127,15 +127,18 @@ final class ShellChrome extends InheritedWidget {
 final class ShellFrame extends StatefulWidget {
   const ShellFrame({
     required this.desk,
-    required this.inspector,
     required this.inspectorOpen,
     required this.onBackToDesk,
+    this.inspector,
     this.formulaBar,
     super.key,
   });
 
   final Widget desk;
-  final Widget inspector;
+
+  /// Null on a surface with no records to inspect, such as a desk of
+  /// tiles; the desk then takes the whole width.
+  final Widget? inspector;
 
   /// Whether a record is open. Below full width the inspector then replaces
   /// the desk until [onBackToDesk].
@@ -181,18 +184,23 @@ final class _ShellFrameState extends State<ShellFrame> {
             child: chrome?.tree(_closeTree) ?? const SizedBox.expand(),
           );
           final desk = _Landmark(label: 'Desk workspace', child: widget.desk);
-          final inspector = _Landmark(
-            label: 'Record inspector',
-            child: _InspectorRegion(
-              showBackToDesk: !full,
-              onBackToDesk: widget.onBackToDesk,
-              child: widget.inspector,
-            ),
-          );
+          final inspecting = widget.inspector;
+          final inspector = inspecting == null
+              ? null
+              : _Landmark(
+                  label: 'Record inspector',
+                  child: _InspectorRegion(
+                    showBackToDesk: !full,
+                    onBackToDesk: widget.onBackToDesk,
+                    child: inspecting,
+                  ),
+                );
 
           // Desk and inspector sit side by side at full width; otherwise
           // they alternate, both staying mounted.
-          final Widget work = full
+          final Widget work = inspector == null
+              ? desk
+              : full
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [

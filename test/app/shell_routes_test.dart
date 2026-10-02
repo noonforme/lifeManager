@@ -38,11 +38,12 @@ void main() {
       'Formula bar',
       'Books',
       'Desk workspace',
-      'Record inspector',
       'Status line',
     ]) {
       expect(find.bySemanticsLabel(landmark), findsOneWidget, reason: landmark);
     }
+    // Nothing here is a record, so there is no inspector.
+    expect(find.bySemanticsLabel('Record inspector'), findsNothing);
     expect(find.text('File tools are not available yet.'), findsOneWidget);
     expect(
       tester.getSemantics(

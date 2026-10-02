@@ -156,15 +156,23 @@ final recordEventsProvider = StreamProvider.autoDispose
           .watch(record.kind.name, record.id.value),
     );
 
+/// One employment's records across every date, for desk tiles and
+/// templates.
+final employmentRegisterProvider = StreamProvider.autoDispose
+    .family<WorkRegisterProjection, EmploymentId>(
+      (ref, employment) => ref
+          .watch(workQueryRepositoryProvider)
+          .watchRegister(WorkScope(employmentId: employment, temporal: null)),
+    );
+
 /// "From last time": the employment's latest finalized shift as a
 /// template, computed from the current records; null when there is none.
-final lastShiftTemplateProvider = StreamProvider.autoDispose
-    .family<ShiftTemplate?, EmploymentId>((ref, employment) {
+final lastShiftTemplateProvider = Provider.autoDispose
+    .family<AsyncValue<ShiftTemplate?>, EmploymentId>((ref, employment) {
       final zones = ref.watch(timezoneServiceProvider);
       return ref
-          .watch(workQueryRepositoryProvider)
-          .watchRegister(WorkScope(employmentId: employment, temporal: null))
-          .map(
+          .watch(employmentRegisterProvider(employment))
+          .whenData(
             (register) => shiftTemplateFromLast([
               for (final row in register.shiftSheet)
                 (shift: row.shift, breaks: row.breaks),

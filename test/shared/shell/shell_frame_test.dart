@@ -18,6 +18,7 @@ Future<ShellViewController> _pump(
   required double width,
   double height = 800,
   bool inspectorOpen = false,
+  bool hasInspector = true,
   double textScale = 1,
   ShellViewController? view,
 }) async {
@@ -29,6 +30,7 @@ Future<ShellViewController> _pump(
     _Harness(
       view: controller,
       inspectorOpen: inspectorOpen,
+      hasInspector: hasInspector,
       textScale: textScale,
     ),
   );
@@ -104,6 +106,15 @@ void main() {
     expect(find.text('Back to desk'), findsOneWidget);
   });
 
+  testWidgets('a surface without an inspector gives the desk the width', (
+    tester,
+  ) async {
+    await _pump(tester, width: 1280, hasInspector: false);
+    expect(find.bySemanticsLabel('Record inspector'), findsNothing);
+    final desk = tester.getSize(find.bySemanticsLabel('Desk workspace'));
+    expect(desk.width, greaterThan(1280 - 320));
+  });
+
   testWidgets('the formula bar can be hidden', (tester) async {
     final view = await _pump(tester, width: 1280);
     view.value = view.value.copyWith(showFormulaBar: false);
@@ -125,11 +136,13 @@ final class _Harness extends StatefulWidget {
   const _Harness({
     required this.view,
     required this.inspectorOpen,
+    required this.hasInspector,
     required this.textScale,
   });
 
   final ShellViewController view;
   final bool inspectorOpen;
+  final bool hasInspector;
   final double textScale;
 
   @override
@@ -173,7 +186,9 @@ final class _HarnessState extends State<_Harness> {
                       ),
                     ],
                   ),
-                  inspector: const Text('Inspector content'),
+                  inspector: widget.hasInspector
+                      ? const Text('Inspector content')
+                      : null,
                 ),
               ),
             ),

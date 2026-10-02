@@ -1,8 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:uuid/uuid.dart';
 
 import '../core/database/app_database.dart';
+import '../core/desks/desk_repository.dart';
 import '../core/history/record_event_dao.dart';
 import '../core/history/record_events.dart';
 import '../core/time/app_clock.dart';
@@ -19,6 +21,7 @@ import '../features/work/application/work_commands.dart';
 import '../features/work/data/shift_repository.dart';
 import '../features/work/data/work_repository.dart';
 import '../features/work/presentation/work_controller.dart';
+import 'desk_host.dart';
 
 ProductionWorkProviders buildWorkProviders({
   required AppDatabase database,
@@ -98,6 +101,7 @@ ProductionWorkProviders buildWorkProviders({
       timezones: timezones,
       defaultZone: () => currentTimezoneId() ?? 'UTC',
     ),
+    desks: DeskRepository(database, newId: () => const Uuid().v7()),
   );
 }
 
@@ -118,6 +122,7 @@ final class ProductionWorkProviders {
     required this.clock,
     required this.history,
     required this.journal,
+    required this.desks,
   });
 
   final DriftWorkRepository workRepository;
@@ -135,6 +140,7 @@ final class ProductionWorkProviders {
   final AppClock clock;
   final RecordHistory history;
   final JournalSource journal;
+  final DeskRepository desks;
 
   List<Override> get _overrides => [
     workQueryRepositoryProvider.overrideWithValue(workRepository),
@@ -160,6 +166,7 @@ final class ProductionWorkProviders {
     timezoneServiceProvider.overrideWithValue(timezones),
     recordHistoryProvider.overrideWithValue(history),
     journalSourceProvider.overrideWithValue(journal),
+    deskRepositoryProvider.overrideWithValue(desks),
     todayProvider.overrideWithValue(
       () => timezones.localDateAt(clock.nowUtc(), currentTimezoneId() ?? 'UTC'),
     ),

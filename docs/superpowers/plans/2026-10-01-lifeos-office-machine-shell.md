@@ -378,22 +378,29 @@ final class Desk { /* id, name, starterKey, layout, position, revision, tiles */
 final class DeskTile { /* id, position, sheetRef, viewId */ }
 ```
 
-- [ ] **Step 1: Write failing journal tests.**
+- [x] **Step 1: Write failing journal tests.**
   - Work events appear in time order.
   - A void-and-replace shows the original as Void and the replacement once.
   - Day summaries equal the sum of their rows.
   - Days use the shift's captured timezone.
-- [ ] **Step 2: Write failing desk tests.**
+- [x] **Step 2: Write failing desk tests.**
   - First launch creates Today, Weekly review and Month close as in spec 6.4.
   - Today cannot be deleted.
   - Reset restores a starter desk.
   - Adding a sheet to a tiled desk replaces the focused tile.
   - Concurrent edits return `Stale`.
-- [ ] **Step 3: Write failing tile tests.**
+- [x] **Step 3: Write failing tile tests.**
   - Needs you lists the running shift, drafts and open periods with a difference, and shows the empty copy from spec 7.3.
   - The Month close checklist reflects only facts.
-- [ ] **Step 4: Run, implement, run.** Expected: FAIL, then PASS.
-- [ ] **Step 5: Commit** `feat: add the Journal and starter desks`.
+- [x] **Step 4: Run, implement, run.** Expected: FAIL, then PASS.
+- [x] **Step 5: Commit** `feat: add the Journal and starter desks`.
+
+  *As built:* starter shapes live in `desks.dart` with the desk types; the
+  desk host and `/today` route are in `lib/app/desk_host.dart`; Work's tiles
+  are pure functions in `work_desk_tiles.dart`. A tile spanning areas
+  (Journal, Needs you, the checklist) carries no area key, and a surface
+  with nothing to inspect (Today, Journal, unbuilt areas) leaves the
+  inspector out so the desk takes the width.
 
 ### Task 10: Saved views
 

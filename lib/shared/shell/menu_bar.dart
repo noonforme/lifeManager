@@ -17,9 +17,8 @@ final class LifeOSMenuBar extends StatelessWidget {
   /// Closes the window. Null disables Quit (for example in tests).
   final VoidCallback? onQuit;
 
-  static const _desks = 'Desks arrive in a later update';
-  static const _history = 'Record history arrives in a later update';
-  static const _quickAdd = 'Quick add arrives in a later update';
+  static const _desks = "Open Today and use the desk's own Desk menu";
+  static const _history = 'Open a record and choose its History tab';
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +28,7 @@ final class LifeOSMenuBar extends StatelessWidget {
     final view = ShellViewScope.maybeOf(context);
     final history = NavigationHistoryScope.maybeOf(context);
     final cell = CellSelectionScope.maybeOf(context)?.value;
+    final quickAdd = ShellChrome.maybeOf(context)?.quickAdd ?? const [];
     final explanation = cell?.explanation;
     final menuStyle = MenuStyle(
       backgroundColor: WidgetStatePropertyAll(tokens.paper),
@@ -196,6 +196,7 @@ final class LifeOSMenuBar extends StatelessWidget {
                   ),
                 ]),
                 menu('Desk', [
+                  item('Open Today', () => onNavigate('/today')),
                   later('New desk', _desks),
                   later('Add sheet to desk', _desks),
                   later('Layout', _desks),
@@ -203,7 +204,8 @@ final class LifeOSMenuBar extends StatelessWidget {
                   later('Reset starter desk', _desks),
                 ]),
                 menu('Record', [
-                  later('+ Add', _quickAdd),
+                  for (final entry in quickAdd)
+                    item('+ ${entry.label}', entry.open),
                   later('Show history', _history),
                 ]),
                 menu('Window', [
@@ -219,7 +221,7 @@ final class LifeOSMenuBar extends StatelessWidget {
                         ? history.goForward
                         : null,
                   ),
-                  later('Today', _desks),
+                  item('Today', () => onNavigate('/today')),
                   item('Journal', () => onNavigate('/journal')),
                 ]),
                 menu('Help', [

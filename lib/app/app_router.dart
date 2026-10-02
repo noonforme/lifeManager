@@ -11,6 +11,7 @@ import '../features/work/presentation/work_route_state.dart';
 import '../features/work/presentation/work_screen.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/workbench/lifeos_skin.dart';
+import 'desk_host.dart';
 import 'shell_host.dart';
 
 GoRouter createAppRouter({String initialLocation = '/work'}) {
@@ -25,10 +26,12 @@ GoRouter createAppRouter({String initialLocation = '/work'}) {
   return GoRouter(
     initialLocation: initialLocation,
     routes: [
-      unavailable(
-        '/today',
-        'Today',
-        'Today is not built yet. It arrives with desks in a later update.',
+      GoRoute(
+        path: '/today',
+        builder: (context, state) => ShellChromeHost(
+          location: state.uri,
+          child: DeskHost(uri: state.uri),
+        ),
       ),
       GoRoute(
         path: '/work',
@@ -232,7 +235,6 @@ final class _JournalHost extends ConsumerWidget {
     return ShellFrame(
       inspectorOpen: false,
       onBackToDesk: _noop,
-      inspector: const SizedBox.expand(),
       desk: JournalSheet(
         range: range,
         entries: entries,
@@ -273,7 +275,6 @@ final class _UnavailableSurface extends StatelessWidget {
     return ShellFrame(
       inspectorOpen: false,
       onBackToDesk: _noop,
-      inspector: const SizedBox.expand(),
       desk: Builder(
         builder: (context) {
           final skin = LifeOSSkinScope.of(context);
