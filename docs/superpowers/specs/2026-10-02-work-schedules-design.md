@@ -105,8 +105,8 @@ One per employment and date.
 
 | Kind | Fields | Effect on the plan |
 |---|---|---|
-| Changed | start, end, breaks, shiftTypeId? | Replaces that day's planned times; planned start–end for overtime stays the original type's. |
-| Cancelled | reason: swapped, sick, dayOff, other; note? | No shift that day; unpaid. |
+| Changed | start, end, breaks, shiftTypeId? | Replaces that day's times. The overtime window is the chosen type's start–end when the type changed, otherwise the original type's. |
+| Cancelled | reason: swapped, dayOff, other; note? | No shift that day; unpaid. Illness is recorded as Leave › Sick, never as a cancellation. |
 | Leave | leaveType: vacation, sick; illnessStartedOn (sick only) | No shift; a leave day for the original planned paid hours. |
 | Extra | start, end, breaks, shiftTypeId?, countsAsOvertime | A shift on a date where the cycle has Off. |
 
@@ -164,7 +164,8 @@ premiums, no overtime. Shown as **Planned**; never stored or reconciled.
 
 The segment splitter gains overtime **windows** in place of a threshold:
 paid time before `plannedStartUtc` or after `plannedEndUtc` is overtime. For
-a Changed day the planned window is the original shift type's start–end.
+a Changed day the window is the chosen shift type's start–end when the
+type changed, otherwise the original type's.
 Extra shifts: every second is overtime when `extraCountsAsOvertime`, none
 otherwise. Shifts without schedule links keep the agreement's threshold.
 
@@ -183,8 +184,9 @@ otherwise. Shifts without schedule links keep the agreement's threshold.
   `illnessStartedOn` (that day counting as day 1) pays hours × average ×
   `sickEmployerPercent`; later days pay 0.00 with the note "Paid by the
   social insurer, not on your payslip". `illnessStartedOn` defaults to the
-  earliest date of an unbroken run of sick leave or sick-cancelled days
-  ending at this date, and can be edited.
+  earliest date of a run of sick leave days ending at this date in which
+  only Off days separate them, and can be edited (for example to an Off day
+  the illness started on).
 - Leave uses the agreement in effect on its date.
 
 ### 4.4 Reconciliation
@@ -234,7 +236,7 @@ never smaller than 11 px.
   - planned: outlined, e.g. "Day 07:00–19:00"
   - confirmed: filled, same words
   - changed: words plus "changed"
-  - Cancelled: "Cancelled · Swapped" (struck-through type name)
+  - Cancelled: "Cancelled · Swapped" (type name struck through, reason written)
   - Leave: "Vacation" or "Sick"
   - Extra: "Extra 08:00–20:00"
   - Needs review: "⚠ Needs review"
@@ -311,8 +313,8 @@ on the affected days as **Unavailable** with the reason in Working.
   daylight-saving gap and overlap; version boundaries; one schedule per
   employment per date; each exception kind; Needs review after a version
   change; confirmed dates excluded.
-- **Pay:** overtime windows (early start, late end, Changed day using the
-  original window, extra with and without the flag, manual shift keeps the
+- **Pay:** overtime windows (early start, late end, Changed day with and
+  without a type change, extra with and without the flag, manual shift keeps the
   threshold); leave average window and fallback; sick 2-day rule including
   an illness starting on an Off day; reconciliation includes leave and
   excludes planned days.

@@ -15,7 +15,7 @@ appearance setting are removed. The Millennium skin, until now an optional
 appearance, becomes the only style and the design goal for every surface.
 
 This is a presentation project. Records, calculations, routes, copy and the
-Work workflow (including live shift tracking) behave as they do today, except
+Work workflow behave as they do today, except
 where section 8 lists a change. Custom rotating work schedules are a
 separate project with its own spec.
 
@@ -298,8 +298,10 @@ Only these change; everything else behaves as today.
 
 ## 10. Out of Scope
 
-- Custom rotating work schedules and any change to live shift tracking (next
-  spec).
+- Custom rotating work schedules (`2026-10-02-work-schedules-design.md`).
+  That spec removes the live tracker, so this project does not restyle the
+  running and on-break inspectors, Start shift, or the running-shift status
+  panel; they stay as they are until removed.
 - A custom-drawn window title bar.
 - Dark mode, high contrast, or any second palette.
 - New areas (Finance, Tracking, Knowledge).
