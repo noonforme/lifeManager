@@ -56,4 +56,24 @@ void main() {
     expect(find.textContaining('Needs you'), findsNothing);
     expect(find.textContaining('draft'), findsNothing);
   });
+
+  testWidgets('every fact sits in its own sunken panel at 22 px', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      StatusSnapshot(
+        runningShift: RunningShiftStatus(
+          label: 'Shift running since 07:02',
+          onOpen: () {},
+        ),
+        openDrafts: 2,
+      ),
+    );
+    expect(tester.getSize(find.byType(StatusLine)).height, 22);
+    expect(find.text('Shift running since 07:02'), findsOneWidget);
+    expect(find.text('2 drafts'), findsOneWidget);
+    expect(find.text('Local database'), findsOneWidget);
+    expect(find.byKey(const ValueKey('status-panel')), findsNWidgets(3));
+  });
 }

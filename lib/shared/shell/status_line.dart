@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../workbench/lifeos_skin.dart';
+import '../workbench/millennium_style.dart';
 
 /// A running shift as the status line shows it.
 @immutable
@@ -35,7 +36,7 @@ final class StatusSnapshot {
   final bool lastSaveUncertain;
 }
 
-/// The black strip at the bottom of the shell.
+/// The sunken status bar at the bottom of the shell.
 final class StatusLine extends StatelessWidget {
   const StatusLine({required this.snapshot, super.key});
 
@@ -45,13 +46,7 @@ final class StatusLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
-    final paint = (
-      fill: BoxDecoration(color: tokens.chrome),
-      ink: tokens.ink,
-      alertInk: tokens.negative,
-      indicator: tokens.signal,
-    );
-    final style = skin.typography.small.copyWith(color: paint.ink);
+    final style = skin.typography.small.copyWith(color: tokens.ink);
     final running = snapshot.runningShift;
     final save = snapshot.lastSaveUncertain
         ? 'Last save uncertain. Reload to check'
@@ -59,35 +54,49 @@ final class StatusLine extends StatelessWidget {
         ? 'Local database'
         : 'Local database · saved ${snapshot.lastSave}';
     return Container(
-      height: 24,
-      decoration: paint.fill,
+      height: 22,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: tokens.chrome,
+        border: Border(top: BorderSide(color: tokens.paper)),
+      ),
       child: Row(
         children: [
-          if (running != null)
-            _Segment(
-              onTap: running.onOpen,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: paint.indicator,
-                      shape: BoxShape.circle,
+          Expanded(
+            child: running == null
+                ? const SizedBox.shrink()
+                : _Panel(
+                    onTap: running.onOpen,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: tokens.signal,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            running.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: style.copyWith(color: tokens.runInk),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  Text(running.label, style: style),
-                ],
-              ),
-            ),
+          ),
           if (snapshot.needsYou > 0)
-            _Segment(
+            _Panel(
               child: Text('Needs you: ${snapshot.needsYou}', style: style),
             ),
           if (snapshot.openDrafts > 0)
-            _Segment(
+            _Panel(
               child: Text(
                 snapshot.openDrafts == 1
                     ? '1 draft'
@@ -95,13 +104,11 @@ final class StatusLine extends StatelessWidget {
                 style: style,
               ),
             ),
-          const Spacer(),
-          _Segment(
-            trailing: true,
+          _Panel(
             child: Text(
               save,
               style: snapshot.lastSaveUncertain
-                  ? style.copyWith(color: paint.alertInk)
+                  ? style.copyWith(color: tokens.negative)
                   : style,
             ),
           ),
@@ -111,32 +118,38 @@ final class StatusLine extends StatelessWidget {
   }
 }
 
-final class _Segment extends StatelessWidget {
-  const _Segment({required this.child, this.onTap, this.trailing = false});
+/// A sunken status panel: dark top-left edge, white bottom-right edge.
+final class _Panel extends StatelessWidget {
+  const _Panel({required this.child, this.onTap});
 
   final Widget child;
   final VoidCallback? onTap;
-  final bool trailing;
 
   @override
   Widget build(BuildContext context) {
-    final skin = LifeOSSkinScope.of(context);
-    final divider = BorderSide(color: skin.tokens.chromeLine);
-    final segment = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      alignment: Alignment.center,
+    final tokens = LifeOSSkinScope.of(context).tokens;
+    final panel = Container(
+      key: const ValueKey('status-panel'),
+      margin: const EdgeInsets.only(left: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
-        border: trailing ? Border(left: divider) : Border(right: divider),
+        border: Border(
+          top: const BorderSide(color: MillenniumColors.sunkenEdge),
+          left: const BorderSide(color: MillenniumColors.sunkenEdge),
+          bottom: BorderSide(color: tokens.paper),
+          right: BorderSide(color: tokens.paper),
+        ),
       ),
       child: child,
     );
-    if (onTap == null) return segment;
+    if (onTap == null) return panel;
     return Semantics(
       button: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: MouseRegion(cursor: SystemMouseCursors.click, child: segment),
+        child: MouseRegion(cursor: SystemMouseCursors.click, child: panel),
       ),
     );
   }

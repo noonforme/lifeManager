@@ -115,13 +115,6 @@ void main() {
     expect(desk.width, greaterThan(1280 - 320));
   });
 
-  testWidgets('the formula bar can be hidden', (tester) async {
-    final view = await _pump(tester, width: 1280);
-    view.value = view.value.copyWith(showFormulaBar: false);
-    await tester.pump();
-    expect(find.bySemanticsLabel('Formula bar'), findsNothing);
-  });
-
   for (final width in [1280.0, 1100.0, 960.0, 800.0]) {
     testWidgets('no overflow at $width wide and 200% text', (tester) async {
       await _pump(tester, width: width, textScale: 2);

@@ -35,12 +35,8 @@ final class LifeOSMenuBar extends StatelessWidget {
       surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
       elevation: const WidgetStatePropertyAll(0),
       side: WidgetStatePropertyAll(BorderSide(color: tokens.muted)),
-      shape: const WidgetStatePropertyAll(
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(4)),
-        ),
-      ),
-      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 4)),
+      shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
+      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 2)),
     );
     final itemStyle = ButtonStyle(
       textStyle: WidgetStatePropertyAll(skin.typography.body),
@@ -59,9 +55,9 @@ final class LifeOSMenuBar extends StatelessWidget {
             ? tokens.selWash
             : Colors.transparent,
       ),
-      minimumSize: const WidgetStatePropertyAll(Size(0, 28)),
+      minimumSize: const WidgetStatePropertyAll(Size(0, menuRowHeight)),
       padding: const WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: 10),
+        EdgeInsets.symmetric(horizontal: 8),
       ),
       shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
     );
@@ -103,7 +99,11 @@ final class LifeOSMenuBar extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: tokens.chrome,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [tokens.paper, tokens.chrome],
+        ),
         border: Border(bottom: BorderSide(color: tokens.chromeLine)),
       ),
       child: Row(
@@ -159,19 +159,14 @@ final class LifeOSMenuBar extends StatelessWidget {
                 ]),
                 menu('View', [
                   viewItem(
-                    'Show book tree',
+                    'Show task pane',
                     (v) => v.showTree,
                     (v, on) => v.copyWith(showTree: on),
                   ),
                   viewItem(
-                    'Show inspector',
+                    'Show property sheet',
                     (v) => v.showInspector,
                     (v, on) => v.copyWith(showInspector: on),
-                  ),
-                  viewItem(
-                    'Show formula bar',
-                    (v) => v.showFormulaBar,
-                    (v, on) => v.copyWith(showFormulaBar: on),
                   ),
                 ]),
                 menu('Desk', [

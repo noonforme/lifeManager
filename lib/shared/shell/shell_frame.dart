@@ -26,35 +26,24 @@ abstract final class ShellMetrics {
 /// Which optional regions the owner shows (View menu).
 @immutable
 final class ShellView {
-  const ShellView({
-    this.showTree = true,
-    this.showInspector = true,
-    this.showFormulaBar = true,
-  });
+  const ShellView({this.showTree = true, this.showInspector = true});
 
   final bool showTree;
   final bool showInspector;
-  final bool showFormulaBar;
 
-  ShellView copyWith({
-    bool? showTree,
-    bool? showInspector,
-    bool? showFormulaBar,
-  }) => ShellView(
+  ShellView copyWith({bool? showTree, bool? showInspector}) => ShellView(
     showTree: showTree ?? this.showTree,
     showInspector: showInspector ?? this.showInspector,
-    showFormulaBar: showFormulaBar ?? this.showFormulaBar,
   );
 
   @override
   bool operator ==(Object other) =>
       other is ShellView &&
       other.showTree == showTree &&
-      other.showInspector == showInspector &&
-      other.showFormulaBar == showFormulaBar;
+      other.showInspector == showInspector;
 
   @override
-  int get hashCode => Object.hash(showTree, showInspector, showFormulaBar);
+  int get hashCode => Object.hash(showTree, showInspector);
 }
 
 final class ShellViewController extends ValueNotifier<ShellView> {
@@ -257,19 +246,18 @@ final class _ShellFrameState extends State<ShellFrame> {
                     fromLastTime: chrome?.fromLastTime ?? const [],
                   ),
                 ),
-                if (view.showFormulaBar)
-                  _Landmark(
-                    label: 'Formula bar',
-                    liveRegion: true,
-                    child: _FormulaBarRegion(
-                      child:
-                          widget.formulaBar ??
-                          FormulaBar(
-                            onNavigate: (route) =>
-                                chrome?.onNavigate(route.toString()),
-                          ),
-                    ),
+                _Landmark(
+                  label: 'Formula bar',
+                  liveRegion: true,
+                  child: _FormulaBarRegion(
+                    child:
+                        widget.formulaBar ??
+                        FormulaBar(
+                          onNavigate: (route) =>
+                              chrome?.onNavigate(route.toString()),
+                        ),
                   ),
+                ),
                 Expanded(child: body),
                 _Landmark(
                   label: 'Status line',
