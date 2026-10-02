@@ -87,12 +87,20 @@ final class DriftDatabaseService implements DatabaseService {
     }
   }
 
-  /// Before the reset, development builds wrote schema versions 1 and 2. A
-  /// version 1 database is current only if it has the current Work tables.
+  /// Before the reset, development builds wrote schema versions 1 and 2,
+  /// and version 1 itself grew while unreleased. A version 1 database is
+  /// current only if it has every table and column the schema now has.
   static bool _isFromEarlierBuild(sqlite.Database raw) {
     final version = raw.userVersion;
     if (version == 0) return false;
     if (version != currentSchemaVersion) return true;
+    final tables = raw
+        .select("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .map((row) => row['name'])
+        .toSet();
+    if (!tables.containsAll(const ['record_events', 'desks', 'desk_tiles'])) {
+      return true;
+    }
     final columns = raw
         .select('PRAGMA table_info(pay_agreements)')
         .map((row) => row['name'])

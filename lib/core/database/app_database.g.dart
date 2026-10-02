@@ -5874,6 +5874,786 @@ class RecordEventsCompanion extends UpdateCompanion<RecordEventRow> {
   }
 }
 
+class $DesksTable extends Desks with TableInfo<$DesksTable, DeskRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DesksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _starterKeyMeta = const VerificationMeta(
+    'starterKey',
+  );
+  @override
+  late final GeneratedColumn<String> starterKey = GeneratedColumn<String>(
+    'starter_key',
+    aliasedName,
+    true,
+    check: () => const CustomExpression<bool>(
+      'starter_key IS NULL OR starter_key IN '
+      "('today', 'weeklyReview', 'monthClose')",
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _layoutMeta = const VerificationMeta('layout');
+  @override
+  late final GeneratedColumn<String> layout = GeneratedColumn<String>(
+    'layout',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>(
+      "layout IN ('single', 'twoColumns', 'mainAndSide')",
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>('revision >= 0'),
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    starterKey,
+    layout,
+    position,
+    revision,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'desks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DeskRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('starter_key')) {
+      context.handle(
+        _starterKeyMeta,
+        starterKey.isAcceptableOrUnknown(data['starter_key']!, _starterKeyMeta),
+      );
+    }
+    if (data.containsKey('layout')) {
+      context.handle(
+        _layoutMeta,
+        layout.isAcceptableOrUnknown(data['layout']!, _layoutMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_layoutMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_revisionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DeskRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DeskRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      starterKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}starter_key'],
+      ),
+      layout: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}layout'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+    );
+  }
+
+  @override
+  $DesksTable createAlias(String alias) {
+    return $DesksTable(attachedDatabase, alias);
+  }
+}
+
+class DeskRow extends DataClass implements Insertable<DeskRow> {
+  final String id;
+  final String name;
+  final String? starterKey;
+  final String layout;
+  final int position;
+  final int revision;
+  const DeskRow({
+    required this.id,
+    required this.name,
+    this.starterKey,
+    required this.layout,
+    required this.position,
+    required this.revision,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || starterKey != null) {
+      map['starter_key'] = Variable<String>(starterKey);
+    }
+    map['layout'] = Variable<String>(layout);
+    map['position'] = Variable<int>(position);
+    map['revision'] = Variable<int>(revision);
+    return map;
+  }
+
+  DesksCompanion toCompanion(bool nullToAbsent) {
+    return DesksCompanion(
+      id: Value(id),
+      name: Value(name),
+      starterKey: starterKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(starterKey),
+      layout: Value(layout),
+      position: Value(position),
+      revision: Value(revision),
+    );
+  }
+
+  factory DeskRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DeskRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      starterKey: serializer.fromJson<String?>(json['starterKey']),
+      layout: serializer.fromJson<String>(json['layout']),
+      position: serializer.fromJson<int>(json['position']),
+      revision: serializer.fromJson<int>(json['revision']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'starterKey': serializer.toJson<String?>(starterKey),
+      'layout': serializer.toJson<String>(layout),
+      'position': serializer.toJson<int>(position),
+      'revision': serializer.toJson<int>(revision),
+    };
+  }
+
+  DeskRow copyWith({
+    String? id,
+    String? name,
+    Value<String?> starterKey = const Value.absent(),
+    String? layout,
+    int? position,
+    int? revision,
+  }) => DeskRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    starterKey: starterKey.present ? starterKey.value : this.starterKey,
+    layout: layout ?? this.layout,
+    position: position ?? this.position,
+    revision: revision ?? this.revision,
+  );
+  DeskRow copyWithCompanion(DesksCompanion data) {
+    return DeskRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      starterKey: data.starterKey.present
+          ? data.starterKey.value
+          : this.starterKey,
+      layout: data.layout.present ? data.layout.value : this.layout,
+      position: data.position.present ? data.position.value : this.position,
+      revision: data.revision.present ? data.revision.value : this.revision,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeskRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('starterKey: $starterKey, ')
+          ..write('layout: $layout, ')
+          ..write('position: $position, ')
+          ..write('revision: $revision')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, name, starterKey, layout, position, revision);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeskRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.starterKey == this.starterKey &&
+          other.layout == this.layout &&
+          other.position == this.position &&
+          other.revision == this.revision);
+}
+
+class DesksCompanion extends UpdateCompanion<DeskRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String?> starterKey;
+  final Value<String> layout;
+  final Value<int> position;
+  final Value<int> revision;
+  final Value<int> rowid;
+  const DesksCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.starterKey = const Value.absent(),
+    this.layout = const Value.absent(),
+    this.position = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DesksCompanion.insert({
+    required String id,
+    required String name,
+    this.starterKey = const Value.absent(),
+    required String layout,
+    required int position,
+    required int revision,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       layout = Value(layout),
+       position = Value(position),
+       revision = Value(revision);
+  static Insertable<DeskRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? starterKey,
+    Expression<String>? layout,
+    Expression<int>? position,
+    Expression<int>? revision,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (starterKey != null) 'starter_key': starterKey,
+      if (layout != null) 'layout': layout,
+      if (position != null) 'position': position,
+      if (revision != null) 'revision': revision,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DesksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String?>? starterKey,
+    Value<String>? layout,
+    Value<int>? position,
+    Value<int>? revision,
+    Value<int>? rowid,
+  }) {
+    return DesksCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      starterKey: starterKey ?? this.starterKey,
+      layout: layout ?? this.layout,
+      position: position ?? this.position,
+      revision: revision ?? this.revision,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (starterKey.present) {
+      map['starter_key'] = Variable<String>(starterKey.value);
+    }
+    if (layout.present) {
+      map['layout'] = Variable<String>(layout.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DesksCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('starterKey: $starterKey, ')
+          ..write('layout: $layout, ')
+          ..write('position: $position, ')
+          ..write('revision: $revision, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DeskTilesTable extends DeskTiles
+    with TableInfo<$DeskTilesTable, DeskTileRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DeskTilesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deskIdMeta = const VerificationMeta('deskId');
+  @override
+  late final GeneratedColumn<String> deskId = GeneratedColumn<String>(
+    'desk_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES desks (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sheetRefMeta = const VerificationMeta(
+    'sheetRef',
+  );
+  @override
+  late final GeneratedColumn<String> sheetRef = GeneratedColumn<String>(
+    'sheet_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _viewIdMeta = const VerificationMeta('viewId');
+  @override
+  late final GeneratedColumn<String> viewId = GeneratedColumn<String>(
+    'view_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    deskId,
+    position,
+    sheetRef,
+    viewId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'desk_tiles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DeskTileRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('desk_id')) {
+      context.handle(
+        _deskIdMeta,
+        deskId.isAcceptableOrUnknown(data['desk_id']!, _deskIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deskIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('sheet_ref')) {
+      context.handle(
+        _sheetRefMeta,
+        sheetRef.isAcceptableOrUnknown(data['sheet_ref']!, _sheetRefMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sheetRefMeta);
+    }
+    if (data.containsKey('view_id')) {
+      context.handle(
+        _viewIdMeta,
+        viewId.isAcceptableOrUnknown(data['view_id']!, _viewIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DeskTileRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DeskTileRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      deskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}desk_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      sheetRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sheet_ref'],
+      )!,
+      viewId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}view_id'],
+      ),
+    );
+  }
+
+  @override
+  $DeskTilesTable createAlias(String alias) {
+    return $DeskTilesTable(attachedDatabase, alias);
+  }
+}
+
+class DeskTileRow extends DataClass implements Insertable<DeskTileRow> {
+  final String id;
+  final String deskId;
+  final int position;
+
+  /// A stable sheet key such as `work.shifts.week`.
+  final String sheetRef;
+  final String? viewId;
+  const DeskTileRow({
+    required this.id,
+    required this.deskId,
+    required this.position,
+    required this.sheetRef,
+    this.viewId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['desk_id'] = Variable<String>(deskId);
+    map['position'] = Variable<int>(position);
+    map['sheet_ref'] = Variable<String>(sheetRef);
+    if (!nullToAbsent || viewId != null) {
+      map['view_id'] = Variable<String>(viewId);
+    }
+    return map;
+  }
+
+  DeskTilesCompanion toCompanion(bool nullToAbsent) {
+    return DeskTilesCompanion(
+      id: Value(id),
+      deskId: Value(deskId),
+      position: Value(position),
+      sheetRef: Value(sheetRef),
+      viewId: viewId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(viewId),
+    );
+  }
+
+  factory DeskTileRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DeskTileRow(
+      id: serializer.fromJson<String>(json['id']),
+      deskId: serializer.fromJson<String>(json['deskId']),
+      position: serializer.fromJson<int>(json['position']),
+      sheetRef: serializer.fromJson<String>(json['sheetRef']),
+      viewId: serializer.fromJson<String?>(json['viewId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'deskId': serializer.toJson<String>(deskId),
+      'position': serializer.toJson<int>(position),
+      'sheetRef': serializer.toJson<String>(sheetRef),
+      'viewId': serializer.toJson<String?>(viewId),
+    };
+  }
+
+  DeskTileRow copyWith({
+    String? id,
+    String? deskId,
+    int? position,
+    String? sheetRef,
+    Value<String?> viewId = const Value.absent(),
+  }) => DeskTileRow(
+    id: id ?? this.id,
+    deskId: deskId ?? this.deskId,
+    position: position ?? this.position,
+    sheetRef: sheetRef ?? this.sheetRef,
+    viewId: viewId.present ? viewId.value : this.viewId,
+  );
+  DeskTileRow copyWithCompanion(DeskTilesCompanion data) {
+    return DeskTileRow(
+      id: data.id.present ? data.id.value : this.id,
+      deskId: data.deskId.present ? data.deskId.value : this.deskId,
+      position: data.position.present ? data.position.value : this.position,
+      sheetRef: data.sheetRef.present ? data.sheetRef.value : this.sheetRef,
+      viewId: data.viewId.present ? data.viewId.value : this.viewId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeskTileRow(')
+          ..write('id: $id, ')
+          ..write('deskId: $deskId, ')
+          ..write('position: $position, ')
+          ..write('sheetRef: $sheetRef, ')
+          ..write('viewId: $viewId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, deskId, position, sheetRef, viewId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeskTileRow &&
+          other.id == this.id &&
+          other.deskId == this.deskId &&
+          other.position == this.position &&
+          other.sheetRef == this.sheetRef &&
+          other.viewId == this.viewId);
+}
+
+class DeskTilesCompanion extends UpdateCompanion<DeskTileRow> {
+  final Value<String> id;
+  final Value<String> deskId;
+  final Value<int> position;
+  final Value<String> sheetRef;
+  final Value<String?> viewId;
+  final Value<int> rowid;
+  const DeskTilesCompanion({
+    this.id = const Value.absent(),
+    this.deskId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.sheetRef = const Value.absent(),
+    this.viewId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DeskTilesCompanion.insert({
+    required String id,
+    required String deskId,
+    required int position,
+    required String sheetRef,
+    this.viewId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       deskId = Value(deskId),
+       position = Value(position),
+       sheetRef = Value(sheetRef);
+  static Insertable<DeskTileRow> custom({
+    Expression<String>? id,
+    Expression<String>? deskId,
+    Expression<int>? position,
+    Expression<String>? sheetRef,
+    Expression<String>? viewId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (deskId != null) 'desk_id': deskId,
+      if (position != null) 'position': position,
+      if (sheetRef != null) 'sheet_ref': sheetRef,
+      if (viewId != null) 'view_id': viewId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DeskTilesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? deskId,
+    Value<int>? position,
+    Value<String>? sheetRef,
+    Value<String?>? viewId,
+    Value<int>? rowid,
+  }) {
+    return DeskTilesCompanion(
+      id: id ?? this.id,
+      deskId: deskId ?? this.deskId,
+      position: position ?? this.position,
+      sheetRef: sheetRef ?? this.sheetRef,
+      viewId: viewId ?? this.viewId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (deskId.present) {
+      map['desk_id'] = Variable<String>(deskId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (sheetRef.present) {
+      map['sheet_ref'] = Variable<String>(sheetRef.value);
+    }
+    if (viewId.present) {
+      map['view_id'] = Variable<String>(viewId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeskTilesCompanion(')
+          ..write('id: $id, ')
+          ..write('deskId: $deskId, ')
+          ..write('position: $position, ')
+          ..write('sheetRef: $sheetRef, ')
+          ..write('viewId: $viewId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5885,6 +6665,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PayPeriodsTable payPeriods = $PayPeriodsTable(this);
   late final $PayslipsTable payslips = $PayslipsTable(this);
   late final $RecordEventsTable recordEvents = $RecordEventsTable(this);
+  late final $DesksTable desks = $DesksTable(this);
+  late final $DeskTilesTable deskTiles = $DeskTilesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5898,7 +6680,19 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     payPeriods,
     payslips,
     recordEvents,
+    desks,
+    deskTiles,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'desks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('desk_tiles', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$CoreMetadataTableCreateCompanionBuilder =
@@ -10193,6 +10987,634 @@ typedef $$RecordEventsTableProcessedTableManager =
       RecordEventRow,
       PrefetchHooks Function()
     >;
+typedef $$DesksTableCreateCompanionBuilder = DesksCompanion Function({
+  required String id,
+  required String name,
+  Value<String?> starterKey,
+  required String layout,
+  required int position,
+  required int revision,
+  Value<int> rowid,
+});
+typedef $$DesksTableUpdateCompanionBuilder = DesksCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String?> starterKey,
+  Value<String> layout,
+  Value<int> position,
+  Value<int> revision,
+  Value<int> rowid,
+});
+
+final class $$DesksTableReferences
+    extends BaseReferences<_$AppDatabase, $DesksTable, DeskRow> {
+  $$DesksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$DeskTilesTable, List<DeskTileRow>>
+  _deskTilesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.deskTiles,
+    aliasName: 'desks__id__desk_tiles__desk_id',
+  );
+
+  $$DeskTilesTableProcessedTableManager get deskTilesRefs {
+    final manager = $$DeskTilesTableTableManager(
+      $_db,
+      $_db.deskTiles,
+    ).filter((f) => f.deskId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_deskTilesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$DesksTableFilterComposer extends Composer<_$AppDatabase, $DesksTable> {
+  $$DesksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get starterKey => $composableBuilder(
+    column: $table.starterKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get layout => $composableBuilder(
+    column: $table.layout,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> deskTilesRefs(
+    Expression<bool> Function($$DeskTilesTableFilterComposer f) f,
+  ) {
+    final $$DeskTilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.deskTiles,
+      getReferencedColumn: (t) => t.deskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeskTilesTableFilterComposer(
+            $db: $db,
+            $table: $db.deskTiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$DesksTableOrderingComposer
+    extends Composer<_$AppDatabase, $DesksTable> {
+  $$DesksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get starterKey => $composableBuilder(
+    column: $table.starterKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get layout => $composableBuilder(
+    column: $table.layout,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DesksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DesksTable> {
+  $$DesksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get starterKey => $composableBuilder(
+    column: $table.starterKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get layout =>
+      $composableBuilder(column: $table.layout, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<int> get revision =>
+      $composableBuilder(column: $table.revision, builder: (column) => column);
+
+  Expression<T> deskTilesRefs<T extends Object>(
+    Expression<T> Function($$DeskTilesTableAnnotationComposer a) f,
+  ) {
+    final $$DeskTilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.deskTiles,
+      getReferencedColumn: (t) => t.deskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeskTilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.deskTiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$DesksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DesksTable,
+          DeskRow,
+          $$DesksTableFilterComposer,
+          $$DesksTableOrderingComposer,
+          $$DesksTableAnnotationComposer,
+          $$DesksTableCreateCompanionBuilder,
+          $$DesksTableUpdateCompanionBuilder,
+          (DeskRow, $$DesksTableReferences),
+          DeskRow,
+          PrefetchHooks Function({bool deskTilesRefs})
+        > {
+  $$DesksTableTableManager(_$AppDatabase db, $DesksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DesksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DesksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DesksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> starterKey = const Value.absent(),
+                Value<String> layout = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> revision = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DesksCompanion(
+                id: id,
+                name: name,
+                starterKey: starterKey,
+                layout: layout,
+                position: position,
+                revision: revision,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<String?> starterKey = const Value.absent(),
+                required String layout,
+                required int position,
+                required int revision,
+                Value<int> rowid = const Value.absent(),
+              }) => DesksCompanion.insert(
+                id: id,
+                name: name,
+                starterKey: starterKey,
+                layout: layout,
+                position: position,
+                revision: revision,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DesksTable, DeskRow>(table),
+                  $$DesksTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({deskTilesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (deskTilesRefs) db.deskTiles],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (deskTilesRefs)
+                    await $_getPrefetchedData<
+                      DeskRow,
+                      $DesksTable,
+                      DeskTileRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$DesksTableReferences
+                          ._deskTilesRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$DesksTableReferences(db, table, p0).deskTilesRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.deskId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DesksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DesksTable,
+      DeskRow,
+      $$DesksTableFilterComposer,
+      $$DesksTableOrderingComposer,
+      $$DesksTableAnnotationComposer,
+      $$DesksTableCreateCompanionBuilder,
+      $$DesksTableUpdateCompanionBuilder,
+      (DeskRow, $$DesksTableReferences),
+      DeskRow,
+      PrefetchHooks Function({bool deskTilesRefs})
+    >;
+typedef $$DeskTilesTableCreateCompanionBuilder = DeskTilesCompanion Function({
+  required String id,
+  required String deskId,
+  required int position,
+  required String sheetRef,
+  Value<String?> viewId,
+  Value<int> rowid,
+});
+typedef $$DeskTilesTableUpdateCompanionBuilder = DeskTilesCompanion Function({
+  Value<String> id,
+  Value<String> deskId,
+  Value<int> position,
+  Value<String> sheetRef,
+  Value<String?> viewId,
+  Value<int> rowid,
+});
+
+final class $$DeskTilesTableReferences
+    extends BaseReferences<_$AppDatabase, $DeskTilesTable, DeskTileRow> {
+  $$DeskTilesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $DesksTable _deskIdTable(_$AppDatabase db) =>
+      db.desks.createAlias('desk_tiles__desk_id__desks__id');
+
+  $$DesksTableProcessedTableManager get deskId {
+    final $_column = $_itemColumn<String>('desk_id')!;
+
+    final manager = $$DesksTableTableManager(
+      $_db,
+      $_db.desks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_deskIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DeskTilesTableFilterComposer
+    extends Composer<_$AppDatabase, $DeskTilesTable> {
+  $$DeskTilesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sheetRef => $composableBuilder(
+    column: $table.sheetRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get viewId => $composableBuilder(
+    column: $table.viewId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$DesksTableFilterComposer get deskId {
+    final $$DesksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deskId,
+      referencedTable: $db.desks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DesksTableFilterComposer(
+            $db: $db,
+            $table: $db.desks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeskTilesTableOrderingComposer
+    extends Composer<_$AppDatabase, $DeskTilesTable> {
+  $$DeskTilesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sheetRef => $composableBuilder(
+    column: $table.sheetRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get viewId => $composableBuilder(
+    column: $table.viewId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DesksTableOrderingComposer get deskId {
+    final $$DesksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deskId,
+      referencedTable: $db.desks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DesksTableOrderingComposer(
+            $db: $db,
+            $table: $db.desks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeskTilesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DeskTilesTable> {
+  $$DeskTilesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<String> get sheetRef =>
+      $composableBuilder(column: $table.sheetRef, builder: (column) => column);
+
+  GeneratedColumn<String> get viewId =>
+      $composableBuilder(column: $table.viewId, builder: (column) => column);
+
+  $$DesksTableAnnotationComposer get deskId {
+    final $$DesksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deskId,
+      referencedTable: $db.desks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DesksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.desks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeskTilesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DeskTilesTable,
+          DeskTileRow,
+          $$DeskTilesTableFilterComposer,
+          $$DeskTilesTableOrderingComposer,
+          $$DeskTilesTableAnnotationComposer,
+          $$DeskTilesTableCreateCompanionBuilder,
+          $$DeskTilesTableUpdateCompanionBuilder,
+          (DeskTileRow, $$DeskTilesTableReferences),
+          DeskTileRow,
+          PrefetchHooks Function({bool deskId})
+        > {
+  $$DeskTilesTableTableManager(_$AppDatabase db, $DeskTilesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DeskTilesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DeskTilesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DeskTilesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> deskId = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<String> sheetRef = const Value.absent(),
+                Value<String?> viewId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeskTilesCompanion(
+                id: id,
+                deskId: deskId,
+                position: position,
+                sheetRef: sheetRef,
+                viewId: viewId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String deskId,
+                required int position,
+                required String sheetRef,
+                Value<String?> viewId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeskTilesCompanion.insert(
+                id: id,
+                deskId: deskId,
+                position: position,
+                sheetRef: sheetRef,
+                viewId: viewId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DeskTilesTable, DeskTileRow>(table),
+                  $$DeskTilesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({deskId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (deskId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.deskId,
+                        referencedTable: $$DeskTilesTableReferences
+                            ._deskIdTable(db),
+                        referencedColumn: $$DeskTilesTableReferences
+                            ._deskIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DeskTilesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DeskTilesTable,
+      DeskTileRow,
+      $$DeskTilesTableFilterComposer,
+      $$DeskTilesTableOrderingComposer,
+      $$DeskTilesTableAnnotationComposer,
+      $$DeskTilesTableCreateCompanionBuilder,
+      $$DeskTilesTableUpdateCompanionBuilder,
+      (DeskTileRow, $$DeskTilesTableReferences),
+      DeskTileRow,
+      PrefetchHooks Function({bool deskId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -10213,4 +11635,8 @@ class $AppDatabaseManager {
       $$PayslipsTableTableManager(_db, _db.payslips);
   $$RecordEventsTableTableManager get recordEvents =>
       $$RecordEventsTableTableManager(_db, _db.recordEvents);
+  $$DesksTableTableManager get desks =>
+      $$DesksTableTableManager(_db, _db.desks);
+  $$DeskTilesTableTableManager get deskTiles =>
+      $$DeskTilesTableTableManager(_db, _db.deskTiles);
 }

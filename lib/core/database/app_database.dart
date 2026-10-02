@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../features/work/data/work_tables.dart';
+import '../desks/desk_tables.dart';
 import '../history/record_events.dart';
 import 'migration_strategy.dart';
 import 'schema_versions.dart';
@@ -27,6 +28,8 @@ class CoreMetadata extends Table {
     PayPeriods,
     Payslips,
     RecordEvents,
+    Desks,
+    DeskTiles,
   ],
 )
 class AppDatabase extends _$AppDatabase {
