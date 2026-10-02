@@ -215,11 +215,7 @@ void main() {
         'State',
       ]) {
         // The Shifts list is ordered by date, which its header says.
-        expect(
-          find.text(column == 'Date' ? 'Date ▴' : column),
-          findsOneWidget,
-          reason: column,
-        );
+        expect(find.text(column), findsOneWidget, reason: column);
       }
       expect(find.text('Finalized'), findsOneWidget);
       expect(find.text('Running'), findsOneWidget);

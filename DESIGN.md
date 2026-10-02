@@ -1,252 +1,217 @@
 ---
 name: LifeOS
-description: Private, local-first desktop records for one person, shaped as an office machine.
+description: Private, local-first desktop records for one person, shaped as a 2001 office PC.
 colors:
-  ground: "#cfd1cc"
-  paper: "#f4f5f2"
-  ink: "#1d1d1b"
-  muted: "#60635e"
-  rule: "#dcded9"
-  band: "#ebede8"
-  chrome: "#e2e4df"
-  chrome-line: "#a9aca5"
-  head: "#2b2c2a"
-  head-ink: "#f4f5f2"
-  signal: "#e8590c"
-  action-fill: "#c2410c"
-  action-ink: "#ffffff"
-  run-ink: "#b03a0a"
-  sel-wash: "#fde3d2"
-  sel-ink: "#1d1d1b"
-  negative: "#b8261b"
-  positive: "#2a6f2d"
-  focus: "#1d1d1b"
+  face: "#ece9d8"
+  paper: "#ffffff"
+  page: "#fcfcfe"
+  ink: "#000000"
+  muted: "#555555"
+  rule: "#ecebe5"
+  band: "#f1efe2"
+  chrome-line: "#c5c2b2"
+  head: "#0046d5"
+  head-ink: "#ffffff"
+  selection: "#316ac5"
+  selection-ink: "#ffffff"
+  field-line: "#7f9db9"
+  key-line: "#003c74"
+  tab-accent: "#ffc83c"
+  sort-accent: "#f9b119"
+  pane-top: "#7ba2e7"
+  pane-bottom: "#6375d6"
+  pane-body: "#d6dff7"
+  link: "#1c50b0"
+  signal: "#d9500b"
+  run-ink: "#b83d0b"
+  negative: "#cc0000"
+  positive: "#2a752d"
+  progress: "#2fbf2f"
+  close: "#c1300f"
   area-work: "#3a6ea5"
   area-finance: "#d9a400"
   area-tracking: "#3f7a2e"
   area-knowledge: "#7b5ea7"
 typography:
   title:
-    fontFamily: "Archivo"
-    fontSize: "16px"
-    fontWeight: 600
-    lineHeight: "20px"
-  label:
-    fontFamily: "Archivo"
-    fontSize: "10.5px"
+    fontFamily: "Noto Sans"
+    fontSize: "14px"
     fontWeight: 700
-    lineHeight: "14px"
-    letterSpacing: "0.08em"
-    textTransform: "uppercase"
-  body:
-    fontFamily: "Archivo"
-    fontSize: "13px"
-    fontWeight: 500
     lineHeight: "18px"
-  small:
-    fontFamily: "Archivo"
-    fontSize: "11.5px"
+  label:
+    fontFamily: "Noto Sans"
+    fontSize: "11px"
+    fontWeight: 400
+    lineHeight: "14px"
+  body:
+    fontFamily: "Noto Sans"
+    fontSize: "12px"
     fontWeight: 400
     lineHeight: "16px"
-  figure:
-    fontFamily: "Azeret Mono"
-    fontSize: "12.5px"
+  small:
+    fontFamily: "Noto Sans"
+    fontSize: "11px"
     fontWeight: 400
-    lineHeight: "18px"
+    lineHeight: "14px"
+  figure:
+    fontFamily: "Noto Sans"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: "16px"
     fontFeature: "tabular-nums"
   counter:
-    fontFamily: "Azeret Mono"
+    fontFamily: "Noto Sans"
     fontSize: "20px"
     fontWeight: 700
     lineHeight: "22px"
     fontFeature: "tabular-nums"
 rounded:
-  key: "4px"
-  field: "2px"
+  key: "3px"
+  task-group-top: "5px"
+  tile-top: "5px"
+  group-box: "3px"
   pane: "0px"
 spacing:
-  1: "4px"
-  2: "8px"
-  3: "12px"
-  4: "16px"
+  1: "2px"
+  2: "4px"
+  3: "8px"
+  4: "12px"
 components:
-  key-primary:
-    backgroundColor: "{colors.action-fill}"
-    textColor: "{colors.action-ink}"
-    typography: "{typography.body}"
+  push-button:
+    background: "white-to-face gradient"
+    border: "1px {colors.key-line}"
     rounded: "{rounded.key}"
-    height: "30px"
-    edge: "2px bottom, darker shade of the fill"
-  key-secondary:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.ink}"
-    border: "1px {colors.muted}"
-    rounded: "{rounded.key}"
-    height: "30px"
-  field:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.ink}"
-    border: "1px {colors.muted}, 2px {colors.focus} when focused"
-    rounded: "{rounded.field}"
-  register-row:
-    backgroundColor: "{colors.paper}"
-    height: "25px"
-    selected: "{colors.sel-wash} with {colors.sel-ink} text"
+    height: "24px min"
+    default: "inner double ring #6c9cec / #b9d1fa"
+    hover: "inner warm ring #f9b119 / #ffe7a2"
+    pressed: "gradient inverted"
+  toolbar-key:
+    background: "flat; raised face on hover, focus or press"
+    height: "30px min"
+  combo:
+    background: "{colors.paper}"
+    border: "1px {colors.field-line}"
+    arrow: "blue gradient button with a painted drop arrow"
+  group-box:
+    border: "1px #d0d0bf"
+    legend: "{typography.label} in {colors.head}"
+  property-sheet-tab:
+    active: "{colors.page} with a 2px {colors.tab-accent} top edge"
+    inactive: "white-to-face gradient"
+  details-list-row:
+    height: "20px"
+    selected: "{colors.selection} with {colors.selection-ink}"
+    cursor: "1px dotted rectangle"
 ---
 
 # Design System: LifeOS
 
 ## Overview
 
-**Creative North Star: "The Office Machine"**
+**Creative North Star: "The 2001 Office PC"**
 
-LifeOS is a calculating machine for one person's records. Every figure sits in a register and can show its working in the formula bar; nothing is a detached KPI card. The shell is a grey casing around paper-white registers, with black keys for headers and the status line, one signal orange for the thing to press and anything running, and one coloured keycap per area.
+LifeOS looks and behaves like a friendly, glossy office PC from around 2001, shaped like that era's file browser. Every design choice mimics that era: bevelled toolbars, glossy orbs, a blue task pane of rounded groups, details lists with bevelled column headers, property sheets with tabs and group boxes, push buttons with a dark blue outline, and a sunken status bar. It is the only style; there is no second palette, dark mode or appearance setting.
 
 The shipped shell, at 1280 × 800:
 
-- **Menu bar** (28 px): File, Edit, View, Desk, Record, Window, Help.
-- **Toolbar** (44 px): Back, Forward, the orange **+ Add**, up to four "from last time" keys, and the current location.
-- **Formula bar** (34 px): the selected cell's calculation, with operand links.
-- **Book tree** (228 px, left): Today, Journal, Views, each area with its sheets and live values, and Backup and export at the foot.
-- **Desk** (centre): a Work register with its sheets, or a desk of tiles at `/today`.
-- **Inspector** (320 px, right): Details and History tabs for the open record. Surfaces with nothing to inspect, such as Today and the Journal, leave it out.
-- **Status line** (24 px): the running shift and the save state.
+- **Menu bar** (24 px): LifeOS, File, Edit, View, Desk, Record, Window, Help.
+- **Toolbar** (38 px): Back and Forward with green orbs, **Add** with an orange orb and a drop arrow, then "From last time:" and up to four flat keys.
+- **Address bar** (26 px): the location as crumbs in a read-only field, and **Go**.
+- **Task pane** (200 px, left): the surface's tasks (Work tasks, Desk tasks), Books, and Details.
+- **Content** (centre): a filter toolbar row of era dropdowns over a sunken details list, or a desk of tile windows.
+- **Property sheet** (300 px, right): **General | History** for the open record, with the **Working** group box on top when a calculated cell is selected. Surfaces with nothing to inspect leave it out.
+- **Status bar** (22 px): sunken panels for the running shift, counts and the save state.
 
-Below 1280 px the inspector alternates with the desk (**Back to desk**). Below 1024 px the tree folds into a **Books** key. Nothing is lost at any width, and every layout holds at 200 % text.
+Below 1280 px the property sheet alternates with the content (**Back to list**). Below 1024 px the task pane folds into a **Tasks** toolbar key that opens it over the content. Every layout holds at 200 % text.
 
-This record is derived from the built Flutter shell (`lib/shared/shell`, `lib/shared/workbench`) and its goldens in `test/goldens/`.
+This record is derived from the built Flutter shell (`lib/shared/shell`, `lib/shared/workbench`), its goldens in `test/goldens/`, and the spec `docs/superpowers/specs/2026-10-02-lifeos-millennium-shell-design.md`.
 
-**Key Characteristics:**
-- Grey casing, paper registers, black heads; flat, square panes.
-- One orange for action and running state; colour supports words and never replaces them.
-- Archivo for words, Azeret Mono with tabular figures for every date, time, duration and amount.
-- Keys with a 2-pixel pressable edge are the only depth.
-- Every derived number explains itself in the formula bar, and every record has a History.
+**Key characteristics:**
+- Face-coloured chrome, white lists and pages, blue heads and selection.
+- Bevels, vertical gradients and inner rings are the only depth. No drop shadows.
+- Noto Sans for everything, tabular figures for every date, time, duration and amount.
+- Every derived number explains itself in the Working group box, and every record has a History.
 
 ## Colors
 
-The palette is a set of named tokens (`LifeOSTokens`); widgets take every colour from tokens and never use a literal. Each palette passes a contrast test: text pairs at 4.5:1, indicators and outlines at 3:1.
+Widgets take colours from `LifeOSTokens.millennium` and the named constants in `MillenniumColors` (`lib/shared/workbench/millennium_style.dart`), never from literals. Text pairs meet 4.5:1; indicators, key outlines and focus meet 3:1 (`test/shared/workbench/lifeos_tokens_test.dart`).
 
-### Neutrals
-- **Ground** `#cfd1cc`: the casing behind panes and tiles.
-- **Paper** `#f4f5f2`: registers, tiles, inspector and tree.
-- **Ink** `#1d1d1b` and **Muted** `#60635e`: text and secondary text.
-- **Rule** `#dcded9`: row and cell separators. **Band** `#ebede8`: column headers.
-- **Chrome** `#e2e4df` with **Chrome line** `#a9aca5`: menu bar, toolbar and pane dividers.
-- **Head** `#2b2c2a` with **Head ink**: tile headers, group rows, the active segment and the status line.
+- **Face** `#ece9d8`: menu bar, toolbars, the property-sheet region, forms and the status bar.
+- **Paper** `#ffffff` and **Page** `#fcfcfe`: lists, fields, tile bodies; the property-sheet page.
+- **Ink** `#000000` and **Muted** `#555555`.
+- **Head** `#0046d5`: caption bars, group-box legends, group rows and the special task-group header.
+- **Selection** `#316ac5` with white ink: the selected row.
+- **Field line** `#7f9db9` and **Key line** `#003c74`: field and list borders; push-button outlines.
+- **Task pane:** gradient `#7ba2e7` → `#6375d6`, group bodies `#d6dff7`, links `#1c50b0`.
+- **Accents:** tab top edge `#ffc83c`, sorted-column edge `#f9b119`.
+- **Signal** `#d9500b` and **Run ink** `#b83d0b`: the running dot and "Running" text.
+- **Negative** `#cc0000` and **Positive** `#2a752d`, always beside the words "under" and "over".
+- **Area keys:** Work `#3a6ea5`, Finance `#d9a400`, Tracking `#3f7a2e`, Knowledge `#7b5ea7`, each with its letter.
 
-### Signal
-- **Signal** `#e8590c`: the running dot and the selected-cell outline.
-- **Action fill** `#c2410c` with white ink: the primary key.
-- **Run ink** `#b03a0a`: "Running" text.
-- **Selection wash** `#fde3d2` with **Selection ink**: the selected row. A selected row draws every cell in selection ink.
+Two era colours stay below 3:1 by choice: the field outline, because fields are also told apart by their white fill and label, and the sorted-column amber, because the sort order is also painted as an arrow and announced as "sorted ascending".
 
-### Meaning
-- **Negative** `#b8261b` and **Positive** `#2a6f2d`: short-paid and over amounts, always beside the words "under" and "over".
-- **Area keys:** Work `#3a6ea5`, Finance `#d9a400`, Tracking `#3f7a2e`, Knowledge `#7b5ea7`, each with a letter (W, F, T, K) at 4.5:1.
+### Named rules
 
-### Named Rules
-**The One-Orange Rule.** Orange means "press this" or "this is running". It is never decoration.
+**The Words-First Rule.** Draft, Void, Running, Open, Reviewed, over and under are always written. Colour only supports the word.
 
-**The Words-First Rule.** Draft, Void, Running, over and under are always written. Colour only supports the word.
+**The No-Vendor Rule.** No vendor names, logos, icons, wallpapers or sounds. Orbs, arrows, ticks and glyphs are painted.
 
 ## Typography
 
-- **Interface:** Archivo (OFL), bundled.
-- **Figures:** Azeret Mono (OFL), bundled, with tabular figures.
+- **Noto Sans** (OFL), bundled, for all text. Arrows, chevrons and ticks are painted because the font has none of them.
 
-### Hierarchy
-- **Title** (600, 16/20): the inspector record title.
-- **Label** (700, 10.5/14, +0.08em, uppercase): column headers, section labels and the tree header.
-- **Body** (500, 13/18): controls, entries and menus.
-- **Small** (400, 11.5/16): secondary lines and hints.
-- **Figure** (400/600, 12.5/18, tabular): dates, times, durations, money and counts.
-- **Counter** (700, 20/22): counter tiles.
+| Style | Size / line | Weight | Use |
+|---|---|---|---|
+| Title | 14 / 18 | 700 | Property-sheet record title |
+| Label | 11 / 14 | 400 | Column headers, group-box legends |
+| Body | 12 / 16 | 400 | Controls, rows, menus, facts |
+| Small | 11 / 14 | 400 | Notes, hints |
+| Figure | 12 / 16 | 400, tabular | Dates, times, durations, money |
+| Counter | 20 / 22 | 700, tabular | Counter tiles |
 
-### Named Rules
-**The Figures-Line-Up Rule.** Anything a person might compare down a column is set in Figure and right-aligned.
+Labels are not uppercased.
 
 ## Layout
 
-- **Spacing:** a 4-pixel base, using steps of 4, 6, 8, 10, 12, 14 and 16.
-- **Heights:** toolbar keys 30, small keys 26, register rows 25, tree rows 23–25, desk tabs 26, popup menu rows 32. Every target is at least 24 × 24.
-- **Register v2:** group rows in Head (for example a pay period or "October 2026"), data rows on Paper with Rule separators, and an entry row at the foot ("Add a manual shift"). Optional columns (Break, Night, Holiday) hide first when space runs short.
-- **Desks:** single, two columns, or main and side (one main tile, up to three stacked). Each tile has a Head header with its area key, name, menu (Replace, Open full size, Remove) and close key. The starter desks are Today, Weekly review and Month close; Today cannot be deleted.
+- Spacing steps of 2, 4, 8 and 12 px; task-pane padding 12; property-sheet page padding 8.
+- Heights: toolbar keys 30, push buttons 24, list rows 20, task links and menu rows 24, desk tabs 24 (active 26). Every target is at least 24 × 24 except list rows, whose hit area spans the row's full width and which the keyboard reaches row by row.
 
-## Elevation & Depth
+## Elevation & depth
 
-There are no shadows, blur or glow in Office Machine. Hierarchy comes from Ground versus Paper, 1-pixel Chrome lines, and Head bands. The only depth is the key edge: a 2-pixel bottom edge in a darker shade, which a pressed key loses as its face moves down 1 pixel. Neighbouring controls never move.
-
-Motion is immediate, or a 120 ms cross-fade. With reduced motion it is zero. Nothing pulses.
-
-### Named Rules
-**The Flat-Casing Rule.** Regions are told apart by tone and lines, never by elevation.
-
-## Shapes
-
-- **Keys,** chips, tabs and tiles: 4-pixel radius.
-- **Fields:** 2-pixel radius.
-- **Registers,** panes and the tree: square.
-- **Keyboard focus:** a 2-pixel ring offset by 2, always distinct from selection. A selected cell has a 2-pixel Signal outline.
+Depth comes from the era's bevels: vertical gradients on toolbars, keys, tabs, column headers and caption bars; sunken status panels (dark top-left edge, white bottom-right edge); and the inner rings of default and hovered keys. There are no drop shadows or blur. Motion is immediate.
 
 ## Components
 
-### Keys (`KeyButton`)
-- **Primary:** Action fill with white bold text.
-- **Secondary:** Paper with a Muted outline.
-- **Small:** 26 high.
-- **Disabled:** Chrome with Muted text, and no edge.
-- **Shared rules:** the label is always shown. Material buttons in forms are painted with the same key surfaces, edge and height through the skin-derived theme.
+- **Push button** (`KeyButton`, Material buttons through the theme): white-to-face gradient, key-line outline, 3 px radius. The default key has a blue inner double ring; hover adds a warm inner ring; pressing inverts the gradient. Disabled is face with muted ink.
+- **Toolbar key** (`KeyKind.toolbar`): flat until hovered, focused or pressed. **Orbs** (`Orb`) are painted glossy circles: green for Back and Forward, orange for Add, grey when unavailable.
+- **Address bar** (`AddressBar`): crumbs, each a link to its level, in a read-only field; **Go** reopens the location.
+- **Task pane** (`TaskPane`, `TaskGroup`, `TaskLink`, `TaskDetails`): rounded groups with a collapse key; the first, special group has a solid blue header. Books lists Today, Journal, Views and each area with its keycap and live values; the selected row is bold ink.
+- **Filter row and combos** (`EraComboFace`): "View:", "Employment:", "Period:", "Status:" beside white fields with a blue drop-arrow button.
+- **Details list** (`DataRegister`): bevelled headers with a sorted-column edge and arrow, blue group rows over a pale rule, 20 px rows, solid blue selection and a dotted cell cursor (white on a selected row).
+- **Property sheet** (`RecordTabs`, `inspector_parts.dart`): General | History tabs (`PropertySheetTabs`), a title, facts in group boxes (`GroupBox`), notes, and right-aligned keys (`FormFooter`). The **Working** group box (`WorkingGroupBox`) shows the selected cell's calculation with operand links.
+- **Forms:** group boxes of white fields on the face colour, radios and check boxes for choices, and their actions right-aligned with the primary one as the default key.
+- **Desks:** desk tabs plus a **+ Desk** tab, and tiles drawn as small windows with a blue caption bar (`CaptionBar`), keycap, drop-arrow menu and red close key.
+- **Dialogs** (`EraDialog`): blue caption with a red close key, face-coloured body, keys bottom-right.
+- **Information panel** (`OperationalState`): a painted ⓘ in a blue disc or ! in an amber triangle, a bold title and the message.
+- **Status bar** (`StatusLine`): sunken panels.
 
-### Segmented tabs
-Sheet tabs, inspector tabs and desk tabs. The active segment is Head with Head ink, inactive segments are Paper, and all share a Muted outline.
+### Focus and selection
 
-### Book tree
-- **Rows:** area rows on Band with their keycap, and sheet rows indented with a right-aligned live value. Unbuilt areas say "Not built yet".
-- **Selection:** the selected row is Selection wash with Selection ink.
-- **Right-click:** offers Open, plus each node's own actions (for a saved view: Add to a desk, Rename view…, Delete view).
-
-### Formula bar
-`ƒx`, then the reference, the calculation with operand links, and the source. It is empty when nothing is selected; it never shows placeholder text.
-
-### Inspector
-Details and History tabs. Inspector content is built from the parts in `inspector_parts.dart`, on the tabs' 16-pixel inset:
-- **Title:** the record name in Title.
-- **Facts:** label/value pairs drawn as register rows with Rule separators, the label in Muted body and the value right-aligned in Figure (words stay in Body). A value that does not fit beside its label moves under it.
-- **Sections:** a Label heading, such as "Expected pay".
-- **Notes:** explanations in Small.
-- **Actions:** keys at their own width, left-aligned and wrapping. They are never stretched to the pane.
-
-History lists created, changed, finalized, voided, replaced and reviewed events, newest first, each as a row with its time in Figure.
-
-### Status line
-A Head strip showing "● Shift running since 07:02" (the start on the shift's own clock), then counts, then "Local database" or "Last save uncertain. Reload to check".
-
-### Forms, dialogs and menus
-These use Material widgets themed from the active skin. Fields are Paper with a Muted outline and a 2-pixel focus outline. Dialogs and menus are Paper with a Muted outline and no elevation. Menu rows are 32 high.
-
-## Appearances
-
-The shell paints through a `LifeOSSkin`, which supplies tokens, typography and painters. Layout, regions, menus, copy and behaviour are identical in every appearance; a test checks that every semantics node keeps its label and position. Choose an appearance under **View › Appearance**. The choice is kept in the database and restored at start.
-
-- **Office Machine Day** (default), **Night** (charcoal with glowing orange) and **High contrast**. **System** follows the platform's brightness and high-contrast setting.
-- **Millennium:** a glossy 2001-era office PC.
-  - **Palette:** `#ece9d8` face, `#0046d5` heads and `#316ac5` selection.
-  - **Type:** Noto Sans (OFL).
-  - **Painting:** gradient keys with a dark-blue outline, glossy area keys, property-sheet tabs with a warm top edge, a dotted focus rectangle, a task-pane tree and a face-coloured status line.
-  - **Rules:** it has no night palette. The system high-contrast setting replaces it with Office Machine high contrast. It uses no vendor names, logos, icons, wallpapers or sounds.
+Keyboard focus is a 1 px dotted rectangle inside the control (`DottedFocusRectangle`); text fields show it as a key-line blue border and the caret. Selection is a solid blue fill. They never look the same.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** put every figure in a register and give every derived figure an explanation.
-- **Do** take colours only from tokens and painting only from the skin's painters.
+- **Do** choose the era-authentic control: property sheets, group boxes, task panes, details lists, radios and check boxes.
+- **Do** put every figure in a list and give every derived figure an explanation in Working.
+- **Do** take colours only from tokens and `MillenniumColors`.
 - **Do** keep keys labelled, targets at least 24 × 24, and focus distinct from selection.
-- **Do** keep routes, view filters and tile references structural: ids, dates, states and flags only.
+- **Do** paint glyphs the bundled font lacks; a test fails if `lib/` uses one.
 - **Do** use synthetic data in tests, goldens and screenshots.
 
 ### Don't:
+- **Don't** add a second palette, dark mode or an appearance setting.
 - **Don't** add KPI cards, dashboards or a scaled-up tablet layout.
-- **Don't** add shadows, blur, glow or gradients to Office Machine; gradients belong to Millennium chrome only, never to data rows.
-- **Don't** let a skin move, resize or re-word a control.
+- **Don't** use vendor names, logos, icons, wallpapers or sounds.
+- **Don't** add drop shadows or blur; depth is bevels only.
 - **Don't** signal state by colour alone.

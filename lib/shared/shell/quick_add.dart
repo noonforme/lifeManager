@@ -59,7 +59,7 @@ final class QuickAddMenu extends StatelessWidget {
             label: 'Add',
             kind: KeyKind.toolbar,
             leading: const Orb(glyph: OrbGlyph.add, tone: OrbTone.orange),
-            trailing: const Text('▾'),
+            trailing: EraGlyph(EraGlyphKind.dropDown, color: skin.tokens.ink),
             onPressed: () {},
           ),
         ),

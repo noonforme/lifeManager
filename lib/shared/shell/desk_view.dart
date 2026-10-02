@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/desks/desks.dart';
+import '../workbench/era_controls.dart';
 import '../workbench/era_dialog.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/lifeos_tokens.dart';
@@ -264,11 +265,9 @@ final class _TileCard extends StatelessWidget {
                       width: 24,
                       height: 24,
                       child: Center(
-                        child: Text(
-                          '▾',
-                          style: skin.typography.body.copyWith(
-                            color: tokens.headInk,
-                          ),
+                        child: EraGlyph(
+                          EraGlyphKind.dropDown,
+                          color: tokens.headInk,
                         ),
                       ),
                     ),
@@ -377,8 +376,9 @@ final class _DeskMenu extends StatelessWidget {
         ],
         child: IgnorePointer(
           child: KeyButton(
-            label: 'Desk ▾',
+            label: 'Desk',
             kind: KeyKind.small,
+            trailing: EraGlyph(EraGlyphKind.dropDown, color: skin.tokens.ink),
             onPressed: () {},
           ),
         ),

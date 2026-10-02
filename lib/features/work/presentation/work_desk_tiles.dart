@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/time/local_date.dart';
+import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/millennium_style.dart';
 import '../../../shared/workbench/office_controls.dart';
@@ -279,13 +280,9 @@ final class TileList extends StatelessWidget {
                           border: Border.all(color: MillenniumColors.fieldLine),
                         ),
                         child: done
-                            ? Text(
-                                '✓',
-                                style: skin.typography.small.copyWith(
-                                  color: MillenniumColors.orbGreen,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1,
-                                ),
+                            ? const EraGlyph(
+                                EraGlyphKind.tick,
+                                color: MillenniumColors.orbGreen,
                               )
                             : null,
                       ),

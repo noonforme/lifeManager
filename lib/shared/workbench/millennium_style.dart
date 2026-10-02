@@ -22,8 +22,8 @@ abstract final class MillenniumColors {
   /// The active property-sheet tab's top edge.
   static const tabAccent = Color(0xffffc83c);
 
-  /// The sorted column's bottom edge. Decorative: the ▴ / ▾ beside the
-  /// column name says the order.
+  /// The sorted column's bottom edge. Decorative: the painted arrow beside
+  /// the column name, announced as "sorted ascending", says the order.
   static const sortAccent = Color(0xfff9b119);
   static const keyLine = Color(0xff003c74);
   static const fieldLine = Color(0xff7f9db9);

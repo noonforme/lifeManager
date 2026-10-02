@@ -38,15 +38,16 @@ Or use the interactive launcher, which finds Flutter through `FLUTTER`, `PATH`, 
 ./app.sh
 ```
 
+LifeOS looks like a 2001 office PC, shaped like that era's file browser: an orb toolbar, an Address bar, a blue task pane, details lists and property sheets.
+
 What the shell holds:
 
-- **Work:** employments and agreements with night, holiday and overtime premiums; live and manual shifts; pay periods, payslips and reconciliation; and correction. Shifts, Pay periods, Payslips and Agreements are separate sheets.
-- **Formula bar:** select any derived figure to read how it was worked out.
-- **History:** every record keeps its own History tab.
-- **+ Add and "from last time":** create records from anywhere.
+- **Work:** employments and agreements with night, holiday and overtime premiums; live and manual shifts; pay periods, payslips and reconciliation; and correction. Shifts, Pay periods, Payslips and Agreements are chosen with the **View:** dropdown; Work tasks sit in the task pane.
+- **Working:** select any derived figure; the record's property sheet shows how it was worked out.
+- **History:** every record keeps its own History tab beside General.
+- **Add and "from last time":** create records from anywhere.
 - **Today:** desks of tiles (Needs you, Work this period, the Journal, the Month close checklist). Create your own desks, and save filtered sheets as views.
 - **Journal:** every event, by day.
-- **Appearances:** under View › Appearance, Office Machine Day, Night, High contrast and Millennium. The choice is kept in the database.
 
 Finance, Tracking, Knowledge and Backup and export show honest unavailable states rather than fake data.
 
@@ -59,7 +60,7 @@ flutter test
 dart run tool/schema_check.dart
 ```
 
-`./app.sh` runs the same: option 2 runs the tests, and option 3 runs analysis, the format check and the schema check. Goldens in `test/goldens/` cover the shell in every appearance; refresh them with `flutter test --update-goldens test/goldens` after an intended visual change.
+`./app.sh` runs the same: option 2 runs the tests, and option 3 runs analysis, the format check and the schema check. Goldens in `test/goldens/` cover the Work list, a pay period, a form and Today at 1280 × 800 and 960 × 760; refresh them with `flutter test --update-goldens test/goldens` after an intended visual change. `flutter test --run-skipped -t real-font --update-goldens test/goldens/real_font_check_test.dart` renders the same screens in the bundled Noto Sans for a look by eye.
 
 Release packaging and backup/export file selection are established by the release plan rather than documented speculatively here.
 

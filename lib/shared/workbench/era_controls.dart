@@ -257,3 +257,76 @@ final class FormFooter extends StatelessWidget {
     ),
   );
 }
+
+enum EraGlyphKind { dropDown, sortUp, sortDown, collapse, expand, tick }
+
+/// A small painted mark: drop arrow, sort arrow, collapse chevrons or a
+/// tick. Painted because the bundled Noto Sans has none of these
+/// characters. Decorative; the control beside it carries the words.
+final class EraGlyph extends StatelessWidget {
+  const EraGlyph(this.kind, {required this.color, this.size = 9, super.key});
+
+  final EraGlyphKind kind;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: CustomPaint(
+      size: Size.square(size),
+      painter: _GlyphPainter(kind, color),
+    ),
+  );
+}
+
+final class _GlyphPainter extends CustomPainter {
+  const _GlyphPainter(this.kind, this.color);
+
+  final EraGlyphKind kind;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final fill = Paint()..color = color;
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.square;
+    Path triangle({required bool up, double top = 0.3, double bottom = 0.7}) =>
+        Path()
+          ..moveTo(w * 0.1, h * (up ? bottom : top))
+          ..lineTo(w * 0.9, h * (up ? bottom : top))
+          ..lineTo(w * 0.5, h * (up ? top : bottom))
+          ..close();
+    Path chevron(double y, {required bool up}) => Path()
+      ..moveTo(w * 0.15, h * (up ? y + 0.2 : y))
+      ..lineTo(w * 0.5, h * (up ? y : y + 0.2))
+      ..lineTo(w * 0.85, h * (up ? y + 0.2 : y));
+    switch (kind) {
+      case EraGlyphKind.dropDown || EraGlyphKind.sortDown:
+        canvas.drawPath(triangle(up: false), fill);
+      case EraGlyphKind.sortUp:
+        canvas.drawPath(triangle(up: true), fill);
+      case EraGlyphKind.collapse || EraGlyphKind.expand:
+        final up = kind == EraGlyphKind.collapse;
+        canvas
+          ..drawPath(chevron(0.2, up: up), stroke)
+          ..drawPath(chevron(0.55, up: up), stroke);
+      case EraGlyphKind.tick:
+        canvas.drawPath(
+          Path()
+            ..moveTo(w * 0.15, h * 0.5)
+            ..lineTo(w * 0.4, h * 0.78)
+            ..lineTo(w * 0.85, h * 0.2),
+          stroke..strokeWidth = 2,
+        );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GlyphPainter oldDelegate) =>
+      oldDelegate.kind != kind || oldDelegate.color != color;
+}

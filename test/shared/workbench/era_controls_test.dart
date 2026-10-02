@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/workbench/era_controls.dart';
@@ -53,6 +55,35 @@ void main() {
       tester.getTopRight(find.byKey(const ValueKey('key-face'))).dx,
       closeTo(300, 1),
     );
+  });
+
+  testWidgets('era glyphs are painted, never font characters', (tester) async {
+    await tester.pumpWidget(
+      _scoped(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final kind in EraGlyphKind.values)
+              EraGlyph(kind, color: const Color(0xff000000)),
+          ],
+        ),
+      ),
+    );
+    expect(find.byType(Text), findsNothing);
+    expect(find.byType(EraGlyph), findsNWidgets(EraGlyphKind.values.length));
+  });
+
+  test('lib uses no character the bundled Noto Sans lacks', () {
+    // Noto Sans has no ▴ ▾ ︽ ︾ ✓; they render as empty boxes.
+    const missing = ['\u25B4', '\u25BE', '\uFE3D', '\uFE3E', '\u2713'];
+    final offenders = [
+      for (final file in Directory('lib').listSync(recursive: true))
+        if (file is File && file.path.endsWith('.dart'))
+          for (final (index, line) in file.readAsLinesSync().indexed)
+            if (!line.trimLeft().startsWith('//') && missing.any(line.contains))
+              '${file.path}:${index + 1}',
+    ];
+    expect(offenders, isEmpty);
   });
 }
 

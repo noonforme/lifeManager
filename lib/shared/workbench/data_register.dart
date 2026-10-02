@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/explain/explanation.dart';
 import 'cell_selection.dart';
+import 'era_controls.dart';
 import 'lifeos_skin.dart';
 import 'millennium_style.dart';
 import 'office_controls.dart';
@@ -498,16 +499,38 @@ final class _HeaderRow<T> extends StatelessWidget {
                       : BorderSide.none,
                 ),
               ),
-              child: Text(
-                column.key == sortedColumn
-                    ? '${column.label} ${sortDescending ? '▾' : '▴'}'
-                    : column.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: column.kind.isNumeric
-                    ? TextAlign.right
-                    : TextAlign.left,
-                style: skin.typography.label.copyWith(color: tokens.ink),
+              child: Row(
+                mainAxisAlignment: column.kind.isNumeric
+                    ? MainAxisAlignment.end
+                    : MainAxisAlignment.start,
+                children: [
+                  Flexible(
+                    child: Text(
+                      column.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: column.kind.isNumeric
+                          ? TextAlign.right
+                          : TextAlign.left,
+                      style: skin.typography.label.copyWith(color: tokens.ink),
+                    ),
+                  ),
+                  if (column.key == sortedColumn) ...[
+                    const SizedBox(width: 4),
+                    // The order is said, not only drawn.
+                    Semantics(
+                      label: sortDescending
+                          ? 'sorted descending'
+                          : 'sorted ascending',
+                      child: EraGlyph(
+                        sortDescending
+                            ? EraGlyphKind.sortDown
+                            : EraGlyphKind.sortUp,
+                        color: tokens.ink,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
         ],

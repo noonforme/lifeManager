@@ -22,7 +22,8 @@ void main() {
     await tester.pumpWidget(
       _TestRegister(onOpen: (_) {}, sortedColumn: 'record'),
     );
-    expect(find.text('Record ▴'), findsOneWidget);
+    expect(find.text('Record'), findsOneWidget);
+    expect(find.bySemanticsLabel('sorted ascending'), findsOneWidget);
     expect(find.text('Amount'), findsOneWidget);
     expect(find.text('RECORD'), findsNothing);
   });

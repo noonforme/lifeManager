@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../workbench/era_controls.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/millennium_style.dart';
 
@@ -169,12 +170,9 @@ final class _CollapseKey extends StatelessWidget {
                         : MillenniumColors.groupHeaderEnd,
                   ),
                 ),
-                child: Text(
-                  open ? '︽' : '︾',
-                  style: skin.typography.small.copyWith(
-                    color: special ? tokens.headInk : tokens.head,
-                    height: 1,
-                  ),
+                child: EraGlyph(
+                  open ? EraGlyphKind.collapse : EraGlyphKind.expand,
+                  color: special ? tokens.headInk : tokens.head,
                 ),
               ),
             ),
