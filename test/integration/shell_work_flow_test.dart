@@ -8,6 +8,7 @@ import 'package:lifeos/core/database/app_database.dart' show AppDatabase;
 import 'package:lifeos/core/time/app_clock.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
+import 'package:lifeos/shared/shell/working_group_box.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
 
 /// The shell spec's section 10 flow on the production composition: a
@@ -86,7 +87,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Shift finalized'), findsOneWidget);
 
-    // The formula bar explains the expected pay cell.
+    // The Working group box explains the expected pay cell.
     await tester.tap(
       find.descendant(
         of: find.bySemanticsLabel('Work register'),
@@ -94,7 +95,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    final bar = find.bySemanticsLabel('Formula bar');
+    final bar = find.byType(WorkingGroupBox);
     expect(
       find.descendant(of: bar, matching: find.textContaining('18.40')),
       findsWidgets,

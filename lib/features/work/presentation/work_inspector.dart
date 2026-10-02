@@ -253,10 +253,9 @@ final class _FinalizedShift extends StatelessWidget {
                 ),
           Fact.words('Timezone', shift.timezoneId),
           if (shift.note case final note?) Fact.words('Note', note),
-        ]),
+        ], legend: 'Shift'),
         if (pay case final pay?) ...[
-          const InspectorSection('Expected pay'),
-          InspectorFacts([
+          InspectorFacts(legend: 'Expected pay', [
             Fact('Expected pay', formatMoney(pay.amount)),
             Fact('Paid time', formatDuration(pay.totalPaidSeconds)),
             Fact('Regular hours', formatDuration(pay.regularPaidSeconds)),
@@ -303,7 +302,7 @@ final class _PayslipDetail extends StatelessWidget {
             Fact('Paid', payslip.paidDate.toString()),
           if (payslip.reference != null)
             Fact.words('Reference', payslip.reference!),
-        ]),
+        ], legend: 'Payslip details'),
         if (onCorrect != null)
           InspectorActions(
             children: [

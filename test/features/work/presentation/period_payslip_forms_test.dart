@@ -45,8 +45,8 @@ void main() {
         find.text('Gross and net evidence cannot be combined.'),
         findsOneWidget,
       );
-      expect(find.text('GROSS · EUR'), findsOneWidget);
-      expect(find.text('NET · EUR'), findsOneWidget);
+      expect(find.text('Gross · EUR'), findsOneWidget);
+      expect(find.text('Net · EUR'), findsOneWidget);
       expect(find.text('Expected under recorded agreement'), findsNWidgets(2));
       expect(find.text('Paid evidence'), findsNWidgets(2));
       expect(find.text('Single difference'), findsNothing);

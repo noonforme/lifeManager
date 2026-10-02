@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart';
 
+import 'era_controls.dart';
 import 'lifeos_skin.dart';
 
-/// The inspector's content inset. It matches the Details and History tabs
-/// above it, so titles, facts and keys share one left edge.
-const inspectorInset = EdgeInsets.fromLTRB(16, 14, 16, 16);
+/// The property-sheet page's inset.
+const inspectorInset = EdgeInsets.all(8);
 
 /// A scrolling inspector page, laid out on the inspector inset.
 final class InspectorPane extends StatelessWidget {
@@ -30,7 +30,7 @@ final class InspectorTitle extends StatelessWidget {
     return Semantics(
       header: true,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.only(bottom: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -52,52 +52,22 @@ final class InspectorTitle extends StatelessWidget {
   }
 }
 
-/// A section label in Label type, like a register's column headers.
-final class InspectorSection extends StatelessWidget {
-  const InspectorSection(this.label, {super.key});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final skin = LifeOSSkinScope.of(context);
-    return Semantics(
-      header: true,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 14, bottom: 4),
-        child: Text(
-          label.toUpperCase(),
-          style: skin.typography.label.copyWith(color: skin.tokens.muted),
-        ),
-      ),
-    );
-  }
-}
-
-/// Label and value pairs drawn as register rows: Rule separators, the
-/// label on the left and the value right-aligned.
+/// Label and value pairs, the label on the left and the value
+/// right-aligned. With a [legend] they sit in a group box (spec 5.5).
 final class InspectorFacts extends StatelessWidget {
-  const InspectorFacts(this.facts, {super.key});
+  const InspectorFacts(this.facts, {this.legend, super.key});
 
   final List<Fact> facts;
+  final String? legend;
 
   @override
   Widget build(BuildContext context) {
-    final skin = LifeOSSkinScope.of(context);
-    final rule = BorderSide(color: skin.tokens.rule);
-    return DecoratedBox(
-      decoration: BoxDecoration(border: Border(top: rule)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final fact in facts)
-            DecoratedBox(
-              decoration: BoxDecoration(border: Border(bottom: rule)),
-              child: InspectorFactRow(fact: fact),
-            ),
-        ],
-      ),
+    final rows = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [for (final fact in facts) InspectorFactRow(fact: fact)],
     );
+    final legend = this.legend;
+    return legend == null ? rows : GroupBox(legend: legend, child: rows);
   }
 }
 
@@ -141,9 +111,9 @@ final class InspectorFactRow extends StatelessWidget {
     final value = Text(fact.value, textAlign: TextAlign.end, style: valueStyle);
     return MergeSemantics(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 25),
+        constraints: const BoxConstraints(minHeight: 20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
+          padding: const EdgeInsets.symmetric(vertical: 2),
           child: LayoutBuilder(
             builder: (context, constraints) {
               // Label and value share a line when both fit at their own
@@ -228,16 +198,12 @@ final class InspectorText extends StatelessWidget {
   }
 }
 
-/// The record's keys, left-aligned at their own width and wrapping when
-/// the inspector is narrow.
+/// The record's keys at the foot of the page, right-aligned and wrapping.
 final class InspectorActions extends StatelessWidget {
   const InspectorActions({required this.children, super.key});
 
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 16),
-    child: Wrap(spacing: 8, runSpacing: 8, children: children),
-  );
+  Widget build(BuildContext context) => FormFooter(children: children);
 }

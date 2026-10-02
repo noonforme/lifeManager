@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/history/record_events.dart';
+import '../../../shared/shell/shell_frame.dart';
+import '../../../shared/shell/working_group_box.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
+import '../../../shared/workbench/millennium_style.dart';
 import '../../../shared/workbench/office_controls.dart';
 import 'work_controller.dart';
 import 'work_route_state.dart';
@@ -29,24 +32,46 @@ final class _RecordTabsState extends State<RecordTabs> {
   }
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        child: PropertySheetTabs(
+  Widget build(BuildContext context) {
+    final chrome = ShellChrome.maybeOf(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PropertySheetTabs(
           labels: const ['General', 'History'],
           selectedIndex: _history ? 1 : 0,
           onSelected: (index) => setState(() => _history = index == 1),
         ),
-      ),
-      Expanded(
-        child: _history
-            ? RecordHistoryPanel(record: widget.record)
-            : widget.details,
-      ),
-    ],
-  );
+        Expanded(
+          child: Container(
+            decoration: const BoxDecoration(
+              color: MillenniumColors.page,
+              border: Border(
+                left: BorderSide(color: MillenniumColors.tabLine),
+                right: BorderSide(color: MillenniumColors.tabLine),
+                bottom: BorderSide(color: MillenniumColors.tabLine),
+              ),
+            ),
+            child: _history
+                ? RecordHistoryPanel(record: widget.record)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                        child: WorkingGroupBox(
+                          onNavigate: (route) =>
+                              chrome?.onNavigate(route.toString()),
+                        ),
+                      ),
+                      Expanded(child: widget.details),
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// A record's append-only history, oldest first.

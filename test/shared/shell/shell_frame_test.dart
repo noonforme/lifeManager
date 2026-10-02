@@ -8,7 +8,6 @@ const _landmarks = [
   'Menu bar',
   'Toolbar',
   'Address',
-  'Formula bar',
   'Task pane',
   'Desk workspace',
   'Record inspector',

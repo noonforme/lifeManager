@@ -7,7 +7,6 @@ import '../workbench/era_controls.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/office_controls.dart';
 import 'address_bar.dart';
-import 'formula_bar.dart';
 import 'navigation_history.dart';
 import 'quick_add.dart';
 import 'task_pane.dart';
@@ -17,7 +16,6 @@ abstract final class ShellMetrics {
   static const menuBarHeight = 24.0;
   static const toolbarHeight = 38.0;
   static const addressBarHeight = 26.0;
-  static const formulaBarHeight = 34.0;
   static const statusBarHeight = 22.0;
   static const taskPaneWidth = 200.0;
   static const propertySheetWidth = 300.0;
@@ -128,7 +126,6 @@ final class ShellFrame extends StatefulWidget {
     required this.inspectorOpen,
     required this.onBackToList,
     this.inspector,
-    this.formulaBar,
     this.tasks = const [],
     this.details,
     super.key,
@@ -150,10 +147,6 @@ final class ShellFrame extends StatefulWidget {
 
   /// The Details group's content, shown below Books.
   final Widget? details;
-
-  /// Replaces the formula bar's content. By default it shows the selected
-  /// cell and is empty when nothing is selected.
-  final Widget? formulaBar;
 
   @override
   State<ShellFrame> createState() => _ShellFrameState();
@@ -294,19 +287,6 @@ final class _ShellFrameState extends State<ShellFrame> {
                     if (here != null) chrome?.onNavigate(here);
                   },
                 ),
-                // Removed in Task 9, when its content moves to Working.
-                _Landmark(
-                  label: 'Formula bar',
-                  liveRegion: true,
-                  child: _FormulaBarRegion(
-                    child:
-                        widget.formulaBar ??
-                        FormulaBar(
-                          onNavigate: (route) =>
-                              chrome?.onNavigate(route.toString()),
-                        ),
-                  ),
-                ),
                 Expanded(child: body),
                 _Landmark(
                   label: 'Status line',
@@ -325,34 +305,18 @@ final class _ShellFrameState extends State<ShellFrame> {
 }
 
 final class _Landmark extends StatelessWidget {
-  const _Landmark({
-    required this.label,
-    required this.child,
-    this.liveRegion = false,
-  });
+  const _Landmark({required this.label, required this.child});
 
   final String label;
   final Widget child;
-  final bool liveRegion;
 
   @override
   Widget build(BuildContext context) => Semantics(
     container: true,
     explicitChildNodes: true,
-    liveRegion: liveRegion,
     label: label,
     child: FocusTraversalGroup(child: child),
   );
-}
-
-final class _Divider extends StatelessWidget {
-  const _Divider({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) =>
-      SizedBox(width: 1, child: ColoredBox(color: color));
 }
 
 final class _Toolbar extends StatelessWidget {
@@ -440,53 +404,6 @@ final class _Toolbar extends StatelessWidget {
                 onPressed: entry.open,
               ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-/// The formula bar's frame. It shows nothing until a value is selected; it
-/// never shows placeholder text.
-final class _FormulaBarRegion extends StatelessWidget {
-  const _FormulaBarRegion({required this.child});
-
-  final Widget? child;
-
-  @override
-  Widget build(BuildContext context) {
-    final skin = LifeOSSkinScope.of(context);
-    final tokens = skin.tokens;
-    return Container(
-      constraints: const BoxConstraints(
-        minHeight: ShellMetrics.formulaBarHeight,
-      ),
-      decoration: BoxDecoration(
-        color: tokens.paper,
-        border: Border(bottom: BorderSide(color: tokens.chromeLine)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            alignment: Alignment.center,
-            child: ExcludeSemantics(
-              child: Text(
-                'ƒx',
-                style: skin.typography.figure.copyWith(
-                  color: tokens.muted,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-          ),
-          _Divider(color: tokens.rule),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: child ?? const SizedBox.shrink(),
-            ),
-          ),
         ],
       ),
     );

@@ -6,6 +6,8 @@ import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/shell/shell_frame.dart';
 import '../../../shared/shell/task_pane.dart';
+import '../../../shared/workbench/inspector_parts.dart';
+import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../application/work_templates.dart';
 import '../data/projections/work_record_projection.dart';
@@ -808,16 +810,13 @@ final class _Rejected extends StatelessWidget {
   final String action;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(message),
-        const SizedBox(height: 14),
-        OutlinedButton(onPressed: onDismiss, child: Text(action)),
-      ],
-    ),
+  Widget build(BuildContext context) => InspectorPane(
+    children: [
+      InspectorText(message),
+      InspectorActions(
+        children: [KeyButton(label: action, onPressed: onDismiss)],
+      ),
+    ],
   );
 }
 

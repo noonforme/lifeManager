@@ -4,6 +4,7 @@ import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/local_time.dart';
 import '../../../core/time/timezone_service.dart';
+import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
@@ -414,76 +415,82 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     explicitChildNodes: true,
     label: widget.prefill == null ? 'Add manual shift' : widget.title,
     child: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: inspectorInset,
       children: [
-        Text(widget.title, style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 14),
-        _field(
-          key: const ValueKey('shift-start-date'),
-          label: 'Start date',
-          controller: _startDate,
-          error: _errors['startDate'],
-        ),
-        _field(
-          key: const ValueKey('shift-start-time'),
-          label: 'Start time',
-          controller: _startTime,
-          error: _errors['startTime'],
-        ),
-        _field(
-          key: const ValueKey('shift-end-date'),
-          label: 'End date',
-          controller: _endDate,
-          error: _errors['endDate'],
-        ),
-        _field(
-          key: const ValueKey('shift-end-time'),
-          label: 'End time',
-          controller: _endTime,
-          error: _errors['endTime'],
-        ),
-        _field(
-          key: const ValueKey('shift-timezone'),
-          label: 'Timezone',
-          controller: _timezone,
-          error: _errors['timezone'],
-        ),
-        for (var index = 0; index < _breaks.length; index++) ...[
+        InspectorTitle(widget.title),
+        _group(context, 'Times', [
           _field(
-            key: ValueKey('shift-break-start-date-$index'),
-            label: 'Break ${index + 1} start date',
-            controller: _breaks[index].startDate,
-            error: _errors['break-$index'],
+            key: const ValueKey('shift-start-date'),
+            label: 'Start date',
+            controller: _startDate,
+            error: _errors['startDate'],
           ),
           _field(
-            key: ValueKey('shift-break-start-$index'),
-            label: 'Break ${index + 1} start time',
-            controller: _breaks[index].start,
+            key: const ValueKey('shift-start-time'),
+            label: 'Start time',
+            controller: _startTime,
+            error: _errors['startTime'],
           ),
           _field(
-            key: ValueKey('shift-break-end-date-$index'),
-            label: 'Break ${index + 1} end date',
-            controller: _breaks[index].endDate,
+            key: const ValueKey('shift-end-date'),
+            label: 'End date',
+            controller: _endDate,
+            error: _errors['endDate'],
           ),
           _field(
-            key: ValueKey('shift-break-end-$index'),
-            label: 'Break ${index + 1} end time',
-            controller: _breaks[index].end,
+            key: const ValueKey('shift-end-time'),
+            label: 'End time',
+            controller: _endTime,
+            error: _errors['endTime'],
           ),
-        ],
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            onPressed: _addBreak,
-            child: const Text('Add break'),
+          _field(
+            key: const ValueKey('shift-timezone'),
+            label: 'Timezone',
+            controller: _timezone,
+            error: _errors['timezone'],
           ),
-        ),
-        _field(
-          key: const ValueKey('shift-note'),
-          label: 'Shift note',
-          controller: _note,
-          maxLines: 3,
-        ),
+        ]),
+        _group(context, 'Breaks', [
+          for (var index = 0; index < _breaks.length; index++) ...[
+            _field(
+              key: ValueKey('shift-break-start-date-$index'),
+              label: 'Break ${index + 1} start date',
+              controller: _breaks[index].startDate,
+              error: _errors['break-$index'],
+            ),
+            _field(
+              key: ValueKey('shift-break-start-$index'),
+              label: 'Break ${index + 1} start time',
+              controller: _breaks[index].start,
+            ),
+            _field(
+              key: ValueKey('shift-break-end-date-$index'),
+              label: 'Break ${index + 1} end date',
+              controller: _breaks[index].endDate,
+            ),
+            _field(
+              key: ValueKey('shift-break-end-$index'),
+              label: 'Break ${index + 1} end time',
+              controller: _breaks[index].end,
+            ),
+          ],
+          Align(
+            alignment: Alignment.centerLeft,
+            child: KeyButton(
+              label: 'Add break',
+              kind: KeyKind.small,
+              onPressed: _addBreak,
+            ),
+          ),
+        ]),
+        _group(context, 'Note', [
+          _field(
+            key: const ValueKey('shift-note'),
+            label: 'Shift note',
+            controller: _note,
+            maxLines: 3,
+          ),
+        ]),
         if (_errors['shift'] case final error?) ...[
           Text(
             error,
@@ -491,15 +498,30 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
           ),
           const SizedBox(height: 8),
         ],
-        FilledButton(
-          key: const ValueKey('save-manual-shift'),
-          onPressed: _submit,
-          child: const Text('Save manual shift'),
+        FormFooter(
+          children: [
+            FilledButton(
+              key: const ValueKey('save-manual-shift'),
+              onPressed: _submit,
+              child: const Text('Save manual shift'),
+            ),
+          ],
         ),
       ],
     ),
   );
 }
+
+/// A form group box on the face colour.
+Widget _group(BuildContext context, String legend, List<Widget> children) =>
+    GroupBox(
+      legend: legend,
+      background: LifeOSSkinScope.of(context).tokens.chrome,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
 
 final class ValidationFailureInspector extends StatelessWidget {
   const ValidationFailureInspector({

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
+import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/inspector_parts.dart';
+import '../../../shared/workbench/lifeos_skin.dart';
+import '../../../shared/workbench/office_controls.dart';
 import '../application/work_commands.dart';
 import '../domain/agreement.dart';
 import '../domain/employment.dart';
@@ -111,36 +115,34 @@ final class _EmploymentFormState extends State<EmploymentForm> {
       label: editing ? 'Edit employment' : 'Create employment',
       child: Form(
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: inspectorInset,
           children: [
-            Text(
-              editing ? 'Edit employment' : 'Employment details',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 16),
-            _Field(
-              controller: _name,
-              label: 'Name',
-              fieldKey: const ValueKey('employment-name'),
-              error: _nameError,
-              hint: 'What you call this job, e.g. Warehouse',
-              autofocus: true,
-            ),
-            const SizedBox(height: 12),
-            _Field(
-              controller: _legalLabel,
-              label: 'Legal name (optional)',
-              fieldKey: const ValueKey('employment-legal-name'),
-              hint: 'Employer name as it appears on payslips',
-            ),
-            if (_formError case final error?) ...[
+            InspectorTitle(editing ? 'Edit employment' : 'Employment details'),
+            _group(context, 'Employment', [
+              _Field(
+                controller: _name,
+                label: 'Name',
+                fieldKey: const ValueKey('employment-name'),
+                error: _nameError,
+                hint: 'What you call this job, e.g. Warehouse',
+                autofocus: true,
+              ),
               const SizedBox(height: 12),
-              _ErrorText(error),
-            ],
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: _submitting ? null : _submit,
-              child: const Text('Save employment'),
+              _Field(
+                controller: _legalLabel,
+                label: 'Legal name (optional)',
+                fieldKey: const ValueKey('employment-legal-name'),
+                hint: 'Employer name as it appears on payslips',
+              ),
+            ]),
+            if (_formError case final error?) _ErrorText(error),
+            FormFooter(
+              children: [
+                FilledButton(
+                  onPressed: _submitting ? null : _submit,
+                  child: const Text('Save employment'),
+                ),
+              ],
             ),
           ],
         ),
@@ -339,7 +341,6 @@ final class _AgreementFormState extends State<AgreementForm> {
   @override
   Widget build(BuildContext context) {
     final editing = widget.initial != null;
-    final text = Theme.of(context).textTheme;
     return Semantics(
       container: true,
       explicitChildNodes: true,
@@ -350,163 +351,187 @@ final class _AgreementFormState extends State<AgreementForm> {
         type: MaterialType.transparency,
         child: Form(
           child: ListView(
-            padding: const EdgeInsets.all(20),
+            padding: inspectorInset,
             children: [
-              Text(
-                editing ? 'Edit agreement' : 'Pay agreement',
-                style: text.headlineSmall,
-              ),
-              const SizedBox(height: 6),
-              const Text(
+              InspectorTitle(editing ? 'Edit agreement' : 'Pay agreement'),
+              const InspectorText(
                 'Defaults follow the Lithuanian Labour Code minimums. They are '
                 'defaults, not legal advice.',
               ),
-              const SizedBox(height: 16),
-              _Field(
-                controller: _effectiveStart,
-                label: 'Starts on',
-                fieldKey: const ValueKey('agreement-effective-start'),
-                error: _errors['effectiveStart'],
-                hint: 'YYYY-MM-DD',
-              ),
-              const SizedBox(height: 12),
-              _Field(
-                controller: _effectiveEnd,
-                label: 'Ends on (optional)',
-                fieldKey: const ValueKey('agreement-effective-end'),
-                error: _errors['effectiveEnd'],
-                hint: 'YYYY-MM-DD',
-              ),
-              const SizedBox(height: 12),
-              _Field(
-                controller: _hourlyRate,
-                label: 'Hourly rate (€)',
-                fieldKey: const ValueKey('agreement-hourly-rate'),
-                semanticLabel: 'Hourly rate',
-                error: _errors['hourlyRate'],
-                autofocus: !editing,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+              const SizedBox(height: 4),
+              _group(context, 'Rate', [
+                _Field(
+                  controller: _effectiveStart,
+                  label: 'Starts on',
+                  fieldKey: const ValueKey('agreement-effective-start'),
+                  error: _errors['effectiveStart'],
+                  hint: 'YYYY-MM-DD',
                 ),
-              ),
-              const SizedBox(height: 12),
-              SegmentedButton<RateBasis>(
-                segments: const [
-                  ButtonSegment(value: GrossBasis(), label: Text('Gross')),
-                  ButtonSegment(value: NetBasis(), label: Text('Net')),
-                ],
-                selected: {_basis},
-                onSelectionChanged: (values) =>
-                    setState(() => _basis = values.single),
-              ),
-              const SizedBox(height: 20),
-              Text('Overtime', style: text.titleMedium),
-              const SizedBox(height: 8),
-              _Sentence(
-                children: [
-                  const Text('after'),
-                  _Short(
-                    controller: _overtimeHours,
-                    fieldKey: const ValueKey('agreement-overtime-hours'),
-                    semanticLabel: 'Overtime after hours',
-                    error: _errors['overtimeHours'],
+                const SizedBox(height: 12),
+                _Field(
+                  controller: _effectiveEnd,
+                  label: 'Ends on (optional)',
+                  fieldKey: const ValueKey('agreement-effective-end'),
+                  error: _errors['effectiveEnd'],
+                  hint: 'YYYY-MM-DD',
+                ),
+                const SizedBox(height: 12),
+                _Field(
+                  controller: _hourlyRate,
+                  label: 'Hourly rate (€)',
+                  fieldKey: const ValueKey('agreement-hourly-rate'),
+                  semanticLabel: 'Hourly rate',
+                  error: _errors['hourlyRate'],
+                  autofocus: !editing,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
-                  const Text('hours per shift,'),
-                  _Short(
-                    prefix: '×',
-                    controller: _overtimeMultiplier,
-                    fieldKey: const ValueKey('agreement-overtime-multiplier'),
-                    semanticLabel: 'Overtime multiplier',
-                    error: _errors['overtimeMultiplier'],
+                ),
+                const SizedBox(height: 8),
+                RadioGroup<RateBasis>(
+                  groupValue: _basis,
+                  onChanged: (value) {
+                    if (value != null) setState(() => _basis = value);
+                  },
+                  child: Wrap(
+                    children: [
+                      for (final (value, label) in const [
+                        (GrossBasis(), 'Gross'),
+                        (NetBasis(), 'Net'),
+                      ])
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => setState(() => _basis = value),
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Radio<RateBasis>(value: value),
+                                Text(label),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SwitchListTile(
-                key: const ValueKey('agreement-night-enabled'),
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Night pay'),
-                value: _nightEnabled,
-                onChanged: (value) => setState(() => _nightEnabled = value),
-              ),
-              _Sentence(
-                enabled: _nightEnabled,
-                children: [
-                  _Short(
-                    controller: _nightStart,
-                    fieldKey: const ValueKey('agreement-night-start'),
-                    width: 88,
-                    semanticLabel: 'Night pay starts',
-                    error: _errors['nightStart'],
-                    enabled: _nightEnabled,
-                  ),
-                  const Text('to'),
-                  _Short(
-                    controller: _nightEnd,
-                    fieldKey: const ValueKey('agreement-night-end'),
-                    width: 88,
-                    semanticLabel: 'Night pay ends',
-                    error: _errors['nightEnd'],
-                    enabled: _nightEnabled,
-                  ),
-                  _Short(
-                    prefix: '×',
-                    controller: _nightMultiplier,
-                    fieldKey: const ValueKey('agreement-night-multiplier'),
-                    semanticLabel: 'Night multiplier',
-                    error: _errors['nightMultiplier'],
-                    enabled: _nightEnabled,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                key: const ValueKey('agreement-holidays-enabled'),
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Public holidays (Lithuania)'),
-                value: _holidays,
-                onChanged: (value) => setState(() => _holidays = value),
-              ),
-              _Sentence(
-                enabled: _holidays,
-                children: [
-                  _Short(
-                    prefix: '×',
-                    controller: _holidayMultiplier,
-                    fieldKey: const ValueKey('agreement-holiday-multiplier'),
-                    semanticLabel: 'Holiday multiplier',
-                    error: _errors['holidayMultiplier'],
-                    enabled: _holidays,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text('When several apply', style: text.titleMedium),
-              RadioGroup<PremiumStacking>(
-                groupValue: _stacking,
-                onChanged: (value) {
-                  if (value != null) setState(() => _stacking = value);
-                },
-                child: const Column(
+                ),
+              ]),
+              _group(context, 'Overtime', [
+                _Sentence(
                   children: [
-                    _StackingOption(
-                      value: PremiumStacking.highest,
-                      title: 'Highest wins',
-                      example: 'A night hour on a holiday pays ×2.',
+                    const Text('after'),
+                    _Short(
+                      controller: _overtimeHours,
+                      fieldKey: const ValueKey('agreement-overtime-hours'),
+                      semanticLabel: 'Overtime after hours',
+                      error: _errors['overtimeHours'],
                     ),
-                    _StackingOption(
-                      value: PremiumStacking.additive,
-                      title: 'Add the extras',
-                      example: 'A night hour on a holiday pays ×2.5.',
-                    ),
-                    _StackingOption(
-                      value: PremiumStacking.multiplicative,
-                      title: 'Multiply',
-                      example: 'A night hour on a holiday pays ×3.',
+                    const Text('hours per shift,'),
+                    _Short(
+                      prefix: '×',
+                      controller: _overtimeMultiplier,
+                      fieldKey: const ValueKey('agreement-overtime-multiplier'),
+                      semanticLabel: 'Overtime multiplier',
+                      error: _errors['overtimeMultiplier'],
                     ),
                   ],
                 ),
-              ),
+              ]),
+              _group(context, 'Night', [
+                CheckboxListTile(
+                  key: const ValueKey('agreement-night-enabled'),
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text('Night pay'),
+                  value: _nightEnabled,
+                  onChanged: (value) =>
+                      setState(() => _nightEnabled = value ?? false),
+                ),
+                _Sentence(
+                  enabled: _nightEnabled,
+                  children: [
+                    _Short(
+                      controller: _nightStart,
+                      fieldKey: const ValueKey('agreement-night-start'),
+                      width: 88,
+                      semanticLabel: 'Night pay starts',
+                      error: _errors['nightStart'],
+                      enabled: _nightEnabled,
+                    ),
+                    const Text('to'),
+                    _Short(
+                      controller: _nightEnd,
+                      fieldKey: const ValueKey('agreement-night-end'),
+                      width: 88,
+                      semanticLabel: 'Night pay ends',
+                      error: _errors['nightEnd'],
+                      enabled: _nightEnabled,
+                    ),
+                    _Short(
+                      prefix: '×',
+                      controller: _nightMultiplier,
+                      fieldKey: const ValueKey('agreement-night-multiplier'),
+                      semanticLabel: 'Night multiplier',
+                      error: _errors['nightMultiplier'],
+                      enabled: _nightEnabled,
+                    ),
+                  ],
+                ),
+              ]),
+              _group(context, 'Holidays', [
+                CheckboxListTile(
+                  key: const ValueKey('agreement-holidays-enabled'),
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text('Public holidays (Lithuania)'),
+                  value: _holidays,
+                  onChanged: (value) =>
+                      setState(() => _holidays = value ?? false),
+                ),
+                _Sentence(
+                  enabled: _holidays,
+                  children: [
+                    _Short(
+                      prefix: '×',
+                      controller: _holidayMultiplier,
+                      fieldKey: const ValueKey('agreement-holiday-multiplier'),
+                      semanticLabel: 'Holiday multiplier',
+                      error: _errors['holidayMultiplier'],
+                      enabled: _holidays,
+                    ),
+                  ],
+                ),
+              ]),
+              _group(context, 'When several apply', [
+                RadioGroup<PremiumStacking>(
+                  groupValue: _stacking,
+                  onChanged: (value) {
+                    if (value != null) setState(() => _stacking = value);
+                  },
+                  child: const Column(
+                    children: [
+                      _StackingOption(
+                        value: PremiumStacking.highest,
+                        title: 'Highest wins',
+                        example: 'A night hour on a holiday pays ×2.',
+                      ),
+                      _StackingOption(
+                        value: PremiumStacking.additive,
+                        title: 'Add the extras',
+                        example: 'A night hour on a holiday pays ×2.5.',
+                      ),
+                      _StackingOption(
+                        value: PremiumStacking.multiplicative,
+                        title: 'Multiply',
+                        example: 'A night hour on a holiday pays ×3.',
+                      ),
+                    ],
+                  ),
+                ),
+              ]),
               ExpansionTile(
                 key: const ValueKey('agreement-more'),
                 tilePadding: EdgeInsets.zero,
@@ -520,15 +545,15 @@ final class _AgreementFormState extends State<AgreementForm> {
                   const SizedBox(height: 8),
                 ],
               ),
-              if (_formError case final error?) ...[
-                const SizedBox(height: 12),
-                _ErrorText(error),
-              ],
-              const SizedBox(height: 20),
-              FilledButton(
-                key: const ValueKey('save-agreement'),
-                onPressed: _submitting ? null : _submit,
-                child: const Text('Save agreement'),
+              if (_formError case final error?) _ErrorText(error),
+              FormFooter(
+                children: [
+                  FilledButton(
+                    key: const ValueKey('save-agreement'),
+                    onPressed: _submitting ? null : _submit,
+                    child: const Text('Save agreement'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -560,60 +585,52 @@ final class AgreementView extends StatelessWidget {
       container: true,
       explicitChildNodes: true,
       label: 'Agreement',
-      child: ListView(
-        padding: const EdgeInsets.all(20),
+      child: InspectorPane(
         children: [
-          Text(
-            a.label ?? 'Agreement v${a.version}',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 12),
-          _Fact('Starts on', a.effectiveStart.toString()),
-          if (a.effectiveEnd case final end?) _Fact('Ends on', end.toString()),
-          _Fact(
-            'Hourly rate',
-            '${formatHourlyRate(a.hourlyRateMicroEur)} '
-                '${a.basis is GrossBasis ? 'gross' : 'net'}',
-          ),
-          _Fact(
-            'Overtime',
-            'after ${formatHours(a.overtimeThresholdMinutes)} h, '
-                '×${formatMultiplier(a.overtimeMultiplier)}',
-          ),
-          _Fact(
-            'Night pay',
-            a.nightEnabled
-                ? '${formatClock(a.nightStartMinute)} to '
-                      '${formatClock(a.nightEndMinute)}, '
-                      '×${formatMultiplier(a.nightMultiplier)}'
-                : 'Off',
-          ),
-          _Fact(
-            'Public holidays',
-            holidays
-                ? 'Lithuania, ×${formatMultiplier(a.holidayMultiplier)}'
-                : 'Off',
-          ),
-          _Fact('When several apply', switch (a.premiumStacking) {
-            PremiumStacking.highest => 'Highest wins',
-            PremiumStacking.additive => 'Add the extras',
-            PremiumStacking.multiplicative => 'Multiply',
-          }),
-          if (a.note case final note?) _Fact('Note', note),
-          const SizedBox(height: 8),
+          InspectorTitle(a.label ?? 'Agreement v${a.version}'),
+          InspectorFacts(legend: 'Terms', [
+            Fact('Starts on', a.effectiveStart.toString()),
+            if (a.effectiveEnd case final end?) Fact('Ends on', end.toString()),
+            Fact(
+              'Hourly rate',
+              '${formatHourlyRate(a.hourlyRateMicroEur)} '
+                  '${a.basis is GrossBasis ? 'gross' : 'net'}',
+            ),
+            Fact(
+              'Overtime',
+              'after ${formatHours(a.overtimeThresholdMinutes)} h, '
+                  '×${formatMultiplier(a.overtimeMultiplier)}',
+            ),
+            Fact(
+              'Night pay',
+              a.nightEnabled
+                  ? '${formatClock(a.nightStartMinute)} to '
+                        '${formatClock(a.nightEndMinute)}, '
+                        '×${formatMultiplier(a.nightMultiplier)}'
+                  : 'Off',
+            ),
+            Fact(
+              'Public holidays',
+              holidays
+                  ? 'Lithuania, ×${formatMultiplier(a.holidayMultiplier)}'
+                  : 'Off',
+            ),
+            Fact.words('When several apply', switch (a.premiumStacking) {
+              PremiumStacking.highest => 'Highest wins',
+              PremiumStacking.additive => 'Add the extras',
+              PremiumStacking.multiplicative => 'Multiply',
+            }),
+            if (a.note case final note?) Fact.words('Note', note),
+          ]),
           if (finishedShifts > 0)
-            Text(
+            InspectorNote(
               'Used by $finishedShifts finished '
               '${finishedShifts == 1 ? 'shift' : 'shifts'}. '
               'New versions arrive in a later update.',
             )
           else if (onEdit != null)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton(
-                onPressed: onEdit,
-                child: const Text('Edit agreement'),
-              ),
+            InspectorActions(
+              children: [KeyButton(label: 'Edit agreement', onPressed: onEdit)],
             ),
         ],
       ),
@@ -672,40 +689,33 @@ final class _EmploymentHeaderState extends State<EmploymentHeader> {
   @override
   Widget build(BuildContext context) {
     final employment = widget.employment;
-    final text = Theme.of(context).textTheme;
     if (_confirming) {
       return Semantics(
         container: true,
         explicitChildNodes: true,
         label: 'Confirm delete',
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Delete ${employment.name}? Its unused agreement is removed '
-                "too. This can't be undone.",
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                children: [
-                  OutlinedButton(
-                    onPressed: _deleting
-                        ? null
-                        : () => setState(() => _confirming = false),
-                    child: const Text('Cancel'),
-                  ),
-                  FilledButton(
-                    key: const ValueKey('confirm-delete-employment'),
-                    onPressed: _deleting ? null : _delete,
-                    child: const Text('Delete'),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        child: InspectorPane(
+          children: [
+            InspectorText(
+              'Delete ${employment.name}? Its unused agreement is removed '
+              "too. This can't be undone.",
+            ),
+            FormFooter(
+              children: [
+                KeyButton(
+                  label: 'Cancel',
+                  onPressed: _deleting
+                      ? null
+                      : () => setState(() => _confirming = false),
+                ),
+                FilledButton(
+                  key: const ValueKey('confirm-delete-employment'),
+                  onPressed: _deleting ? null : _delete,
+                  child: const Text('Delete'),
+                ),
+              ],
+            ),
+          ],
         ),
       );
     }
@@ -713,53 +723,37 @@ final class _EmploymentHeaderState extends State<EmploymentHeader> {
       container: true,
       explicitChildNodes: true,
       label: 'Employment',
-      child: ListView(
-        padding: const EdgeInsets.all(20),
+      child: InspectorPane(
         children: [
-          Text(employment.name, style: text.headlineSmall),
-          if (employment.legalLabel case final legal?) ...[
-            const SizedBox(height: 4),
-            Text(legal),
-          ],
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          InspectorTitle(employment.name, meta: employment.legalLabel),
+          InspectorActions(
             children: [
-              OutlinedButton(
-                onPressed: widget.onEdit,
-                child: const Text('Edit'),
-              ),
+              KeyButton(label: 'Edit', onPressed: widget.onEdit),
               if (!widget.agreementInUse && widget.onEditAgreement != null)
-                OutlinedButton(
+                KeyButton(
+                  label: 'Edit agreement',
                   onPressed: widget.onEditAgreement,
-                  child: const Text('Edit agreement'),
                 ),
               if (widget.agreementInUse && widget.onViewAgreement != null)
-                OutlinedButton(
+                KeyButton(
+                  label: 'View agreement',
                   onPressed: widget.onViewAgreement,
-                  child: const Text('View agreement'),
                 ),
               if (widget.canDelete)
-                OutlinedButton(
+                KeyButton(
+                  label: 'Delete',
                   onPressed: () => setState(() {
                     _confirming = true;
                     _error = null;
                   }),
-                  child: const Text('Delete'),
                 ),
             ],
           ),
-          if (!widget.canDelete) ...[
-            const SizedBox(height: 12),
-            const Text(
+          if (!widget.canDelete)
+            const InspectorNote(
               'Has work history — archiving arrives in a later update.',
             ),
-          ],
-          if (_error case final error?) ...[
-            const SizedBox(height: 12),
-            _ErrorText(error),
-          ],
+          if (_error case final error?) _ErrorText(error),
         ],
       ),
     );
@@ -840,7 +834,6 @@ final class _Short extends StatelessWidget {
           prefixText: prefix,
           errorText: error,
           errorMaxLines: 2,
-          border: const OutlineInputBorder(),
         ),
       ),
     ),
@@ -887,33 +880,10 @@ final class _Field extends StatelessWidget {
           labelText: label,
           hintText: hint,
           errorText: error,
-          border: const OutlineInputBorder(),
         ),
       ),
     );
   }
-}
-
-final class _Fact extends StatelessWidget {
-  const _Fact(this.label, this.value);
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 150,
-          child: Text(label, style: Theme.of(context).textTheme.labelLarge),
-        ),
-        Expanded(child: Text(value)),
-      ],
-    ),
-  );
 }
 
 final class _ErrorText extends StatelessWidget {
@@ -1010,3 +980,14 @@ int? _parseEurMicros(String value) {
   final fraction = (match.group(2) ?? '').padRight(6, '0');
   return major * 1000000 + int.parse(fraction);
 }
+
+/// A form group box on the face colour.
+Widget _group(BuildContext context, String legend, List<Widget> children) =>
+    GroupBox(
+      legend: legend,
+      background: LifeOSSkinScope.of(context).tokens.chrome,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );

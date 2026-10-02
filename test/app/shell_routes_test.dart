@@ -36,7 +36,6 @@ void main() {
       'Menu bar',
       'Toolbar',
       'Address',
-      'Formula bar',
       'Task pane',
       'Desk workspace',
       'Status line',
