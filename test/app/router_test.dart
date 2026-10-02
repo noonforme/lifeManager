@@ -749,7 +749,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Record payslip'));
+    await tester.tap(
+      find.descendant(
+        of: find.bySemanticsLabel('Record inspector'),
+        matching: find.text('Record payslip'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('payslip-issued-date')),

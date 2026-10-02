@@ -5,6 +5,7 @@ import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/shell/shell_frame.dart';
+import '../../../shared/shell/task_pane.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../application/work_templates.dart';
 import '../data/projections/work_record_projection.dart';
@@ -221,11 +222,58 @@ final class _WorkScreenState extends State<WorkScreen> {
             _creatingPeriod ||
             _payslipPeriod != null) &&
         !_showRegister;
+    final register = ready is WorkReady ? ready.register : null;
+    final route = ready is WorkReady ? ready.route : null;
+    final employmentId = route?.employmentId;
     return ShellFrame(
       desk: _RegisterLandmark(child: _register(ready)),
       inspector: _inspector(ready),
       inspectorOpen: inspectorActive,
       onBackToList: () => setState(() => _showRegister = true),
+      tasks: [
+        if (employmentId != null && route != null)
+          TaskGroup(
+            title: 'Work tasks',
+            special: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TaskLink(
+                  label: 'Add a shift',
+                  onPressed: widget.onPrimaryAction,
+                ),
+                TaskLink(
+                  label: 'New pay period',
+                  onPressed: widget.onCreatePayPeriod == null
+                      ? null
+                      : () => setState(() {
+                          _creatingPeriod = true;
+                          _showRegister = false;
+                        }),
+                ),
+                TaskLink(
+                  label: 'Record payslip',
+                  onPressed:
+                      widget.onRecordPayslip == null || register?.period == null
+                      ? null
+                      : () => setState(() {
+                          _payslipPeriod = register!.period!.id;
+                          _showRegister = false;
+                        }),
+                ),
+                TaskLink(
+                  label: 'Save this view…',
+                  onPressed: widget.onSaveView == null
+                      ? null
+                      : () => widget.onSaveView!(route),
+                ),
+              ],
+            ),
+          ),
+      ],
+      details: register == null || register.employment == null
+          ? null
+          : WorkDetails(projection: register),
     );
   }
 
@@ -253,7 +301,6 @@ final class _WorkScreenState extends State<WorkScreen> {
       WorkReady(:final register, :final route) => WorkRegister(
         projection: register,
         selectedRecord: route.record,
-        onSaveView: widget.onSaveView,
         onSelect: widget.onSelect,
         onPrimaryAction: widget.onPrimaryAction,
         onOpenEmployment: (id) => widget.onNavigate(

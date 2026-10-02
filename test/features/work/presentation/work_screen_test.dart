@@ -18,6 +18,8 @@ import 'package:lifeos/shared/workbench/inspector_parts.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
+import '../../../support/work_sheets.dart';
+
 void main() {
   Future<void> pumpScreen(
     WidgetTester tester,
@@ -60,6 +62,32 @@ void main() {
     ),
     inspector: inspector,
   );
+
+  testWidgets('Work tasks live in the task pane, sheets in the View combo', (
+    tester,
+  ) async {
+    final opened = <String>[];
+    await pumpScreen(tester, AsyncData(setupState()), onNavigate: opened.add);
+    final pane = find.bySemanticsLabel('Task pane');
+    for (final task in [
+      'Add a shift',
+      'New pay period',
+      'Record payslip',
+      'Save this view…',
+    ]) {
+      expect(
+        find.descendant(of: pane, matching: find.text(task)),
+        findsOneWidget,
+        reason: task,
+      );
+    }
+    expect(
+      find.descendant(of: pane, matching: find.text('Warehouse')),
+      findsWidgets,
+    );
+    await chooseSheet(tester, 'Pay periods');
+    expect(opened.single, contains('sheet=periods'));
+  });
 
   group('employment setup', () {
     testWidgets('a selected employment shows its header', (tester) async {

@@ -76,7 +76,12 @@ void main() {
     expect(_summary('Expected under recorded agreement'), 'EUR 160.00');
 
     // Payslip and reconciliation.
-    await tester.tap(find.text('Record payslip'));
+    await tester.tap(
+      find.descendant(
+        of: find.bySemanticsLabel('Record inspector'),
+        matching: find.text('Record payslip'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('payslip-issued-date')),
@@ -335,9 +340,16 @@ void main() {
 }
 
 /// The value text beside a register summary label.
+/// The value beside [label] in the Work Details group of the task pane.
 String _summary(String label) {
   final row = find
-      .ancestor(of: find.text(label), matching: find.byType(Row))
+      .ancestor(
+        of: find.descendant(
+          of: find.bySemanticsLabel('Task pane'),
+          matching: find.text(label),
+        ),
+        matching: find.byType(Row),
+      )
       .first;
   final texts = find
       .descendant(of: row, matching: find.byType(Text))

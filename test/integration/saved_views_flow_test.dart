@@ -69,7 +69,7 @@ void main() {
     await tester.pumpAndSettle();
     String location() => router.routeInformationProvider.value.uri.toString();
 
-    await tester.tap(find.text('Save view'));
+    await tester.tap(find.text('Save this view…'));
     await tester.pumpAndSettle();
     expect(
       tester

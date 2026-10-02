@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/time/local_date.dart';
+import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/era_dialog.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
@@ -343,26 +344,16 @@ final class _MenuFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
-    final style = skin.typography.body.copyWith(color: skin.tokens.ink);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: skin.tokens.muted),
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label, style: style),
-            if (detail case final detail?) ...[
-              Text(': ', style: style),
-              Text(detail, style: style),
-            ],
-            Icon(Icons.arrow_drop_down, size: 18, color: skin.tokens.ink),
-          ],
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$label:',
+          style: skin.typography.body.copyWith(color: skin.tokens.ink),
         ),
-      ),
+        const SizedBox(width: 4),
+        EraComboFace(value: detail ?? 'All'),
+      ],
     );
   }
 }
@@ -376,4 +367,31 @@ int _days(LocalDate start, LocalDate end) => DateTime.utc(
 LocalDate _addDays(LocalDate date, int days) {
   final value = DateTime.utc(date.year, date.month, date.day + days);
   return LocalDate(value.year, value.month, value.day);
+}
+
+/// The sheet shown in the list (spec 5.3 "View:").
+final class SheetPicker extends StatelessWidget {
+  const SheetPicker({required this.sheet, required this.onSheet, super.key});
+
+  final WorkSheet sheet;
+  final ValueChanged<WorkSheet> onSheet;
+
+  static const labels = {
+    WorkSheet.shifts: 'Shifts',
+    WorkSheet.periods: 'Pay periods',
+    WorkSheet.payslips: 'Payslips',
+    WorkSheet.agreements: 'Agreements',
+  };
+
+  @override
+  Widget build(BuildContext context) => PopupMenuButton<WorkSheet>(
+    key: const ValueKey('work-view-combo'),
+    tooltip: 'Choose what the list shows',
+    onSelected: onSheet,
+    itemBuilder: (context) => [
+      for (final MapEntry(key: value, value: label) in labels.entries)
+        PopupMenuItem(height: menuRowHeight, value: value, child: Text(label)),
+    ],
+    child: _MenuFace(label: 'View', detail: labels[sheet]),
+  );
 }

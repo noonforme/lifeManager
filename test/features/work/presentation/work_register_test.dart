@@ -16,6 +16,8 @@ import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
+import '../../../support/work_sheets.dart';
+
 void main() {
   testWidgets('empty register gives a first-run employment action', (
     tester,
@@ -75,13 +77,13 @@ void main() {
     );
 
     Future<void> choose(String label) async {
-      await tester.tap(find.text('Employment'));
+      await tester.tap(find.text('Employment:'));
       await tester.pumpAndSettle();
       await tester.tap(find.text(label).last);
       await tester.pumpAndSettle();
     }
 
-    await tester.tap(find.text('Employment'));
+    await tester.tap(find.text('Employment:'));
     await tester.pumpAndSettle();
     final current = find.ancestor(
       of: find.text('Warehouse').last,
@@ -128,12 +130,10 @@ void main() {
     expect(selected.single.id, _shiftId);
   });
 
-  testWidgets('summary labels expected and paid evidence truthfully', (
+  testWidgets('Details labels expected and paid evidence truthfully', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      _TestWorkRegister(projection: _reconciliationProjection()),
-    );
+    await tester.pumpWidget(_TestDetails(_reconciliationProjection()));
 
     expect(find.text('Expected under recorded agreement'), findsOneWidget);
     expect(find.text('Paid evidence'), findsOneWidget);
@@ -144,12 +144,10 @@ void main() {
     );
   });
 
-  testWidgets('summary never combines gross and net differences', (
+  testWidgets('Details never combines gross and net differences', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      _TestWorkRegister(projection: _mixedBasisProjection()),
-    );
+    await tester.pumpWidget(_TestDetails(_mixedBasisProjection()));
 
     expect(find.text('Gross · EUR'), findsOneWidget);
     expect(find.text('Net · EUR'), findsOneWidget);
@@ -246,7 +244,7 @@ void main() {
       );
       expect(find.text('Void'), findsNothing);
 
-      await tester.tap(find.text('Status'));
+      await tester.tap(find.text('Status:'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Include void'));
       await tester.pumpAndSettle();
@@ -267,8 +265,8 @@ void main() {
           onRoute: routes.add,
         ),
       );
-      await tester.tap(find.text('Pay periods'));
-      await tester.tap(find.text('Agreements'));
+      await chooseSheet(tester, 'Pay periods');
+      await chooseSheet(tester, 'Agreements');
       expect(routes.map((value) => value.sheet), [
         WorkSheet.periods,
         WorkSheet.agreements,
@@ -331,7 +329,7 @@ void main() {
           onRoute: routes.add,
         ),
       );
-      await tester.tap(find.text('Period'));
+      await tester.tap(find.text('Period:'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Date range…'));
       await tester.pumpAndSettle();
@@ -362,7 +360,7 @@ void main() {
     });
   });
 
-  testWidgets('two-times text scale keeps all toolbar controls reachable', (
+  testWidgets('two-times text scale keeps all filter controls reachable', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -372,14 +370,11 @@ void main() {
       _TestWorkRegister(projection: _projection(), textScale: 2),
     );
 
-    for (final label in ['Employment', 'Period', 'Status']) {
+    for (final label in ['View:', 'Employment:', 'Period:', 'Status:']) {
       final control = find.text(label);
       expect(control, findsOneWidget);
       await tester.ensureVisible(control);
     }
-    final primaryAction = find.text('Add shift');
-    expect(primaryAction, findsOneWidget);
-    await tester.ensureVisible(primaryAction);
     expect(tester.takeException(), isNull);
   });
 }
@@ -600,3 +595,26 @@ const _periodId = PayPeriodId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c51');
 const _shiftId = ShiftId('00000000-0000-7000-8000-000000000001');
 const _otherShiftId = ShiftId('00000000-0000-7000-8000-000000000002');
 const _agreementId = AgreementId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21');
+
+/// The Work Details group on its own, as the task pane shows it.
+final class _TestDetails extends StatelessWidget {
+  const _TestDetails(this.projection);
+
+  final WorkRegisterProjection projection;
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+    theme: buildLifeOSTheme(),
+    home: LifeOSSkinScope(
+      child: Scaffold(
+        // The task pane scrolls; so does this stand-in.
+        body: SingleChildScrollView(
+          child: SizedBox(
+            width: 176,
+            child: WorkDetails(projection: projection),
+          ),
+        ),
+      ),
+    ),
+  );
+}
