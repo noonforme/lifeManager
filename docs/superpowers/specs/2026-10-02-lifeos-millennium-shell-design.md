@@ -100,8 +100,7 @@ scale and every layout holds at 200 %.
 Top to bottom:
 
 1. **Menu bar** (24 px): LifeOS, File, Edit, View, Desk, Record, Window,
-   Help. Menus are white with a blue highlighted item and a face-coloured
-   icon gutter. View has no Appearance submenu.
+   Help. Menus are white with a blue highlighted item. View has no Appearance submenu.
 2. **Toolbar** (38 px): **Back** and **Forward** keys with green orbs (grey
    when unavailable), a separator, **Add ▾** with an orange orb (opens quick
    add), a separator, then "From last time:" and up to four flat keys.
@@ -153,8 +152,10 @@ Top to bottom:
   group for the session.
 - **{Area} tasks** (special): the current surface's actions as links:
   Work: Add a shift, New pay period, Record payslip, Save this view….
-  Desk: Add a sheet to this desk, Change layout…, Rename desk….
-  Journal: Add an entry. Links are the same actions as today's keys.
+  Desk: New desk, Rename desk…, Reset desk, Delete desk (adding a sheet
+  and changing the layout stay in the desk's **Desk ▾** menu, which needs
+  a choice list). Journal has no tasks group. Links run the same actions
+  as today's keys.
 - **Books**: today's book tree inside the group: Today, Journal, Views, each
   area with its keycap, sheets indented with right-aligned live values,
   unbuilt areas "Not built yet". Selection is a bold, non-link row.
@@ -198,15 +199,15 @@ Top to bottom:
   figures in Figure. Notes in Small.
 - **Actions** at the foot as push buttons, the primary one as Default.
 - Forms (create, edit, correct) use the same page: group boxes of sunken
-  white fields with labels above, then **Save** (Default) and **Cancel**
-  bottom-right.
+  white fields with labels above. Each form keeps the actions it has
+  today, right-aligned in a footer, its primary action as Default.
 - **History** tab: one entry per event, newest first: event word in bold,
   time in Figure right-aligned, changes in Small.
 
 ### 5.6 Fields and choice controls
 
-- Text fields: white, 1 px field border, 2 px inner padding; focus adds a
-  1 px dotted ink rectangle inside the field.
+- Text fields: white, 1 px field border, 2 px inner padding; keyboard focus
+  turns the border Key-outline blue and shows the caret.
 - Checkboxes: 13 px white box with field border, green tick. Radios: 13 px
   circle, green dot. Segmented choices (Gross / Net) become radios.
 
@@ -228,8 +229,8 @@ A details list grouped by day with blue group rows. No property sheet.
 - In-app dialogs: blue gradient caption with the title and a red close key,
   face-coloured body, push buttons bottom-right. No shadow beyond a 1 px
   dark outline.
-- Menus and popups: white with a face-coloured left gutter, blue selected
-  row, 22 px rows, separators as etched lines.
+- Menus and popups: white, a 1 px grey outline, blue selected row with
+  white text, 24 px rows, separators as etched lines. No icon gutter.
 
 ### 5.10 States
 
@@ -251,9 +252,12 @@ list cell). Selection is a solid blue fill. They never look the same.
 
 - Every control keeps its semantics label, role and order; tests check the
   labels of the main regions and keys.
-- Text pairs meet 4.5:1, indicators and outlines 3:1, checked by the token
-  contrast test against the single palette (white on Head blue, white on
-  selection blue, link blue on the task-pane body, ink on face).
+- Text pairs meet 4.5:1; indicators, key outlines and focus meet 3:1,
+  checked by the token contrast test against the single palette (white on
+  Head blue, white on selection blue, link blue on the task-pane body, ink
+  on face). Two era colours stay below 3:1 by choice: the field outline
+  (#7f9db9), because fields are also marked by their white fill and label,
+  and the sorted-column amber, because the order is written as ▴ / ▾.
 - Targets are at least 24 × 24 (list rows are 20 px high but the row's hit
   area spans the full width and the keyboard reaches every row).
 - Layouts hold at 200 % text.
