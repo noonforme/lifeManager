@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../workbench/era_dialog.dart';
+import '../workbench/era_field.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/office_controls.dart';
 
@@ -45,11 +46,11 @@ final class _NameDialogState extends State<_NameDialog> {
   @override
   Widget build(BuildContext context) => EraDialog(
     title: widget.title,
-    body: TextField(
-      key: const ValueKey('name-field'),
+    body: EraField(
+      fieldKey: const ValueKey('name-field'),
       controller: _name,
+      label: 'Name',
       autofocus: true,
-      decoration: const InputDecoration(labelText: 'Name'),
       onSubmitted: (_) => _submit(),
     ),
     actions: [

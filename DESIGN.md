@@ -189,7 +189,7 @@ Depth comes from the era's bevels: vertical gradients on toolbars, keys, tabs, c
 - **Filter row and combos** (`EraComboFace`): "View:", "Employment:", "Period:", "Status:" beside white fields with a blue drop-arrow button.
 - **Details list** (`DataRegister`): bevelled headers with a sorted-column edge and arrow, blue group rows over a pale rule, 20 px rows, solid blue selection and a dotted cell cursor (white on a selected row).
 - **Property sheet** (`RecordTabs`, `inspector_parts.dart`): General | History tabs (`PropertySheetTabs`), a title, facts in group boxes (`GroupBox`), notes, and right-aligned keys (`FormFooter`). The **Working** group box (`WorkingGroupBox`) shows the selected cell's calculation with operand links.
-- **Forms:** group boxes of white fields on the face colour, radios and check boxes for choices, and their actions right-aligned with the primary one as the default key.
+- **Forms:** group boxes on the face colour holding labelled white fields (`EraField`: the label above the field, never on its border), radios and check boxes for choices, and their actions right-aligned with the primary one as the default key.
 - **Desks:** desk tabs plus a **+ Desk** tab, and tiles drawn as small windows with a blue caption bar (`CaptionBar`), keycap, drop-arrow menu and red close key.
 - **Dialogs** (`EraDialog`): blue caption with a red close key, face-coloured body, keys bottom-right.
 - **Information panel** (`OperationalState`): a painted ⓘ in a blue disc or ! in an amber triangle, a bold title and the message.

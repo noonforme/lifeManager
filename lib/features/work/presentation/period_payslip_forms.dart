@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_field.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
@@ -537,21 +538,14 @@ final class _Field extends StatelessWidget {
   final int maxLines;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: error == null ? label : '$label, $error',
-    textField: true,
-    excludeSemantics: true,
-    child: TextFormField(
-      key: fieldKey,
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        errorText: error,
-      ),
-    ),
+  Widget build(BuildContext context) => EraField(
+    controller: controller,
+    label: label,
+    fieldKey: fieldKey,
+    error: error,
+    hint: hint,
+    keyboardType: keyboardType,
+    maxLines: maxLines,
   );
 }
 

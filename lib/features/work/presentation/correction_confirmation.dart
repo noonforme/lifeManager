@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_field.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
@@ -79,21 +80,12 @@ final class _CorrectionConfirmationInspectorState<T>
         GroupBox(
           legend: 'Reason',
           background: LifeOSSkinScope.of(context).tokens.chrome,
-          child: Semantics(
-            label: _reasonError == null
-                ? 'Correction reason'
-                : 'Correction reason, $_reasonError',
-            textField: true,
-            excludeSemantics: true,
-            child: TextField(
-              key: const ValueKey('correction-reason'),
-              controller: _reason,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'Correction reason',
-                errorText: _reasonError,
-              ),
-            ),
+          child: EraField(
+            fieldKey: const ValueKey('correction-reason'),
+            controller: _reason,
+            label: 'Correction reason',
+            maxLines: 3,
+            error: _reasonError,
           ),
         ),
         FormFooter(

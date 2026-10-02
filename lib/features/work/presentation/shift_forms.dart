@@ -5,6 +5,7 @@ import '../../../core/time/local_date.dart';
 import '../../../core/time/local_time.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_field.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
@@ -585,17 +586,13 @@ Widget _field({
   String? error,
   int maxLines = 1,
 }) => Padding(
-  padding: const EdgeInsets.only(bottom: 12),
-  child: Semantics(
-    label: error == null ? label : '$label, $error',
-    textField: true,
-    excludeSemantics: true,
-    child: TextField(
-      key: key,
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(labelText: label, errorText: error),
-    ),
+  padding: const EdgeInsets.only(bottom: 10),
+  child: EraField(
+    fieldKey: key,
+    label: label,
+    controller: controller,
+    error: error,
+    maxLines: maxLines,
   ),
 );
 

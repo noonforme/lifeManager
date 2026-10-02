@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/time/local_date.dart';
 import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/era_dialog.dart';
+import '../../../shared/workbench/era_field.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../data/projections/work_register_projection.dart';
@@ -273,16 +274,19 @@ final class _RangeDialogState extends State<_RangeDialog> {
     body: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        TextField(
-          key: const ValueKey('range-from'),
+        EraField(
+          fieldKey: const ValueKey('range-from'),
           controller: _from,
-          decoration: const InputDecoration(labelText: 'From'),
+          label: 'From',
+          hint: 'YYYY-MM-DD',
         ),
         const SizedBox(height: 10),
-        TextField(
-          key: const ValueKey('range-to'),
+        EraField(
+          fieldKey: const ValueKey('range-to'),
           controller: _to,
-          decoration: InputDecoration(labelText: 'To', errorText: _error),
+          label: 'To',
+          hint: 'YYYY-MM-DD',
+          error: _error,
         ),
       ],
     ),
