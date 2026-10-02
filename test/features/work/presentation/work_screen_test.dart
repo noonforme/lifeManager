@@ -213,7 +213,7 @@ void main() {
   ) async {
     await pumpScreen(tester, const AsyncLoading());
 
-    expect(find.bySemanticsLabel('Books'), findsOneWidget);
+    expect(find.bySemanticsLabel('Task pane'), findsOneWidget);
     expect(find.text('Loading Work records'), findsOneWidget);
   });
 

@@ -225,7 +225,7 @@ final class _WorkScreenState extends State<WorkScreen> {
       desk: _RegisterLandmark(child: _register(ready)),
       inspector: _inspector(ready),
       inspectorOpen: inspectorActive,
-      onBackToDesk: () => setState(() => _showRegister = true),
+      onBackToList: () => setState(() => _showRegister = true),
     );
   }
 

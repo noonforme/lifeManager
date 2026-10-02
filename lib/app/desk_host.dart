@@ -67,7 +67,7 @@ final class DeskHost extends ConsumerWidget {
           desks.first;
       desk = _desk(context, ref, desks, selected);
     }
-    return ShellFrame(inspectorOpen: false, onBackToDesk: () {}, desk: desk);
+    return ShellFrame(inspectorOpen: false, onBackToList: () {}, desk: desk);
   }
 
   Widget _desk(

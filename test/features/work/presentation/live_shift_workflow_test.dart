@@ -486,7 +486,7 @@ final class _TestWorkbench extends StatelessWidget {
             ),
             inspector: inspector,
             inspectorOpen: true,
-            onBackToDesk: _noop,
+            onBackToList: _noop,
           ),
         ),
       ),

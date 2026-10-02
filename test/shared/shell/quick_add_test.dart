@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/shared/shell/address_bar.dart';
 import 'package:lifeos/shared/shell/quick_add.dart';
 import 'package:lifeos/shared/shell/shell_frame.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
@@ -30,7 +31,7 @@ void main() {
             menuBar: const SizedBox.shrink(),
             tree: (_) => const SizedBox.shrink(),
             status: const SizedBox.shrink(),
-            title: 'Work',
+            crumbs: const [AddressCrumb('Work', '/work')],
             onNavigate: (_) {},
             quickAdd: [
               entry('Start shift'),
@@ -47,7 +48,7 @@ void main() {
               desk: SizedBox.shrink(),
               inspector: SizedBox.shrink(),
               inspectorOpen: false,
-              onBackToDesk: _noop,
+              onBackToList: _noop,
             ),
           ),
         ),
@@ -59,7 +60,7 @@ void main() {
   testWidgets('+ Add lists the six Work record types', (tester) async {
     final opened = await pump(tester);
 
-    await tester.tap(find.text('+ Add'));
+    await tester.tap(find.byKey(const ValueKey('quick-add')));
     await tester.pumpAndSettle();
     for (final label in [
       'Start shift',
@@ -81,13 +82,13 @@ void main() {
   ) async {
     final opened = await pump(tester, hasEmployment: false);
 
-    await tester.tap(find.text('+ Add'));
+    await tester.tap(find.byKey(const ValueKey('quick-add')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Start shift'), warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(opened, isEmpty);
 
-    await tester.tap(find.text('+ Add'));
+    await tester.tap(find.byKey(const ValueKey('quick-add')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Employment'));
     await tester.pumpAndSettle();

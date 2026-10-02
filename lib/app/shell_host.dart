@@ -11,6 +11,7 @@ import '../features/work/domain/ids.dart';
 import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_route_state.dart';
 import '../features/work/presentation/work_views.dart';
+import '../shared/shell/address_bar.dart';
 import '../shared/shell/book_tree.dart';
 import '../shared/shell/menu_bar.dart';
 import '../shared/shell/name_dialog.dart';
@@ -180,9 +181,6 @@ final class ShellChromeHost extends ConsumerWidget {
       ),
       tree: (onOpened) => BookTree(
         nodes: nodes,
-        footer: const [
-          TreeSheet(label: 'Backup and export', route: '/system/files'),
-        ],
         selectedRoute: selected,
         onOpen: (route) {
           onOpened();
@@ -190,7 +188,7 @@ final class ShellChromeHost extends ConsumerWidget {
         },
       ),
       status: StatusLine(snapshot: StatusSnapshot(runningShift: running)),
-      title: _title(location.path, employmentName),
+      crumbs: _crumbs(location, employmentName),
       onNavigate: context.go,
       quickAdd: _quickAdd(context, employments, employmentId),
       fromLastTime: _fromLastTime(context, ref, employments, employmentId),
@@ -349,15 +347,38 @@ final class ShellChromeHost extends ConsumerWidget {
     ];
   }
 
-  static String _title(String path, String? employmentName) => switch (path) {
-    '/work' when employmentName != null => 'Work › $employmentName',
-    '/work' => 'Work',
-    '/journal' => 'Journal',
-    '/finance' => 'Finance',
-    '/tracking' => 'Tracking',
-    '/knowledge' => 'Knowledge',
-    '/system/files' => 'Backup and export',
-    '/today' => 'Today',
-    _ => 'LifeOS',
-  };
+  static List<AddressCrumb> _crumbs(Uri location, String? employmentName) {
+    switch (location.path) {
+      case '/work':
+        final employment = location.queryParameters['employment'];
+        if (employment == null || employmentName == null) {
+          return const [AddressCrumb('Work', '/work')];
+        }
+        final sheet = location.queryParameters['sheet'];
+        return [
+          const AddressCrumb('Work', '/work'),
+          AddressCrumb(employmentName, '/work?employment=$employment'),
+          AddressCrumb(switch (sheet) {
+            'periods' => 'Pay periods',
+            'payslips' => 'Payslips',
+            'agreements' => 'Agreements',
+            _ => 'Shifts',
+          }, location.toString()),
+        ];
+      case '/journal':
+        return const [AddressCrumb('Journal', '/journal')];
+      case '/finance':
+        return const [AddressCrumb('Finance', '/finance')];
+      case '/tracking':
+        return const [AddressCrumb('Tracking', '/tracking')];
+      case '/knowledge':
+        return const [AddressCrumb('Knowledge', '/knowledge')];
+      case '/system/files':
+        return const [AddressCrumb('Backup and export', '/system/files')];
+      case '/today':
+        return [AddressCrumb('Today', location.toString())];
+      default:
+        return const [AddressCrumb('LifeOS')];
+    }
+  }
 }

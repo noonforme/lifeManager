@@ -45,9 +45,6 @@ Future<List<String>> _pumpTree(WidgetTester tester, {String? selected}) async {
                   built: false,
                 ),
               ],
-              footer: const [
-                TreeSheet(label: 'Backup and export', route: '/system/files'),
-              ],
               selectedRoute: selected,
               onOpen: opened.add,
             ),
@@ -146,7 +143,6 @@ void main() {
                     ],
                   ),
                 ],
-                footer: const [],
                 selectedRoute: '/work?period=p',
                 onOpen: opened.add,
               ),

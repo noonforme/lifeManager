@@ -128,7 +128,7 @@ void main() {
     final employment = await seed(tester, withShift: false);
     await launch(tester, employment);
     expect(find.text('Manual shift from last time'), findsNothing);
-    expect(find.text('+ Add'), findsOneWidget);
+    expect(find.byKey(const ValueKey('quick-add')), findsOneWidget);
   });
 
   testWidgets('+ Add opens pay period and agreement forms by route', (
@@ -140,14 +140,14 @@ void main() {
     final employment = await seed(tester);
     final location = await launch(tester, employment);
 
-    await tester.tap(find.text('+ Add'));
+    await tester.tap(find.byKey(const ValueKey('quick-add')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Pay period').last);
     await tester.pumpAndSettle();
     expect(location(), contains('add=payPeriod'));
     expect(find.byKey(const ValueKey('period-start')), findsOneWidget);
 
-    await tester.tap(find.text('+ Add'));
+    await tester.tap(find.byKey(const ValueKey('quick-add')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Agreement').last);
     await tester.pumpAndSettle();

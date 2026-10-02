@@ -160,13 +160,13 @@ final class LifeOSMenuBar extends StatelessWidget {
                 menu('View', [
                   viewItem(
                     'Show task pane',
-                    (v) => v.showTree,
-                    (v, on) => v.copyWith(showTree: on),
+                    (v) => v.showTaskPane,
+                    (v, on) => v.copyWith(showTaskPane: on),
                   ),
                   viewItem(
                     'Show property sheet',
-                    (v) => v.showInspector,
-                    (v, on) => v.copyWith(showInspector: on),
+                    (v) => v.showPropertySheet,
+                    (v, on) => v.copyWith(showPropertySheet: on),
                   ),
                 ]),
                 menu('Desk', [

@@ -94,7 +94,7 @@ void main() {
       'void': '1',
     });
 
-    final books = find.bySemanticsLabel('Books');
+    final books = find.bySemanticsLabel('Books').first;
     Finder inTree(String text) =>
         find.descendant(of: books, matching: find.text(text));
     expect(inTree('Views'), findsOneWidget);

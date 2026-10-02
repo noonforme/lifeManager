@@ -1,49 +1,56 @@
-import 'package:flutter/material.dart' show Icons, Material, MaterialType;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Material, MaterialType;
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../workbench/era_controls.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/office_controls.dart';
+import 'address_bar.dart';
 import 'formula_bar.dart';
 import 'navigation_history.dart';
 import 'quick_add.dart';
+import 'task_pane.dart';
 
 /// Fixed shell geometry (spec 5.1–5.2).
 abstract final class ShellMetrics {
-  static const menuBarHeight = 28.0;
-  static const toolbarHeight = 44.0;
+  static const menuBarHeight = 24.0;
+  static const toolbarHeight = 38.0;
+  static const addressBarHeight = 26.0;
   static const formulaBarHeight = 34.0;
-  static const statusLineHeight = 24.0;
-  static const treeWidth = 228.0;
-  static const inspectorWidth = 320.0;
+  static const statusBarHeight = 22.0;
+  static const taskPaneWidth = 200.0;
+  static const propertySheetWidth = 300.0;
 
   /// At and above this width every region is visible.
   static const fullWidth = 1280.0;
 
-  /// Below this width the book tree folds into the **Books** button.
-  static const treeFoldWidth = 1024.0;
+  /// Below this width the task pane folds into the **Tasks** key.
+  static const taskPaneFoldWidth = 1024.0;
 }
 
 /// Which optional regions the owner shows (View menu).
 @immutable
 final class ShellView {
-  const ShellView({this.showTree = true, this.showInspector = true});
+  const ShellView({this.showTaskPane = true, this.showPropertySheet = true});
 
-  final bool showTree;
-  final bool showInspector;
+  final bool showTaskPane;
+  final bool showPropertySheet;
 
-  ShellView copyWith({bool? showTree, bool? showInspector}) => ShellView(
-    showTree: showTree ?? this.showTree,
-    showInspector: showInspector ?? this.showInspector,
-  );
+  ShellView copyWith({bool? showTaskPane, bool? showPropertySheet}) =>
+      ShellView(
+        showTaskPane: showTaskPane ?? this.showTaskPane,
+        showPropertySheet: showPropertySheet ?? this.showPropertySheet,
+      );
 
   @override
   bool operator ==(Object other) =>
       other is ShellView &&
-      other.showTree == showTree &&
-      other.showInspector == showInspector;
+      other.showTaskPane == showTaskPane &&
+      other.showPropertySheet == showPropertySheet;
 
   @override
-  int get hashCode => Object.hash(showTree, showInspector);
+  int get hashCode => Object.hash(showTaskPane, showPropertySheet);
 }
 
 final class ShellViewController extends ValueNotifier<ShellView> {
@@ -69,7 +76,7 @@ final class ShellChrome extends InheritedWidget {
     required this.menuBar,
     required this.tree,
     required this.status,
-    required this.title,
+    required this.crumbs,
     required this.onNavigate,
     required super.child,
     this.quickAdd = const [],
@@ -88,11 +95,13 @@ final class ShellChrome extends InheritedWidget {
   /// Opens a route, for example an operand's source from the formula bar.
   final ValueChanged<String> onNavigate;
 
-  /// Builds the book tree. [onOpened] is called after a node is opened, so a
-  /// folded tree pane can close itself.
+  /// Builds the Books group's content. [onOpened] is called after a node is
+  /// opened, so a folded task pane can close itself.
   final Widget Function(VoidCallback onOpened) tree;
   final Widget status;
-  final String title;
+
+  /// Where the owner is, shown in the Address bar.
+  final List<AddressCrumb> crumbs;
 
   static ShellChrome? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<ShellChrome>();
@@ -102,7 +111,7 @@ final class ShellChrome extends InheritedWidget {
       menuBar != oldWidget.menuBar ||
       tree != oldWidget.tree ||
       status != oldWidget.status ||
-      title != oldWidget.title ||
+      !listEquals(crumbs, oldWidget.crumbs) ||
       onNavigate != oldWidget.onNavigate ||
       quickAdd != oldWidget.quickAdd ||
       fromLastTime != oldWidget.fromLastTime;
@@ -117,9 +126,11 @@ final class ShellFrame extends StatefulWidget {
   const ShellFrame({
     required this.desk,
     required this.inspectorOpen,
-    required this.onBackToDesk,
+    required this.onBackToList,
     this.inspector,
     this.formulaBar,
+    this.tasks = const [],
+    this.details,
     super.key,
   });
 
@@ -130,9 +141,15 @@ final class ShellFrame extends StatefulWidget {
   final Widget? inspector;
 
   /// Whether a record is open. Below full width the inspector then replaces
-  /// the desk until [onBackToDesk].
+  /// the desk until [onBackToList].
   final bool inspectorOpen;
-  final VoidCallback onBackToDesk;
+  final VoidCallback onBackToList;
+
+  /// The surface's own task-pane groups, shown above Books.
+  final List<Widget> tasks;
+
+  /// The Details group's content, shown below Books.
+  final Widget? details;
 
   /// Replaces the formula bar's content. By default it shows the selected
   /// cell and is empty when nothing is selected.
@@ -143,12 +160,12 @@ final class ShellFrame extends StatefulWidget {
 }
 
 final class _ShellFrameState extends State<ShellFrame> {
-  bool _treeOpen = false;
+  bool _tasksOpen = false;
 
-  void _toggleTree() => setState(() => _treeOpen = !_treeOpen);
+  void _toggleTasks() => setState(() => _tasksOpen = !_tasksOpen);
 
-  void _closeTree() {
-    if (_treeOpen) setState(() => _treeOpen = false);
+  void _closeTasks() {
+    if (_tasksOpen) setState(() => _tasksOpen = false);
   }
 
   @override
@@ -166,15 +183,29 @@ final class _ShellFrameState extends State<ShellFrame> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
-            // A hidden region behaves like a narrower window: the tree folds
-            // into Books and the inspector alternates with the desk, so
-            // navigation and open records are never lost.
-            final full = width >= ShellMetrics.fullWidth && view.showInspector;
-            final treeFolded =
-                width < ShellMetrics.treeFoldWidth || !view.showTree;
-            final tree = _Landmark(
-              label: 'Books',
-              child: chrome?.tree(_closeTree) ?? const SizedBox.expand(),
+            final full =
+                width >= ShellMetrics.fullWidth && view.showPropertySheet;
+            final folded =
+                width < ShellMetrics.taskPaneFoldWidth || !view.showTaskPane;
+            // Widening the window docks the pane; the overlay state goes.
+            if (!folded && _tasksOpen) {
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => _closeTasks(),
+              );
+            }
+            final pane = _Landmark(
+              label: 'Task pane',
+              child: TaskPane(
+                groups: [
+                  ...widget.tasks,
+                  TaskGroup(
+                    title: 'Books',
+                    child: chrome?.tree(_closeTasks) ?? const SizedBox.shrink(),
+                  ),
+                  if (widget.details case final details?)
+                    TaskGroup(title: 'Details', child: details),
+                ],
+              ),
             );
             final desk = _Landmark(label: 'Desk workspace', child: widget.desk);
             final inspecting = widget.inspector;
@@ -182,15 +213,12 @@ final class _ShellFrameState extends State<ShellFrame> {
                 ? null
                 : _Landmark(
                     label: 'Record inspector',
-                    child: _InspectorRegion(
-                      showBackToDesk: !full,
-                      onBackToDesk: widget.onBackToDesk,
+                    child: _PropertySheetRegion(
+                      showBackToList: !full,
+                      onBackToList: widget.onBackToList,
                       child: inspecting,
                     ),
                   );
-
-            // Desk and inspector sit side by side at full width; otherwise
-            // they alternate, both staying mounted.
             final Widget work = inspector == null
                 ? desk
                 : full
@@ -198,9 +226,8 @@ final class _ShellFrameState extends State<ShellFrame> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(child: desk),
-                      _Divider(color: tokens.chromeLine),
                       SizedBox(
-                        width: ShellMetrics.inspectorWidth,
+                        width: ShellMetrics.propertySheetWidth,
                         child: inspector,
                       ),
                     ],
@@ -210,17 +237,30 @@ final class _ShellFrameState extends State<ShellFrame> {
                     sizing: StackFit.expand,
                     children: [desk, inspector],
                   );
-            final Widget body = treeFolded
-                ? IndexedStack(
-                    index: _treeOpen ? 1 : 0,
-                    sizing: StackFit.expand,
-                    children: [work, tree],
+            final Widget body = folded
+                ? Stack(
+                    children: [
+                      Positioned.fill(child: work),
+                      if (_tasksOpen)
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: ShellMetrics.taskPaneWidth,
+                          child: CallbackShortcuts(
+                            bindings: {
+                              const SingleActivator(LogicalKeyboardKey.escape):
+                                  _closeTasks,
+                            },
+                            child: Focus(autofocus: true, child: pane),
+                          ),
+                        ),
+                    ],
                   )
                 : Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SizedBox(width: ShellMetrics.treeWidth, child: tree),
-                      _Divider(color: tokens.chromeLine),
+                      SizedBox(width: ShellMetrics.taskPaneWidth, child: pane),
                       Expanded(child: work),
                     ],
                   );
@@ -238,14 +278,23 @@ final class _ShellFrameState extends State<ShellFrame> {
                 _Landmark(
                   label: 'Toolbar',
                   child: _Toolbar(
-                    title: chrome?.title ?? '',
-                    showBooks: treeFolded,
-                    booksOpen: _treeOpen,
-                    onBooks: _toggleTree,
+                    showTasks: folded,
+                    tasksOpen: _tasksOpen,
+                    onTasks: _toggleTasks,
                     quickAdd: chrome?.quickAdd ?? const [],
                     fromLastTime: chrome?.fromLastTime ?? const [],
                   ),
                 ),
+                AddressBar(
+                  crumbs: chrome?.crumbs ?? const [],
+                  onNavigate: (route) => chrome?.onNavigate(route),
+                  // Go reopens the current location (its last crumb).
+                  onGo: () {
+                    final here = chrome?.crumbs.lastOrNull?.route;
+                    if (here != null) chrome?.onNavigate(here);
+                  },
+                ),
+                // Removed in Task 9, when its content moves to Working.
                 _Landmark(
                   label: 'Formula bar',
                   liveRegion: true,
@@ -262,7 +311,7 @@ final class _ShellFrameState extends State<ShellFrame> {
                 _Landmark(
                   label: 'Status line',
                   child: SizedBox(
-                    height: ShellMetrics.statusLineHeight,
+                    height: ShellMetrics.statusBarHeight,
                     child: chrome?.status ?? const SizedBox.shrink(),
                   ),
                 ),
@@ -308,78 +357,89 @@ final class _Divider extends StatelessWidget {
 
 final class _Toolbar extends StatelessWidget {
   const _Toolbar({
-    required this.title,
-    required this.showBooks,
-    required this.booksOpen,
-    required this.onBooks,
+    required this.showTasks,
+    required this.tasksOpen,
+    required this.onTasks,
     required this.quickAdd,
     required this.fromLastTime,
   });
 
-  final String title;
+  final bool showTasks;
+  final bool tasksOpen;
+  final VoidCallback onTasks;
   final List<QuickAddEntry> quickAdd;
   final List<QuickAddEntry> fromLastTime;
-  final bool showBooks;
-  final bool booksOpen;
-  final VoidCallback onBooks;
 
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
     final history = NavigationHistoryScope.maybeOf(context);
+    Widget separator() => Container(
+      width: 1,
+      height: 24,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      color: tokens.chromeLine,
+    );
     return Container(
       constraints: const BoxConstraints(minHeight: ShellMetrics.toolbarHeight),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: skin.painters.toolbar(tokens),
-      child: Row(
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 2,
+        runSpacing: 2,
         children: [
+          if (showTasks)
+            KeyButton(
+              label: tasksOpen ? 'Close tasks' : 'Tasks',
+              kind: KeyKind.toolbar,
+              onPressed: onTasks,
+            ),
           if (history != null) ...[
             KeyButton(
               label: 'Back',
-              leading: Icon(Icons.arrow_back, size: 16, color: tokens.ink),
+              kind: KeyKind.toolbar,
+              leading: Orb(
+                glyph: OrbGlyph.back,
+                tone: history.canGoBack ? OrbTone.green : OrbTone.grey,
+              ),
               semanticLabel: history.canGoBack ? 'Back' : 'Back, unavailable',
               onPressed: history.canGoBack ? history.goBack : null,
             ),
-            const SizedBox(width: 6),
             KeyButton(
               label: 'Forward',
-              leading: Icon(Icons.arrow_forward, size: 16, color: tokens.ink),
+              kind: KeyKind.toolbar,
+              leading: Orb(
+                glyph: OrbGlyph.forward,
+                tone: history.canGoForward ? OrbTone.green : OrbTone.grey,
+              ),
               semanticLabel: history.canGoForward
                   ? 'Forward'
                   : 'Forward, unavailable',
               onPressed: history.canGoForward ? history.goForward : null,
             ),
-            const SizedBox(width: 10),
           ],
           if (quickAdd.isNotEmpty) ...[
+            separator(),
             QuickAddMenu(entries: quickAdd),
-            const SizedBox(width: 6),
           ],
-          for (final entry in fromLastTime.take(4)) ...[
-            KeyButton(label: entry.label, onPressed: entry.open),
-            const SizedBox(width: 6),
-          ],
-          if (quickAdd.isNotEmpty || fromLastTime.isNotEmpty)
-            const SizedBox(width: 4),
-          if (showBooks) ...[
-            KeyButton(
-              label: booksOpen ? 'Close books' : 'Books',
-              onPressed: onBooks,
-            ),
-            const SizedBox(width: 10),
-          ],
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: skin.typography.body.copyWith(
-                color: tokens.ink,
-                fontWeight: FontWeight.w700,
+          if (fromLastTime.isNotEmpty) ...[
+            separator(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                'From last time:',
+                style: skin.typography.body.copyWith(color: tokens.muted),
               ),
             ),
-          ),
+            for (final entry in fromLastTime.take(4))
+              KeyButton(
+                label: entry.label,
+                kind: KeyKind.toolbar,
+                onPressed: entry.open,
+              ),
+          ],
         ],
       ),
     );
@@ -433,36 +493,36 @@ final class _FormulaBarRegion extends StatelessWidget {
   }
 }
 
-final class _InspectorRegion extends StatelessWidget {
-  const _InspectorRegion({
-    required this.showBackToDesk,
-    required this.onBackToDesk,
+final class _PropertySheetRegion extends StatelessWidget {
+  const _PropertySheetRegion({
+    required this.showBackToList,
+    required this.onBackToList,
     required this.child,
   });
 
-  final bool showBackToDesk;
-  final VoidCallback onBackToDesk;
+  final bool showBackToList;
+  final VoidCallback onBackToList;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final tokens = LifeOSSkinScope.of(context).tokens;
-    return ColoredBox(
-      color: tokens.paper,
+    return Container(
+      color: tokens.chrome,
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (showBackToDesk)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: tokens.rule)),
-              ),
-              alignment: Alignment.centerLeft,
-              child: KeyButton(
-                label: 'Back to desk',
-                kind: KeyKind.small,
-                onPressed: onBackToDesk,
+          if (showBackToList)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: KeyButton(
+                  label: 'Back to list',
+                  kind: KeyKind.small,
+                  onPressed: onBackToList,
+                ),
               ),
             ),
           Expanded(child: child),
