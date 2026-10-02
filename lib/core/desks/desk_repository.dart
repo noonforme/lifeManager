@@ -135,8 +135,9 @@ final class DeskRepository {
     required int expected,
     required String sheetRef,
     String? focusedTileId,
+    String? viewId,
   }) {
-    if (!DeskSheets.all.contains(sheetRef)) {
+    if (viewId == null && !DeskSheets.all.contains(sheetRef)) {
       return Future.value(
         const Invalid<Desk>({
           'sheetRef': [FieldIssue(FieldIssueCode.invalid)],
@@ -145,17 +146,48 @@ final class DeskRepository {
     }
     return _change(id, expected, (desk) async {
       if (desk.tiles.length < desk.layout.capacity) {
-        await _insertTiles(id, [sheetRef], from: desk.tiles.length);
+        await _insertTiles(
+          id,
+          [sheetRef],
+          from: desk.tiles.length,
+          viewId: viewId,
+        );
       } else {
         final target =
             desk.tiles.where((tile) => tile.id == focusedTileId).firstOrNull ??
             desk.tiles.last;
-        await (_database.update(_database.deskTiles)
-              ..where((table) => table.id.equals(target.id)))
-            .write(DeskTilesCompanion(sheetRef: Value(sheetRef)));
+        await (_database.update(
+          _database.deskTiles,
+        )..where((table) => table.id.equals(target.id))).write(
+          DeskTilesCompanion(sheetRef: Value(sheetRef), viewId: Value(viewId)),
+        );
       }
       await _bump(desk);
     });
+  }
+
+  /// Shows a saved view on the desk, placed as [addSheet] places a sheet.
+  Future<MutationOutcome<Desk>> addView(
+    String id, {
+    required int expected,
+    required String viewId,
+    String? focusedTileId,
+  }) async {
+    final view = await (_database.select(
+      _database.savedViews,
+    )..where((table) => table.id.equals(viewId))).getSingleOrNull();
+    if (view == null) {
+      return const Invalid<Desk>({
+        'viewId': [FieldIssue(FieldIssueCode.invalid)],
+      });
+    }
+    return addSheet(
+      id,
+      expected: expected,
+      sheetRef: view.sheetRef,
+      focusedTileId: focusedTileId,
+      viewId: viewId,
+    );
   }
 
   Future<MutationOutcome<Desk>> removeTile(
@@ -250,6 +282,7 @@ final class DeskRepository {
     String deskId,
     List<String> sheets, {
     int from = 0,
+    String? viewId,
   }) async {
     for (final (index, sheet) in sheets.indexed) {
       await _database
@@ -260,6 +293,7 @@ final class DeskRepository {
               deskId: deskId,
               position: from + index,
               sheetRef: sheet,
+              viewId: Value(viewId),
             ),
           );
     }

@@ -25,6 +25,22 @@ final class TreeArea extends TreeNode {
   final List<TreeSheet> children;
 }
 
+/// Something a node's right-click menu offers besides Open.
+final class TreeAction {
+  const TreeAction(this.label, this.onSelected);
+
+  final String label;
+  final VoidCallback onSelected;
+}
+
+/// A heading over related sheets, such as Views, with a count.
+final class TreeGroup extends TreeNode {
+  const TreeGroup({required this.label, required this.children});
+
+  final String label;
+  final List<TreeSheet> children;
+}
+
 /// A sheet the owner can open. [liveValue] is read from a projection, never
 /// stored; [needsYou] counts what waits on the owner.
 final class TreeSheet extends TreeNode {
@@ -35,6 +51,7 @@ final class TreeSheet extends TreeNode {
     this.liveValueIsActive = false,
     this.needsYou = 0,
     this.built = true,
+    this.actions = const [],
   });
 
   final String label;
@@ -45,6 +62,9 @@ final class TreeSheet extends TreeNode {
   final bool liveValueIsActive;
   final int needsYou;
   final bool built;
+
+  /// Offered after Open when the row is right-clicked.
+  final List<TreeAction> actions;
 }
 
 /// The left pane: every area and sheet with its live value (spec 6.1).
@@ -101,6 +121,16 @@ final class BookTree extends StatelessWidget {
                         selected: node.route == selectedRoute,
                         onOpen: onOpen,
                       ),
+                      for (final child in node.children)
+                        _SheetRow(
+                          node: child,
+                          indent: true,
+                          selected: child.route == selectedRoute,
+                          onOpen: onOpen,
+                        ),
+                    ],
+                    TreeGroup() => [
+                      _GroupRow(node: node),
                       for (final child in node.children)
                         _SheetRow(
                           node: child,
@@ -187,6 +217,47 @@ final class _AreaRow extends StatelessWidget {
   }
 }
 
+/// A group heading; it opens nothing itself.
+final class _GroupRow extends StatelessWidget {
+  const _GroupRow({required this.node});
+
+  final TreeGroup node;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = LifeOSSkinScope.of(context);
+    final tokens = skin.tokens;
+    return Semantics(
+      header: true,
+      label: node.label,
+      value: '${node.children.length}',
+      excludeSemantics: true,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 25),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: tokens.rule)),
+        ),
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                node.label,
+                style: skin.typography.body.copyWith(color: tokens.ink),
+              ),
+            ),
+            Text(
+              '${node.children.length}',
+              style: skin.typography.figure.copyWith(color: tokens.muted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 final class _SheetRow extends StatelessWidget {
   const _SheetRow({
     required this.node,
@@ -211,6 +282,7 @@ final class _SheetRow extends StatelessWidget {
       semanticValue: value,
       selected: selected,
       onOpen: onOpen,
+      actions: node.actions,
       child: Row(
         children: [
           if (indent) const SizedBox(width: 26),
@@ -268,6 +340,7 @@ final class _TreeRow extends StatefulWidget {
     required this.onOpen,
     required this.child,
     this.background,
+    this.actions = const [],
   });
 
   final String route;
@@ -277,6 +350,7 @@ final class _TreeRow extends StatefulWidget {
   final ValueChanged<String> onOpen;
   final Widget child;
   final Color? background;
+  final List<TreeAction> actions;
 
   @override
   State<_TreeRow> createState() => _TreeRowState();
@@ -287,9 +361,8 @@ final class _TreeRowState extends State<_TreeRow> {
   bool _hovered = false;
 
   Future<void> _showMenu(Offset position) async {
-    final skin = LifeOSSkinScope.of(context);
-    final tokens = skin.tokens;
-    final choice = await showMenu<String>(
+    final tokens = LifeOSSkinScope.of(context).tokens;
+    final choice = await showMenu<int>(
       context: context,
       color: tokens.paper,
       position: RelativeRect.fromLTRB(
@@ -299,18 +372,18 @@ final class _TreeRowState extends State<_TreeRow> {
         position.dy,
       ),
       items: [
-        const PopupMenuItem(value: 'open', child: Text('Open')),
-        PopupMenuItem(
-          enabled: false,
-          child: _DisabledItem('Open on new desk', skin: skin),
-        ),
-        PopupMenuItem(
-          enabled: false,
-          child: _DisabledItem('Add to desk', skin: skin),
-        ),
+        const PopupMenuItem(value: -1, child: Text('Open')),
+        for (final (index, action) in widget.actions.indexed)
+          PopupMenuItem(value: index, child: Text(action.label)),
       ],
     );
-    if (choice == 'open') widget.onOpen(widget.route);
+    switch (choice) {
+      case -1:
+        widget.onOpen(widget.route);
+      case final int index:
+        widget.actions[index].onSelected();
+      case null:
+    }
   }
 
   @override
@@ -369,30 +442,6 @@ final class _TreeRowState extends State<_TreeRow> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// A menu item that has not shipped. The popup is built in the overlay, so
-/// the skin is passed in rather than looked up.
-final class _DisabledItem extends StatelessWidget {
-  const _DisabledItem(this.label, {required this.skin});
-
-  final String label;
-  final LifeOSSkinData skin;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label),
-        Text(
-          'Arrives with desks',
-          style: skin.typography.small.copyWith(color: skin.tokens.muted),
-        ),
-      ],
     );
   }
 }

@@ -2,17 +2,23 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/desks/desks.dart';
+import '../core/desks/saved_views.dart';
+import '../core/outcomes/mutation_outcome.dart';
 import '../features/work/data/projections/work_register_projection.dart';
 import '../features/work/domain/employment.dart';
 import '../features/work/domain/ids.dart';
 import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_route_state.dart';
+import '../features/work/presentation/work_views.dart';
 import '../shared/shell/book_tree.dart';
 import '../shared/shell/menu_bar.dart';
+import '../shared/shell/name_dialog.dart';
 import '../shared/shell/quick_add.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/shell/status_line.dart';
 import '../shared/workbench/lifeos_tokens.dart';
+import 'desk_providers.dart';
 
 /// Closes the application window; provided by the app root.
 final class AppQuit extends InheritedWidget {
@@ -57,6 +63,14 @@ final class ShellChromeHost extends ConsumerWidget {
       AsyncData(:final value) => value,
       _ => null,
     };
+    final views = switch (ref.watch(savedViewsProvider)) {
+      AsyncData(:final value) => value,
+      _ => const <SavedView>[],
+    };
+    final desks = switch (ref.watch(desksProvider)) {
+      AsyncData(:final value) => value,
+      _ => const <Desk>[],
+    };
     final employmentId = location.path == '/work'
         ? location.queryParameters['employment']
         : null;
@@ -73,6 +87,19 @@ final class ShellChromeHost extends ConsumerWidget {
     final nodes = <TreeNode>[
       const TreeSheet(label: 'Today', route: '/today'),
       const TreeSheet(label: 'Journal', route: '/journal'),
+      if (views.isNotEmpty)
+        TreeGroup(
+          label: 'Views',
+          children: [
+            for (final view in views)
+              if (workViewRoute(view.shape) case final route?)
+                TreeSheet(
+                  label: view.name,
+                  route: route,
+                  actions: _viewActions(context, ref, view, desks),
+                ),
+          ],
+        ),
       TreeArea(
         area: LifeOSArea.work,
         route: '/work',
@@ -102,7 +129,9 @@ final class ShellChromeHost extends ConsumerWidget {
       ),
     ];
 
+    final viewRoutes = {for (final view in views) ?workViewRoute(view.shape)};
     final selected = switch (location.path) {
+      _ when viewRoutes.contains(location.toString()) => location.toString(),
       '/work' when employmentId != null =>
         employments
             .where((value) => value.id.value == employmentId)
@@ -167,6 +196,47 @@ final class ShellChromeHost extends ConsumerWidget {
       fromLastTime: _fromLastTime(context, ref, employments, employmentId),
       child: child,
     );
+  }
+
+  /// A view's right-click actions: place it on a desk, rename, delete.
+  static List<TreeAction> _viewActions(
+    BuildContext context,
+    WidgetRef ref,
+    SavedView view,
+    List<Desk> desks,
+  ) {
+    final views = ref.read(savedViewRepositoryProvider);
+    final deskRepository = ref.read(deskRepositoryProvider);
+    if (views == null) return const [];
+    return [
+      if (deskRepository != null)
+        for (final desk in desks)
+          TreeAction('Add to ${desk.name}', () async {
+            final outcome = await deskRepository.addView(
+              desk.id,
+              expected: desk.revision,
+              viewId: view.id,
+            );
+            if (outcome is Committed<Desk> && context.mounted) {
+              context.go('/today?desk=${desk.id}');
+            }
+          }),
+      TreeAction('Rename view…', () async {
+        final name = await askForName(
+          context,
+          title: 'Rename view',
+          action: 'Rename',
+          initial: view.name,
+        );
+        if (name != null) {
+          await views.rename(view.id, expected: view.revision, name: name);
+        }
+      }),
+      TreeAction(
+        'Delete view',
+        () => views.deleteView(view.id, expected: view.revision),
+      ),
+    ];
   }
 
   /// The employment + Add files records under: the open one, otherwise the

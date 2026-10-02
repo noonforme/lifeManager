@@ -56,6 +56,7 @@ final class WorkScreen extends StatefulWidget {
     this.onUpdateAgreement,
     this.today,
     this.lastShiftTemplate,
+    this.onSaveView,
     super.key,
   });
 
@@ -116,6 +117,9 @@ final class WorkScreen extends StatefulWidget {
 
   /// The selected employment's last finalized shift, for "from last time".
   final ShiftTemplate? lastShiftTemplate;
+
+  /// Saves the sheet on the desk, with its filters, as a named view.
+  final ValueChanged<WorkRouteState>? onSaveView;
 
   @override
   State<WorkScreen> createState() => _WorkScreenState();
@@ -250,6 +254,7 @@ final class _WorkScreenState extends State<WorkScreen> {
       WorkReady(:final register, :final route) => WorkRegister(
         projection: register,
         selectedRecord: route.record,
+        onSaveView: widget.onSaveView,
         onSelect: widget.onSelect,
         onPrimaryAction: widget.onPrimaryAction,
         onOpenEmployment: (id) => widget.onNavigate(

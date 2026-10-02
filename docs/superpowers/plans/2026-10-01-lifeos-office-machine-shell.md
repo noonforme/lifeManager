@@ -409,13 +409,22 @@ final class DeskTile { /* id, position, sheetRef, viewId */ }
 - Modify: `book_tree.dart`, `data_register.dart` (Save as view), `desk_view.dart`
 - Create: `test/core/desks/saved_views_test.dart`
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Save as view stores the sheet, filters, sort and columns, and the view re-opens identically.
   - Rename and delete work; a stale revision returns `Stale`.
   - Filters reject free text, so personal values cannot be stored.
   - Views appear under Views in the tree and can be placed on a desk.
-- [ ] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
-- [ ] **Step 3: Commit** `feat: save filtered sheets as named views`.
+- [x] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
+- [x] **Step 3: Commit** `feat: save filtered sheets as named views`.
+
+  *As built:* filters are the Work route's own structural parameters
+  (employment, period, from/to, void), each checked as an id, a date or a
+  flag, so a view reopens exactly the route it was saved from. Sort and
+  columns are stored and validated against each sheet's column keys, but
+  Work sheets have no sort or column controls yet, so Save view keeps the
+  sheet's own. The tree's right-click offers Open plus each node's actions;
+  for a view these are Add to <desk>, Rename view… and Delete view. Deleting
+  a view removes its tiles and moves those desks' revisions on.
 
 ### Task 11: Millennium appearance
 

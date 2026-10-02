@@ -50,6 +50,8 @@ void main() {
             onReset: current.starter == null ? null : () => calls.add('reset'),
             onDelete: current.canDelete ? () => calls.add('delete') : null,
             onOpen: (route) => calls.add('open $route'),
+            views: const {'view-1': 'October periods'},
+            onAddView: (view) => calls.add('view $view'),
           ),
         ),
       ),
@@ -155,9 +157,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Desk menu'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Add view: October periods'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Desk menu'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Delete desk'));
     await tester.pumpAndSettle();
-    expect(calls, ['add ${DeskSheets.needsYou}', 'delete']);
+    expect(calls, ['add ${DeskSheets.needsYou}', 'view view-1', 'delete']);
   });
 }
 

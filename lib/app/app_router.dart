@@ -9,9 +9,12 @@ import '../features/work/domain/ids.dart';
 import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_route_state.dart';
 import '../features/work/presentation/work_screen.dart';
+import '../features/work/presentation/work_views.dart';
+import '../shared/shell/name_dialog.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/workbench/lifeos_skin.dart';
 import 'desk_host.dart';
+import 'desk_providers.dart';
 import 'shell_host.dart';
 
 GoRouter createAppRouter({String initialLocation = '/work'}) {
@@ -108,6 +111,13 @@ Widget _workSurface(BuildContext routerContext, Uri uri) {
   );
 }
 
+const _sheetLabels = {
+  WorkSheet.shifts: 'Shifts',
+  WorkSheet.periods: 'Pay periods',
+  WorkSheet.payslips: 'Payslips',
+  WorkSheet.agreements: 'Agreements',
+};
+
 final class _WorkRouteHost extends ConsumerWidget {
   const _WorkRouteHost();
 
@@ -203,6 +213,20 @@ final class _WorkRouteHost extends ConsumerWidget {
             .read(workControllerProvider.notifier)
             .updateAgreement,
         today: ref.read(todayProvider)(),
+        onSaveView: switch (ref.watch(savedViewRepositoryProvider)) {
+          null => null,
+          final views => (route) async {
+            final name = await askForName(
+              context,
+              title: 'Save view',
+              action: 'Save',
+              initial: '${_sheetLabels[route.sheet]} view',
+            );
+            if (name != null && name.trim().isNotEmpty) {
+              await views.createView(name, workViewShape(route));
+            }
+          },
+        },
         lastShiftTemplate: switch (ref.watch(workRouteProvider)) {
           ValidWorkRoute(state: WorkRouteState(:final employmentId?)) =>
             switch (ref.watch(lastShiftTemplateProvider(employmentId))) {

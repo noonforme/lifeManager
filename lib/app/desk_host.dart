@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/desks/desk_repository.dart';
 import '../core/desks/desks.dart';
+import '../core/desks/saved_views.dart';
 import '../core/outcomes/mutation_outcome.dart';
 import '../core/time/local_date.dart';
 import '../features/journal/journal_controller.dart';
@@ -15,25 +15,14 @@ import '../features/work/presentation/work_desk_tiles.dart';
 import '../features/work/presentation/work_formats.dart';
 import '../features/work/presentation/work_route_state.dart';
 import '../features/work/presentation/work_sheets.dart';
+import '../features/work/presentation/work_views.dart';
 import '../shared/shell/desk_view.dart';
+import '../shared/shell/name_dialog.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/workbench/lifeos_tokens.dart';
 import '../shared/workbench/operational_state.dart';
+import 'desk_providers.dart';
 import 'shell_host.dart';
-
-/// Desks, or null where no database backs them (some tests).
-final deskRepositoryProvider = Provider<DeskRepository?>((ref) => null);
-
-/// Every desk in tab order. The starter desks are created on first read.
-final desksProvider = StreamProvider.autoDispose<List<Desk>>((ref) async* {
-  final desks = ref.watch(deskRepositoryProvider);
-  if (desks == null) {
-    yield const [];
-    return;
-  }
-  await desks.ensureStarters();
-  yield* desks.watchDesks();
-});
 
 const _sheetNames = {
   DeskSheets.journalRecent: 'Journal, today and yesterday',
@@ -95,11 +84,33 @@ final class DeskHost extends ConsumerWidget {
       if (outcome case Committed<Desk>(:final value)) select(value);
     }
 
+    final views = switch (ref.watch(savedViewsProvider)) {
+      AsyncData(:final value) => value,
+      _ => const <SavedView>[],
+    };
     return DeskView(
       desks: desks,
       selected: selected,
       sheetNames: _sheetNames,
-      tile: (tile) => _tile(ref, tile.sheetRef, go),
+      views: {
+        for (final view in views)
+          if (workViewState(view.shape) != null) view.id: view.name,
+      },
+      onAddView: (viewId) => apply(
+        repository.addView(
+          selected.id,
+          expected: selected.revision,
+          viewId: viewId,
+        ),
+      ),
+      tile: (tile) => switch (tile.viewId) {
+        null => _tile(ref, tile.sheetRef, go),
+        final viewId => _viewTile(
+          ref,
+          views.where((view) => view.id == viewId).firstOrNull,
+          go,
+        ),
+      },
       onSelectDesk: select,
       onNewDesk: () => apply(repository.createDesk('Desk ${desks.length + 1}')),
       onRemoveTile: (tile) => apply(
@@ -132,9 +143,11 @@ final class DeskHost extends ConsumerWidget {
         ),
       ),
       onRename: () async {
-        final name = await showDialog<String>(
-          context: context,
-          builder: (context) => _RenameDialog(initial: selected.name),
+        final name = await askForName(
+          context,
+          title: 'Rename desk',
+          action: 'Rename',
+          initial: selected.name,
         );
         if (name != null) {
           await apply(
@@ -342,6 +355,69 @@ final class DeskHost extends ConsumerWidget {
   }
 }
 
+/// A saved view's sheet, filtered as the view says.
+DeskTileContent _viewTile(
+  WidgetRef ref,
+  SavedView? view,
+  ValueChanged<String> go,
+) {
+  final state = view == null ? null : workViewState(view.shape);
+  if (view == null || state == null) {
+    return (
+      title: view?.name ?? 'View',
+      area: null,
+      fullSizeRoute: null,
+      body: const TileList(lines: [], empty: 'This view is not available.'),
+    );
+  }
+  final route = workRouteUri(state).toString();
+  final register = switch (ref.watch(workRouteRegisterProvider(route))) {
+    AsyncData(:final value) => value,
+    _ => null,
+  };
+  void open(WorkRecordRef record) => go(
+    workRouteUri(
+      state.copyWith(record: () => record, mode: WorkInspectorMode.inspect),
+    ).toString(),
+  );
+  final Widget body = switch (register) {
+    null => const TileList(lines: [], empty: 'Reading records.'),
+    final register => switch (state.sheet) {
+      WorkSheet.shifts => ShiftsSheet(
+        rows: register.shiftSheet,
+        timezones: ref.read(timezoneServiceProvider),
+        selectedId: null,
+        onOpen: open,
+        showVoid: state.showVoid,
+      ),
+      WorkSheet.periods => PeriodsSheet(
+        rows: register.periodSheet,
+        selectedId: null,
+        onOpen: open,
+      ),
+      WorkSheet.payslips => PayslipsSheet(
+        payslips: register.payslipSheet,
+        periods: register.periodSheet,
+        selectedId: null,
+        onOpen: open,
+        showVoid: state.showVoid,
+      ),
+      WorkSheet.agreements => AgreementsSheet(
+        rows: register.agreementSheet,
+        employmentName: register.employment?.name ?? 'Employment',
+        selectedId: null,
+        onOpen: open,
+      ),
+    },
+  };
+  return (
+    title: view.name,
+    area: LifeOSArea.work,
+    fullSizeRoute: route,
+    body: body,
+  );
+}
+
 /// A record's Work route, under the employment whose sheet holds it.
 String _recordRoute(
   List<WorkRegisterProjection> registers,
@@ -360,46 +436,6 @@ String _recordRoute(
       mode: WorkInspectorMode.inspect,
     ),
   ).toString();
-}
-
-final class _RenameDialog extends StatefulWidget {
-  const _RenameDialog({required this.initial});
-
-  final String initial;
-
-  @override
-  State<_RenameDialog> createState() => _RenameDialogState();
-}
-
-final class _RenameDialogState extends State<_RenameDialog> {
-  late final _name = TextEditingController(text: widget.initial);
-
-  @override
-  void dispose() {
-    _name.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Rename desk'),
-    content: TextField(
-      key: const ValueKey('desk-name'),
-      controller: _name,
-      autofocus: true,
-      decoration: const InputDecoration(labelText: 'Name'),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('Cancel'),
-      ),
-      FilledButton(
-        onPressed: () => Navigator.of(context).pop(_name.text),
-        child: const Text('Rename'),
-      ),
-    ],
-  );
 }
 
 LocalDate _addDays(LocalDate date, int days) {

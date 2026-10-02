@@ -30,6 +30,7 @@ class CoreMetadata extends Table {
     RecordEvents,
     Desks,
     DeskTiles,
+    SavedViews,
   ],
 )
 class AppDatabase extends _$AppDatabase {

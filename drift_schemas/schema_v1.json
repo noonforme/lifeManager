@@ -1891,8 +1891,126 @@
     },
     {
       "id": 9,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "saved_views",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "name",
+            "getter_name": "name",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "sheet_ref",
+            "getter_name": "sheetRef",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "filters_json",
+            "getter_name": "filtersJson",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "sort_json",
+            "getter_name": "sortJson",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "columns_json",
+            "getter_name": "columnsJson",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "position",
+            "getter_name": "position",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "revision",
+            "getter_name": "revision",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('revision >= 0')"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 10,
       "references": [
-        8
+        8,
+        9
       ],
       "type": "table",
       "data": {
@@ -1961,9 +2079,25 @@
             "moor_type": "string",
             "nullable": true,
             "customConstraints": null,
+            "defaultConstraints": "REFERENCES saved_views (id) ON DELETE CASCADE",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES saved_views (id) ON DELETE CASCADE"
+            },
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": []
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "saved_views",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "cascade"
+                }
+              }
+            ]
           }
         ],
         "is_virtual": false,
@@ -2058,11 +2192,20 @@
       ]
     },
     {
+      "name": "saved_views",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"saved_views\" (\"id\" TEXT NOT NULL, \"name\" TEXT NOT NULL, \"sheet_ref\" TEXT NOT NULL, \"filters_json\" TEXT NOT NULL, \"sort_json\" TEXT NULL, \"columns_json\" TEXT NULL, \"position\" INTEGER NOT NULL, \"revision\" INTEGER NOT NULL CHECK(revision >= 0), PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
       "name": "desk_tiles",
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"desk_tiles\" (\"id\" TEXT NOT NULL, \"desk_id\" TEXT NOT NULL REFERENCES desks (id) ON DELETE CASCADE, \"position\" INTEGER NOT NULL, \"sheet_ref\" TEXT NOT NULL, \"view_id\" TEXT NULL, PRIMARY KEY (\"id\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"desk_tiles\" (\"id\" TEXT NOT NULL, \"desk_id\" TEXT NOT NULL REFERENCES desks (id) ON DELETE CASCADE, \"position\" INTEGER NOT NULL, \"sheet_ref\" TEXT NOT NULL, \"view_id\" TEXT NULL REFERENCES saved_views (id) ON DELETE CASCADE, PRIMARY KEY (\"id\"));"
         }
       ]
     }

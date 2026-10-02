@@ -36,7 +36,29 @@ class DeskTiles extends Table {
 
   /// A stable sheet key such as `work.shifts.week`.
   TextColumn get sheetRef => text()();
-  TextColumn get viewId => text().nullable()();
+  TextColumn get viewId => text().nullable().references(
+    SavedViews,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Saved views are structural only: a sheet key with ids, dates and flags
+/// as filters, never record content.
+@DataClassName('SavedViewRow')
+class SavedViews extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get sheetRef => text()();
+  TextColumn get filtersJson => text()();
+  TextColumn get sortJson => text().nullable()();
+  TextColumn get columnsJson => text().nullable()();
+  IntColumn get position => integer()();
+  IntColumn get revision =>
+      integer().check(const CustomExpression<bool>('revision >= 0'))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

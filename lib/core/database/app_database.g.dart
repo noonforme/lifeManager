@@ -6290,6 +6290,529 @@ class DesksCompanion extends UpdateCompanion<DeskRow> {
   }
 }
 
+class $SavedViewsTable extends SavedViews
+    with TableInfo<$SavedViewsTable, SavedViewRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SavedViewsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sheetRefMeta = const VerificationMeta(
+    'sheetRef',
+  );
+  @override
+  late final GeneratedColumn<String> sheetRef = GeneratedColumn<String>(
+    'sheet_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _filtersJsonMeta = const VerificationMeta(
+    'filtersJson',
+  );
+  @override
+  late final GeneratedColumn<String> filtersJson = GeneratedColumn<String>(
+    'filters_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortJsonMeta = const VerificationMeta(
+    'sortJson',
+  );
+  @override
+  late final GeneratedColumn<String> sortJson = GeneratedColumn<String>(
+    'sort_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _columnsJsonMeta = const VerificationMeta(
+    'columnsJson',
+  );
+  @override
+  late final GeneratedColumn<String> columnsJson = GeneratedColumn<String>(
+    'columns_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>('revision >= 0'),
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    sheetRef,
+    filtersJson,
+    sortJson,
+    columnsJson,
+    position,
+    revision,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'saved_views';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SavedViewRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('sheet_ref')) {
+      context.handle(
+        _sheetRefMeta,
+        sheetRef.isAcceptableOrUnknown(data['sheet_ref']!, _sheetRefMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sheetRefMeta);
+    }
+    if (data.containsKey('filters_json')) {
+      context.handle(
+        _filtersJsonMeta,
+        filtersJson.isAcceptableOrUnknown(
+          data['filters_json']!,
+          _filtersJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_filtersJsonMeta);
+    }
+    if (data.containsKey('sort_json')) {
+      context.handle(
+        _sortJsonMeta,
+        sortJson.isAcceptableOrUnknown(data['sort_json']!, _sortJsonMeta),
+      );
+    }
+    if (data.containsKey('columns_json')) {
+      context.handle(
+        _columnsJsonMeta,
+        columnsJson.isAcceptableOrUnknown(
+          data['columns_json']!,
+          _columnsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_revisionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SavedViewRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SavedViewRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      sheetRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sheet_ref'],
+      )!,
+      filtersJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}filters_json'],
+      )!,
+      sortJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sort_json'],
+      ),
+      columnsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}columns_json'],
+      ),
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+    );
+  }
+
+  @override
+  $SavedViewsTable createAlias(String alias) {
+    return $SavedViewsTable(attachedDatabase, alias);
+  }
+}
+
+class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
+  final String id;
+  final String name;
+  final String sheetRef;
+  final String filtersJson;
+  final String? sortJson;
+  final String? columnsJson;
+  final int position;
+  final int revision;
+  const SavedViewRow({
+    required this.id,
+    required this.name,
+    required this.sheetRef,
+    required this.filtersJson,
+    this.sortJson,
+    this.columnsJson,
+    required this.position,
+    required this.revision,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['sheet_ref'] = Variable<String>(sheetRef);
+    map['filters_json'] = Variable<String>(filtersJson);
+    if (!nullToAbsent || sortJson != null) {
+      map['sort_json'] = Variable<String>(sortJson);
+    }
+    if (!nullToAbsent || columnsJson != null) {
+      map['columns_json'] = Variable<String>(columnsJson);
+    }
+    map['position'] = Variable<int>(position);
+    map['revision'] = Variable<int>(revision);
+    return map;
+  }
+
+  SavedViewsCompanion toCompanion(bool nullToAbsent) {
+    return SavedViewsCompanion(
+      id: Value(id),
+      name: Value(name),
+      sheetRef: Value(sheetRef),
+      filtersJson: Value(filtersJson),
+      sortJson: sortJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sortJson),
+      columnsJson: columnsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(columnsJson),
+      position: Value(position),
+      revision: Value(revision),
+    );
+  }
+
+  factory SavedViewRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SavedViewRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      sheetRef: serializer.fromJson<String>(json['sheetRef']),
+      filtersJson: serializer.fromJson<String>(json['filtersJson']),
+      sortJson: serializer.fromJson<String?>(json['sortJson']),
+      columnsJson: serializer.fromJson<String?>(json['columnsJson']),
+      position: serializer.fromJson<int>(json['position']),
+      revision: serializer.fromJson<int>(json['revision']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'sheetRef': serializer.toJson<String>(sheetRef),
+      'filtersJson': serializer.toJson<String>(filtersJson),
+      'sortJson': serializer.toJson<String?>(sortJson),
+      'columnsJson': serializer.toJson<String?>(columnsJson),
+      'position': serializer.toJson<int>(position),
+      'revision': serializer.toJson<int>(revision),
+    };
+  }
+
+  SavedViewRow copyWith({
+    String? id,
+    String? name,
+    String? sheetRef,
+    String? filtersJson,
+    Value<String?> sortJson = const Value.absent(),
+    Value<String?> columnsJson = const Value.absent(),
+    int? position,
+    int? revision,
+  }) => SavedViewRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    sheetRef: sheetRef ?? this.sheetRef,
+    filtersJson: filtersJson ?? this.filtersJson,
+    sortJson: sortJson.present ? sortJson.value : this.sortJson,
+    columnsJson: columnsJson.present ? columnsJson.value : this.columnsJson,
+    position: position ?? this.position,
+    revision: revision ?? this.revision,
+  );
+  SavedViewRow copyWithCompanion(SavedViewsCompanion data) {
+    return SavedViewRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      sheetRef: data.sheetRef.present ? data.sheetRef.value : this.sheetRef,
+      filtersJson: data.filtersJson.present
+          ? data.filtersJson.value
+          : this.filtersJson,
+      sortJson: data.sortJson.present ? data.sortJson.value : this.sortJson,
+      columnsJson: data.columnsJson.present
+          ? data.columnsJson.value
+          : this.columnsJson,
+      position: data.position.present ? data.position.value : this.position,
+      revision: data.revision.present ? data.revision.value : this.revision,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedViewRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('sheetRef: $sheetRef, ')
+          ..write('filtersJson: $filtersJson, ')
+          ..write('sortJson: $sortJson, ')
+          ..write('columnsJson: $columnsJson, ')
+          ..write('position: $position, ')
+          ..write('revision: $revision')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    sheetRef,
+    filtersJson,
+    sortJson,
+    columnsJson,
+    position,
+    revision,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SavedViewRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.sheetRef == this.sheetRef &&
+          other.filtersJson == this.filtersJson &&
+          other.sortJson == this.sortJson &&
+          other.columnsJson == this.columnsJson &&
+          other.position == this.position &&
+          other.revision == this.revision);
+}
+
+class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> sheetRef;
+  final Value<String> filtersJson;
+  final Value<String?> sortJson;
+  final Value<String?> columnsJson;
+  final Value<int> position;
+  final Value<int> revision;
+  final Value<int> rowid;
+  const SavedViewsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.sheetRef = const Value.absent(),
+    this.filtersJson = const Value.absent(),
+    this.sortJson = const Value.absent(),
+    this.columnsJson = const Value.absent(),
+    this.position = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SavedViewsCompanion.insert({
+    required String id,
+    required String name,
+    required String sheetRef,
+    required String filtersJson,
+    this.sortJson = const Value.absent(),
+    this.columnsJson = const Value.absent(),
+    required int position,
+    required int revision,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       sheetRef = Value(sheetRef),
+       filtersJson = Value(filtersJson),
+       position = Value(position),
+       revision = Value(revision);
+  static Insertable<SavedViewRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? sheetRef,
+    Expression<String>? filtersJson,
+    Expression<String>? sortJson,
+    Expression<String>? columnsJson,
+    Expression<int>? position,
+    Expression<int>? revision,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (sheetRef != null) 'sheet_ref': sheetRef,
+      if (filtersJson != null) 'filters_json': filtersJson,
+      if (sortJson != null) 'sort_json': sortJson,
+      if (columnsJson != null) 'columns_json': columnsJson,
+      if (position != null) 'position': position,
+      if (revision != null) 'revision': revision,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SavedViewsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? sheetRef,
+    Value<String>? filtersJson,
+    Value<String?>? sortJson,
+    Value<String?>? columnsJson,
+    Value<int>? position,
+    Value<int>? revision,
+    Value<int>? rowid,
+  }) {
+    return SavedViewsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      sheetRef: sheetRef ?? this.sheetRef,
+      filtersJson: filtersJson ?? this.filtersJson,
+      sortJson: sortJson ?? this.sortJson,
+      columnsJson: columnsJson ?? this.columnsJson,
+      position: position ?? this.position,
+      revision: revision ?? this.revision,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (sheetRef.present) {
+      map['sheet_ref'] = Variable<String>(sheetRef.value);
+    }
+    if (filtersJson.present) {
+      map['filters_json'] = Variable<String>(filtersJson.value);
+    }
+    if (sortJson.present) {
+      map['sort_json'] = Variable<String>(sortJson.value);
+    }
+    if (columnsJson.present) {
+      map['columns_json'] = Variable<String>(columnsJson.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedViewsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('sheetRef: $sheetRef, ')
+          ..write('filtersJson: $filtersJson, ')
+          ..write('sortJson: $sortJson, ')
+          ..write('columnsJson: $columnsJson, ')
+          ..write('position: $position, ')
+          ..write('revision: $revision, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $DeskTilesTable extends DeskTiles
     with TableInfo<$DeskTilesTable, DeskTileRow> {
   @override
@@ -6347,6 +6870,9 @@ class $DeskTilesTable extends DeskTiles
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES saved_views (id) ON DELETE CASCADE',
+    ),
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -6666,6 +7192,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PayslipsTable payslips = $PayslipsTable(this);
   late final $RecordEventsTable recordEvents = $RecordEventsTable(this);
   late final $DesksTable desks = $DesksTable(this);
+  late final $SavedViewsTable savedViews = $SavedViewsTable(this);
   late final $DeskTilesTable deskTiles = $DeskTilesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -6681,6 +7208,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     payslips,
     recordEvents,
     desks,
+    savedViews,
     deskTiles,
   ];
   @override
@@ -6688,6 +7216,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'desks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('desk_tiles', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'saved_views',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('desk_tiles', kind: UpdateKind.delete)],
@@ -11302,6 +11837,366 @@ typedef $$DesksTableProcessedTableManager =
       DeskRow,
       PrefetchHooks Function({bool deskTilesRefs})
     >;
+typedef $$SavedViewsTableCreateCompanionBuilder = SavedViewsCompanion Function({
+  required String id,
+  required String name,
+  required String sheetRef,
+  required String filtersJson,
+  Value<String?> sortJson,
+  Value<String?> columnsJson,
+  required int position,
+  required int revision,
+  Value<int> rowid,
+});
+typedef $$SavedViewsTableUpdateCompanionBuilder = SavedViewsCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String> sheetRef,
+  Value<String> filtersJson,
+  Value<String?> sortJson,
+  Value<String?> columnsJson,
+  Value<int> position,
+  Value<int> revision,
+  Value<int> rowid,
+});
+
+final class $$SavedViewsTableReferences
+    extends BaseReferences<_$AppDatabase, $SavedViewsTable, SavedViewRow> {
+  $$SavedViewsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$DeskTilesTable, List<DeskTileRow>>
+  _deskTilesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.deskTiles,
+    aliasName: 'saved_views__id__desk_tiles__view_id',
+  );
+
+  $$DeskTilesTableProcessedTableManager get deskTilesRefs {
+    final manager = $$DeskTilesTableTableManager(
+      $_db,
+      $_db.deskTiles,
+    ).filter((f) => f.viewId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_deskTilesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$SavedViewsTableFilterComposer
+    extends Composer<_$AppDatabase, $SavedViewsTable> {
+  $$SavedViewsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sheetRef => $composableBuilder(
+    column: $table.sheetRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filtersJson => $composableBuilder(
+    column: $table.filtersJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sortJson => $composableBuilder(
+    column: $table.sortJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get columnsJson => $composableBuilder(
+    column: $table.columnsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> deskTilesRefs(
+    Expression<bool> Function($$DeskTilesTableFilterComposer f) f,
+  ) {
+    final $$DeskTilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.deskTiles,
+      getReferencedColumn: (t) => t.viewId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeskTilesTableFilterComposer(
+            $db: $db,
+            $table: $db.deskTiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SavedViewsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SavedViewsTable> {
+  $$SavedViewsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sheetRef => $composableBuilder(
+    column: $table.sheetRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filtersJson => $composableBuilder(
+    column: $table.filtersJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sortJson => $composableBuilder(
+    column: $table.sortJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get columnsJson => $composableBuilder(
+    column: $table.columnsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SavedViewsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SavedViewsTable> {
+  $$SavedViewsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get sheetRef =>
+      $composableBuilder(column: $table.sheetRef, builder: (column) => column);
+
+  GeneratedColumn<String> get filtersJson => $composableBuilder(
+    column: $table.filtersJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sortJson =>
+      $composableBuilder(column: $table.sortJson, builder: (column) => column);
+
+  GeneratedColumn<String> get columnsJson => $composableBuilder(
+    column: $table.columnsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<int> get revision =>
+      $composableBuilder(column: $table.revision, builder: (column) => column);
+
+  Expression<T> deskTilesRefs<T extends Object>(
+    Expression<T> Function($$DeskTilesTableAnnotationComposer a) f,
+  ) {
+    final $$DeskTilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.deskTiles,
+      getReferencedColumn: (t) => t.viewId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeskTilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.deskTiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SavedViewsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SavedViewsTable,
+          SavedViewRow,
+          $$SavedViewsTableFilterComposer,
+          $$SavedViewsTableOrderingComposer,
+          $$SavedViewsTableAnnotationComposer,
+          $$SavedViewsTableCreateCompanionBuilder,
+          $$SavedViewsTableUpdateCompanionBuilder,
+          (SavedViewRow, $$SavedViewsTableReferences),
+          SavedViewRow,
+          PrefetchHooks Function({bool deskTilesRefs})
+        > {
+  $$SavedViewsTableTableManager(_$AppDatabase db, $SavedViewsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SavedViewsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SavedViewsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SavedViewsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> sheetRef = const Value.absent(),
+                Value<String> filtersJson = const Value.absent(),
+                Value<String?> sortJson = const Value.absent(),
+                Value<String?> columnsJson = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> revision = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SavedViewsCompanion(
+                id: id,
+                name: name,
+                sheetRef: sheetRef,
+                filtersJson: filtersJson,
+                sortJson: sortJson,
+                columnsJson: columnsJson,
+                position: position,
+                revision: revision,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String sheetRef,
+                required String filtersJson,
+                Value<String?> sortJson = const Value.absent(),
+                Value<String?> columnsJson = const Value.absent(),
+                required int position,
+                required int revision,
+                Value<int> rowid = const Value.absent(),
+              }) => SavedViewsCompanion.insert(
+                id: id,
+                name: name,
+                sheetRef: sheetRef,
+                filtersJson: filtersJson,
+                sortJson: sortJson,
+                columnsJson: columnsJson,
+                position: position,
+                revision: revision,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SavedViewsTable, SavedViewRow>(table),
+                  $$SavedViewsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({deskTilesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (deskTilesRefs) db.deskTiles],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (deskTilesRefs)
+                    await $_getPrefetchedData<
+                      SavedViewRow,
+                      $SavedViewsTable,
+                      DeskTileRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$SavedViewsTableReferences
+                          ._deskTilesRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$SavedViewsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).deskTilesRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.viewId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SavedViewsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SavedViewsTable,
+      SavedViewRow,
+      $$SavedViewsTableFilterComposer,
+      $$SavedViewsTableOrderingComposer,
+      $$SavedViewsTableAnnotationComposer,
+      $$SavedViewsTableCreateCompanionBuilder,
+      $$SavedViewsTableUpdateCompanionBuilder,
+      (SavedViewRow, $$SavedViewsTableReferences),
+      SavedViewRow,
+      PrefetchHooks Function({bool deskTilesRefs})
+    >;
 typedef $$DeskTilesTableCreateCompanionBuilder = DeskTilesCompanion Function({
   required String id,
   required String deskId,
@@ -11339,6 +12234,23 @@ final class $$DeskTilesTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static $SavedViewsTable _viewIdTable(_$AppDatabase db) =>
+      db.savedViews.createAlias('desk_tiles__view_id__saved_views__id');
+
+  $$SavedViewsTableProcessedTableManager? get viewId {
+    final $_column = $_itemColumn<String>('view_id');
+    if ($_column == null) return null;
+    final manager = $$SavedViewsTableTableManager(
+      $_db,
+      $_db.savedViews,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_viewIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 }
 
 class $$DeskTilesTableFilterComposer
@@ -11365,11 +12277,6 @@ class $$DeskTilesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get viewId => $composableBuilder(
-    column: $table.viewId,
-    builder: (column) => ColumnFilters(column),
-  );
-
   $$DesksTableFilterComposer get deskId {
     final $$DesksTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -11384,6 +12291,29 @@ class $$DeskTilesTableFilterComposer
           }) => $$DesksTableFilterComposer(
             $db: $db,
             $table: $db.desks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SavedViewsTableFilterComposer get viewId {
+    final $$SavedViewsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.viewId,
+      referencedTable: $db.savedViews,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavedViewsTableFilterComposer(
+            $db: $db,
+            $table: $db.savedViews,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11418,11 +12348,6 @@ class $$DeskTilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get viewId => $composableBuilder(
-    column: $table.viewId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   $$DesksTableOrderingComposer get deskId {
     final $$DesksTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -11437,6 +12362,29 @@ class $$DeskTilesTableOrderingComposer
           }) => $$DesksTableOrderingComposer(
             $db: $db,
             $table: $db.desks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SavedViewsTableOrderingComposer get viewId {
+    final $$SavedViewsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.viewId,
+      referencedTable: $db.savedViews,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavedViewsTableOrderingComposer(
+            $db: $db,
+            $table: $db.savedViews,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11465,9 +12413,6 @@ class $$DeskTilesTableAnnotationComposer
   GeneratedColumn<String> get sheetRef =>
       $composableBuilder(column: $table.sheetRef, builder: (column) => column);
 
-  GeneratedColumn<String> get viewId =>
-      $composableBuilder(column: $table.viewId, builder: (column) => column);
-
   $$DesksTableAnnotationComposer get deskId {
     final $$DesksTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -11482,6 +12427,29 @@ class $$DeskTilesTableAnnotationComposer
           }) => $$DesksTableAnnotationComposer(
             $db: $db,
             $table: $db.desks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SavedViewsTableAnnotationComposer get viewId {
+    final $$SavedViewsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.viewId,
+      referencedTable: $db.savedViews,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavedViewsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.savedViews,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11505,7 +12473,7 @@ class $$DeskTilesTableTableManager
           $$DeskTilesTableUpdateCompanionBuilder,
           (DeskTileRow, $$DeskTilesTableReferences),
           DeskTileRow,
-          PrefetchHooks Function({bool deskId})
+          PrefetchHooks Function({bool deskId, bool viewId})
         > {
   $$DeskTilesTableTableManager(_$AppDatabase db, $DeskTilesTable table)
     : super(
@@ -11558,7 +12526,7 @@ class $$DeskTilesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({deskId = false}) {
+          prefetchHooksCallback: ({deskId = false, viewId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -11589,6 +12557,17 @@ class $$DeskTilesTableTableManager
                             .id,
                       ) as T;
                     }
+                    if (viewId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.viewId,
+                        referencedTable: $$DeskTilesTableReferences
+                            ._viewIdTable(db),
+                        referencedColumn: $$DeskTilesTableReferences
+                            ._viewIdTable(db)
+                            .id,
+                      ) as T;
+                    }
 
                     return state;
                   },
@@ -11613,7 +12592,7 @@ typedef $$DeskTilesTableProcessedTableManager =
       $$DeskTilesTableUpdateCompanionBuilder,
       (DeskTileRow, $$DeskTilesTableReferences),
       DeskTileRow,
-      PrefetchHooks Function({bool deskId})
+      PrefetchHooks Function({bool deskId, bool viewId})
     >;
 
 class $AppDatabaseManager {
@@ -11637,6 +12616,8 @@ class $AppDatabaseManager {
       $$RecordEventsTableTableManager(_db, _db.recordEvents);
   $$DesksTableTableManager get desks =>
       $$DesksTableTableManager(_db, _db.desks);
+  $$SavedViewsTableTableManager get savedViews =>
+      $$SavedViewsTableTableManager(_db, _db.savedViews);
   $$DeskTilesTableTableManager get deskTiles =>
       $$DeskTilesTableTableManager(_db, _db.deskTiles);
 }

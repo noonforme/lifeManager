@@ -31,6 +31,8 @@ final class DeskView extends StatelessWidget {
     required this.onReset,
     required this.onDelete,
     required this.onOpen,
+    this.views = const {},
+    this.onAddView,
     super.key,
   });
 
@@ -50,6 +52,10 @@ final class DeskView extends StatelessWidget {
   final VoidCallback? onReset;
   final VoidCallback? onDelete;
   final ValueChanged<String> onOpen;
+
+  /// Saved views that can be placed on the desk, by id, with their names.
+  final Map<String, String> views;
+  final ValueChanged<String>? onAddView;
 
   @override
   Widget build(BuildContext context) {
@@ -86,8 +92,10 @@ final class DeskView extends StatelessWidget {
                   _DeskMenu(
                     desk: selected,
                     sheetNames: sheetNames,
+                    views: onAddView == null ? const {} : views,
                     skin: skin,
                     onAddSheet: onAddSheet,
+                    onAddView: onAddView,
                     onLayout: onLayout,
                     onRename: onRename,
                     onReset: onReset,
@@ -237,7 +245,7 @@ final class _TileCard extends StatelessWidget {
                       itemBuilder: (context) => [
                         for (final MapEntry(key: sheet, value: name)
                             in sheetNames.entries)
-                          if (sheet != tile.sheetRef)
+                          if (tile.viewId != null || sheet != tile.sheetRef)
                             PopupMenuItem(
                               value: sheet,
                               child: Text('Replace with $name'),
@@ -292,8 +300,10 @@ final class _DeskMenu extends StatelessWidget {
   const _DeskMenu({
     required this.desk,
     required this.sheetNames,
+    required this.views,
     required this.skin,
     required this.onAddSheet,
+    required this.onAddView,
     required this.onLayout,
     required this.onRename,
     required this.onReset,
@@ -302,8 +312,10 @@ final class _DeskMenu extends StatelessWidget {
 
   final Desk desk;
   final Map<String, String> sheetNames;
+  final Map<String, String> views;
   final LifeOSSkinData skin;
   final ValueChanged<String> onAddSheet;
+  final ValueChanged<String>? onAddView;
   final ValueChanged<DeskLayout> onLayout;
   final VoidCallback onRename;
   final VoidCallback? onReset;
@@ -325,12 +337,15 @@ final class _DeskMenu extends StatelessWidget {
           'rename' => onRename(),
           'reset' => onReset?.call(),
           'delete' => onDelete?.call(),
+          _AddView(:final id) => onAddView?.call(id),
           final String sheet => onAddSheet(sheet),
           _ => null,
         },
         itemBuilder: (context) => [
           for (final MapEntry(key: sheet, value: name) in sheetNames.entries)
             PopupMenuItem(value: sheet, child: Text('Add $name')),
+          for (final MapEntry(key: id, value: name) in views.entries)
+            PopupMenuItem(value: _AddView(id), child: Text('Add view: $name')),
           const PopupMenuDivider(),
           for (final MapEntry(key: layout, value: name) in layouts.entries)
             CheckedPopupMenuItem(
@@ -357,4 +372,11 @@ final class _DeskMenu extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The desk menu's choice to place a saved view.
+final class _AddView {
+  const _AddView(this.id);
+
+  final String id;
 }

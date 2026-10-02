@@ -98,7 +98,12 @@ final class DriftDatabaseService implements DatabaseService {
         .select("SELECT name FROM sqlite_master WHERE type = 'table'")
         .map((row) => row['name'])
         .toSet();
-    if (!tables.containsAll(const ['record_events', 'desks', 'desk_tiles'])) {
+    if (!tables.containsAll(const [
+      'record_events',
+      'desks',
+      'desk_tiles',
+      'saved_views',
+    ])) {
       return true;
     }
     final columns = raw

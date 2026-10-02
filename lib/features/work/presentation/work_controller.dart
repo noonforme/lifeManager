@@ -165,6 +165,21 @@ final employmentRegisterProvider = StreamProvider.autoDispose
           .watchRegister(WorkScope(employmentId: employment, temporal: null)),
     );
 
+/// The records a saved view shows, keyed by its Work route so equal views
+/// share one stream.
+final workRouteRegisterProvider = StreamProvider.autoDispose
+    .family<WorkRegisterProjection, String>((ref, route) {
+      final state = switch (parseWorkRoute(Uri.parse(route))) {
+        ValidWorkRoute(:final state) => state,
+        InvalidWorkRoute() => throw ArgumentError.value(route, 'route'),
+      };
+      return ref
+          .watch(workQueryRepositoryProvider)
+          .watchRegister(
+            WorkScope(employmentId: state.employmentId, temporal: state.scope),
+          );
+    });
+
 /// "From last time": the employment's latest finalized shift as a
 /// template, computed from the current records; null when there is none.
 final lastShiftTemplateProvider = Provider.autoDispose

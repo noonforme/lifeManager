@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../core/database/app_database.dart';
 import '../core/desks/desk_repository.dart';
+import '../core/desks/saved_view_repository.dart';
 import '../core/history/record_event_dao.dart';
 import '../core/history/record_events.dart';
 import '../core/time/app_clock.dart';
@@ -21,7 +22,7 @@ import '../features/work/application/work_commands.dart';
 import '../features/work/data/shift_repository.dart';
 import '../features/work/data/work_repository.dart';
 import '../features/work/presentation/work_controller.dart';
-import 'desk_host.dart';
+import 'desk_providers.dart';
 
 ProductionWorkProviders buildWorkProviders({
   required AppDatabase database,
@@ -102,6 +103,7 @@ ProductionWorkProviders buildWorkProviders({
       defaultZone: () => currentTimezoneId() ?? 'UTC',
     ),
     desks: DeskRepository(database, newId: () => const Uuid().v7()),
+    views: SavedViewRepository(database, newId: () => const Uuid().v7()),
   );
 }
 
@@ -123,6 +125,7 @@ final class ProductionWorkProviders {
     required this.history,
     required this.journal,
     required this.desks,
+    required this.views,
   });
 
   final DriftWorkRepository workRepository;
@@ -141,6 +144,7 @@ final class ProductionWorkProviders {
   final RecordHistory history;
   final JournalSource journal;
   final DeskRepository desks;
+  final SavedViewRepository views;
 
   List<Override> get _overrides => [
     workQueryRepositoryProvider.overrideWithValue(workRepository),
@@ -167,6 +171,7 @@ final class ProductionWorkProviders {
     recordHistoryProvider.overrideWithValue(history),
     journalSourceProvider.overrideWithValue(journal),
     deskRepositoryProvider.overrideWithValue(desks),
+    savedViewRepositoryProvider.overrideWithValue(views),
     todayProvider.overrideWithValue(
       () => timezones.localDateAt(clock.nowUtc(), currentTimezoneId() ?? 'UTC'),
     ),

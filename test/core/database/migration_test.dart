@@ -113,6 +113,30 @@ void main() {
       );
     });
 
+    test('with desks but no saved views is refused', () async {
+      final root = await OwnedTestRoot.create();
+      addTearDown(root.dispose);
+      final file = File.fromUri(root.uri.resolve('lifeos-native-v1.sqlite'));
+      final raw = sqlite.sqlite3.open(file.path);
+      raw.execute('PRAGMA application_id = $lifeOsApplicationId');
+      raw.execute(
+        'CREATE TABLE pay_agreements (id TEXT PRIMARY KEY, premium_stacking TEXT)',
+      );
+      for (final table in ['record_events', 'desks', 'desk_tiles']) {
+        raw.execute('CREATE TABLE $table (id TEXT PRIMARY KEY)');
+      }
+      raw.userVersion = 1;
+      raw.close();
+
+      await expectLater(
+        DriftDatabaseService.open(
+          DatabaseConfig.test(root: root.uri, markerToken: root.token),
+          location: _locationFor(root),
+        ),
+        throwsA(isA<DatabaseFromEarlierBuild>()),
+      );
+    });
+
     for (final version in [1, 2]) {
       test('at user_version $version is refused, not migrated', () async {
         final root = await OwnedTestRoot.create();

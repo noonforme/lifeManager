@@ -27,6 +27,7 @@ final class WorkRegister extends StatelessWidget {
     this.onRoute,
     this.onAddManualShift,
     this.onRecordPayslip,
+    this.onSaveView,
     this.timezones,
     super.key,
   });
@@ -37,6 +38,9 @@ final class WorkRegister extends StatelessWidget {
   final VoidCallback onPrimaryAction;
   final ValueChanged<EmploymentId>? onOpenEmployment;
   final VoidCallback? onNewPeriod;
+
+  /// Saves the sheet and its filters as a named view.
+  final ValueChanged<WorkRouteState>? onSaveView;
 
   /// Clears the employment from the route.
   final VoidCallback? onAllEmployments;
@@ -200,6 +204,8 @@ final class WorkRegister extends StatelessWidget {
               ),
               if (onNewPeriod case final add?)
                 KeyButton(label: 'New pay period', onPressed: add),
+              if (onSaveView case final save?)
+                KeyButton(label: 'Save view', onPressed: () => save(route)),
             ],
           ),
         ),

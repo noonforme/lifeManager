@@ -104,7 +104,7 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('right-click lists Open, Open on new desk and Add to desk', (
+  testWidgets('right-click offers Open and nothing that has not shipped', (
     tester,
   ) async {
     final opened = await _pumpTree(tester);
@@ -112,18 +112,68 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Open'), findsOneWidget);
-    expect(find.text('Open on new desk'), findsOneWidget);
-    expect(find.text('Add to desk'), findsOneWidget);
-    expect(find.text('Arrives with desks'), findsNWidgets(2));
-
-    // Desk items are disabled until desks ship: the menu stays open.
-    await tester.tap(find.text('Add to desk'), warnIfMissed: false);
-    await tester.pumpAndSettle();
-    expect(opened, isEmpty);
-    expect(find.text('Open'), findsOneWidget);
-
+    expect(find.text('Open on new desk'), findsNothing);
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
     expect(opened, ['/work?employment=a']);
+  });
+
+  testWidgets('Views group its views, each with its own actions', (
+    tester,
+  ) async {
+    final chosen = <String>[];
+    final opened = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: SizedBox(
+              width: 228,
+              child: BookTree(
+                nodes: [
+                  TreeGroup(
+                    label: 'Views',
+                    children: [
+                      TreeSheet(
+                        label: 'October shifts',
+                        route: '/work?period=p',
+                        actions: [
+                          TreeAction('Add to Today', () => chosen.add('add')),
+                          TreeAction('Delete view', () => chosen.add('delete')),
+                        ],
+                      ),
+                      const TreeSheet(label: 'All periods', route: '/work?x'),
+                    ],
+                  ),
+                ],
+                footer: const [],
+                selectedRoute: '/work?period=p',
+                onOpen: opened.add,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Views'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('October shifts')),
+      isSemantics(isSelected: true, isButton: true),
+    );
+
+    await tester.tap(find.text('October shifts'), buttons: kSecondaryButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add to Today'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('October shifts'), buttons: kSecondaryButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete view'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All periods'));
+
+    expect(chosen, ['add', 'delete']);
+    expect(opened, ['/work?x']);
   });
 }
