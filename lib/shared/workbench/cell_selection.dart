@@ -33,10 +33,21 @@ final class CellSelection {
 final class CellSelectionController extends ValueNotifier<CellSelection?> {
   CellSelectionController() : super(null);
 
+  bool _disposed = false;
+
   /// Clears the selection only if [owner] published it, so one register
-  /// leaving does not wipe another's selection.
+  /// leaving does not wipe another's selection. A register clears after its
+  /// last frame, which may come after the window has disposed this
+  /// controller; then there is nothing left to clear.
   void clearFrom(Object owner) {
+    if (_disposed) return;
     if (value?.owner == owner) value = null;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }
 

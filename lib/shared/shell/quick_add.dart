@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../workbench/era_controls.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/lifeos_tokens.dart';
 import '../workbench/office_controls.dart';
@@ -54,9 +55,11 @@ final class QuickAddMenu extends StatelessWidget {
         ],
         child: IgnorePointer(
           child: KeyButton(
-            label: '+ Add',
-            kind: KeyKind.primary,
-            leading: Icon(Icons.add, size: 16, color: skin.tokens.paper),
+            key: const ValueKey('quick-add'),
+            label: 'Add',
+            kind: KeyKind.toolbar,
+            leading: const Orb(glyph: OrbGlyph.add, tone: OrbTone.orange),
+            trailing: EraGlyph(EraGlyphKind.dropDown, color: skin.tokens.ink),
             onPressed: () {},
           ),
         ),

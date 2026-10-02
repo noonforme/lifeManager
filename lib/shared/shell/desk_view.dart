@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../core/desks/desks.dart';
+import '../workbench/era_controls.dart';
+import '../workbench/era_dialog.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/lifeos_tokens.dart';
+import '../workbench/millennium_style.dart';
 import '../workbench/office_controls.dart';
 
 /// What a tile shows: its heading, area (none for a sheet spanning areas)
@@ -70,24 +73,23 @@ final class DeskView extends StatelessWidget {
             container: true,
             label: 'Desk tabs',
             child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              decoration: BoxDecoration(
-                color: tokens.chrome,
-                border: Border(bottom: BorderSide(color: tokens.chromeLine)),
-              ),
+              padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
+              color: tokens.chrome,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
-                    child: SegmentedTabs(
-                      labels: [for (final desk in desks) desk.name],
+                    // The last tab, + Desk, makes a new desk (spec 5.7).
+                    child: PropertySheetTabs(
+                      labels: [for (final desk in desks) desk.name, '+ Desk'],
                       selectedIndex: desks.indexWhere(
                         (desk) => desk.id == selected.id,
                       ),
-                      onSelected: (index) => onSelectDesk(desks[index]),
+                      onSelected: (index) => index == desks.length
+                          ? onNewDesk()
+                          : onSelectDesk(desks[index]),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  KeyButton(label: '+ Desk', onPressed: onNewDesk),
                   const SizedBox(width: 6),
                   _DeskMenu(
                     desk: selected,
@@ -106,8 +108,17 @@ final class DeskView extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Padding(
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(6, 0, 6, 6),
               padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: tokens.paper,
+                border: const Border(
+                  left: BorderSide(color: MillenniumColors.tabLine),
+                  right: BorderSide(color: MillenniumColors.tabLine),
+                  bottom: BorderSide(color: MillenniumColors.tabLine),
+                ),
+              ),
               child: selected.tiles.isEmpty
                   ? Center(
                       child: Text(
@@ -200,90 +211,69 @@ final class _TileCard extends StatelessWidget {
       container: true,
       explicitChildNodes: true,
       label: '${content.title} tile',
-      child: DecoratedBox(
+      child: Container(
         decoration: BoxDecoration(
           color: tokens.paper,
-          border: Border.all(color: tokens.rule),
+          border: Border.all(color: MillenniumColors.groupRowRule),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              height: 32,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              color: tokens.head,
-              child: Row(
-                children: [
-                  if (content.area case final area?) ...[
-                    AreaKey(area: area),
-                    const SizedBox(width: 8),
-                  ],
-                  Expanded(
-                    child: Text(
-                      content.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: skin.typography.label.copyWith(
-                        color: tokens.headInk,
+            CaptionBar(
+              title: content.title,
+              leading: content.area == null
+                  ? null
+                  : AreaKey(area: content.area!),
+              onClose: onRemove,
+              closeLabel: 'Close ${content.title}',
+              trailing: [
+                Material(
+                  type: MaterialType.transparency,
+                  child: PopupMenuButton<String>(
+                    tooltip: 'Tile menu',
+                    padding: EdgeInsets.zero,
+                    onSelected: (choice) => switch (choice) {
+                      'remove' => onRemove(),
+                      'open' => fullSize == null ? null : onOpen(fullSize),
+                      final sheet => onReplace(sheet),
+                    },
+                    itemBuilder: (context) => [
+                      for (final MapEntry(key: sheet, value: name)
+                          in sheetNames.entries)
+                        if (tile.viewId != null || sheet != tile.sheetRef)
+                          PopupMenuItem(
+                            height: menuRowHeight,
+                            value: sheet,
+                            child: Text('Replace with $name'),
+                          ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        height: menuRowHeight,
+                        value: 'open',
+                        enabled: fullSize != null,
+                        child: const Text('Open full size'),
                       ),
-                    ),
-                  ),
-                  Material(
-                    type: MaterialType.transparency,
-                    child: PopupMenuButton<String>(
-                      tooltip: 'Tile menu',
-                      icon: Icon(
-                        Icons.more_horiz,
-                        size: 18,
-                        color: tokens.headInk,
+                      const PopupMenuItem(
+                        height: menuRowHeight,
+                        value: 'remove',
+                        child: Text('Remove'),
                       ),
-                      onSelected: (choice) => switch (choice) {
-                        'remove' => onRemove(),
-                        'open' => fullSize == null ? null : onOpen(fullSize),
-                        final sheet => onReplace(sheet),
-                      },
-                      itemBuilder: (context) => [
-                        for (final MapEntry(key: sheet, value: name)
-                            in sheetNames.entries)
-                          if (tile.viewId != null || sheet != tile.sheetRef)
-                            PopupMenuItem(
-                              height: menuRowHeight,
-                              value: sheet,
-                              child: Text('Replace with $name'),
-                            ),
-                        const PopupMenuDivider(),
-                        PopupMenuItem(
-                          height: menuRowHeight,
-                          value: 'open',
-                          enabled: fullSize != null,
-                          child: const Text('Open full size'),
-                        ),
-                        const PopupMenuItem(
-                          height: menuRowHeight,
-                          value: 'remove',
-                          child: Text('Remove'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Semantics(
-                    button: true,
-                    label: 'Close ${content.title}',
-                    excludeSemantics: true,
-                    child: GestureDetector(
-                      onTap: onRemove,
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Icon(
-                          Icons.close,
-                          size: 16,
+                    ],
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Center(
+                        child: EraGlyph(
+                          EraGlyphKind.dropDown,
                           color: tokens.headInk,
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
             Expanded(
               child: Material(
@@ -385,7 +375,12 @@ final class _DeskMenu extends StatelessWidget {
           ),
         ],
         child: IgnorePointer(
-          child: KeyButton(label: 'Desk', onPressed: () {}),
+          child: KeyButton(
+            label: 'Desk',
+            kind: KeyKind.small,
+            trailing: EraGlyph(EraGlyphKind.dropDown, color: skin.tokens.ink),
+            onPressed: () {},
+          ),
         ),
       ),
     );

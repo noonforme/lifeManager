@@ -25,6 +25,7 @@ import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 void main() {
   test(
@@ -99,7 +100,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel('Books'), findsOneWidget);
+    expect(find.bySemanticsLabel('Task pane'), findsOneWidget);
     expect(find.bySemanticsLabel('Work register'), findsOneWidget);
     expect(find.bySemanticsLabel('Record inspector'), findsOneWidget);
     expect(
@@ -405,7 +406,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.bySemanticsLabel('Finalize shift'), findsWidgets);
-    await tester.tap(find.widgetWithText(FilledButton, 'Finalize shift'));
+    await tester.tap(find.widgetWithText(KeyButton, 'Finalize shift'));
     await tester.pumpAndSettle();
 
     expect(issued?.id, _shiftId);
@@ -748,7 +749,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Record payslip'));
+    await tester.tap(
+      find.descendant(
+        of: find.bySemanticsLabel('Record inspector'),
+        matching: find.text('Record payslip'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('payslip-issued-date')),

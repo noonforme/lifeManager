@@ -1,13 +1,10 @@
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
+import 'package:lifeos/shared/workbench/millennium_style.dart';
 
 void main() {
-  const palettes = {
-    'day': LifeOSTokens.day,
-    'night': LifeOSTokens.night,
-    'high contrast': LifeOSTokens.highContrast,
-  };
+  const t = LifeOSTokens.millennium;
 
   test('contrast ratio matches the WCAG reference values', () {
     expect(
@@ -20,65 +17,62 @@ void main() {
     );
   });
 
-  for (final MapEntry(key: name, value: t) in palettes.entries) {
-    group('$name palette', () {
-      // Every text token is checked on each surface it can sit on.
-      final textOnSurfaces = <String, (Color, List<Color>)>{
-        'ink': (t.ink, [t.paper, t.band, t.chrome]),
-        'muted': (t.muted, [t.paper, t.band, t.chrome, t.selWash]),
-        'runInk': (t.runInk, [t.paper, t.band, t.selWash]),
-        'negative': (t.negative, [t.paper, t.band, t.chrome, t.selWash]),
-        'positive': (t.positive, [t.paper, t.band, t.chrome, t.selWash]),
-        'selInk': (t.selInk, [t.selWash]),
-        'actionInk': (t.actionInk, [t.actionFill]),
-        'headInk': (t.headInk, [t.head]),
-      };
-
-      for (final MapEntry(key: token, value: (ink, surfaces))
-          in textOnSurfaces.entries) {
-        test('$token text meets 4.5:1', () {
-          for (final surface in surfaces) {
-            expect(
-              contrastRatio(ink, surface),
-              greaterThanOrEqualTo(4.5),
-              reason: '$token on ${_hex(surface)}',
-            );
-          }
-        });
+  // Selected rows draw every cell in selInk, so muted, run, negative and
+  // positive text never sits on the saturated selWash.
+  final text = <String, (Color, List<Color>)>{
+    'ink': (
+      t.ink,
+      [
+        t.paper,
+        t.band,
+        t.chrome,
+        MillenniumColors.paneBody,
+        MillenniumColors.page,
+      ],
+    ),
+    'muted': (t.muted, [t.paper, t.band, t.chrome, MillenniumColors.paneBody]),
+    'runInk': (t.runInk, [t.paper, t.band, t.chrome]),
+    'negative': (t.negative, [t.paper, t.band, t.chrome]),
+    'positive': (t.positive, [t.paper, t.band, t.chrome]),
+    'selInk': (t.selInk, [t.selWash]),
+    'headInk': (t.headInk, [t.head, MillenniumColors.captionBottom]),
+    'head as text': (t.head, [t.paper, MillenniumColors.page]),
+    'link': (MillenniumColors.link, [MillenniumColors.paneBody, t.paper]),
+  };
+  for (final MapEntry(key: name, value: (ink, surfaces)) in text.entries) {
+    test('$name text meets 4.5:1', () {
+      for (final surface in surfaces) {
+        expect(
+          contrastRatio(ink, surface),
+          greaterThanOrEqualTo(4.5),
+          reason: '$name on $surface',
+        );
       }
-
-      test('area key letters meet 4.5:1 on their keys', () {
-        expect(t.areaKeys.keys, unorderedEquals(LifeOSArea.values));
-        for (final MapEntry(key: area, value: key) in t.areaKeys.entries) {
-          expect(
-            contrastRatio(key.ink, key.fill),
-            greaterThanOrEqualTo(4.5),
-            reason: area.label,
-          );
-        }
-      });
-
-      // chromeLine only divides panes; control outlines use muted, so they
-      // are held to the 3:1 non-text minimum here.
-      test('indicators and control outlines meet 3:1', () {
-        // signal sits on paper (selection, bars) and on the status line.
-        for (final MapEntry(key: token, value: (color, surfaces)) in {
-          'signal': (t.signal, [t.paper, t.head]),
-          'focus': (t.focus, [t.paper, t.chrome]),
-          'muted outline': (t.muted, [t.paper, t.chrome]),
-        }.entries) {
-          for (final surface in surfaces) {
-            expect(
-              contrastRatio(color, surface),
-              greaterThanOrEqualTo(3),
-              reason: '$token on ${_hex(surface)}',
-            );
-          }
-        }
-      });
     });
   }
-}
 
-String _hex(Color color) =>
-    '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
+  test('area key letters meet 4.5:1 on their keys', () {
+    expect(t.areaKeys.keys, unorderedEquals(LifeOSArea.values));
+    for (final key in t.areaKeys.values) {
+      expect(contrastRatio(key.ink, key.fill), greaterThanOrEqualTo(4.5));
+    }
+  });
+
+  test('indicators and outlines meet 3:1', () {
+    for (final (name, color, surface) in [
+      ('signal', t.signal, t.paper),
+      ('signal on face', t.signal, t.chrome),
+      ('focus', t.focus, t.paper),
+      ('focus on face', t.focus, t.chrome),
+      ('key outline', MillenniumColors.keyLine, t.chrome),
+      ('key outline on white', MillenniumColors.keyLine, t.paper),
+      ('progress', MillenniumColors.progress, t.ink),
+    ]) {
+      expect(
+        contrastRatio(color, surface),
+        greaterThanOrEqualTo(3),
+        reason: name,
+      );
+    }
+  });
+}

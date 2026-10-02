@@ -6,6 +6,7 @@ import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/shift_forms.dart';
+import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
 void main() {
@@ -174,7 +175,9 @@ final class _TestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    theme: buildLifeOSTheme(highContrast: false),
-    home: Scaffold(body: SizedBox(width: 520, child: child)),
+    theme: buildLifeOSTheme(),
+    home: LifeOSSkinScope(
+      child: Scaffold(body: SizedBox(width: 520, child: child)),
+    ),
   );
 }

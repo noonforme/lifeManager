@@ -120,6 +120,7 @@ final class ShiftsSheet extends StatelessWidget {
     return DataRegister<ShiftSheetRow>(
       label: 'Shifts',
       lines: lines,
+      sortedColumn: 'date',
       rowId: (row) => workRowId(_shiftRef(row)),
       rowLabel: (row) =>
           'Shift on ${row.shift.localStartDate}, '

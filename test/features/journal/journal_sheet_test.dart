@@ -29,7 +29,7 @@ void main() {
     final opened = <JournalEntry>[];
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildLifeOSTheme(highContrast: false),
+        theme: buildLifeOSTheme(),
         home: LifeOSSkinScope(
           child: Scaffold(
             body: JournalSheet(

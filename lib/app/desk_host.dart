@@ -19,10 +19,18 @@ import '../features/work/presentation/work_views.dart';
 import '../shared/shell/desk_view.dart';
 import '../shared/shell/name_dialog.dart';
 import '../shared/shell/shell_frame.dart';
+import '../shared/shell/task_pane.dart';
 import '../shared/workbench/lifeos_tokens.dart';
 import '../shared/workbench/operational_state.dart';
 import 'desk_providers.dart';
 import 'shell_host.dart';
+
+typedef _DeskActions = ({
+  VoidCallback newDesk,
+  VoidCallback rename,
+  VoidCallback? reset,
+  VoidCallback? delete,
+});
 
 const _sheetNames = {
   DeskSheets.journalRecent: 'Journal, today and yesterday',
@@ -47,6 +55,7 @@ final class DeskHost extends ConsumerWidget {
       _ => null,
     };
     final Widget desk;
+    _DeskActions? actions;
     if (desks == null) {
       desk = const OperationalState(
         kind: OperationalStateKind.loading,
@@ -65,9 +74,82 @@ final class DeskHost extends ConsumerWidget {
               .where((value) => value.id == uri.queryParameters['desk'])
               .firstOrNull ??
           desks.first;
-      desk = _desk(context, ref, desks, selected);
+      actions = _deskActions(context, ref, desks, selected);
+      desk = _desk(context, ref, desks, selected, actions);
     }
-    return ShellFrame(inspectorOpen: false, onBackToDesk: () {}, desk: desk);
+    return ShellFrame(
+      inspectorOpen: false,
+      onBackToList: () {},
+      desk: desk,
+      tasks: [
+        if (actions case final actions?)
+          TaskGroup(
+            title: 'Desk tasks',
+            special: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TaskLink(label: 'New desk', onPressed: actions.newDesk),
+                TaskLink(label: 'Rename desk…', onPressed: actions.rename),
+                TaskLink(label: 'Reset desk', onPressed: actions.reset),
+                TaskLink(label: 'Delete desk', onPressed: actions.delete),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// What the selected desk can do, shared by Desk tasks and the desk view.
+  _DeskActions _deskActions(
+    BuildContext context,
+    WidgetRef ref,
+    List<Desk> desks,
+    Desk selected,
+  ) {
+    final repository = ref.read(deskRepositoryProvider)!;
+    void select(Desk desk) => context.go('/today?desk=${desk.id}');
+    Future<void> apply(Future<MutationOutcome<Desk>> change) async {
+      final outcome = await change;
+      if (outcome case Committed<Desk>(:final value)) select(value);
+    }
+
+    return (
+      newDesk: () => apply(repository.createDesk('Desk ${desks.length + 1}')),
+      rename: () async {
+        final name = await askForName(
+          context,
+          title: 'Rename desk',
+          action: 'Rename',
+          initial: selected.name,
+        );
+        if (name != null) {
+          await apply(
+            repository.rename(
+              selected.id,
+              expected: selected.revision,
+              name: name,
+            ),
+          );
+        }
+      },
+      reset: selected.starter == null
+          ? null
+          : () => apply(
+              repository.resetStarter(selected.id, expected: selected.revision),
+            ),
+      delete: selected.canDelete
+          ? () async {
+              final outcome = await repository.deleteDesk(
+                selected.id,
+                expected: selected.revision,
+              );
+              if (outcome is Committed<Desk> && context.mounted) {
+                context.go('/today');
+              }
+            }
+          : null,
+    );
   }
 
   Widget _desk(
@@ -75,6 +157,7 @@ final class DeskHost extends ConsumerWidget {
     WidgetRef ref,
     List<Desk> desks,
     Desk selected,
+    _DeskActions actions,
   ) {
     final repository = ref.read(deskRepositoryProvider)!;
     void go(String route) => context.go(route);
@@ -112,7 +195,7 @@ final class DeskHost extends ConsumerWidget {
         ),
       },
       onSelectDesk: select,
-      onNewDesk: () => apply(repository.createDesk('Desk ${desks.length + 1}')),
+      onNewDesk: actions.newDesk,
       onRemoveTile: (tile) => apply(
         repository.removeTile(
           selected.id,
@@ -142,37 +225,9 @@ final class DeskHost extends ConsumerWidget {
           layout: layout,
         ),
       ),
-      onRename: () async {
-        final name = await askForName(
-          context,
-          title: 'Rename desk',
-          action: 'Rename',
-          initial: selected.name,
-        );
-        if (name != null) {
-          await apply(
-            repository.rename(
-              selected.id,
-              expected: selected.revision,
-              name: name,
-            ),
-          );
-        }
-      },
-      onReset: selected.starter == null
-          ? null
-          : () => apply(
-              repository.resetStarter(selected.id, expected: selected.revision),
-            ),
-      onDelete: selected.canDelete
-          ? () async {
-              final outcome = await repository.deleteDesk(
-                selected.id,
-                expected: selected.revision,
-              );
-              if (outcome is Committed<Desk>) go('/today');
-            }
-          : null,
+      onRename: actions.rename,
+      onReset: actions.reset,
+      onDelete: actions.delete,
       onOpen: go,
     );
   }

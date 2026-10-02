@@ -4,6 +4,11 @@ import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/local_time.dart';
 import '../../../core/time/timezone_service.dart';
+import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/inspector_parts.dart';
+import '../../../shared/workbench/lifeos_skin.dart';
+import '../../../shared/workbench/office_controls.dart';
 import '../application/work_templates.dart';
 import '../domain/ids.dart';
 import '../domain/shift.dart';
@@ -135,21 +140,20 @@ final class ShiftCreateInspector extends StatelessWidget {
   final VoidCallback? onAddManualShift;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Record work', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 18),
-        FilledButton(onPressed: onStartShift, child: const Text('Start shift')),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: onAddManualShift,
-          child: const Text('Add manual shift'),
-        ),
-      ],
-    ),
+  Widget build(BuildContext context) => InspectorPane(
+    children: [
+      const InspectorTitle('Record work'),
+      InspectorActions(
+        children: [
+          KeyButton(
+            label: 'Start shift',
+            kind: KeyKind.primary,
+            onPressed: onStartShift,
+          ),
+          KeyButton(label: 'Add manual shift', onPressed: onAddManualShift),
+        ],
+      ),
+    ],
   );
 }
 
@@ -245,31 +249,25 @@ final class _FinalizeShiftInspectorState extends State<FinalizeShiftInspector> {
     container: true,
     explicitChildNodes: true,
     label: 'Finalize shift',
-    child: Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Finalize shift',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Overtime, night and holiday pay are worked out from the '
-            'agreement.',
-          ),
-          if (_error case final error?) ...[
-            const SizedBox(height: 10),
-            Text(
-              error,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+    child: InspectorPane(
+      children: [
+        const InspectorTitle('Finalize shift'),
+        const InspectorText(
+          'Overtime, night and holiday pay are worked out from the '
+          'agreement.',
+        ),
+        if (_error case final error?)
+          InspectorNote(error, tone: FactTone.negative),
+        InspectorActions(
+          children: [
+            KeyButton(
+              label: 'Finalize shift',
+              kind: KeyKind.primary,
+              onPressed: _submit,
             ),
           ],
-          const SizedBox(height: 18),
-          FilledButton(onPressed: _submit, child: const Text('Finalize shift')),
-        ],
-      ),
+        ),
+      ],
     ),
   );
 }
@@ -418,76 +416,82 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     explicitChildNodes: true,
     label: widget.prefill == null ? 'Add manual shift' : widget.title,
     child: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: inspectorInset,
       children: [
-        Text(widget.title, style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 14),
-        _field(
-          key: const ValueKey('shift-start-date'),
-          label: 'Start date',
-          controller: _startDate,
-          error: _errors['startDate'],
-        ),
-        _field(
-          key: const ValueKey('shift-start-time'),
-          label: 'Start time',
-          controller: _startTime,
-          error: _errors['startTime'],
-        ),
-        _field(
-          key: const ValueKey('shift-end-date'),
-          label: 'End date',
-          controller: _endDate,
-          error: _errors['endDate'],
-        ),
-        _field(
-          key: const ValueKey('shift-end-time'),
-          label: 'End time',
-          controller: _endTime,
-          error: _errors['endTime'],
-        ),
-        _field(
-          key: const ValueKey('shift-timezone'),
-          label: 'Timezone',
-          controller: _timezone,
-          error: _errors['timezone'],
-        ),
-        for (var index = 0; index < _breaks.length; index++) ...[
+        InspectorTitle(widget.title),
+        _group(context, 'Times', [
           _field(
-            key: ValueKey('shift-break-start-date-$index'),
-            label: 'Break ${index + 1} start date',
-            controller: _breaks[index].startDate,
-            error: _errors['break-$index'],
+            key: const ValueKey('shift-start-date'),
+            label: 'Start date',
+            controller: _startDate,
+            error: _errors['startDate'],
           ),
           _field(
-            key: ValueKey('shift-break-start-$index'),
-            label: 'Break ${index + 1} start time',
-            controller: _breaks[index].start,
+            key: const ValueKey('shift-start-time'),
+            label: 'Start time',
+            controller: _startTime,
+            error: _errors['startTime'],
           ),
           _field(
-            key: ValueKey('shift-break-end-date-$index'),
-            label: 'Break ${index + 1} end date',
-            controller: _breaks[index].endDate,
+            key: const ValueKey('shift-end-date'),
+            label: 'End date',
+            controller: _endDate,
+            error: _errors['endDate'],
           ),
           _field(
-            key: ValueKey('shift-break-end-$index'),
-            label: 'Break ${index + 1} end time',
-            controller: _breaks[index].end,
+            key: const ValueKey('shift-end-time'),
+            label: 'End time',
+            controller: _endTime,
+            error: _errors['endTime'],
           ),
-        ],
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            onPressed: _addBreak,
-            child: const Text('Add break'),
+          _field(
+            key: const ValueKey('shift-timezone'),
+            label: 'Timezone',
+            controller: _timezone,
+            error: _errors['timezone'],
           ),
-        ),
-        _field(
-          key: const ValueKey('shift-note'),
-          label: 'Shift note',
-          controller: _note,
-          maxLines: 3,
-        ),
+        ]),
+        _group(context, 'Breaks', [
+          for (var index = 0; index < _breaks.length; index++) ...[
+            _field(
+              key: ValueKey('shift-break-start-date-$index'),
+              label: 'Break ${index + 1} start date',
+              controller: _breaks[index].startDate,
+              error: _errors['break-$index'],
+            ),
+            _field(
+              key: ValueKey('shift-break-start-$index'),
+              label: 'Break ${index + 1} start time',
+              controller: _breaks[index].start,
+            ),
+            _field(
+              key: ValueKey('shift-break-end-date-$index'),
+              label: 'Break ${index + 1} end date',
+              controller: _breaks[index].endDate,
+            ),
+            _field(
+              key: ValueKey('shift-break-end-$index'),
+              label: 'Break ${index + 1} end time',
+              controller: _breaks[index].end,
+            ),
+          ],
+          Align(
+            alignment: Alignment.centerLeft,
+            child: KeyButton(
+              label: 'Add break',
+              kind: KeyKind.small,
+              onPressed: _addBreak,
+            ),
+          ),
+        ]),
+        _group(context, 'Note', [
+          _field(
+            key: const ValueKey('shift-note'),
+            label: 'Shift note',
+            controller: _note,
+            maxLines: 3,
+          ),
+        ]),
         if (_errors['shift'] case final error?) ...[
           Text(
             error,
@@ -495,15 +499,30 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
           ),
           const SizedBox(height: 8),
         ],
-        FilledButton(
-          key: const ValueKey('save-manual-shift'),
-          onPressed: _submit,
-          child: const Text('Save manual shift'),
+        FormFooter(
+          children: [
+            FilledButton(
+              key: const ValueKey('save-manual-shift'),
+              onPressed: _submit,
+              child: const Text('Save manual shift'),
+            ),
+          ],
         ),
       ],
     ),
   );
 }
+
+/// A form group box on the face colour.
+Widget _group(BuildContext context, String legend, List<Widget> children) =>
+    GroupBox(
+      legend: legend,
+      background: LifeOSSkinScope.of(context).tokens.chrome,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
 
 final class ValidationFailureInspector extends StatelessWidget {
   const ValidationFailureInspector({
@@ -542,24 +561,21 @@ final class _LifecyclePane extends StatelessWidget {
   final VoidCallback? onSecondary;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.headlineSmall),
-        if (durationLabel != null) ...[
-          const SizedBox(height: 8),
-          Text(durationLabel!),
+  Widget build(BuildContext context) => InspectorPane(
+    children: [
+      InspectorTitle(title, meta: durationLabel),
+      InspectorActions(
+        children: [
+          KeyButton(
+            label: primaryLabel,
+            kind: KeyKind.primary,
+            onPressed: onPrimary,
+          ),
+          if (secondaryLabel case final label?)
+            KeyButton(label: label, onPressed: onSecondary),
         ],
-        const SizedBox(height: 18),
-        FilledButton(onPressed: onPrimary, child: Text(primaryLabel)),
-        if (secondaryLabel != null) ...[
-          const SizedBox(height: 8),
-          OutlinedButton(onPressed: onSecondary, child: Text(secondaryLabel!)),
-        ],
-      ],
-    ),
+      ),
+    ],
   );
 }
 
@@ -570,17 +586,13 @@ Widget _field({
   String? error,
   int maxLines = 1,
 }) => Padding(
-  padding: const EdgeInsets.only(bottom: 12),
-  child: Semantics(
-    label: error == null ? label : '$label, $error',
-    textField: true,
-    excludeSemantics: true,
-    child: TextField(
-      key: key,
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(labelText: label, errorText: error),
-    ),
+  padding: const EdgeInsets.only(bottom: 10),
+  child: EraField(
+    fieldKey: key,
+    label: label,
+    controller: controller,
+    error: error,
+    maxLines: maxLines,
   ),
 );
 

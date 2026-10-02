@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 
 import 'lifeos_skin.dart';
-import 'lifeos_tokens.dart';
+import 'millennium_style.dart';
 
-/// The Material theme of the active skin, so forms, dialogs and menus that
-/// still use Material controls follow the appearance like every LifeOS
-/// control does. Buttons are painted with the skin's key surfaces.
+/// The Material theme of the LifeOS style, so forms, dialogs and menus that
+/// use Material controls look like every LifeOS control. Buttons are
+/// painted with the style's key surfaces.
 ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
   final t = skin.tokens;
   final type = skin.typography;
-  final dark = relativeLuminance(t.paper) < 0.4;
   final scheme = ColorScheme(
-    brightness: dark ? Brightness.dark : Brightness.light,
+    brightness: Brightness.light,
     primary: t.ink,
     onPrimary: t.paper,
     primaryContainer: t.selWash,
@@ -31,7 +30,7 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
   );
   TextStyle ink(TextStyle style) => style.copyWith(color: t.ink);
   final textTheme = TextTheme(
-    headlineSmall: ink(type.title.copyWith(fontSize: 20, height: 1.2)),
+    headlineSmall: ink(type.title),
     titleLarge: ink(type.title),
     titleMedium: ink(type.title),
     titleSmall: ink(type.body.copyWith(fontWeight: FontWeight.w700)),
@@ -61,27 +60,35 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
         borderRadius: BorderRadius.all(Radius.circular(4)),
       ),
     ),
-    minimumSize: const WidgetStatePropertyAll(Size(24, 30)),
+    minimumSize: const WidgetStatePropertyAll(Size(24, 24)),
     padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 12)),
-    textStyle: WidgetStatePropertyAll(
-      type.body.copyWith(
-        fontWeight: kind == KeyKind.primary ? FontWeight.w700 : FontWeight.w500,
-      ),
-    ),
-    backgroundBuilder: (context, states, child) => DecoratedBox(
-      decoration: skin.painters
-          .key(
-            t,
-            kind,
-            KeyState(
-              enabled: !states.contains(WidgetState.disabled),
-              pressed: states.contains(WidgetState.pressed),
-              hovered: states.contains(WidgetState.hovered),
-            ),
-          )
-          .decoration,
-      child: child,
-    ),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    textStyle: WidgetStatePropertyAll(type.body),
+    // The same face and rings as a KeyButton, so a form's keys match the
+    // property sheet's.
+    backgroundBuilder: (context, states, child) {
+      final surface = skin.painters.key(
+        t,
+        kind,
+        KeyState(
+          enabled: !states.contains(WidgetState.disabled),
+          pressed: states.contains(WidgetState.pressed),
+          hovered: states.contains(WidgetState.hovered),
+          focused: states.contains(WidgetState.focused),
+        ),
+      );
+      final rings = surface.rings;
+      return DecoratedBox(
+        decoration: surface.decoration,
+        child: rings == null
+            ? child
+            : DecoratedBox(
+                decoration: InsetRings(rings.$1, rings.$2),
+                position: DecorationPosition.foreground,
+                child: child,
+              ),
+      );
+    },
   );
 
   OutlineInputBorder outline(Color color, [double width = 1]) =>
@@ -89,10 +96,8 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
         borderRadius: const BorderRadius.all(Radius.circular(2)),
         borderSide: BorderSide(color: color, width: width),
       );
-  final menuShape = RoundedRectangleBorder(
-    borderRadius: const BorderRadius.all(Radius.circular(4)),
-    side: BorderSide(color: t.muted),
-  );
+  // Era menus are square with a thin grey outline.
+  final menuShape = RoundedRectangleBorder(side: BorderSide(color: t.muted));
 
   return ThemeData(
     useMaterial3: true,
@@ -135,33 +140,40 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
       filled: true,
       fillColor: t.paper,
       isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+      floatingLabelBehavior: FloatingLabelBehavior.always,
       labelStyle: type.small.copyWith(color: t.muted),
       floatingLabelStyle: type.small.copyWith(color: t.ink),
       hintStyle: type.body.copyWith(color: t.muted),
       helperStyle: type.small.copyWith(color: t.muted),
       errorStyle: type.small.copyWith(color: t.negative),
-      border: outline(t.muted),
-      enabledBorder: outline(t.muted),
+      border: outline(MillenniumColors.fieldLine),
+      enabledBorder: outline(MillenniumColors.fieldLine),
       disabledBorder: outline(t.chromeLine),
-      focusedBorder: outline(t.focus, 2),
+      // Keyboard focus turns the border key-outline blue (spec 5.6).
+      focusedBorder: outline(MillenniumColors.keyLine),
       errorBorder: outline(t.negative),
-      focusedErrorBorder: outline(t.negative, 2),
+      focusedErrorBorder: outline(t.negative),
     ),
     textSelectionTheme: TextSelectionThemeData(
       cursorColor: t.ink,
       selectionColor: t.selWash,
       selectionHandleColor: t.ink,
     ),
+    // A white box with a green tick, and a green radio dot (spec 5.6).
     checkboxTheme: CheckboxThemeData(
-      fillColor: WidgetStateProperty.resolveWith(
-        (states) =>
-            states.contains(WidgetState.selected) ? t.ink : Colors.transparent,
-      ),
-      checkColor: WidgetStatePropertyAll(t.paper),
-      side: BorderSide(color: t.muted, width: 1.5),
+      fillColor: WidgetStatePropertyAll(t.paper),
+      checkColor: const WidgetStatePropertyAll(MillenniumColors.orbGreen),
+      side: const BorderSide(color: MillenniumColors.fieldLine),
+      shape: const RoundedRectangleBorder(),
     ),
-    radioTheme: RadioThemeData(fillColor: WidgetStatePropertyAll(t.ink)),
+    radioTheme: RadioThemeData(
+      fillColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? MillenniumColors.orbGreen
+            : MillenniumColors.fieldLine,
+      ),
+    ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.selected) ? t.paper : t.muted,
@@ -214,10 +226,12 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
       ),
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: t.paper,
+      backgroundColor: t.chrome,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      shape: menuShape,
+      shape: const RoundedRectangleBorder(
+        side: BorderSide(color: MillenniumColors.keyLine),
+      ),
       titleTextStyle: type.title.copyWith(color: t.ink),
       contentTextStyle: type.body.copyWith(color: t.ink),
     ),
@@ -242,15 +256,6 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
   );
 }
 
-/// The Office Machine theme without a skin scope, for the app's base
-/// theme and for widget tests that pump a form on its own.
-ThemeData buildLifeOSTheme({required bool highContrast}) {
-  const skin = OfficeMachineSkin();
-  return lifeOSThemeFor(
-    LifeOSSkinData(
-      skin: skin,
-      tokens: skin.tokensFor(Brightness.light, highContrast: highContrast),
-      typography: skin.typographyFor(TextScaler.noScaling),
-    ),
-  );
-}
+/// The LifeOS Material theme without a skin scope, for the app's base theme
+/// and for widget tests that pump a form on its own.
+ThemeData buildLifeOSTheme() => lifeOSThemeFor(LifeOSSkinData.standard);

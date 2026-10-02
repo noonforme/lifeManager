@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../workbench/era_dialog.dart';
+import '../workbench/era_field.dart';
+import '../workbench/lifeos_skin.dart';
+import '../workbench/office_controls.dart';
+
 /// Asks for a name, for example of a desk or a view; null when cancelled.
 Future<String?> askForName(
   BuildContext context, {
@@ -39,21 +44,22 @@ final class _NameDialogState extends State<_NameDialog> {
   void _submit() => Navigator.of(context).pop(_name.text);
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.title),
-    content: TextField(
-      key: const ValueKey('name-field'),
+  Widget build(BuildContext context) => EraDialog(
+    title: widget.title,
+    body: EraField(
+      fieldKey: const ValueKey('name-field'),
       controller: _name,
+      label: 'Name',
       autofocus: true,
-      decoration: const InputDecoration(labelText: 'Name'),
       onSubmitted: (_) => _submit(),
     ),
     actions: [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('Cancel'),
+      KeyButton(label: 'Cancel', onPressed: () => Navigator.of(context).pop()),
+      KeyButton(
+        label: widget.action,
+        kind: KeyKind.primary,
+        onPressed: _submit,
       ),
-      FilledButton(onPressed: _submit, child: Text(widget.action)),
     ],
   );
 }

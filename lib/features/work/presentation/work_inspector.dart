@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/timezone_service.dart';
+import '../../../shared/workbench/inspector_parts.dart';
+import '../../../shared/workbench/office_controls.dart';
 import '../data/projections/work_record_projection.dart';
 import '../domain/facts.dart';
 import '../domain/pay.dart';
@@ -233,69 +235,46 @@ final class _FinalizedShift extends StatelessWidget {
           ? total
           : total + item.endUtc!.difference(item.startUtc).inSeconds,
     );
-    return ListView(
-      padding: const EdgeInsets.all(20),
+    return InspectorPane(
       children: [
-        Text(
-          'Shift finalized',
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 12),
-        _Fact(label: 'Date', value: shift.localStartDate.toString()),
-        _Fact(
-          label: 'Time',
-          value:
-              '${clock(shift.startUtc)}–'
-              '${shift.endUtc == null ? '' : clock(shift.endUtc!)}',
-        ),
-        _Fact(
-          label: 'Breaks',
-          value: breaks.isEmpty
-              ? 'None'
-              : '${breaks.length} · ${formatDuration(breakSeconds)}',
-        ),
-        _Fact(label: 'Timezone', value: shift.timezoneId),
-        if (shift.note case final note?) _Fact(label: 'Note', value: note),
-        const Divider(height: 20),
+        const InspectorTitle('Shift finalized'),
+        InspectorFacts([
+          Fact('Date', shift.localStartDate.toString()),
+          Fact(
+            'Time',
+            '${clock(shift.startUtc)}–'
+                '${shift.endUtc == null ? '' : clock(shift.endUtc!)}',
+          ),
+          breaks.isEmpty
+              ? const Fact.words('Breaks', 'None')
+              : Fact(
+                  'Breaks',
+                  '${breaks.length} · ${formatDuration(breakSeconds)}',
+                ),
+          Fact.words('Timezone', shift.timezoneId),
+          if (shift.note case final note?) Fact.words('Note', note),
+        ], legend: 'Shift'),
         if (pay case final pay?) ...[
-          _Fact(label: 'Expected pay', value: formatMoney(pay.amount)),
-          _Fact(
-            label: 'Paid time',
-            value: formatDuration(pay.totalPaidSeconds),
-          ),
-          _Fact(
-            label: 'Regular hours',
-            value: formatDuration(pay.regularPaidSeconds),
-          ),
-          _Fact(
-            label: 'Night hours',
-            value: formatDuration(pay.nightPaidSeconds),
-          ),
-          _Fact(
-            label: 'Holiday hours',
-            value: formatDuration(pay.holidayPaidSeconds),
-          ),
-          _Fact(
-            label: 'Overtime hours',
-            value: formatDuration(pay.overtimePaidSeconds),
-          ),
-          const SizedBox(height: 4),
-          const Text(
+          InspectorFacts(legend: 'Expected pay', [
+            Fact('Expected pay', formatMoney(pay.amount)),
+            Fact('Paid time', formatDuration(pay.totalPaidSeconds)),
+            Fact('Regular hours', formatDuration(pay.regularPaidSeconds)),
+            Fact('Night hours', formatDuration(pay.nightPaidSeconds)),
+            Fact('Holiday hours', formatDuration(pay.holidayPaidSeconds)),
+            Fact('Overtime hours', formatDuration(pay.overtimePaidSeconds)),
+          ]),
+          const InspectorNote(
             'Expected pay is an estimate until a payslip confirms it. '
             'Hours can count in more than one premium.',
           ),
         ] else
-          const Text('The recorded agreement now determines the estimate.'),
-        if (onCorrect != null) ...[
-          const SizedBox(height: 18),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton(
-              onPressed: onCorrect,
-              child: const Text('Correct shift'),
-            ),
+          const InspectorNote(
+            'The recorded agreement now determines the estimate.',
           ),
-        ],
+        if (onCorrect != null)
+          InspectorActions(
+            children: [KeyButton(label: 'Correct shift', onPressed: onCorrect)],
+          ),
       ],
     );
   }
@@ -312,56 +291,24 @@ final class _PayslipDetail extends StatelessWidget {
     container: true,
     explicitChildNodes: true,
     label: 'Payslip',
-    child: ListView(
-      padding: const EdgeInsets.all(20),
+    child: InspectorPane(
       children: [
-        Text('Paid evidence', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 12),
-        _Fact(label: 'Amount', value: _money(payslip.amount)),
-        _Fact(label: 'Basis', value: _basis(payslip.basis)),
-        _Fact(label: 'Issued', value: payslip.issuedDate.toString()),
-        if (payslip.paidDate != null)
-          _Fact(label: 'Paid', value: payslip.paidDate.toString()),
-        if (payslip.reference != null)
-          _Fact(label: 'Reference', value: payslip.reference!),
-        if (onCorrect != null) ...[
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton(
-              onPressed: onCorrect,
-              child: const Text('Correct payslip'),
-            ),
+        const InspectorTitle('Paid evidence'),
+        InspectorFacts([
+          Fact('Amount', _money(payslip.amount)),
+          Fact.words('Basis', _basis(payslip.basis)),
+          Fact('Issued', payslip.issuedDate.toString()),
+          if (payslip.paidDate != null)
+            Fact('Paid', payslip.paidDate.toString()),
+          if (payslip.reference != null)
+            Fact.words('Reference', payslip.reference!),
+        ], legend: 'Payslip details'),
+        if (onCorrect != null)
+          InspectorActions(
+            children: [
+              KeyButton(label: 'Correct payslip', onPressed: onCorrect),
+            ],
           ),
-        ],
-      ],
-    ),
-  );
-}
-
-final class _Fact extends StatelessWidget {
-  const _Fact({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(width: 16),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: const TextStyle(
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-          ),
-        ),
       ],
     ),
   );
@@ -371,9 +318,10 @@ final class _UnavailableRecord extends StatelessWidget {
   const _UnavailableRecord();
 
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.all(20),
-    child: Text('This Work record is not available in this inspector.'),
+  Widget build(BuildContext context) => const InspectorPane(
+    children: [
+      InspectorText('This Work record is not available in this inspector.'),
+    ],
   );
 }
 
@@ -395,24 +343,14 @@ final class _UnavailableShift extends StatelessWidget {
   final VoidCallback? onDismiss;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (title != null) ...[
-          Text(title!, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-        ],
-        const Text('This shift is not available for the live workflow.'),
-        if (onDismiss != null) ...[
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: onDismiss,
-            child: const Text('Review shift'),
-          ),
-        ],
-      ],
-    ),
+  Widget build(BuildContext context) => InspectorPane(
+    children: [
+      if (title case final title?) InspectorTitle(title),
+      const InspectorText('This shift is not available for the live workflow.'),
+      if (onDismiss != null)
+        InspectorActions(
+          children: [KeyButton(label: 'Review shift', onPressed: onDismiss)],
+        ),
+    ],
   );
 }

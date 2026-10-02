@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/time/local_date.dart';
+import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
+import '../../../shared/workbench/millennium_style.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
@@ -264,11 +266,26 @@ final class TileList extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (line.done case final done?) ...[
-                    Icon(
-                      done ? Icons.check_box : Icons.check_box_outline_blank,
-                      size: 18,
-                      semanticLabel: done ? 'Done' : 'Not done',
-                      color: done ? tokens.positive : tokens.negative,
+                    // An era check box: white, field outline, green tick.
+                    Semantics(
+                      label: done ? 'Done' : 'Not done',
+                      excludeSemantics: true,
+                      child: Container(
+                        width: 15,
+                        height: 15,
+                        margin: const EdgeInsets.only(top: 1),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: tokens.paper,
+                          border: Border.all(color: MillenniumColors.fieldLine),
+                        ),
+                        child: done
+                            ? const EraGlyph(
+                                EraGlyphKind.tick,
+                                color: MillenniumColors.orbGreen,
+                              )
+                            : null,
+                      ),
                     ),
                     const SizedBox(width: 8),
                   ],

@@ -1,0 +1,3 @@
+tags:
+  real-font:
+    skip: "Run with: flutter test --run-skipped -t real-font --update-goldens test/goldens/real_font_check_test.dart"

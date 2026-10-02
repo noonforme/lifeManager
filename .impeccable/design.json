@@ -4,60 +4,105 @@
   "title": "Design System: LifeOS",
   "extensions": {
     "colorMeta": {
-      "ground": {
+      "face": {
         "role": "neutral",
-        "displayName": "Casing Grey",
-        "canonical": "#cfd1cc"
+        "displayName": "Desktop Face",
+        "canonical": "#ece9d8"
       },
       "paper": {
         "role": "neutral",
-        "displayName": "Register Paper",
-        "canonical": "#f4f5f2"
+        "displayName": "List White",
+        "canonical": "#ffffff"
+      },
+      "page": {
+        "role": "neutral",
+        "displayName": "Property Page",
+        "canonical": "#fcfcfe"
       },
       "ink": {
         "role": "neutral",
-        "displayName": "Machine Ink",
-        "canonical": "#1d1d1b"
+        "displayName": "Ink",
+        "canonical": "#000000"
       },
       "muted": {
         "role": "neutral",
         "displayName": "Muted Ink",
-        "canonical": "#60635e"
+        "canonical": "#555555"
       },
-      "chrome": {
+      "chrome-line": {
         "role": "neutral",
-        "displayName": "Chrome",
-        "canonical": "#e2e4df"
+        "displayName": "Chrome Line",
+        "canonical": "#c5c2b2"
       },
       "head": {
+        "role": "primary",
+        "displayName": "Caption Blue",
+        "canonical": "#0046d5"
+      },
+      "selection": {
+        "role": "primary",
+        "displayName": "Selection Blue",
+        "canonical": "#316ac5"
+      },
+      "field-line": {
         "role": "neutral",
-        "displayName": "Black Key Head",
-        "canonical": "#2b2c2a"
+        "displayName": "Field Outline",
+        "canonical": "#7f9db9"
+      },
+      "key-line": {
+        "role": "neutral",
+        "displayName": "Key Outline",
+        "canonical": "#003c74"
+      },
+      "tab-accent": {
+        "role": "secondary",
+        "displayName": "Tab Amber",
+        "canonical": "#ffc83c"
+      },
+      "sort-accent": {
+        "role": "secondary",
+        "displayName": "Sort Amber",
+        "canonical": "#f9b119"
+      },
+      "pane-top": {
+        "role": "secondary",
+        "displayName": "Task Pane Top",
+        "canonical": "#7ba2e7"
+      },
+      "pane-bottom": {
+        "role": "secondary",
+        "displayName": "Task Pane Bottom",
+        "canonical": "#6375d6"
+      },
+      "pane-body": {
+        "role": "secondary",
+        "displayName": "Task Group Body",
+        "canonical": "#d6dff7"
+      },
+      "link": {
+        "role": "primary",
+        "displayName": "Task Link Blue",
+        "canonical": "#1c50b0"
       },
       "signal": {
-        "role": "primary",
-        "displayName": "Signal Orange",
-        "canonical": "#e8590c"
-      },
-      "action-fill": {
-        "role": "primary",
-        "displayName": "Action Orange",
-        "canonical": "#c2410c"
-      },
-      "sel-wash": {
-        "role": "primary",
-        "displayName": "Selection Wash",
-        "canonical": "#fde3d2"
+        "role": "secondary",
+        "displayName": "Running Orange",
+        "canonical": "#d9500b"
       },
       "negative": {
         "role": "secondary",
-        "displayName": "Short-paid Red",
-        "canonical": "#b8261b"
+        "displayName": "Under Red",
+        "canonical": "#cc0000"
       },
       "positive": {
         "role": "secondary",
         "displayName": "Over Green",
-        "canonical": "#2a6f2d"
+        "canonical": "#2a752d"
+      },
+      "progress": {
+        "role": "secondary",
+        "displayName": "Progress Green",
+        "canonical": "#2fbf2f"
       },
       "area-work": {
         "role": "secondary",
@@ -81,150 +126,102 @@
       }
     },
     "typographyMeta": {
-      "title": {
-        "displayName": "Record Title",
-        "purpose": "Inspector record title, Archivo 600 16/20."
-      },
-      "label": {
-        "displayName": "Column Label",
-        "purpose": "Uppercase column headers and section labels, Archivo 700 10.5/14."
-      },
-      "body": {
-        "displayName": "Interface",
-        "purpose": "Controls, entries and menus, Archivo 500 13/18."
-      },
-      "figure": {
-        "displayName": "Figures",
-        "purpose": "Dates, times, durations and money, Azeret Mono tabular 12.5/18."
-      }
+      "family": "Noto Sans",
+      "figures": "tabular-nums",
+      "note": "Arrows, chevrons and ticks are painted; Noto Sans lacks them."
     },
     "shadows": [],
-    "motion": [
-      {
-        "name": "cross-fade",
-        "value": "120ms, zero with reduced motion",
-        "purpose": "Pane and inspector content changes."
-      }
-    ],
-    "breakpoints": [
-      {
-        "name": "full",
-        "value": "1280px",
-        "purpose": "Tree, desk and inspector side by side."
-      },
-      {
-        "name": "inspector-alternates",
-        "value": "<1280px",
-        "purpose": "The inspector replaces the desk until Back to desk."
-      },
-      {
-        "name": "tree-folds",
-        "value": "<1024px",
-        "purpose": "The book tree folds into the Books key."
-      }
-    ],
+    "motion": {
+      "style": "immediate"
+    },
+    "breakpoints": {
+      "full": "1280px",
+      "taskPaneFold": "1024px"
+    },
     "appearances": [
-      {
-        "name": "Office Machine Day",
-        "default": true
-      },
-      {
-        "name": "Office Machine Night"
-      },
-      {
-        "name": "High contrast"
-      },
-      {
-        "name": "Millennium",
-        "note": "Painting only; Noto Sans; no night palette; system high contrast falls back to Office Machine."
-      }
+      "Millennium (the only style)"
     ]
   },
   "components": [
     {
-      "name": "Primary Key",
+      "name": "Push Button",
       "kind": "button",
-      "refersTo": "key-primary",
-      "description": "Orange key with a 2px pressable edge.",
-      "html": "<button class=\"om-key om-key--primary\">+ Add</button>",
-      "css": ".om-key{background:#f4f5f2;border:1px solid #60635e;border-bottom-width:3px;border-radius:4px;color:#1d1d1b;font:500 13px/18px 'Archivo',sans-serif;min-height:30px;padding:0 10px}.om-key--primary{background:#c2410c;border-color:#c2410c #c2410c #7e2a08;color:#fff;font-weight:700}.om-key:active{border-bottom-width:2px;transform:translateY(1px)}.om-key:focus-visible{outline:2px solid #1d1d1b;outline-offset:2px}"
+      "refersTo": "push-button",
+      "description": "White-to-face gradient key with a dark blue outline; the default key has a blue inner double ring.",
+      "html": "<button class=\"mil-key mil-key--default\">Save</button>",
+      "css": ".mil-key{background:linear-gradient(#fff,#ece9d8 85%,#d6d0c5);border:1px solid #003c74;border-radius:3px;color:#000;font:400 12px/16px 'Noto Sans',sans-serif;min-height:24px;padding:0 10px}.mil-key--default{box-shadow:inset 0 0 0 1px #6c9cec,inset 0 0 0 2px #b9d1fa}.mil-key:hover{box-shadow:inset 0 0 0 1px #f9b119,inset 0 0 0 2px #ffe7a2}.mil-key:active{background:linear-gradient(#d6d0c5,#ece9d8 85%,#fff)}"
     },
     {
-      "name": "Secondary Key",
-      "kind": "button",
-      "refersTo": "key-secondary",
-      "description": "Paper key with a muted outline.",
-      "html": "<button class=\"om-key\">Save view</button>",
-      "css": ".om-key{background:#f4f5f2;border:1px solid #60635e;border-bottom:3px solid #3e403d;border-radius:4px;color:#1d1d1b;font:500 13px/18px 'Archivo',sans-serif;min-height:30px;padding:0 10px}"
+      "name": "Task Group",
+      "kind": "panel",
+      "refersTo": "task-pane",
+      "description": "Rounded task-pane group with a gradient header and link list.",
+      "html": "<div class=\"mil-tg\"><h4>Work tasks</h4><a>Add a shift</a></div>",
+      "css": ".mil-tg{border-radius:5px 5px 0 0;overflow:hidden;font:400 12px/16px 'Noto Sans',sans-serif}.mil-tg h4{margin:0;padding:4px 9px;color:#fff;background:linear-gradient(90deg,#0046d5,#2a6ee8)}.mil-tg a{display:block;padding:4px 8px;background:#d6dff7;color:#1c50b0}"
     },
     {
-      "name": "Field",
-      "kind": "input",
-      "refersTo": "field",
-      "description": "Paper field with a muted outline and a 2px focus outline.",
-      "html": "<label class=\"om-field\"><span>Hourly rate</span><input value=\"18.40\"></label>",
-      "css": ".om-field{display:grid;gap:4px;font:400 11.5px/16px 'Archivo',sans-serif;color:#60635e}.om-field input{background:#f4f5f2;border:1px solid #60635e;border-radius:2px;color:#1d1d1b;font:500 13px/18px 'Archivo',sans-serif;padding:10px}.om-field input:focus{outline:none;border:2px solid #1d1d1b}"
+      "name": "Group Box",
+      "kind": "panel",
+      "refersTo": "group-box",
+      "description": "Titled frame with a Head-blue legend.",
+      "html": "<fieldset class=\"mil-gb\"><legend>Shift</legend>Date 2026-09-09</fieldset>",
+      "css": ".mil-gb{border:1px solid #d0d0bf;border-radius:3px;padding:4px 8px 8px}.mil-gb legend{color:#0046d5;font:400 11px/14px 'Noto Sans',sans-serif;padding:0 3px}"
     },
     {
-      "name": "Register",
-      "kind": "table",
-      "refersTo": "register-row",
-      "description": "Head group rows, paper data rows, tabular figures, selection wash.",
-      "html": "<table class=\"om-reg\"><thead><tr><th>Date</th><th>Paid</th><th>Est. pay</th></tr></thead><tbody><tr class=\"om-group\"><td colspan=\"3\">2026-09-01 – 2026-09-30</td></tr><tr><td>2026-09-07</td><td>8:00</td><td>EUR 147.20</td></tr><tr class=\"om-sel\"><td>2026-09-08</td><td>8:00</td><td>EUR 220.80</td></tr></tbody></table>",
-      "css": ".om-reg{border-collapse:collapse;background:#f4f5f2;color:#1d1d1b;font:500 13px/18px 'Archivo',sans-serif}.om-reg th{background:#ebede8;color:#60635e;font:700 10.5px/14px 'Archivo',sans-serif;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;text-align:left}.om-reg td{border-bottom:1px solid #dcded9;height:25px;padding:4px 8px;font-family:'Azeret Mono',monospace;font-variant-numeric:tabular-nums}.om-group td{background:#2b2c2a;color:#f4f5f2;font:700 13px/18px 'Archivo',sans-serif}.om-sel td{background:#fde3d2}"
+      "name": "Property Sheet Tab",
+      "kind": "tab",
+      "refersTo": "property-sheet-tab",
+      "description": "Active tab joined to the page with an amber top edge.",
+      "html": "<span class=\"mil-tab mil-tab--on\">General</span><span class=\"mil-tab\">History</span>",
+      "css": ".mil-tab{display:inline-block;padding:4px 10px;border:1px solid #919b9c;border-bottom:0;background:linear-gradient(#fff,#ece9d8);font:400 12px/16px 'Noto Sans',sans-serif}.mil-tab--on{background:#fcfcfe;border-top:2px solid #ffc83c;padding-top:5px}"
     },
     {
-      "name": "Desk Tile",
-      "kind": "card",
-      "description": "Square paper tile under a black head with area key, name, menu and close.",
-      "html": "<section class=\"om-tile\"><header><b class=\"om-area\">W</b>Work this period</header><p>Warehouse: 8:00 paid, EUR 147.20 expected so far</p></section>",
-      "css": ".om-tile{background:#f4f5f2;border:1px solid #dcded9}.om-tile header{align-items:center;background:#2b2c2a;color:#f4f5f2;display:flex;font:700 10.5px/14px 'Archivo',sans-serif;gap:8px;height:32px;padding:0 8px;text-transform:uppercase;letter-spacing:.08em}.om-area{background:#3a6ea5;border-radius:4px;color:#fff;padding:0 4px}.om-tile p{font:500 13px/18px 'Archivo',sans-serif;margin:0;padding:12px}"
+      "name": "Details List Row",
+      "kind": "row",
+      "refersTo": "details-list-row",
+      "description": "20px row; selection is solid blue with white ink; the cursor is a dotted rectangle.",
+      "html": "<div class=\"mil-row mil-row--sel\">2026-09-09 · EUR 174.80</div>",
+      "css": ".mil-row{min-height:20px;padding:2px 5px;font:400 12px/16px 'Noto Sans',sans-serif;background:#fff}.mil-row--sel{background:#316ac5;color:#fff}"
     }
   ],
   "narrative": {
-    "northStar": "The Office Machine",
-    "overview": "LifeOS is a calculating machine for one person's records. A grey casing holds paper-white registers under black heads; one signal orange marks the thing to press and anything running; each area has its own keycap. Every derived figure explains itself in the formula bar and every record keeps a History. Desks arrange sheets as tiles, the Journal reads every area's events by day, and saved views name filtered sheets. Millennium reskins the same shell without moving anything.\n\nDerived from the built Flutter shell and its goldens (test/goldens), with synthetic data only.",
+    "northStar": "The 2001 Office PC",
+    "overview": "LifeOS looks and behaves like a friendly, glossy office PC from around 2001, shaped like that era's file browser: orb toolbar, Address bar, blue task pane, details lists, property sheets and a sunken status bar. It is the only style.",
     "keyCharacteristics": [
-      "Grey casing, paper registers, black heads; flat and square.",
-      "One orange for action and running state.",
-      "Archivo for words; Azeret Mono tabular figures for every number.",
-      "Keys with a 2px pressable edge are the only depth.",
-      "Formula bar explanations and per-record History."
+      "Face chrome, white lists, blue heads and selection.",
+      "Bevels and gradients are the only depth; no drop shadows.",
+      "Noto Sans with tabular figures.",
+      "Every derived figure explains itself in the Working group box; every record has a History."
     ],
     "rules": [
       {
-        "name": "The One-Orange Rule",
-        "body": "Orange means press this or this is running; never decoration.",
-        "section": "colors"
-      },
-      {
         "name": "The Words-First Rule",
-        "body": "Draft, Void, Running, over and under are always written; colour only supports the word.",
+        "body": "States and over/under are always written; colour only supports the word.",
         "section": "colors"
       },
       {
-        "name": "The Figures-Line-Up Rule",
-        "body": "Anything compared down a column is set in Figure and right-aligned.",
-        "section": "typography"
+        "name": "The No-Vendor Rule",
+        "body": "No vendor names, logos, icons, wallpapers or sounds; glyphs are painted.",
+        "section": "colors"
       },
       {
-        "name": "The Flat-Casing Rule",
-        "body": "Regions differ by tone and lines, never by elevation.",
-        "section": "elevation"
+        "name": "The Era Rule",
+        "body": "Every design choice mimics the 2001 desktop era.",
+        "section": "overview"
       }
     ],
     "dos": [
-      "Do put every figure in a register and give derived figures an explanation.",
-      "Do take colours only from tokens and painting only from the skin's painters.",
-      "Do keep keys labelled, targets at least 24×24, and focus distinct from selection.",
-      "Do keep routes, view filters and tile references structural.",
-      "Do use synthetic data in tests, goldens and screenshots."
+      "Choose the era-authentic control.",
+      "Explain every derived figure in Working.",
+      "Take colours only from tokens and MillenniumColors.",
+      "Keep targets at least 24 × 24 and focus distinct from selection.",
+      "Paint glyphs the bundled font lacks."
     ],
     "donts": [
-      "Don't add KPI cards, dashboards or a scaled-up tablet layout.",
-      "Don't add shadows, blur, glow or gradients to Office Machine.",
-      "Don't let a skin move, resize or re-word a control.",
-      "Don't signal state by colour alone."
+      "Add a second palette, dark mode or appearance setting.",
+      "Use vendor names, logos, icons, wallpapers or sounds.",
+      "Add drop shadows or blur.",
+      "Signal state by colour alone."
     ]
   }
 }

@@ -16,6 +16,8 @@ import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
+import '../../../support/work_sheets.dart';
+
 void main() {
   testWidgets('empty register gives a first-run employment action', (
     tester,
@@ -75,13 +77,13 @@ void main() {
     );
 
     Future<void> choose(String label) async {
-      await tester.tap(find.text('Employment'));
+      await tester.tap(find.text('Employment:'));
       await tester.pumpAndSettle();
       await tester.tap(find.text(label).last);
       await tester.pumpAndSettle();
     }
 
-    await tester.tap(find.text('Employment'));
+    await tester.tap(find.text('Employment:'));
     await tester.pumpAndSettle();
     final current = find.ancestor(
       of: find.text('Warehouse').last,
@@ -128,12 +130,10 @@ void main() {
     expect(selected.single.id, _shiftId);
   });
 
-  testWidgets('summary labels expected and paid evidence truthfully', (
+  testWidgets('Details labels expected and paid evidence truthfully', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      _TestWorkRegister(projection: _reconciliationProjection()),
-    );
+    await tester.pumpWidget(_TestDetails(_reconciliationProjection()));
 
     expect(find.text('Expected under recorded agreement'), findsOneWidget);
     expect(find.text('Paid evidence'), findsOneWidget);
@@ -144,12 +144,54 @@ void main() {
     );
   });
 
-  testWidgets('summary never combines gross and net differences', (
+  testWidgets('Details names the period state and the estimated total', (
     tester,
   ) async {
+    final base = _reconciliationProjection();
     await tester.pumpWidget(
-      _TestWorkRegister(projection: _mixedBasisProjection()),
+      _TestDetails(
+        WorkRegisterProjection(
+          scope: base.scope,
+          period: _period,
+          shiftRows: const [],
+          payslipRows: const [],
+          paid: const Money(minorUnits: 0),
+          reconciliation: null,
+          shiftSheet: [
+            _sheetRow(_shiftId, ShiftState.finalized, payMinorUnits: 10000),
+            _sheetRow(_otherShiftId, ShiftState.voided, payMinorUnits: 99900),
+            _sheetRow(
+              _shiftId,
+              ShiftState.finalized,
+              date: const LocalDate(2026, 9, 30),
+              payMinorUnits: 5480,
+            ),
+          ],
+        ),
+      ),
     );
+    expect(find.textContaining('Open'), findsOneWidget);
+    expect(find.text('Estimated pay'), findsOneWidget);
+    // Voided shifts are not counted.
+    expect(find.text('EUR 154.80'), findsOneWidget);
+  });
+
+  testWidgets('Details holds at 200 % text in the task pane', (tester) async {
+    await tester.pumpWidget(
+      _TestDetails(_reconciliationProjection(), textScale: 2),
+    );
+    expect(tester.takeException(), isNull);
+    final label = tester.getSize(
+      find.text('Expected under recorded agreement'),
+    );
+    // The label keeps a usable width instead of one letter per line.
+    expect(label.width, greaterThan(100));
+  });
+
+  testWidgets('Details never combines gross and net differences', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_TestDetails(_mixedBasisProjection()));
 
     expect(find.text('Gross · EUR'), findsOneWidget);
     expect(find.text('Net · EUR'), findsOneWidget);
@@ -216,7 +258,8 @@ void main() {
         'Est. pay',
         'State',
       ]) {
-        expect(find.text(column.toUpperCase()), findsOneWidget, reason: column);
+        // The Shifts list is ordered by date, which its header says.
+        expect(find.text(column), findsOneWidget, reason: column);
       }
       expect(find.text('Finalized'), findsOneWidget);
       expect(find.text('Running'), findsOneWidget);
@@ -241,7 +284,7 @@ void main() {
       );
       expect(find.text('Void'), findsNothing);
 
-      await tester.tap(find.text('Status'));
+      await tester.tap(find.text('Status:'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Include void'));
       await tester.pumpAndSettle();
@@ -262,8 +305,8 @@ void main() {
           onRoute: routes.add,
         ),
       );
-      await tester.tap(find.text('Pay periods'));
-      await tester.tap(find.text('Agreements'));
+      await chooseSheet(tester, 'Pay periods');
+      await chooseSheet(tester, 'Agreements');
       expect(routes.map((value) => value.sheet), [
         WorkSheet.periods,
         WorkSheet.agreements,
@@ -276,7 +319,7 @@ void main() {
         ),
       );
       expect(find.text('Shifts'), findsWidgets);
-      expect(find.text('EXPECTED'), findsOneWidget);
+      expect(find.text('Expected'), findsOneWidget);
       expect(find.text('Open'), findsNWidgets(2));
     });
 
@@ -326,7 +369,7 @@ void main() {
           onRoute: routes.add,
         ),
       );
-      await tester.tap(find.text('Period'));
+      await tester.tap(find.text('Period:'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Date range…'));
       await tester.pumpAndSettle();
@@ -357,7 +400,7 @@ void main() {
     });
   });
 
-  testWidgets('two-times text scale keeps all toolbar controls reachable', (
+  testWidgets('two-times text scale keeps all filter controls reachable', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -367,14 +410,11 @@ void main() {
       _TestWorkRegister(projection: _projection(), textScale: 2),
     );
 
-    for (final label in ['Employment', 'Period', 'Status']) {
+    for (final label in ['View:', 'Employment:', 'Period:', 'Status:']) {
       final control = find.text(label);
       expect(control, findsOneWidget);
       await tester.ensureVisible(control);
     }
-    final primaryAction = find.text('Add shift');
-    expect(primaryAction, findsOneWidget);
-    await tester.ensureVisible(primaryAction);
     expect(tester.takeException(), isNull);
   });
 }
@@ -403,7 +443,7 @@ final class _TestWorkRegister extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: buildLifeOSTheme(highContrast: false),
+      theme: buildLifeOSTheme(),
       home: MediaQuery(
         data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
         child: LifeOSSkinScope(
@@ -532,6 +572,7 @@ ShiftSheetRow _sheetRow(
   ShiftState state, {
   LocalDate date = const LocalDate(2026, 9, 29),
   PayPeriod? period,
+  int? payMinorUnits,
 }) => ShiftSheetRow(
   shift: WorkShift(
     id: id,
@@ -555,6 +596,16 @@ ShiftSheetRow _sheetRow(
   breakSeconds: state == ShiftState.running ? 0 : 1800,
   paidSeconds: state == ShiftState.running ? null : 8 * 3600,
   period: period,
+  pay: payMinorUnits == null
+      ? null
+      : ExpectedPay(
+          totalPaidSeconds: 8 * 3600,
+          nightPaidSeconds: 0,
+          holidayPaidSeconds: 0,
+          overtimePaidSeconds: 0,
+          regularPaidSeconds: 8 * 3600,
+          amount: Money(minorUnits: payMinorUnits),
+        ),
 );
 
 WorkRegisterProjection _withEmployments() {
@@ -595,3 +646,32 @@ const _periodId = PayPeriodId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c51');
 const _shiftId = ShiftId('00000000-0000-7000-8000-000000000001');
 const _otherShiftId = ShiftId('00000000-0000-7000-8000-000000000002');
 const _agreementId = AgreementId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21');
+
+/// The Work Details group on its own, as the task pane shows it.
+final class _TestDetails extends StatelessWidget {
+  const _TestDetails(this.projection, {this.textScale = 1});
+
+  final WorkRegisterProjection projection;
+  final double textScale;
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+    theme: buildLifeOSTheme(),
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context)
+          .copyWith(textScaler: TextScaler.linear(textScale)),
+      child: child!,
+    ),
+    home: LifeOSSkinScope(
+      child: Scaffold(
+        // The task pane scrolls; so does this stand-in.
+        body: SingleChildScrollView(
+          child: SizedBox(
+            width: 176,
+            child: WorkDetails(projection: projection),
+          ),
+        ),
+      ),
+    ),
+  );
+}

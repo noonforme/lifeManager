@@ -2,10 +2,11 @@ import 'package:flutter/widgets.dart';
 
 import 'lifeos_skin.dart';
 import 'lifeos_tokens.dart';
+import 'millennium_style.dart';
 
 /// The height of a popup menu row: the register's density, not a touch
 /// target, and still above the 24-pixel minimum.
-const menuRowHeight = 32.0;
+const menuRowHeight = 24.0;
 
 /// A labelled key with a pressable bottom edge. Every action in LifeOS is a
 /// visible key; the label is always shown.
@@ -15,6 +16,7 @@ final class KeyButton extends StatefulWidget {
     required this.onPressed,
     this.kind = KeyKind.secondary,
     this.leading,
+    this.trailing,
     this.semanticLabel,
     super.key,
   });
@@ -28,6 +30,9 @@ final class KeyButton extends StatefulWidget {
   final VoidCallback? onPressed;
   final KeyKind kind;
   final Widget? leading;
+
+  /// Shown after the label, for example a drop arrow.
+  final Widget? trailing;
 
   @override
   State<KeyButton> createState() => _KeyButtonState();
@@ -47,48 +52,53 @@ final class _KeyButtonState extends State<KeyButton> {
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
-    final small = widget.kind == KeyKind.small;
+    final kind = widget.kind;
     final surface = skin.painters.key(
       skin.tokens,
-      widget.kind,
-      KeyState(enabled: _enabled, pressed: _pressed, hovered: _hovered),
-    );
-    final face = Container(
-      key: const ValueKey('key-edge'),
-      margin: EdgeInsets.only(top: surface.topInset),
-      padding: EdgeInsets.only(bottom: surface.edgeWidth),
-      decoration: BoxDecoration(
-        color: surface.edgeColor,
-        borderRadius: surface.radius,
+      kind,
+      KeyState(
+        enabled: _enabled,
+        pressed: _pressed,
+        hovered: _hovered,
+        focused: _focused,
       ),
-      child: Container(
-        key: const ValueKey('key-face'),
-        constraints: BoxConstraints(minHeight: small ? 26 : 30, minWidth: 24),
-        padding: EdgeInsets.symmetric(horizontal: small ? 9 : 10),
-        decoration: surface.decoration,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (widget.leading != null) ...[
-              widget.leading!,
-              const SizedBox(width: 6),
-            ],
-            Flexible(
-              child: Text(
-                widget.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: (small ? skin.typography.small : skin.typography.body)
-                    .copyWith(
-                      color: surface.ink,
-                      fontWeight: widget.kind == KeyKind.primary
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                    ),
-              ),
-            ),
+    );
+    final rings = surface.rings;
+    final face = Container(
+      key: const ValueKey('key-face'),
+      constraints: BoxConstraints(
+        minHeight: kind == KeyKind.toolbar ? 30 : 24,
+        minWidth: 24,
+      ),
+      padding: EdgeInsets.symmetric(horizontal: kind == KeyKind.small ? 7 : 10),
+      decoration: surface.decoration,
+      foregroundDecoration: rings == null
+          ? null
+          : InsetRings(rings.$1, rings.$2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.leading case final leading?) ...[
+            leading,
+            const SizedBox(width: 5),
           ],
-        ),
+          Flexible(
+            child: Text(
+              widget.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  (kind == KeyKind.small
+                          ? skin.typography.small
+                          : skin.typography.body)
+                      .copyWith(color: surface.ink),
+            ),
+          ),
+          if (widget.trailing case final trailing?) ...[
+            const SizedBox(width: 4),
+            trailing,
+          ],
+        ],
       ),
     );
     // One merged node per key: label, button, enabled, focus and tap.
@@ -144,10 +154,10 @@ final class _FocusRing extends StatelessWidget {
       children: [
         child,
         Positioned(
-          left: -4,
-          top: -4,
-          right: -4,
-          bottom: -4,
+          left: 0,
+          top: 0,
+          right: 0,
+          bottom: 0,
           child: IgnorePointer(
             child: DecoratedBox(
               key: const ValueKey('focus-ring'),
@@ -236,10 +246,11 @@ final class CountBadge extends StatelessWidget {
   }
 }
 
-/// A row of mutually exclusive segments, such as the inspector's Record and
-/// History tabs.
-final class SegmentedTabs extends StatelessWidget {
-  const SegmentedTabs({
+/// Property-sheet tabs (spec 5.5): inactive tabs are white-to-face, the
+/// active tab is joined to the page with a warm top edge. Tabs hug their
+/// labels and sit on a line the page continues.
+final class PropertySheetTabs extends StatelessWidget {
+  const PropertySheetTabs({
     required this.labels,
     required this.selectedIndex,
     required this.onSelected,
@@ -251,53 +262,54 @@ final class SegmentedTabs extends StatelessWidget {
   final ValueChanged<int> onSelected;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var index = 0; index < labels.length; index++)
-          Expanded(
-            child: _Segment(
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: const BoxDecoration(
+      border: Border(bottom: BorderSide(color: MillenniumColors.tabLine)),
+    ),
+    child: Align(
+      alignment: AlignmentDirectional.bottomStart,
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.end,
+        children: [
+          for (var index = 0; index < labels.length; index++)
+            _Tab(
               label: labels[index],
               selected: index == selectedIndex,
-              first: index == 0,
-              last: index == labels.length - 1,
               onTap: () => onSelected(index),
             ),
-          ),
-      ],
-    );
-  }
+        ],
+      ),
+    ),
+  );
 }
 
-final class _Segment extends StatefulWidget {
-  const _Segment({
+final class _Tab extends StatefulWidget {
+  const _Tab({
     required this.label,
     required this.selected,
-    required this.first,
-    required this.last,
     required this.onTap,
   });
 
   final String label;
   final bool selected;
-  final bool first;
-  final bool last;
   final VoidCallback onTap;
 
   @override
-  State<_Segment> createState() => _SegmentState();
+  State<_Tab> createState() => _TabState();
 }
 
-final class _SegmentState extends State<_Segment> {
+final class _TabState extends State<_Tab> {
   bool _focused = false;
 
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
+    final tokens = skin.tokens;
+    final selected = widget.selected;
     return MergeSemantics(
       child: Semantics(
         button: true,
-        selected: widget.selected,
+        selected: selected,
         label: widget.label,
         child: FocusableActionDetector(
           mouseCursor: SystemMouseCursors.click,
@@ -313,38 +325,40 @@ final class _SegmentState extends State<_Segment> {
           child: GestureDetector(
             onTap: widget.onTap,
             child: ExcludeSemantics(
-              child: _FocusRing(
-                visible: _focused,
-                child: Container(
-                  constraints: const BoxConstraints(minHeight: 26),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: skin.painters.segment(
-                    skin.tokens,
-                    selected: widget.selected,
-                    first: widget.first,
-                    last: widget.last,
-                  ),
-                  child: Center(
-                    widthFactor: 1,
-                    heightFactor: 1,
-                    child: Text(
-                      widget.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: skin.typography.body.copyWith(
-                        color: skin.painters.segmentInk(
-                          skin.tokens,
-                          selected: widget.selected,
+              child: Container(
+                margin: EdgeInsets.only(top: selected ? 0 : 2, right: 1),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: selected ? 5 : 4,
+                ),
+                decoration: BoxDecoration(
+                  color: selected ? MillenniumColors.page : null,
+                  gradient: selected
+                      ? null
+                      : LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [tokens.paper, tokens.chrome],
                         ),
-                        fontWeight: widget.selected
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                      ),
+                  border: Border(
+                    top: BorderSide(
+                      color: selected
+                          ? MillenniumColors.tabAccent
+                          : MillenniumColors.tabLine,
+                      width: selected ? 2 : 1,
                     ),
+                    left: const BorderSide(color: MillenniumColors.tabLine),
+                    right: const BorderSide(color: MillenniumColors.tabLine),
                   ),
+                ),
+                foregroundDecoration: _focused
+                    ? DottedFocusRectangle(color: tokens.focus)
+                    : null,
+                child: Text(
+                  widget.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: skin.typography.body.copyWith(color: tokens.ink),
                 ),
               ),
             ),

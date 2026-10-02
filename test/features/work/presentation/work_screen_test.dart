@@ -14,8 +14,11 @@ import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/features/work/presentation/work_screen.dart';
+import 'package:lifeos/shared/workbench/inspector_parts.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+
+import '../../../support/work_sheets.dart';
 
 void main() {
   Future<void> pumpScreen(
@@ -59,6 +62,32 @@ void main() {
     ),
     inspector: inspector,
   );
+
+  testWidgets('Work tasks live in the task pane, sheets in the View combo', (
+    tester,
+  ) async {
+    final opened = <String>[];
+    await pumpScreen(tester, AsyncData(setupState()), onNavigate: opened.add);
+    final pane = find.bySemanticsLabel('Task pane');
+    for (final task in [
+      'Add a shift',
+      'New pay period',
+      'Record payslip',
+      'Save this view…',
+    ]) {
+      expect(
+        find.descendant(of: pane, matching: find.text(task)),
+        findsOneWidget,
+        reason: task,
+      );
+    }
+    expect(
+      find.descendant(of: pane, matching: find.text('Warehouse')),
+      findsWidgets,
+    );
+    await chooseSheet(tester, 'Pay periods');
+    expect(opened.single, contains('sheet=periods'));
+  });
 
   group('employment setup', () {
     testWidgets('a selected employment shows its header', (tester) async {
@@ -183,7 +212,7 @@ void main() {
     String fact(String label) {
       final row = find.ancestor(
         of: find.descendant(of: inspector, matching: find.text(label)),
-        matching: find.byType(Row),
+        matching: find.byType(InspectorFactRow),
       );
       return (tester
               .widgetList<Text>(
@@ -212,7 +241,7 @@ void main() {
   ) async {
     await pumpScreen(tester, const AsyncLoading());
 
-    expect(find.bySemanticsLabel('Books'), findsOneWidget);
+    expect(find.bySemanticsLabel('Task pane'), findsOneWidget);
     expect(find.text('Loading Work records'), findsOneWidget);
   });
 
@@ -296,7 +325,7 @@ final class _TestScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: buildLifeOSTheme(highContrast: false),
+      theme: buildLifeOSTheme(),
       home: LifeOSSkinScope(
         child: Scaffold(
           body: WorkScreen(

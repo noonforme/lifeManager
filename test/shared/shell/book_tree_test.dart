@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/shell/book_tree.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
@@ -12,7 +13,7 @@ Future<List<String>> _pumpTree(WidgetTester tester, {String? selected}) async {
       home: LifeOSSkinScope(
         child: Scaffold(
           body: SizedBox(
-            width: 228,
+            width: 176,
             child: BookTree(
               nodes: const [
                 TreeSheet(label: 'Journal', route: '/journal', built: false),
@@ -45,9 +46,6 @@ Future<List<String>> _pumpTree(WidgetTester tester, {String? selected}) async {
                   built: false,
                 ),
               ],
-              footer: const [
-                TreeSheet(label: 'Backup and export', route: '/system/files'),
-              ],
               selectedRoute: selected,
               onOpen: opened.add,
             ),
@@ -60,6 +58,16 @@ Future<List<String>> _pumpTree(WidgetTester tester, {String? selected}) async {
 }
 
 void main() {
+  testWidgets('area names are never cut short by "Not built yet"', (
+    tester,
+  ) async {
+    await _pumpTree(tester);
+    for (final name in ['Finance', 'Tracking', 'Knowledge']) {
+      final paragraph = tester.renderObject<RenderParagraph>(find.text(name));
+      expect(paragraph.didExceedMaxLines, isFalse, reason: name);
+    }
+  });
+
   testWidgets('unbuilt areas say so and still open their sheet', (
     tester,
   ) async {
@@ -146,7 +154,6 @@ void main() {
                     ],
                   ),
                 ],
-                footer: const [],
                 selectedRoute: '/work?period=p',
                 onOpen: opened.add,
               ),

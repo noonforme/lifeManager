@@ -14,6 +14,7 @@ import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/presentation/employment_agreement_forms.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
+import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
 void main() {
@@ -501,8 +502,10 @@ final class _TestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: buildLifeOSTheme(highContrast: false),
-      home: Scaffold(body: SizedBox(width: 520, child: child)),
+      theme: buildLifeOSTheme(),
+      home: LifeOSSkinScope(
+        child: Scaffold(body: SizedBox(width: 520, child: child)),
+      ),
     );
   }
 }

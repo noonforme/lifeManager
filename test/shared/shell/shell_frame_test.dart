@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/shared/shell/address_bar.dart';
 import 'package:lifeos/shared/shell/shell_frame.dart';
+import 'package:lifeos/shared/shell/task_pane.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 
 const _landmarks = [
   'Menu bar',
   'Toolbar',
-  'Formula bar',
-  'Books',
+  'Address',
+  'Task pane',
   'Desk workspace',
   'Record inspector',
   'Status line',
@@ -45,8 +48,8 @@ void main() {
     }
     expect(find.text('Desk content'), findsOneWidget);
     expect(find.text('Inspector content'), findsOneWidget);
-    expect(find.text('Back to desk'), findsNothing);
-    expect(find.text('Books'), findsNothing);
+    expect(find.text('Back to list'), findsNothing);
+    expect(find.text('Tasks'), findsNothing);
   });
 
   testWidgets(
@@ -58,22 +61,22 @@ void main() {
       await tester.tap(find.text('Open record'));
       await tester.pump();
       expect(find.text('Inspector content'), findsOneWidget);
-      expect(find.text('Back to desk'), findsOneWidget);
+      expect(find.text('Back to list'), findsOneWidget);
       expect(find.text('Desk content'), findsNothing);
 
-      await tester.tap(find.text('Back to desk'));
+      await tester.tap(find.text('Back to list'));
       await tester.pump();
       expect(find.text('Desk content'), findsOneWidget);
       expect(find.text('kept draft'), findsOneWidget);
     },
   );
 
-  testWidgets('narrow windows fold the tree into Books', (tester) async {
+  testWidgets('narrow windows fold the task pane into Tasks', (tester) async {
     await _pump(tester, width: 960);
     expect(find.text('Tree content'), findsNothing);
-    expect(find.bySemanticsLabel('Books'), findsWidgets);
+    expect(find.text('Tasks'), findsOneWidget);
 
-    await tester.tap(find.text('Books'));
+    await tester.tap(find.text('Tasks'));
     await tester.pump();
     expect(find.text('Tree content'), findsOneWidget);
 
@@ -84,26 +87,28 @@ void main() {
     expect(find.text('Desk content'), findsOneWidget);
   });
 
-  testWidgets('hiding the tree keeps navigation behind Books', (tester) async {
+  testWidgets('hiding the task pane keeps navigation behind Tasks', (
+    tester,
+  ) async {
     final view = await _pump(tester, width: 1280);
-    view.value = view.value.copyWith(showTree: false);
+    view.value = view.value.copyWith(showTaskPane: false);
     await tester.pump();
     expect(find.text('Tree content'), findsNothing);
-    expect(find.text('Books'), findsOneWidget);
+    expect(find.text('Tasks'), findsOneWidget);
   });
 
   testWidgets('hiding the inspector makes records alternate with the desk', (
     tester,
   ) async {
     final view = await _pump(tester, width: 1280);
-    view.value = view.value.copyWith(showInspector: false);
+    view.value = view.value.copyWith(showPropertySheet: false);
     await tester.pump();
     expect(find.text('Inspector content'), findsNothing);
 
     await tester.tap(find.text('Open record'));
     await tester.pump();
     expect(find.text('Inspector content'), findsOneWidget);
-    expect(find.text('Back to desk'), findsOneWidget);
+    expect(find.text('Back to list'), findsOneWidget);
   });
 
   testWidgets('a surface without an inspector gives the desk the width', (
@@ -115,11 +120,84 @@ void main() {
     expect(desk.width, greaterThan(1280 - 320));
   });
 
-  testWidgets('the formula bar can be hidden', (tester) async {
-    final view = await _pump(tester, width: 1280);
-    view.value = view.value.copyWith(showFormulaBar: false);
-    await tester.pump();
-    expect(find.bySemanticsLabel('Formula bar'), findsNothing);
+  testWidgets('widening past 1024 docks the task pane and drops the overlay', (
+    tester,
+  ) async {
+    final view = await _pump(tester, width: 960, height: 760);
+    await tester.tap(find.text('Tasks'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tree content'), findsOneWidget);
+    tester.view.physicalSize = const Size(1280, 800);
+    await tester.pumpWidget(
+      _Harness(
+        view: view,
+        inspectorOpen: false,
+        hasInspector: true,
+        textScale: 1,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Close tasks'), findsNothing);
+    expect(find.text('Tasks'), findsNothing);
+    expect(find.text('Tree content'), findsOneWidget);
+    expect(find.text('Desk content'), findsOneWidget);
+    tester.view.physicalSize = const Size(960, 760);
+    await tester.pumpWidget(
+      _Harness(
+        view: view,
+        inspectorOpen: false,
+        hasInspector: true,
+        textScale: 1,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Tasks'), findsOneWidget);
+    expect(find.text('Tree content'), findsNothing);
+    expect(find.text('Desk content'), findsOneWidget);
+  });
+
+  testWidgets('menu and status bars grow with 200 % text', (tester) async {
+    await _pump(tester, width: 1280, textScale: 2);
+    for (final (bar, content) in [
+      ('Menu bar', 'Menu content'),
+      ('Status line', 'Status content'),
+    ]) {
+      // A squeezed Text reports its clipped size; ask for the height it
+      // needs instead.
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.text(content),
+      );
+      expect(
+        tester.getSize(find.bySemanticsLabel(bar)).height,
+        greaterThanOrEqualTo(
+          paragraph.getMinIntrinsicHeight(paragraph.size.width),
+        ),
+        reason: bar,
+      );
+    }
+  });
+
+  testWidgets('choosing a task closes the Tasks overlay', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(960, 760);
+    addTearDown(tester.view.reset);
+    var done = 0;
+    await tester.pumpWidget(
+      _Harness(
+        view: ShellViewController(),
+        inspectorOpen: false,
+        hasInspector: true,
+        textScale: 1,
+        onTask: () => done++,
+      ),
+    );
+    await tester.tap(find.text('Tasks'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Do thing'));
+    await tester.pumpAndSettle();
+    expect(done, 1);
+    expect(find.text('Do thing'), findsNothing);
+    expect(find.text('Tasks'), findsOneWidget);
   });
 
   for (final width in [1280.0, 1100.0, 960.0, 800.0]) {
@@ -138,12 +216,16 @@ final class _Harness extends StatefulWidget {
     required this.inspectorOpen,
     required this.hasInspector,
     required this.textScale,
+    this.onTask,
   });
 
   final ShellViewController view;
   final bool inspectorOpen;
   final bool hasInspector;
   final double textScale;
+
+  /// When set, the frame shows a task group with one link, "Do thing".
+  final VoidCallback? onTask;
 
   @override
   State<_Harness> createState() => _HarnessState();
@@ -171,11 +253,11 @@ final class _HarnessState extends State<_Harness> {
                   child: const Text('Tree content'),
                 ),
                 status: const Text('Status content'),
-                title: 'Work',
+                crumbs: const [AddressCrumb('Work', '/work')],
                 onNavigate: (_) {},
                 child: ShellFrame(
                   inspectorOpen: _inspectorOpen,
-                  onBackToDesk: () => setState(() => _inspectorOpen = false),
+                  onBackToList: () => setState(() => _inspectorOpen = false),
                   desk: Column(
                     children: [
                       const Text('Desk content'),
@@ -189,6 +271,14 @@ final class _HarnessState extends State<_Harness> {
                   inspector: widget.hasInspector
                       ? const Text('Inspector content')
                       : null,
+                  tasks: [
+                    if (widget.onTask case final onTask?)
+                      TaskGroup(
+                        title: 'Test tasks',
+                        special: true,
+                        child: TaskLink(label: 'Do thing', onPressed: onTask),
+                      ),
+                  ],
                 ),
               ),
             ),

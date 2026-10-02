@@ -3,22 +3,24 @@ import 'package:flutter/widgets.dart';
 
 import '../../core/explain/explanation.dart';
 import '../workbench/cell_selection.dart';
+import '../workbench/era_controls.dart';
 import '../workbench/lifeos_skin.dart';
+import '../workbench/millennium_style.dart';
 
-/// The formula bar's content (spec 6.3): the selected cell's reference and,
-/// for a derived value, how it was worked out. Operands link to their
-/// source. With nothing selected it shows nothing.
-final class FormulaBar extends StatefulWidget {
-  const FormulaBar({required this.onNavigate, super.key});
+/// The **Working** group box (Millennium shell spec 5.5): the selected
+/// cell's reference and, for a derived value, how it was worked out.
+/// Operands link to their source. With nothing selected it shows nothing.
+final class WorkingGroupBox extends StatefulWidget {
+  const WorkingGroupBox({required this.onNavigate, super.key});
 
   /// Opens the record or rule an operand came from.
   final ValueChanged<Uri> onNavigate;
 
   @override
-  State<FormulaBar> createState() => _FormulaBarState();
+  State<WorkingGroupBox> createState() => _WorkingGroupBoxState();
 }
 
-final class _FormulaBarState extends State<FormulaBar> {
+final class _WorkingGroupBoxState extends State<WorkingGroupBox> {
   final List<TapGestureRecognizer> _recognizers = [];
 
   void _disposeRecognizers() {
@@ -52,50 +54,34 @@ final class _FormulaBarState extends State<FormulaBar> {
     final figure = skin.typography.figure.copyWith(color: tokens.ink);
     final explanation = selection.explanation;
 
-    final reference = Container(
-      constraints: const BoxConstraints(minWidth: 44),
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      margin: const EdgeInsets.only(right: 10),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: tokens.band,
-        border: Border.all(color: tokens.rule),
-      ),
-      child: Text(
-        selection.reference,
-        style: figure.copyWith(fontWeight: FontWeight.w700),
-      ),
-    );
-
     if (explanation == null) {
       return Semantics(
+        liveRegion: true,
         label:
             '${selection.reference}, ${selection.columnLabel}, '
             'recorded fact, ${selection.display}',
         excludeSemantics: true,
-        child: Row(
-          children: [
-            reference,
-            Flexible(
-              child: Text(
-                '${selection.columnLabel}: ${selection.display}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+        child: GroupBox(
+          legend: 'Working: ${selection.columnLabel}',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${selection.reference} = ${selection.display}',
                 style: figure,
               ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Recorded fact',
-              style: skin.typography.small.copyWith(color: tokens.muted),
-            ),
-          ],
+              Text(
+                'Recorded fact',
+                style: skin.typography.small.copyWith(color: tokens.muted),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     final spans = <InlineSpan>[
-      TextSpan(text: '${explanation.label} = '),
+      TextSpan(text: '${selection.reference}: ${explanation.label} = '),
       for (final token in explanation.tokens)
         switch (token) {
           TextToken(:final text) => TextSpan(text: text),
@@ -105,11 +91,10 @@ final class _FormulaBarState extends State<FormulaBar> {
           ),
           OperandToken(:final text, :final source) => TextSpan(
             text: text,
-            style: TextStyle(
-              color: tokens.ink,
+            style: const TextStyle(
+              color: MillenniumColors.link,
               decoration: TextDecoration.underline,
-              decorationColor: tokens.signal,
-              decorationThickness: 2,
+              decorationColor: MillenniumColors.link,
             ),
             mouseCursor: SystemMouseCursors.click,
             recognizer: _recognizer(source.route),
@@ -119,35 +104,33 @@ final class _FormulaBarState extends State<FormulaBar> {
     final source = explanation.source;
     final sourceLabel = explanation.sourceLabel;
     return Semantics(
+      liveRegion: true,
       label: '${selection.reference}, ${explanation.plainText}',
       excludeSemantics: true,
-      child: Row(
-        children: [
-          reference,
-          Expanded(
-            child: Text.rich(
-              TextSpan(style: figure, children: spans),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (source != null && sourceLabel != null) ...[
-            const SizedBox(width: 10),
-            GestureDetector(
-              onTap: () => onNavigate(source.route),
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: Text(
-                  sourceLabel,
-                  style: skin.typography.small.copyWith(
-                    color: tokens.ink,
-                    decoration: TextDecoration.underline,
+      child: GroupBox(
+        legend: 'Working: ${selection.columnLabel}',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text.rich(TextSpan(style: figure, children: spans)),
+            if (source != null && sourceLabel != null) ...[
+              const SizedBox(height: 4),
+              GestureDetector(
+                onTap: () => onNavigate(source.route),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Text(
+                    sourceLabel,
+                    style: skin.typography.small.copyWith(
+                      color: MillenniumColors.link,
+                      decoration: TextDecoration.underline,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

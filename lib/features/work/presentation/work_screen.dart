@@ -5,6 +5,9 @@ import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/shell/shell_frame.dart';
+import '../../../shared/shell/task_pane.dart';
+import '../../../shared/workbench/inspector_parts.dart';
+import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../application/work_templates.dart';
 import '../data/projections/work_record_projection.dart';
@@ -206,10 +209,7 @@ final class _WorkScreenState extends State<WorkScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ready = switch (widget.state) {
-      AsyncData(:final value) => value,
-      AsyncLoading() || AsyncError() => null,
-    };
+    final ready = _current(widget.state);
     final routeRecord = ready is WorkReady ? ready.route.record : null;
     final creating =
         ready is WorkReady &&
@@ -221,16 +221,65 @@ final class _WorkScreenState extends State<WorkScreen> {
             _creatingPeriod ||
             _payslipPeriod != null) &&
         !_showRegister;
+    final register = ready is WorkReady ? ready.register : null;
+    final route = ready is WorkReady ? ready.route : null;
+    final employmentId = route?.employmentId;
     return ShellFrame(
       desk: _RegisterLandmark(child: _register(ready)),
       inspector: _inspector(ready),
       inspectorOpen: inspectorActive,
-      onBackToDesk: () => setState(() => _showRegister = true),
+      onBackToList: () => setState(() => _showRegister = true),
+      tasks: [
+        if (employmentId != null && route != null)
+          TaskGroup(
+            title: 'Work tasks',
+            special: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TaskLink(
+                  label: 'Add a shift',
+                  onPressed: widget.onPrimaryAction,
+                ),
+                TaskLink(
+                  label: 'New pay period',
+                  onPressed: widget.onCreatePayPeriod == null
+                      ? null
+                      : () => setState(() {
+                          _creatingPeriod = true;
+                          _showRegister = false;
+                        }),
+                ),
+                TaskLink(
+                  label: 'Record payslip',
+                  onPressed:
+                      widget.onRecordPayslip == null || register?.period == null
+                      ? null
+                      : () => setState(() {
+                          _payslipPeriod = register!.period!.id;
+                          _showRegister = false;
+                        }),
+                ),
+                TaskLink(
+                  label: 'Save this view…',
+                  onPressed: widget.onSaveView == null
+                      ? null
+                      : () => widget.onSaveView!(route),
+                ),
+              ],
+            ),
+          ),
+      ],
+      details: register == null || register.employment == null
+          ? null
+          : WorkDetails(projection: register),
     );
   }
 
   Widget _register(WorkViewState? state) {
-    if (widget.state.isLoading) {
+    // A refresh keeps showing the previous register, so opening a record
+    // does not tear the list down (and with it the cell selection).
+    if (widget.state.isLoading && !widget.state.hasValue) {
       return const OperationalState(
         kind: OperationalStateKind.loading,
         title: 'Loading Work records',
@@ -253,7 +302,6 @@ final class _WorkScreenState extends State<WorkScreen> {
       WorkReady(:final register, :final route) => WorkRegister(
         projection: register,
         selectedRecord: route.record,
-        onSaveView: widget.onSaveView,
         onSelect: widget.onSelect,
         onPrimaryAction: widget.onPrimaryAction,
         onOpenEmployment: (id) => widget.onNavigate(
@@ -724,11 +772,13 @@ extension on _WorkScreenState {
   );
 }
 
+/// The state to show: the current value, or the previous one while a
+/// refresh is loading. Nothing while loading for the first time or failed.
+WorkViewState? _current(AsyncValue<WorkViewState> state) =>
+    state.hasError ? null : state.value;
+
 WorkRecordRef? _selectedRecord(AsyncValue<WorkViewState> state) {
-  final value = switch (state) {
-    AsyncData(:final value) => value,
-    AsyncLoading() || AsyncError() => null,
-  };
+  final value = _current(state);
   return value is WorkReady ? value.route.record : null;
 }
 
@@ -742,10 +792,7 @@ Widget _rejected(
 );
 
 WorkInspectorMode? _routeMode(AsyncValue<WorkViewState> state) {
-  final value = switch (state) {
-    AsyncData(:final value) => value,
-    AsyncLoading() || AsyncError() => null,
-  };
+  final value = _current(state);
   return value is WorkReady ? value.route.mode : null;
 }
 
@@ -761,16 +808,13 @@ final class _Rejected extends StatelessWidget {
   final String action;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(message),
-        const SizedBox(height: 14),
-        OutlinedButton(onPressed: onDismiss, child: Text(action)),
-      ],
-    ),
+  Widget build(BuildContext context) => InspectorPane(
+    children: [
+      InspectorText(message),
+      InspectorActions(
+        children: [KeyButton(label: action, onPressed: onDismiss)],
+      ),
+    ],
   );
 }
 

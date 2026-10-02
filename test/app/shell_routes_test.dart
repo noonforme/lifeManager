@@ -35,8 +35,8 @@ void main() {
     for (final landmark in [
       'Menu bar',
       'Toolbar',
-      'Formula bar',
-      'Books',
+      'Address',
+      'Task pane',
       'Desk workspace',
       'Status line',
     ]) {
@@ -45,14 +45,21 @@ void main() {
     // Nothing here is a record, so there is no inspector.
     expect(find.bySemanticsLabel('Record inspector'), findsNothing);
     expect(find.text('File tools are not available yet.'), findsOneWidget);
+    // Backup and export lives under File and in the Address bar, not in
+    // the task pane (Millennium shell spec 8).
     expect(
-      tester.getSemantics(
-        find.descendant(
-          of: find.bySemanticsLabel('Books'),
-          matching: find.bySemanticsLabel('Backup and export'),
-        ),
+      find.descendant(
+        of: find.bySemanticsLabel('Address'),
+        matching: find.text('Backup and export'),
       ),
-      isSemantics(isSelected: true),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.bySemanticsLabel('Task pane'),
+        matching: find.text('Backup and export'),
+      ),
+      findsNothing,
     );
   });
 

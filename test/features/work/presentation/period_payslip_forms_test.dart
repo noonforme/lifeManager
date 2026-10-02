@@ -11,6 +11,7 @@ import 'package:lifeos/features/work/domain/payslip.dart';
 import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/presentation/period_payslip_forms.dart';
 import 'package:lifeos/features/work/presentation/work_inspector.dart';
+import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
 void main() {
@@ -340,7 +341,9 @@ final class _TestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    theme: buildLifeOSTheme(highContrast: false),
-    home: Scaffold(body: SizedBox(width: 520, height: 760, child: child)),
+    theme: buildLifeOSTheme(),
+    home: LifeOSSkinScope(
+      child: Scaffold(body: SizedBox(width: 520, height: 760, child: child)),
+    ),
   );
 }

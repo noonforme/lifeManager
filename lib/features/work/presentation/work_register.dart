@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/time/timezone_service.dart';
+import '../../../shared/shell/task_pane.dart';
+import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
-import '../../../shared/workbench/office_controls.dart';
+import '../../../shared/workbench/millennium_style.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay.dart';
+import '../domain/pay_period.dart';
+import '../domain/shift.dart';
 import 'work_route_state.dart';
 import 'work_sheets.dart';
 import 'work_toolbar_controls.dart';
@@ -26,7 +30,6 @@ final class WorkRegister extends StatelessWidget {
     this.onRoute,
     this.onAddManualShift,
     this.onRecordPayslip,
-    this.onSaveView,
     this.timezones,
     super.key,
   });
@@ -37,9 +40,6 @@ final class WorkRegister extends StatelessWidget {
   final VoidCallback onPrimaryAction;
   final ValueChanged<EmploymentId>? onOpenEmployment;
   final VoidCallback? onNewPeriod;
-
-  /// Saves the sheet and its filters as a named view.
-  final ValueChanged<WorkRouteState>? onSaveView;
 
   /// Clears the employment from the route.
   final VoidCallback? onAllEmployments;
@@ -63,6 +63,7 @@ final class WorkRegister extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final skin = LifeOSSkinScope.of(context);
     final value = projection;
     if (value == null) {
       return const OperationalState(
@@ -161,22 +162,18 @@ final class WorkRegister extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: SegmentedTabs(
-            labels: const ['Shifts', 'Pay periods', 'Payslips', 'Agreements'],
-            selectedIndex: route.sheet.index,
-            onSelected: (index) =>
-                change(route.copyWith(sheet: WorkSheet.values[index])),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: skin.painters.toolbar(skin.tokens),
           child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 10,
+            runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              SheetPicker(
+                sheet: route.sheet,
+                onSheet: (sheet) => change(route.copyWith(sheet: sheet)),
+              ),
               EmploymentSwitcher(
                 current: value.employment?.id,
                 currentName: value.employment?.name,
@@ -196,106 +193,92 @@ final class WorkRegister extends StatelessWidget {
                 showVoid: route.showVoid,
                 onChanged: (show) => change(route.copyWith(showVoid: show)),
               ),
-              KeyButton(
-                label: 'Add shift',
-                kind: KeyKind.primary,
-                onPressed: onPrimaryAction,
-              ),
-              if (onNewPeriod case final add?)
-                KeyButton(label: 'New pay period', onPressed: add),
-              if (onSaveView case final save?)
-                KeyButton(label: 'Save view', onPressed: () => save(route)),
             ],
           ),
         ),
-        if (value.reconciliation != null) _Summary(projection: value),
-        Expanded(child: sheet),
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: skin.tokens.paper,
+              border: Border.all(color: MillenniumColors.fieldLine),
+            ),
+            child: sheet,
+          ),
+        ),
       ],
     );
   }
 }
 
-final class _Summary extends StatelessWidget {
-  const _Summary({required this.projection});
+/// The Details group for a Work scope (spec 5.2): employment, period,
+/// shift count and the reconciliation per basis, worded as the summary was.
+final class WorkDetails extends StatelessWidget {
+  const WorkDetails({required this.projection, super.key});
 
   final WorkRegisterProjection projection;
 
   @override
   Widget build(BuildContext context) {
+    final skin = LifeOSSkinScope.of(context);
+    final figure = skin.typography.figure.copyWith(color: skin.tokens.ink);
+    final period = projection.period;
     final groups = projection.reconciliation?.groups ?? const [];
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        border: Border.symmetric(
-          horizontal: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant,
+    // Label and value share a line when they fit, otherwise the value
+    // moves under its label (the property sheet's fact row).
+    Widget pair(String label, String value) =>
+        InspectorFactRow(fact: Fact(label, value));
+    return TaskDetails(
+      lines: [
+        if (projection.employment case final employment?)
+          Text(
+            employment.name,
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
+        if (period != null) ...[
+          Text('${period.start} – ${period.end}', style: figure),
+          Text(period.state == PayPeriodState.reviewed ? 'Reviewed' : 'Open'),
+        ],
+        Text(
+          projection.shiftSheet.length == 1
+              ? '1 shift'
+              : '${projection.shiftSheet.length} shifts',
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: groups.isEmpty
-            ? _SummaryValue(
-                label: 'Paid evidence',
-                value: _money(projection.paid),
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (var index = 0; index < groups.length; index++) ...[
-                    if (index > 0) const Divider(height: 17),
-                    Text(
-                      '${_basis(groups[index].basis)} · ${groups[index].currency.value}',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 28,
-                      runSpacing: 8,
-                      children: [
-                        _SummaryValue(
-                          label: 'Expected under recorded agreement',
-                          value: _optionalMoney(groups[index].expected),
-                        ),
-                        _SummaryValue(
-                          label: 'Paid evidence',
-                          value: _optionalMoney(groups[index].paid),
-                        ),
-                        if (groups[index].difference != null)
-                          _SummaryValue(
-                            label: 'Difference',
-                            value: _money(groups[index].difference!),
-                          ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-      ),
+        if (groups.isEmpty) ...[
+          if (_estimatedTotal(projection) case final total?)
+            pair('Estimated pay', _money(total)),
+          pair('Paid evidence', _money(projection.paid)),
+        ],
+        for (final group in groups) ...[
+          Text(
+            '${_basis(group.basis)} · ${group.currency.value}',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          pair(
+            'Expected under recorded agreement',
+            _optionalMoney(group.expected),
+          ),
+          pair('Paid evidence', _optionalMoney(group.paid)),
+          if (group.difference case final difference?)
+            pair('Difference', _money(difference)),
+        ],
+      ],
     );
   }
 }
 
-final class _SummaryValue extends StatelessWidget {
-  const _SummaryValue({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(width: 8),
-        Text(
-          value,
-          style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
-        ),
-      ],
-    );
-  }
+/// The expected pay of the effective shifts in scope, or null when none has
+/// an estimate yet. Only one currency is summed; Work records are in euros.
+Money? _estimatedTotal(WorkRegisterProjection projection) {
+  final pays = [
+    for (final row in projection.shiftSheet)
+      if (row.shift.state != ShiftState.voided) ?row.pay?.amount,
+  ];
+  if (pays.isEmpty) return null;
+  return Money(
+    minorUnits: pays.fold(0, (sum, pay) => sum + pay.minorUnits),
+    currency: pays.first.currency,
+  );
 }
 
 String _basis(RateBasis? basis) => switch (basis) {

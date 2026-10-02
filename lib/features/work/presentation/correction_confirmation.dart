@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/inspector_parts.dart';
+import '../../../shared/workbench/lifeos_skin.dart';
+import '../../../shared/workbench/office_controls.dart';
 
 final class CorrectionConfirmationInspector<T> extends StatefulWidget {
   const CorrectionConfirmationInspector({
@@ -65,41 +70,33 @@ final class _CorrectionConfirmationInspectorState<T>
     explicitChildNodes: true,
     label: 'Confirm correction',
     child: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: inspectorInset,
       children: [
-        Text(
-          'Correct ${widget.recordName}',
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 12),
-        const Text(
+        InspectorTitle('Correct ${widget.recordName}'),
+        const InspectorText(
           'The original remains in history and is excluded from active totals. A linked replacement will be created.',
         ),
-        const SizedBox(height: 16),
-        Semantics(
-          label: _reasonError == null
-              ? 'Correction reason'
-              : 'Correction reason, $_reasonError',
-          textField: true,
-          excludeSemantics: true,
-          child: TextField(
-            key: const ValueKey('correction-reason'),
+        const SizedBox(height: 4),
+        GroupBox(
+          legend: 'Reason',
+          background: LifeOSSkinScope.of(context).tokens.chrome,
+          child: EraField(
+            fieldKey: const ValueKey('correction-reason'),
             controller: _reason,
+            label: 'Correction reason',
             maxLines: 3,
-            decoration: InputDecoration(
-              labelText: 'Correction reason',
-              errorText: _reasonError,
-              border: const OutlineInputBorder(),
-            ),
+            error: _reasonError,
           ),
         ),
-        const SizedBox(height: 20),
-        FilledButton(
-          onPressed: _submitting ? null : _confirm,
-          child: const Text('Void original and create replacement'),
+        FormFooter(
+          children: [
+            KeyButton(label: 'Cancel', onPressed: widget.onCancel),
+            FilledButton(
+              onPressed: _submitting ? null : _confirm,
+              child: const Text('Void original and create replacement'),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        TextButton(onPressed: widget.onCancel, child: const Text('Cancel')),
         if (_outcome case Stale<T>()) ...[
           const SizedBox(height: 16),
           StaleConflictInspector(

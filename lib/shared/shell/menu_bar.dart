@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../workbench/cell_selection.dart';
+import '../workbench/era_dialog.dart';
 import '../workbench/lifeos_skin.dart';
-import '../workbench/lifeos_tokens.dart';
+import '../workbench/office_controls.dart';
 import 'navigation_history.dart';
 import 'shell_frame.dart';
 
@@ -24,7 +25,6 @@ final class LifeOSMenuBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
-    final appearance = LifeOSAppearanceScope.maybeOf(context);
     final view = ShellViewScope.maybeOf(context);
     final history = NavigationHistoryScope.maybeOf(context);
     final cell = CellSelectionScope.maybeOf(context)?.value;
@@ -35,12 +35,8 @@ final class LifeOSMenuBar extends StatelessWidget {
       surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
       elevation: const WidgetStatePropertyAll(0),
       side: WidgetStatePropertyAll(BorderSide(color: tokens.muted)),
-      shape: const WidgetStatePropertyAll(
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(4)),
-        ),
-      ),
-      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 4)),
+      shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
+      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 2)),
     );
     final itemStyle = ButtonStyle(
       textStyle: WidgetStatePropertyAll(skin.typography.body),
@@ -59,9 +55,12 @@ final class LifeOSMenuBar extends StatelessWidget {
             ? tokens.selWash
             : Colors.transparent,
       ),
-      minimumSize: const WidgetStatePropertyAll(Size(0, 28)),
+      minimumSize: const WidgetStatePropertyAll(Size(0, menuRowHeight)),
+      // Era menus are dense: no padding up to a touch target.
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
       padding: const WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: 10),
+        EdgeInsets.symmetric(horizontal: 8),
       ),
       shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
     );
@@ -85,19 +84,6 @@ final class LifeOSMenuBar extends StatelessWidget {
       child: Text(label),
     );
 
-    Widget appearanceItem(String label, LifeOSAppearance value) =>
-        RadioMenuButton<LifeOSAppearance>(
-          style: itemStyle,
-          value: value,
-          groupValue: appearance?.value ?? LifeOSAppearance.system,
-          onChanged: appearance == null
-              ? null
-              : (selected) {
-                  if (selected != null) appearance.value = selected;
-                },
-          child: Text(label),
-        );
-
     Widget viewItem(
       String label,
       bool Function(ShellView) read,
@@ -116,7 +102,11 @@ final class LifeOSMenuBar extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: tokens.chrome,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [tokens.paper, tokens.chrome],
+        ),
         border: Border(bottom: BorderSide(color: tokens.chromeLine)),
       ),
       child: Row(
@@ -171,33 +161,15 @@ final class LifeOSMenuBar extends StatelessWidget {
                   ),
                 ]),
                 menu('View', [
-                  menu('Appearance', [
-                    appearanceItem('System', LifeOSAppearance.system),
-                    appearanceItem('Office Machine Day', LifeOSAppearance.day),
-                    appearanceItem(
-                      'Office Machine Night',
-                      LifeOSAppearance.night,
-                    ),
-                    appearanceItem(
-                      'High contrast',
-                      LifeOSAppearance.highContrast,
-                    ),
-                    appearanceItem('Millennium', LifeOSAppearance.millennium),
-                  ]),
                   viewItem(
-                    'Show book tree',
-                    (v) => v.showTree,
-                    (v, on) => v.copyWith(showTree: on),
+                    'Show task pane',
+                    (v) => v.showTaskPane,
+                    (v, on) => v.copyWith(showTaskPane: on),
                   ),
                   viewItem(
-                    'Show inspector',
-                    (v) => v.showInspector,
-                    (v, on) => v.copyWith(showInspector: on),
-                  ),
-                  viewItem(
-                    'Show formula bar',
-                    (v) => v.showFormulaBar,
-                    (v, on) => v.copyWith(showFormulaBar: on),
+                    'Show property sheet',
+                    (v) => v.showPropertySheet,
+                    (v, on) => v.copyWith(showPropertySheet: on),
                   ),
                 ]),
                 menu('Desk', [
@@ -232,12 +204,28 @@ final class LifeOSMenuBar extends StatelessWidget {
                 menu('Help', [
                   item(
                     'About LifeOS',
-                    () => showAboutDialog(
+                    () => showDialog<void>(
                       context: context,
-                      applicationName: 'LifeOS',
-                      applicationLegalese:
-                          'Private, local-first records. Nothing leaves this '
-                          'computer.',
+                      builder: (context) => EraDialog(
+                        title: 'About LifeOS',
+                        body: const Text(
+                          'LifeOS\nPrivate, local-first records. Nothing leaves this computer.',
+                        ),
+                        actions: [
+                          KeyButton(
+                            label: 'Licenses',
+                            onPressed: () => showLicensePage(
+                              context: context,
+                              applicationName: 'LifeOS',
+                            ),
+                          ),
+                          KeyButton(
+                            label: 'OK',
+                            kind: KeyKind.primary,
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ]),

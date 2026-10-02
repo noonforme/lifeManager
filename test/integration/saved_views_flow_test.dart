@@ -15,6 +15,7 @@ import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/features/work/application/work_commands.dart';
 import 'package:lifeos/features/work/domain/employment.dart';
 import 'package:lifeos/features/work/domain/pay_period.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 /// Save as view, the Views tree and view tiles on the production
 /// composition.
@@ -68,7 +69,7 @@ void main() {
     await tester.pumpAndSettle();
     String location() => router.routeInformationProvider.value.uri.toString();
 
-    await tester.tap(find.text('Save view'));
+    await tester.tap(find.text('Save this view…'));
     await tester.pumpAndSettle();
     expect(
       tester
@@ -81,7 +82,7 @@ void main() {
       find.byKey(const ValueKey('name-field')),
       'October periods',
     );
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.tap(find.widgetWithText(KeyButton, 'Save'));
     await tester.pumpAndSettle();
 
     late List<SavedView> stored;
@@ -93,7 +94,7 @@ void main() {
       'void': '1',
     });
 
-    final books = find.bySemanticsLabel('Books');
+    final books = find.bySemanticsLabel('Books').first;
     Finder inTree(String text) =>
         find.descendant(of: books, matching: find.text(text));
     expect(inTree('Views'), findsOneWidget);
@@ -125,7 +126,7 @@ void main() {
     await tester.tap(find.text('Rename view…'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('name-field')), 'Oct');
-    await tester.tap(find.widgetWithText(FilledButton, 'Rename'));
+    await tester.tap(find.widgetWithText(KeyButton, 'Rename'));
     await tester.pumpAndSettle();
     expect(inTree('Oct'), findsOneWidget);
     expect(

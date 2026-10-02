@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../workbench/lifeos_skin.dart';
 import '../workbench/lifeos_tokens.dart';
+import '../workbench/millennium_style.dart';
 import '../workbench/office_controls.dart';
 
 /// One row of the book tree.
@@ -67,105 +68,60 @@ final class TreeSheet extends TreeNode {
   final List<TreeAction> actions;
 }
 
-/// The left pane: every area and sheet with its live value (spec 6.1).
+/// The Books group: every area and sheet with its live value, drawn as
+/// task-pane links (Millennium shell spec 5.2).
 final class BookTree extends StatelessWidget {
   const BookTree({
     required this.nodes,
-    required this.footer,
     required this.selectedRoute,
     required this.onOpen,
     super.key,
   });
 
   final List<TreeNode> nodes;
-
-  /// Rows pinned to the bottom, such as Backup and export.
-  final List<TreeSheet> footer;
   final String? selectedRoute;
   final ValueChanged<String> onOpen;
 
   @override
-  Widget build(BuildContext context) {
-    final skin = LifeOSSkinScope.of(context);
-    final tokens = skin.tokens;
-    return ColoredBox(
-      color: skin.painters.treeBackground(tokens),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 26,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: tokens.chrome,
-              border: Border(bottom: BorderSide(color: tokens.chromeLine)),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final node in nodes)
+        ...switch (node) {
+          TreeArea() => [
+            _AreaRow(
+              node: node,
+              selected: node.route == selectedRoute,
+              onOpen: onOpen,
             ),
-            child: ExcludeSemantics(
-              child: Row(
-                children: [
-                  Expanded(child: _label(skin, 'BOOKS')),
-                  _label(skin, 'NOW'),
-                ],
+            for (final child in node.children)
+              _SheetRow(
+                node: child,
+                indent: true,
+                selected: child.route == selectedRoute,
+                onOpen: onOpen,
               ),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                for (final node in nodes)
-                  ...switch (node) {
-                    TreeArea() => [
-                      _AreaRow(
-                        node: node,
-                        selected: node.route == selectedRoute,
-                        onOpen: onOpen,
-                      ),
-                      for (final child in node.children)
-                        _SheetRow(
-                          node: child,
-                          indent: true,
-                          selected: child.route == selectedRoute,
-                          onOpen: onOpen,
-                        ),
-                    ],
-                    TreeGroup() => [
-                      _GroupRow(node: node),
-                      for (final child in node.children)
-                        _SheetRow(
-                          node: child,
-                          indent: true,
-                          selected: child.route == selectedRoute,
-                          onOpen: onOpen,
-                        ),
-                    ],
-                    TreeSheet() => [
-                      _SheetRow(
-                        node: node,
-                        indent: false,
-                        selected: node.route == selectedRoute,
-                        onOpen: onOpen,
-                      ),
-                    ],
-                  },
-              ],
-            ),
-          ),
-          for (final node in footer)
+          ],
+          TreeGroup() => [
+            _GroupRow(node: node),
+            for (final child in node.children)
+              _SheetRow(
+                node: child,
+                indent: true,
+                selected: child.route == selectedRoute,
+                onOpen: onOpen,
+              ),
+          ],
+          TreeSheet() => [
             _SheetRow(
               node: node,
               indent: false,
               selected: node.route == selectedRoute,
               onOpen: onOpen,
             ),
-        ],
-      ),
-    );
-  }
-
-  static Widget _label(LifeOSSkinData skin, String text) => Text(
-    text,
-    style: skin.typography.label.copyWith(color: skin.tokens.muted),
+          ],
+        },
+    ],
   );
 }
 
@@ -190,36 +146,52 @@ final class _AreaRow extends StatelessWidget {
       semanticValue: node.built ? null : 'Not built yet',
       selected: selected,
       onOpen: onOpen,
-      background: tokens.band,
-      child: Row(
+      // The name keeps its whole width; "Not built yet" takes what is left
+      // and moves under the name when the two do not fit on one line.
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
         children: [
-          AreaKey(area: node.area),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              node.area.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: skin.typography.body.copyWith(
-                color: selected
-                    ? tokens.selInk
-                    : node.built
-                    ? tokens.ink
-                    : tokens.muted,
-                fontWeight: FontWeight.w700,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AreaKey(area: node.area),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  node.area.label,
+                  style: skin.typography.body.copyWith(
+                    color: _ink(tokens, selected: selected, built: node.built),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
           if (!node.built)
-            Text(
-              'Not built yet',
-              style: skin.typography.small.copyWith(color: tokens.muted),
+            Padding(
+              padding: const EdgeInsets.only(left: 24),
+              child: Text(
+                'Not built yet',
+                style: skin.typography.small.copyWith(color: tokens.muted),
+              ),
             ),
         ],
       ),
     );
   }
 }
+
+/// The link colour of a row: ink when selected, muted when unbuilt.
+Color _ink(
+  LifeOSTokens tokens, {
+  required bool selected,
+  required bool built,
+}) => selected
+    ? tokens.ink
+    : built
+    ? MillenniumColors.link
+    : tokens.muted;
 
 /// A group heading; it opens nothing itself.
 final class _GroupRow extends StatelessWidget {
@@ -237,23 +209,23 @@ final class _GroupRow extends StatelessWidget {
       value: '${node.children.length}',
       excludeSemantics: true,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 25),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: tokens.rule)),
-        ),
+        constraints: const BoxConstraints(minHeight: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         alignment: Alignment.centerLeft,
         child: Row(
           children: [
             Expanded(
               child: Text(
                 node.label,
-                style: skin.typography.body.copyWith(color: tokens.ink),
+                style: skin.typography.body.copyWith(
+                  color: tokens.ink,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             Text(
               '${node.children.length}',
-              style: skin.typography.figure.copyWith(color: tokens.muted),
+              style: skin.typography.figure.copyWith(color: tokens.ink),
             ),
           ],
         ),
@@ -289,25 +261,22 @@ final class _SheetRow extends StatelessWidget {
       actions: node.actions,
       child: Row(
         children: [
-          if (indent) const SizedBox(width: 26),
+          if (indent) const SizedBox(width: 20),
           Expanded(
             child: Text(
               node.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: skin.typography.body.copyWith(
-                color: selected
-                    ? tokens.selInk
-                    : node.built
-                    ? tokens.ink
-                    : tokens.muted,
+                color: _ink(tokens, selected: selected, built: node.built),
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
               ),
             ),
           ),
           if (value != null)
             // The value keeps to the right edge; long values ellipsize.
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 110),
+              constraints: const BoxConstraints(maxWidth: 90),
               child: Text(
                 value,
                 maxLines: 1,
@@ -318,14 +287,15 @@ final class _SheetRow extends StatelessWidget {
                             ? skin.typography.figure
                             : skin.typography.small)
                         .copyWith(
-                          color: selected
-                              ? tokens.selInk
-                              : node.liveValueIsActive
+                          color: node.liveValueIsActive
                               ? tokens.runInk
+                              : node.built
+                              ? tokens.ink
                               : tokens.muted,
                           fontWeight: node.liveValueIsActive
                               ? FontWeight.w700
                               : null,
+                          decoration: TextDecoration.none,
                         ),
               ),
             ),
@@ -349,7 +319,6 @@ final class _TreeRow extends StatefulWidget {
     required this.selected,
     required this.onOpen,
     required this.child,
-    this.background,
     this.actions = const [],
   });
 
@@ -359,7 +328,6 @@ final class _TreeRow extends StatefulWidget {
   final bool selected;
   final ValueChanged<String> onOpen;
   final Widget child;
-  final Color? background;
   final List<TreeAction> actions;
 
   @override
@@ -408,11 +376,6 @@ final class _TreeRowState extends State<_TreeRow> {
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
-    final fill = widget.selected
-        ? tokens.selWash
-        : _hovered
-        ? Color.lerp(widget.background ?? tokens.paper, tokens.ink, 0.04)
-        : widget.background;
     return MergeSemantics(
       child: Semantics(
         button: true,
@@ -437,21 +400,18 @@ final class _TreeRowState extends State<_TreeRow> {
             onSecondaryTapUp: (details) => _showMenu(details.globalPosition),
             child: ExcludeSemantics(
               child: Container(
-                constraints: const BoxConstraints(minHeight: 25),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: fill,
-                  border: Border(bottom: BorderSide(color: tokens.rule)),
-                ),
+                constraints: const BoxConstraints(minHeight: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 2),
                 foregroundDecoration: _focused
-                    ? BoxDecoration(
-                        border: Border.all(color: tokens.focus, width: 2),
-                      )
+                    ? DottedFocusRectangle(color: tokens.focus, inset: 0.5)
                     : null,
                 alignment: Alignment.centerLeft,
                 child: DefaultTextStyle.merge(
                   style: TextStyle(
-                    color: widget.selected ? tokens.selInk : tokens.ink,
+                    decoration: _hovered && !widget.selected
+                        ? TextDecoration.underline
+                        : null,
+                    decorationColor: MillenniumColors.link,
                   ),
                   child: widget.child,
                 ),

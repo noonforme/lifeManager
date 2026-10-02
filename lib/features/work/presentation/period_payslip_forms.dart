@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
+import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/inspector_parts.dart';
+import '../../../shared/workbench/lifeos_skin.dart';
+import '../../../shared/workbench/office_controls.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay.dart';
@@ -146,53 +151,48 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
         container: true,
         explicitChildNodes: true,
         label: 'Pay period',
-        child: ListView(
-          padding: const EdgeInsets.all(20),
+        child: InspectorPane(
           children: [
-            Text(
-              period.label ?? '${period.start} – ${period.end}',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text('${period.start} – ${period.end}'),
-            const SizedBox(height: 8),
-            Text(period.state == PayPeriodState.reviewed ? 'Reviewed' : 'Open'),
-            if (widget.onSetState != null) ...[
-              const SizedBox(height: 20),
-              if (period.state == PayPeriodState.reviewed)
-                OutlinedButton(
-                  onPressed: () =>
-                      widget.onSetState!(period, PayPeriodState.open),
-                  child: const Text('Reopen period'),
-                )
-              else
-                FilledButton(
-                  onPressed: () =>
-                      widget.onSetState!(period, PayPeriodState.reviewed),
-                  child: const Text('Mark reviewed'),
-                ),
-            ],
-            if (widget.onRecordPayslip != null) ...[
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: widget.onRecordPayslip,
-                child: const Text('Record payslip'),
+            InspectorTitle(period.label ?? 'Pay period'),
+            InspectorFacts([
+              Fact('Dates', '${period.start} – ${period.end}'),
+              Fact.words(
+                'State',
+                period.state == PayPeriodState.reviewed ? 'Reviewed' : 'Open',
               ),
-            ],
+            ], legend: 'Period'),
+            if (widget.onSetState != null || widget.onRecordPayslip != null)
+              InspectorActions(
+                children: [
+                  if (widget.onSetState case final setPeriodState?)
+                    if (period.state == PayPeriodState.reviewed)
+                      KeyButton(
+                        label: 'Reopen period',
+                        onPressed: () =>
+                            setPeriodState(period, PayPeriodState.open),
+                      )
+                    else
+                      KeyButton(
+                        label: 'Mark reviewed',
+                        kind: KeyKind.primary,
+                        onPressed: () =>
+                            setPeriodState(period, PayPeriodState.reviewed),
+                      ),
+                  if (widget.onRecordPayslip case final record?)
+                    KeyButton(label: 'Record payslip', onPressed: record),
+                ],
+              ),
             if (widget.reconciliation.isNotEmpty) ...[
-              const Divider(height: 33),
               if (widget.reconciliation
                       .map((group) => group.basis.runtimeType)
                       .toSet()
                       .length >
-                  1) ...[
-                const Text('Gross and net evidence cannot be combined.'),
-                const SizedBox(height: 16),
-              ],
-              for (final group in widget.reconciliation) ...[
+                  1)
+                const InspectorNote(
+                  'Gross and net evidence cannot be combined.',
+                ),
+              for (final group in widget.reconciliation)
                 _ReconciliationGroupView(group: group),
-                const SizedBox(height: 16),
-              ],
             ],
           ],
         ),
@@ -203,35 +203,40 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
       explicitChildNodes: true,
       label: 'Create pay period',
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: inspectorInset,
         children: [
-          Text('Pay period', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 16),
-          _Field(
-            controller: _start,
-            label: 'Start date',
-            fieldKey: const ValueKey('period-start'),
-            error: _errors['start'],
-            hint: 'YYYY-MM-DD',
+          const InspectorTitle('Pay period'),
+          _FormGroup(
+            legend: 'Dates',
+            children: [
+              _Field(
+                controller: _start,
+                label: 'Start date',
+                fieldKey: const ValueKey('period-start'),
+                error: _errors['start'],
+                hint: 'YYYY-MM-DD',
+              ),
+              _Field(
+                controller: _end,
+                label: 'End date',
+                fieldKey: const ValueKey('period-end'),
+                error: _errors['end'],
+                hint: 'YYYY-MM-DD',
+              ),
+              _Field(
+                controller: _label,
+                label: 'Label',
+                fieldKey: const ValueKey('period-label'),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          _Field(
-            controller: _end,
-            label: 'End date',
-            fieldKey: const ValueKey('period-end'),
-            error: _errors['end'],
-            hint: 'YYYY-MM-DD',
-          ),
-          const SizedBox(height: 12),
-          _Field(
-            controller: _label,
-            label: 'Label',
-            fieldKey: const ValueKey('period-label'),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _submitting ? null : _submit,
-            child: const Text('Create period'),
+          FormFooter(
+            children: [
+              FilledButton(
+                onPressed: _submitting ? null : _submit,
+                child: const Text('Create period'),
+              ),
+            ],
           ),
         ],
       ),
@@ -342,63 +347,95 @@ final class _PayslipInspectorState extends State<PayslipInspector> {
     label: 'Record payslip',
     child: Form(
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: inspectorInset,
         children: [
-          Text(
-            'Paid evidence',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 16),
-          _Field(
-            controller: _issuedDate,
-            label: 'Issued date',
-            fieldKey: const ValueKey('payslip-issued-date'),
-            error: _errors['issuedDate'],
-            hint: 'YYYY-MM-DD',
-          ),
-          const SizedBox(height: 12),
-          _Field(
-            controller: _paidDate,
-            label: 'Paid date',
-            error: _errors['paidDate'],
-            hint: 'Optional YYYY-MM-DD',
-          ),
-          const SizedBox(height: 12),
-          _Field(
-            controller: _amount,
-            label: 'Paid amount',
-            fieldKey: const ValueKey('payslip-amount'),
-            error: _errors['amount'],
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: 12),
-          SegmentedButton<RateBasis>(
-            segments: const [
-              ButtonSegment(value: GrossBasis(), label: Text('Gross')),
-              ButtonSegment(value: NetBasis(), label: Text('Net')),
+          const InspectorTitle('Paid evidence'),
+          _FormGroup(
+            legend: 'Payslip',
+            children: [
+              _Field(
+                controller: _issuedDate,
+                label: 'Issued date',
+                fieldKey: const ValueKey('payslip-issued-date'),
+                error: _errors['issuedDate'],
+                hint: 'YYYY-MM-DD',
+              ),
+              _Field(
+                controller: _paidDate,
+                label: 'Paid date',
+                error: _errors['paidDate'],
+                hint: 'Optional YYYY-MM-DD',
+              ),
+              _Field(
+                controller: _amount,
+                label: 'Paid amount',
+                fieldKey: const ValueKey('payslip-amount'),
+                error: _errors['amount'],
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+              ),
             ],
-            selected: {_basis},
-            onSelectionChanged: (values) =>
-                setState(() => _basis = values.single),
           ),
-          const SizedBox(height: 12),
-          _Field(controller: _gross, label: 'Gross amount'),
-          const SizedBox(height: 12),
-          _Field(controller: _net, label: 'Net amount'),
-          const SizedBox(height: 12),
-          _Field(controller: _deductions, label: 'Deductions'),
-          const SizedBox(height: 12),
-          _Field(
-            controller: _reference,
-            label: 'Reference',
-            fieldKey: const ValueKey('payslip-reference'),
+          _FormGroup(
+            legend: 'Basis',
+            children: [
+              RadioGroup<RateBasis>(
+                groupValue: _basis,
+                onChanged: (value) {
+                  if (value != null) setState(() => _basis = value);
+                },
+                child: Wrap(
+                  children: [
+                    for (final (value, label) in const [
+                      (GrossBasis(), 'Gross'),
+                      (NetBasis(), 'Net'),
+                    ])
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => setState(() => _basis = value),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Radio<RateBasis>(value: value),
+                              Text(label),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          _Field(controller: _note, label: 'Note', maxLines: 3),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _submitting ? null : _submit,
-            child: const Text('Save payslip'),
+          _FormGroup(
+            legend: 'Breakdown',
+            children: [
+              _Field(controller: _gross, label: 'Gross amount'),
+              _Field(controller: _net, label: 'Net amount'),
+              _Field(controller: _deductions, label: 'Deductions'),
+            ],
+          ),
+          _FormGroup(
+            legend: 'Reference',
+            children: [
+              _Field(
+                controller: _reference,
+                label: 'Reference',
+                fieldKey: const ValueKey('payslip-reference'),
+              ),
+              _Field(controller: _note, label: 'Note', maxLines: 3),
+            ],
+          ),
+          FormFooter(
+            children: [
+              FilledButton(
+                onPressed: _submitting ? null : _submit,
+                child: const Text('Save payslip'),
+              ),
+            ],
           ),
         ],
       ),
@@ -418,17 +455,12 @@ final class ReconciliationInspector extends StatelessWidget {
       container: true,
       explicitChildNodes: true,
       label: 'Reconciliation',
-      child: ListView.separated(
-        padding: const EdgeInsets.all(20),
-        itemCount: groups.length + (basisTypes.length > 1 ? 1 : 0),
-        separatorBuilder: (_, _) => const Divider(height: 25),
-        itemBuilder: (context, index) {
-          if (basisTypes.length > 1 && index == 0) {
-            return const Text('Gross and net evidence cannot be combined.');
-          }
-          final group = groups[index - (basisTypes.length > 1 ? 1 : 0)];
-          return _ReconciliationGroupView(group: group);
-        },
+      child: InspectorPane(
+        children: [
+          if (basisTypes.length > 1)
+            const InspectorNote('Gross and net evidence cannot be combined.'),
+          for (final group in groups) _ReconciliationGroupView(group: group),
+        ],
       ),
     );
   }
@@ -441,55 +473,48 @@ final class _ReconciliationGroupView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(
-        '${_basisLabel(group.basis)} · ${group.currency.value}',
-        style: Theme.of(context).textTheme.titleMedium,
+      InspectorFacts(
+        legend: '${_basisLabel(group.basis)} · ${group.currency.value}',
+        [
+          _amount('Expected under recorded agreement', group.expected),
+          _amount('Paid evidence', group.paid),
+          if (group.difference != null) _amount('Difference', group.difference),
+          Fact.words('Status', _statusLabel(group.status)),
+        ],
       ),
-      const SizedBox(height: 12),
-      _AmountLine(
-        label: 'Expected under recorded agreement',
-        value: group.expected,
-      ),
-      const SizedBox(height: 8),
-      _AmountLine(label: 'Paid evidence', value: group.paid),
-      if (group.difference != null) ...[
-        const SizedBox(height: 8),
-        _AmountLine(label: 'Difference', value: group.difference),
-      ],
-      const SizedBox(height: 10),
-      Text(
-        _statusLabel(group.status),
-        style: Theme.of(context).textTheme.labelLarge,
-      ),
-      const SizedBox(height: 4),
-      Text(_statusExplanation(group.status)),
-      if (group.payslipIds.length > 1) ...[
-        const SizedBox(height: 6),
-        Text('${group.payslipIds.length} payslips'),
-      ],
+      InspectorNote(_statusExplanation(group.status)),
+      if (group.payslipIds.length > 1)
+        InspectorNote('${group.payslipIds.length} payslips'),
     ],
   );
 }
 
-final class _AmountLine extends StatelessWidget {
-  const _AmountLine({required this.label, required this.value});
+Fact _amount(String label, Money? value) => value == null
+    ? Fact.words(label, 'Not recorded')
+    : Fact(label, _formatMoney(value));
 
-  final String label;
-  final Money? value;
+/// A form's group box on the face colour, its fields 10 px apart.
+final class _FormGroup extends StatelessWidget {
+  const _FormGroup({required this.legend, required this.children});
+
+  final String legend;
+  final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Flexible(child: Text(label)),
-      const SizedBox(width: 16),
-      Text(
-        value == null ? 'Not recorded' : _formatMoney(value!),
-        style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
-      ),
-    ],
+  Widget build(BuildContext context) => GroupBox(
+    legend: legend,
+    background: LifeOSSkinScope.of(context).tokens.chrome,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (index, child) in children.indexed) ...[
+          if (index > 0) const SizedBox(height: 10),
+          child,
+        ],
+      ],
+    ),
   );
 }
 
@@ -513,22 +538,14 @@ final class _Field extends StatelessWidget {
   final int maxLines;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: error == null ? label : '$label, $error',
-    textField: true,
-    excludeSemantics: true,
-    child: TextFormField(
-      key: fieldKey,
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        errorText: error,
-        border: const OutlineInputBorder(),
-      ),
-    ),
+  Widget build(BuildContext context) => EraField(
+    controller: controller,
+    label: label,
+    fieldKey: fieldKey,
+    error: error,
+    hint: hint,
+    keyboardType: keyboardType,
+    maxLines: maxLines,
   );
 }
 

@@ -8,6 +8,8 @@ import 'package:lifeos/core/database/app_database.dart';
 import 'package:lifeos/core/time/app_clock.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
+import 'package:lifeos/shared/workbench/inspector_parts.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 /// Drives the Work core flow through the real router, controller, services
 /// and Drift repositories on an in-memory database with synthetic facts.
@@ -74,7 +76,12 @@ void main() {
     expect(_summary('Expected under recorded agreement'), 'EUR 160.00');
 
     // Payslip and reconciliation.
-    await tester.tap(find.text('Record payslip'));
+    await tester.tap(
+      find.descendant(
+        of: find.bySemanticsLabel('Record inspector'),
+        matching: find.text('Record payslip'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('payslip-issued-date')),
@@ -325,17 +332,23 @@ void main() {
     clock.now = DateTime.utc(2026, 9, 29, 16, 30);
     await tester.tap(find.text('End shift'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Finalize shift'));
+    await tester.tap(find.widgetWithText(KeyButton, 'Finalize shift'));
     await tester.pumpAndSettle();
     expect(find.text('Shift finalized'), findsOneWidget);
     expect(location(), shiftLocation);
   });
 }
 
-/// The value text beside a register summary label.
+/// The value beside [label] in the Work Details group of the task pane.
 String _summary(String label) {
   final row = find
-      .ancestor(of: find.text(label), matching: find.byType(Row))
+      .ancestor(
+        of: find.descendant(
+          of: find.bySemanticsLabel('Task pane'),
+          matching: find.text(label),
+        ),
+        matching: find.byType(InspectorFactRow),
+      )
       .first;
   final texts = find
       .descendant(of: row, matching: find.byType(Text))
@@ -382,7 +395,7 @@ Future<void> _setUpEmployment(WidgetTester tester) async {
 String _fact(String label) {
   final row = find.ancestor(
     of: _inInspector(find.text(label)),
-    matching: find.byType(Row),
+    matching: find.byType(InspectorFactRow),
   );
   return find
       .descendant(of: row.first, matching: find.byType(Text))
