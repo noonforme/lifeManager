@@ -66,61 +66,14 @@ final class ShiftDao {
     return rows.map(shiftBreakFromRow).toList(growable: false);
   }
 
-  Future<List<domain.WorkShift>> finalizedForRange(
-    EmploymentId employmentId, {
-    required String start,
-    required String end,
-  }) async {
+  /// Every shift of the employment, in start order.
+  Future<List<domain.WorkShift>> forEmployment(EmploymentId id) async {
     final rows =
         await (database.select(database.workShifts)
-              ..where(
-                (table) =>
-                    table.employmentId.equals(employmentId.value) &
-                    table.state.equals('finalized') &
-                    table.localStartDate.isBiggerOrEqualValue(start) &
-                    table.localStartDate.isSmallerOrEqualValue(end),
-              )
+              ..where((table) => table.employmentId.equals(id.value))
               ..orderBy([(table) => OrderingTerm.asc(table.startUtcMicros)]))
             .get();
     return rows.map(shiftFromRow).toList(growable: false);
-  }
-
-  Stream<List<ShiftRegisterRow>> watchRowsForRange(
-    EmploymentId employmentId, {
-    required String start,
-    required String end,
-  }) {
-    final query = database.selectOnly(database.workShifts)
-      ..addColumns([
-        database.workShifts.id,
-        database.workShifts.localStartDate,
-        database.workShifts.startUtcMicros,
-        database.workShifts.endUtcMicros,
-        database.workShifts.state,
-      ])
-      ..where(
-        database.workShifts.employmentId.equals(employmentId.value) &
-            database.workShifts.localStartDate.isBiggerOrEqualValue(start) &
-            database.workShifts.localStartDate.isSmallerOrEqualValue(end) &
-            database.workShifts.state.equals('finalized'),
-      )
-      ..orderBy([OrderingTerm.asc(database.workShifts.startUtcMicros)]);
-    return query.watch().map(
-      (rows) => rows
-          .map(
-            (row) => ShiftRegisterRow(
-              id: ShiftId(row.read(database.workShifts.id)!),
-              localStartDate: row.read(database.workShifts.localStartDate)!,
-              startUtc: DateTime.fromMicrosecondsSinceEpoch(
-                row.read(database.workShifts.startUtcMicros)!,
-                isUtc: true,
-              ),
-              endUtc: _nullableUtc(row.read(database.workShifts.endUtcMicros)),
-              state: domain.ShiftState.finalized,
-            ),
-          )
-          .toList(growable: false),
-    );
   }
 
   Future<List<domain.ShiftBreak>> breaksForShifts(
@@ -213,28 +166,6 @@ final class ShiftDao {
     );
   }
 
-  Future<int> setOvertime(
-    ShiftId id, {
-    required int overtimeMinutes,
-    required Revision expected,
-    required DateTime updatedAtUtc,
-  }) {
-    return database.customUpdate(
-      '''
-      UPDATE work_shifts
-      SET overtime_minutes = ?, updated_at_utc_micros = ?
-      WHERE id = ? AND revision = ? AND state = 'draft'
-      ''',
-      variables: [
-        Variable(overtimeMinutes),
-        Variable(updatedAtUtc.microsecondsSinceEpoch),
-        Variable(id.value),
-        Variable(expected.value),
-      ],
-      updates: {database.workShifts},
-    );
-  }
-
   /// Rewrites a draft's facts and bumps its revision; finalized and voided
   /// shifts never match.
   Future<int> reviseDraft(
@@ -245,7 +176,7 @@ final class ShiftDao {
       '''
       UPDATE work_shifts
       SET start_utc_micros = ?, end_utc_micros = ?, timezone_id = ?,
-          local_start_date = ?, overtime_minutes = ?, note = ?,
+          local_start_date = ?, note = ?,
           updated_at_utc_micros = ?, revision = revision + 1
       WHERE id = ? AND revision = ? AND state = 'draft'
       ''',
@@ -254,7 +185,6 @@ final class ShiftDao {
         Variable(value.endUtc?.microsecondsSinceEpoch),
         Variable(value.timezoneId),
         Variable(value.localStartDate.toString()),
-        Variable(value.overtimeMinutes),
         Variable(value.note),
         Variable(value.updatedAtUtc.microsecondsSinceEpoch),
         Variable(value.id.value),
@@ -313,7 +243,3 @@ final class ShiftDao {
     );
   }
 }
-
-DateTime? _nullableUtc(int? microseconds) => microseconds == null
-    ? null
-    : DateTime.fromMicrosecondsSinceEpoch(microseconds, isUtc: true);

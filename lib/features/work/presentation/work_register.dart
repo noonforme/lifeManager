@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/workbench/data_register.dart';
-import '../../../shared/workbench/lifeos_theme.dart';
+import '../../../core/time/timezone_service.dart';
+import '../../../shared/workbench/lifeos_skin.dart';
+import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/operational_state.dart';
-import '../data/daos/payslip_dao.dart';
-import '../data/daos/shift_dao.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay.dart';
-import '../domain/pay_period.dart';
 import 'work_route_state.dart';
+import 'work_sheets.dart';
+import 'work_toolbar_controls.dart';
 
 final class WorkRegister extends StatelessWidget {
   const WorkRegister({
@@ -20,6 +20,14 @@ final class WorkRegister extends StatelessWidget {
     required this.onPrimaryAction,
     this.onOpenEmployment,
     this.onNewPeriod,
+    this.onAllEmployments,
+    this.onCreateEmployment,
+    this.route,
+    this.onRoute,
+    this.onAddManualShift,
+    this.onRecordPayslip,
+    this.onSaveView,
+    this.timezones,
     super.key,
   });
 
@@ -29,6 +37,29 @@ final class WorkRegister extends StatelessWidget {
   final VoidCallback onPrimaryAction;
   final ValueChanged<EmploymentId>? onOpenEmployment;
   final VoidCallback? onNewPeriod;
+
+  /// Saves the sheet and its filters as a named view.
+  final ValueChanged<WorkRouteState>? onSaveView;
+
+  /// Clears the employment from the route.
+  final VoidCallback? onAllEmployments;
+
+  /// Opens the employment form in the inspector.
+  final VoidCallback? onCreateEmployment;
+
+  /// The current route; its sheet, scope and void filter shape the desk.
+  final WorkRouteState? route;
+
+  /// Applies a sheet, scope or filter change.
+  final ValueChanged<WorkRouteState>? onRoute;
+
+  final VoidCallback? onAddManualShift;
+
+  /// Records a payslip in the given pay period.
+  final ValueChanged<PayPeriodId>? onRecordPayslip;
+
+  /// Reads shift times on their own wall clock.
+  final TimezoneService? timezones;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +72,7 @@ final class WorkRegister extends StatelessWidget {
       );
     }
     final open = onOpenEmployment;
+    final create = onCreateEmployment ?? onPrimaryAction;
     if (value.scope.employmentId == null &&
         value.availableEmployments.isNotEmpty &&
         open != null) {
@@ -59,7 +91,7 @@ final class WorkRegister extends StatelessWidget {
                 child: Text(employment.name),
               ),
             FilledButton(
-              onPressed: onPrimaryAction,
+              onPressed: create,
               child: const Text('Create employment'),
             ),
           ],
@@ -69,139 +101,116 @@ final class WorkRegister extends StatelessWidget {
     if (value.scope.employmentId == null) {
       return OperationalState(
         kind: OperationalStateKind.empty,
-        title: 'Create an employment to begin.',
-        message: 'An employment anchors agreements, shifts, and pay evidence.',
+        title: 'Work',
+        message:
+            'Track shifts, see what you should be paid, and compare it with '
+            'your payslips. Start by adding where you work.',
         action: FilledButton(
-          onPressed: onPrimaryAction,
+          onPressed: create,
           child: const Text('Create employment'),
         ),
       );
     }
 
-    final rows = <_WorkRow>[
-      for (final period in value.periodRows) _WorkRow.period(period),
-      for (final shift in value.shiftRows) _WorkRow.shift(shift),
-      for (final payslip in value.payslipRows) _WorkRow.payslip(payslip),
-    ];
+    final route =
+        this.route ??
+        WorkRouteState(
+          employmentId: value.scope.employmentId,
+          scope: value.scope.temporal,
+          record: selectedRecord,
+          mode: WorkInspectorMode.inspect,
+        );
+    void change(WorkRouteState next) => onRoute?.call(next);
+    final selectedId = selectedRecord == null
+        ? null
+        : workRowId(selectedRecord!);
+    final period = value.period;
+    final recordPayslip = onRecordPayslip;
+    final Widget sheet = switch (route.sheet) {
+      WorkSheet.shifts => ShiftsSheet(
+        rows: value.shiftSheet,
+        timezones: timezones ?? IanaTimezoneService(),
+        selectedId: selectedId,
+        onOpen: onSelect,
+        showVoid: route.showVoid,
+        onAddManualShift: onAddManualShift,
+      ),
+      WorkSheet.periods => PeriodsSheet(
+        rows: value.periodSheet,
+        selectedId: selectedId,
+        onOpen: onSelect,
+        onNewPeriod: onNewPeriod,
+      ),
+      WorkSheet.payslips => PayslipsSheet(
+        payslips: value.payslipSheet,
+        periods: value.periodSheet,
+        selectedId: selectedId,
+        onOpen: onSelect,
+        showVoid: route.showVoid,
+        onRecordPayslip: period == null || recordPayslip == null
+            ? null
+            : () => recordPayslip(period.id),
+      ),
+      WorkSheet.agreements => AgreementsSheet(
+        rows: value.agreementSheet,
+        employmentName: value.employment?.name ?? 'Employment',
+        selectedId: selectedId,
+        onOpen: onSelect,
+      ),
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Toolbar(
-          projection: value,
-          onPrimaryAction: onPrimaryAction,
-          onNewPeriod: onNewPeriod,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: SegmentedTabs(
+            labels: const ['Shifts', 'Pay periods', 'Payslips', 'Agreements'],
+            selectedIndex: route.sheet.index,
+            onSelected: (index) =>
+                change(route.copyWith(sheet: WorkSheet.values[index])),
+          ),
         ),
-        _Summary(projection: value),
-        Expanded(
-          child: rows.isEmpty
-              ? const OperationalState(
-                  kind: OperationalStateKind.empty,
-                  title: 'No Work records in this scope',
-                  message: 'Add a shift or change the explicit scope.',
-                )
-              : DataRegister<_WorkRow>(
-                  label: 'Work rows',
-                  rows: rows,
-                  columns: [
-                    RegisterColumn(
-                      label: 'Date',
-                      width: 150,
-                      value: (row) => row.date,
-                    ),
-                    RegisterColumn(
-                      label: 'Record',
-                      width: 150,
-                      value: (row) => row.kindLabel,
-                    ),
-                    RegisterColumn(
-                      label: 'Status',
-                      width: 140,
-                      value: (row) => row.status,
-                    ),
-                    RegisterColumn(
-                      label: 'Duration / amount',
-                      width: 190,
-                      value: (row) => row.value,
-                      numeric: true,
-                    ),
-                  ],
-                  rowId: (row) => row.routeValue,
-                  rowLabel: (row) => row.semanticLabel,
-                  selectedId: selectedRecord == null
-                      ? null
-                      : _routeValue(selectedRecord!),
-                  onSelect: (row) => onSelect(row.record),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              EmploymentSwitcher(
+                current: value.employment?.id,
+                currentName: value.employment?.name,
+                employments: value.availableEmployments,
+                onOpen: onOpenEmployment,
+                onAll: onAllEmployments,
+                onCreate: create,
+              ),
+              PeriodPicker(
+                scope: route.scope,
+                periods: [for (final row in value.periodSheet) row.period],
+                onScope: (scope) => change(
+                  route.copyWith(scope: () => scope, record: () => null),
                 ),
+              ),
+              StateFilter(
+                showVoid: route.showVoid,
+                onChanged: (show) => change(route.copyWith(showVoid: show)),
+              ),
+              KeyButton(
+                label: 'Add shift',
+                kind: KeyKind.primary,
+                onPressed: onPrimaryAction,
+              ),
+              if (onNewPeriod case final add?)
+                KeyButton(label: 'New pay period', onPressed: add),
+              if (onSaveView case final save?)
+                KeyButton(label: 'Save view', onPressed: () => save(route)),
+            ],
+          ),
         ),
+        if (value.reconciliation != null) _Summary(projection: value),
+        Expanded(child: sheet),
       ],
-    );
-  }
-}
-
-final class _Toolbar extends StatelessWidget {
-  const _Toolbar({
-    required this.projection,
-    required this.onPrimaryAction,
-    required this.onNewPeriod,
-  });
-
-  final WorkRegisterProjection projection;
-  final VoidCallback onPrimaryAction;
-  final VoidCallback? onNewPeriod;
-
-  @override
-  Widget build(BuildContext context) {
-    final scope = projection.scope.temporal;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          _Control(label: 'Employment', detail: projection.employment?.name),
-          _Control(
-            label: 'Scope',
-            detail: switch (scope) {
-              PayPeriodScope() => 'Pay period',
-              DateRangeScope(:final start, :final end) => '$start – $end',
-              null => 'All records',
-            },
-          ),
-          const _Control(label: 'Status', detail: 'Effective'),
-          FilledButton.icon(
-            onPressed: onPrimaryAction,
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add shift'),
-          ),
-          if (onNewPeriod != null)
-            OutlinedButton(
-              onPressed: onNewPeriod,
-              child: const Text('New pay period'),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-final class _Control extends StatelessWidget {
-  const _Control({required this.label, this.detail});
-
-  final String label;
-  final String? detail;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: () {},
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label),
-          if (detail != null) ...[const Text(': '), Text(detail!)],
-        ],
-      ),
     );
   }
 }
@@ -215,10 +224,12 @@ final class _Summary extends StatelessWidget {
   Widget build(BuildContext context) {
     final groups = projection.reconciliation?.groups ?? const [];
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: LifeOSColors.surface,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: Border.symmetric(
-          horizontal: BorderSide(color: LifeOSColors.boundary),
+          horizontal: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
       ),
       child: Padding(
@@ -285,67 +296,6 @@ final class _SummaryValue extends StatelessWidget {
       ],
     );
   }
-}
-
-final class _WorkRow {
-  const _WorkRow({
-    required this.record,
-    required this.date,
-    required this.kindLabel,
-    required this.status,
-    required this.value,
-    required this.semanticLabel,
-  });
-
-  factory _WorkRow.shift(ShiftRegisterRow row) {
-    final duration = row.endUtc == null
-        ? '—'
-        : _duration(row.endUtc!.difference(row.startUtc));
-    return _WorkRow(
-      record: WorkRecordRef(kind: WorkRecordKind.shift, id: row.id),
-      date: row.localStartDate,
-      kindLabel: 'Shift',
-      status: row.state.name,
-      value: duration,
-      semanticLabel: 'Shift on ${row.localStartDate}',
-    );
-  }
-
-  factory _WorkRow.period(PayPeriod period) => _WorkRow(
-    record: WorkRecordRef(kind: WorkRecordKind.payPeriod, id: period.id),
-    date: period.start.toString(),
-    kindLabel: 'Pay period',
-    status: period.state == PayPeriodState.reviewed ? 'reviewed' : 'open',
-    value: '${period.start} – ${period.end}',
-    semanticLabel: 'Pay period from ${period.start} to ${period.end}',
-  );
-
-  factory _WorkRow.payslip(PayslipRegisterRow row) => _WorkRow(
-    record: WorkRecordRef(kind: WorkRecordKind.payslip, id: row.id),
-    date: row.issuedDate,
-    kindLabel: 'Payslip',
-    status: row.state.name,
-    value: _money(row.amount),
-    semanticLabel: 'Payslip issued ${row.issuedDate}',
-  );
-
-  final WorkRecordRef record;
-  final String date;
-  final String kindLabel;
-  final String status;
-  final String value;
-  final String semanticLabel;
-
-  String get routeValue => _routeValue(record);
-}
-
-String _routeValue(WorkRecordRef record) =>
-    '${record.kind.name}:${record.id.value}';
-
-String _duration(Duration duration) {
-  final hours = duration.inHours;
-  final minutes = duration.inMinutes.remainder(60);
-  return '$hours:${minutes.toString().padLeft(2, '0')}';
 }
 
 String _basis(RateBasis? basis) => switch (basis) {

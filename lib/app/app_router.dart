@@ -2,26 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/journal/journal_controller.dart';
+import '../features/journal/journal_sheet.dart';
 import '../features/work/data/projections/work_register_projection.dart';
 import '../features/work/domain/ids.dart';
 import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_route_state.dart';
 import '../features/work/presentation/work_screen.dart';
-import '../shared/workbench/lifeos_theme.dart';
-import '../shared/workbench/system_rail.dart';
+import '../features/work/presentation/work_views.dart';
+import '../shared/shell/name_dialog.dart';
+import '../shared/shell/shell_frame.dart';
+import '../shared/workbench/lifeos_skin.dart';
+import 'desk_host.dart';
+import 'desk_providers.dart';
+import 'shell_host.dart';
 
 GoRouter createAppRouter({String initialLocation = '/work'}) {
+  GoRoute unavailable(String path, String title, String message) => GoRoute(
+    path: path,
+    builder: (_, state) => ShellChromeHost(
+      location: state.uri,
+      child: _UnavailableSurface(title: title, message: message),
+    ),
+  );
+
   return GoRouter(
     initialLocation: initialLocation,
     routes: [
       GoRoute(
         path: '/today',
-        builder: (_, _) => const _NativeFrame(
-          location: '/today',
-          child: _UnavailableSurface(
-            title: 'Today',
-            message: 'Today is not available in this release.',
-          ),
+        builder: (context, state) => ShellChromeHost(
+          location: state.uri,
+          child: DeskHost(uri: state.uri),
         ),
       ),
       GoRoute(
@@ -29,45 +41,48 @@ GoRouter createAppRouter({String initialLocation = '/work'}) {
         builder: (context, state) => _workSurface(context, state.uri),
       ),
       GoRoute(
-        path: '/money',
-        builder: (_, _) => const _NativeFrame(
-          location: '/money',
-          child: _UnavailableSurface(
-            title: 'Money',
-            message: 'Money is not available in this release.',
-          ),
+        path: '/journal',
+        builder: (context, state) => ShellChromeHost(
+          location: state.uri,
+          child: _JournalHost(uri: state.uri),
         ),
       ),
-      GoRoute(
-        path: '/habits',
-        builder: (_, _) => const _NativeFrame(
-          location: '/habits',
-          child: _UnavailableSurface(
-            title: 'Habits',
-            message: 'Habits are not available in this release.',
-          ),
-        ),
+      unavailable(
+        '/finance',
+        'Finance',
+        'Finance is not built yet. It arrives in a later update.',
       ),
-      GoRoute(
-        path: '/system/files',
-        builder: (_, _) => const _NativeFrame(
-          location: '/system/files',
-          child: _UnavailableSurface(
-            title: 'Backup and export',
-            message: 'File tools are not available yet.',
-          ),
-        ),
+      unavailable(
+        '/tracking',
+        'Tracking',
+        'Tracking is not built yet. It arrives in a later update.',
+      ),
+      unavailable(
+        '/knowledge',
+        'Knowledge',
+        'Knowledge is not built yet. It arrives in a later update.',
+      ),
+      unavailable(
+        '/system/files',
+        'Backup and export',
+        'File tools are not available yet.',
       ),
     ],
-    redirect: (_, state) => state.uri.path == '/' ? '/work' : null,
+    redirect: (_, state) => switch (state.uri.path) {
+      '/' => '/work',
+      // Money and Habits were renamed Finance and Tracking.
+      '/money' => '/finance',
+      '/habits' => '/tracking',
+      _ => null,
+    },
   );
 }
 
 Widget _workSurface(BuildContext routerContext, Uri uri) {
   final route = parseWorkRoute(uri);
   if (route is InvalidWorkRoute) {
-    return _NativeFrame(
-      location: '/work',
+    return ShellChromeHost(
+      location: uri,
       child: _UnavailableSurface(
         title: switch (route.reason) {
           WorkRouteProblem.malformedId => 'Work record unavailable',
@@ -92,9 +107,16 @@ Widget _workSurface(BuildContext routerContext, Uri uri) {
         (route) => routerContext.go(workRouteUri(route).toString()),
       ),
     ],
-    child: const _WorkRouteHost(),
+    child: ShellChromeHost(location: uri, child: const _WorkRouteHost()),
   );
 }
+
+const _sheetLabels = {
+  WorkSheet.shifts: 'Shifts',
+  WorkSheet.periods: 'Pay periods',
+  WorkSheet.payslips: 'Payslips',
+  WorkSheet.agreements: 'Agreements',
+};
 
 final class _WorkRouteHost extends ConsumerWidget {
   const _WorkRouteHost();
@@ -108,12 +130,11 @@ final class _WorkRouteHost extends ConsumerWidget {
           final parsed = ref.read(workRouteProvider);
           if (parsed case ValidWorkRoute(:final state)) {
             ref.read(replaceWorkRouteProvider)(
-              WorkRouteState(
-                employmentId: state.employmentId,
-                scope: record.kind == WorkRecordKind.payPeriod
+              state.copyWith(
+                scope: () => record.kind == WorkRecordKind.payPeriod
                     ? PayPeriodScope(record.id as PayPeriodId)
                     : state.scope,
-                record: record,
+                record: () => record,
                 mode: WorkInspectorMode.inspect,
               ),
             );
@@ -123,10 +144,8 @@ final class _WorkRouteHost extends ConsumerWidget {
           final parsed = ref.read(workRouteProvider);
           if (parsed case ValidWorkRoute(:final state)) {
             ref.read(replaceWorkRouteProvider)(
-              WorkRouteState(
-                employmentId: state.employmentId,
-                scope: state.scope,
-                record: null,
+              state.copyWith(
+                record: () => null,
                 mode: WorkInspectorMode.create,
               ),
             );
@@ -142,9 +161,7 @@ final class _WorkRouteHost extends ConsumerWidget {
         onStartBreak: ref.read(workControllerProvider.notifier).startBreak,
         onEndBreak: ref.read(workControllerProvider.notifier).endBreak,
         onEndShift: ref.read(workControllerProvider.notifier).endShift,
-        onFinalize: (shift, minutes) => ref
-            .read(workControllerProvider.notifier)
-            .finalizeShift(shift, overtimeMinutes: minutes),
+        onFinalize: ref.read(workControllerProvider.notifier).finalizeShift,
         onStartShift: ref
             .read(workControllerProvider.notifier)
             .startShiftInSystemZone,
@@ -186,6 +203,77 @@ final class _WorkRouteHost extends ConsumerWidget {
             .read(workControllerProvider.notifier)
             .reviseDraftShift,
         timezones: ref.read(timezoneServiceProvider),
+        onUpdateEmployment: ref
+            .read(workControllerProvider.notifier)
+            .updateEmployment,
+        onDeleteEmployment: ref
+            .read(workControllerProvider.notifier)
+            .deleteEmployment,
+        onUpdateAgreement: ref
+            .read(workControllerProvider.notifier)
+            .updateAgreement,
+        today: ref.read(todayProvider)(),
+        onSaveView: switch (ref.watch(savedViewRepositoryProvider)) {
+          null => null,
+          final views => (route) async {
+            final name = await askForName(
+              context,
+              title: 'Save view',
+              action: 'Save',
+              initial: '${_sheetLabels[route.sheet]} view',
+            );
+            if (name != null && name.trim().isNotEmpty) {
+              await views.createView(name, workViewShape(route));
+            }
+          },
+        },
+        lastShiftTemplate: switch (ref.watch(workRouteProvider)) {
+          ValidWorkRoute(state: WorkRouteState(:final employmentId?)) =>
+            switch (ref.watch(lastShiftTemplateProvider(employmentId))) {
+              AsyncData(:final value) => value,
+              _ => null,
+            },
+          _ => null,
+        },
+      ),
+    );
+  }
+}
+
+/// The Journal on the desk; its dates come from the route, the last seven
+/// days by default.
+final class _JournalHost extends ConsumerWidget {
+  const _JournalHost({required this.uri});
+
+  final Uri uri;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final range =
+        JournalRange.fromUri(uri) ??
+        JournalRange.lastWeek(ref.read(todayProvider)());
+    final entries = switch (ref.watch(journalEntriesProvider(range))) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
+    return ShellFrame(
+      inspectorOpen: false,
+      onBackToDesk: _noop,
+      desk: JournalSheet(
+        range: range,
+        entries: entries,
+        timezones: ref.read(timezoneServiceProvider),
+        onRange: (next) => context.go(next.uri.toString()),
+        onOpen: (entry) => context.go(
+          workRouteUri(
+            WorkRouteState(
+              employmentId: entry.employmentId,
+              scope: null,
+              record: entry.record,
+              mode: WorkInspectorMode.inspect,
+            ),
+          ).toString(),
+        ),
       ),
     );
   }
@@ -195,41 +283,11 @@ final class _WorkRouteHost extends ConsumerWidget {
 void _replaceMode(WidgetRef ref, WorkInspectorMode mode) {
   final parsed = ref.read(workRouteProvider);
   if (parsed case ValidWorkRoute(:final state)) {
-    ref.read(replaceWorkRouteProvider)(
-      WorkRouteState(
-        employmentId: state.employmentId,
-        scope: state.scope,
-        record: state.record,
-        mode: mode,
-      ),
-    );
+    ref.read(replaceWorkRouteProvider)(state.copyWith(mode: mode));
   }
 }
 
-final class _NativeFrame extends StatelessWidget {
-  const _NativeFrame({required this.location, required this.child});
-
-  final String location;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: LifeOSMetrics.railWidth,
-            child: SystemRail(selectedPath: location, onNavigate: context.go),
-          ),
-          const VerticalDivider(width: LifeOSMetrics.separatorWidth),
-          Expanded(child: child),
-        ],
-      ),
-    );
-  }
-}
-
+/// An honest sheet for a destination that has not shipped.
 final class _UnavailableSurface extends StatelessWidget {
   const _UnavailableSurface({required this.title, required this.message});
 
@@ -238,16 +296,40 @@ final class _UnavailableSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 10),
-          Text(message),
-        ],
+    return ShellFrame(
+      inspectorOpen: false,
+      onBackToDesk: _noop,
+      desk: Builder(
+        builder: (context) {
+          final skin = LifeOSSkinScope.of(context);
+          return ColoredBox(
+            color: skin.tokens.paper,
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: skin.typography.title.copyWith(
+                      color: skin.tokens.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    message,
+                    style: skin.typography.body.copyWith(
+                      color: skin.tokens.ink,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 }
+
+void _noop() {}

@@ -49,7 +49,6 @@ void main() {
               endFold: FoldChoice.earlier,
             ),
           ],
-          overtimeMinutes: 0,
           note: '  Overnight synthetic shift  ',
         ),
       );
@@ -103,7 +102,6 @@ void main() {
             endFold: FoldChoice.earlier,
           ),
         ],
-        overtimeMinutes: 0,
         note: null,
       ),
     );
@@ -138,7 +136,6 @@ void main() {
         timezoneId: 'Europe/Berlin',
         startFold: null,
         endFold: null,
-        overtimeMinutes: 0,
         note: null,
       ),
     );
@@ -175,7 +172,17 @@ void main() {
         timezoneId: 'Europe/Berlin',
         startFold: null,
         endFold: null,
-        overtimeMinutes: 61,
+        // A break over the whole shift leaves no paid time.
+        breaks: [
+          ManualShiftBreak(
+            localStartDate: LocalDate(2026, 10, 24),
+            localStartTime: LocalTime(9, 0),
+            localEndDate: LocalDate(2026, 10, 24),
+            localEndTime: LocalTime(10, 0),
+            startFold: null,
+            endFold: null,
+          ),
+        ],
         note: null,
       ),
     );
@@ -202,7 +209,6 @@ void main() {
         timezoneId: 'Europe/Berlin',
         startFold: null,
         endFold: null,
-        overtimeMinutes: 0,
         note: null,
       ),
     );
@@ -279,7 +285,6 @@ final class _FakeManualRepository implements ManualShiftRepository {
         endUtc: draft.endUtc,
         timezoneId: draft.timezoneId,
         localStartDate: draft.localStartDate,
-        overtimeMinutes: draft.overtimeMinutes,
         note: draft.note,
         voidReason: null,
         replacementShiftId: null,

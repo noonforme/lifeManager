@@ -4,6 +4,7 @@ import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/local_time.dart';
 import '../../../core/time/timezone_service.dart';
+import '../application/work_templates.dart';
 import '../domain/ids.dart';
 import '../domain/shift.dart';
 
@@ -32,7 +33,6 @@ final class ManualShiftDraft {
     required this.startFold,
     required this.endFold,
     required this.breaks,
-    required this.overtimeMinutes,
     required this.note,
   });
 
@@ -45,7 +45,6 @@ final class ManualShiftDraft {
   final FoldChoice? startFold;
   final FoldChoice? endFold;
   final List<ManualBreakDraft> breaks;
-  final int overtimeMinutes;
   final String? note;
 }
 
@@ -58,7 +57,6 @@ final class ShiftFormPrefill {
     required this.endTime,
     required this.timezoneId,
     required this.breaks,
-    required this.overtimeMinutes,
     required this.note,
   });
 
@@ -86,10 +84,31 @@ final class ShiftFormPrefill {
               end: zones.localTimeAt(breakEnd, zone),
             ),
       ],
-      overtimeMinutes: shift.overtimeMinutes,
       note: shift.note,
     );
   }
+
+  /// A new shift shaped like [template] on [day]. The note stays empty.
+  factory ShiftFormPrefill.fromTemplate(
+    ShiftTemplate template,
+    LocalDate day,
+  ) => ShiftFormPrefill(
+    startDate: day,
+    startTime: template.start,
+    endDate: ShiftTemplate.shift(day, template.endDayOffset),
+    endTime: template.end,
+    timezoneId: template.timezoneId,
+    breaks: [
+      for (final item in template.breaks)
+        ManualBreakDraft(
+          startDate: ShiftTemplate.shift(day, item.startDayOffset),
+          start: item.start,
+          endDate: ShiftTemplate.shift(day, item.endDayOffset),
+          end: item.end,
+        ),
+    ],
+    note: null,
+  );
 
   final LocalDate startDate;
   final LocalTime startTime;
@@ -97,16 +116,13 @@ final class ShiftFormPrefill {
   final LocalTime? endTime;
   final String timezoneId;
   final List<ManualBreakDraft> breaks;
-  final int overtimeMinutes;
   final String? note;
 }
 
 typedef SubmitManualShift = Future<MutationOutcome<WorkShift>> Function(
   ManualShiftDraft draft,
 );
-typedef FinalizeOvertime = Future<MutationOutcome<WorkShift>> Function(
-  int overtimeMinutes,
-);
+typedef FinalizeAction = Future<MutationOutcome<WorkShift>> Function();
 
 final class ShiftCreateInspector extends StatelessWidget {
   const ShiftCreateInspector({
@@ -193,48 +209,34 @@ final class OnBreakShiftInspector extends StatelessWidget {
   );
 }
 
-final class OvertimeConfirmationInspector extends StatefulWidget {
-  const OvertimeConfirmationInspector({
+/// A finished shift waiting to be finalized. Overtime, night and holiday
+/// pay are derived from the agreement, so there is nothing to enter.
+final class FinalizeShiftInspector extends StatefulWidget {
+  const FinalizeShiftInspector({
     required this.shift,
-    required this.suggestedOvertimeMinutes,
-    required this.enteredOvertimeMinutes,
     required this.onFinalize,
     super.key,
   });
 
   final WorkShift shift;
-  final int suggestedOvertimeMinutes;
-  final int enteredOvertimeMinutes;
-  final FinalizeOvertime onFinalize;
+  final FinalizeAction onFinalize;
 
   @override
-  State<OvertimeConfirmationInspector> createState() =>
-      _OvertimeConfirmationInspectorState();
+  State<FinalizeShiftInspector> createState() => _FinalizeShiftInspectorState();
 }
 
-final class _OvertimeConfirmationInspectorState
-    extends State<OvertimeConfirmationInspector> {
-  late final TextEditingController _overtime = TextEditingController(
-    text: widget.enteredOvertimeMinutes.toString(),
-  );
+final class _FinalizeShiftInspectorState extends State<FinalizeShiftInspector> {
   String? _error;
 
-  @override
-  void dispose() {
-    _overtime.dispose();
-    super.dispose();
-  }
-
   Future<void> _submit() async {
-    final value = int.tryParse(_overtime.text.trim());
-    if (value == null || value < 0) {
-      setState(() => _error = 'Enter zero or more overtime minutes.');
-      return;
-    }
-    final outcome = await widget.onFinalize(value);
+    final outcome = await widget.onFinalize();
     if (!mounted) return;
     if (outcome case Invalid<WorkShift>()) {
-      setState(() => _error = 'Check the overtime minutes.');
+      setState(
+        () => _error =
+            "This shift can't be finalized. Check its times and that an "
+            'agreement covers its date.',
+      );
     }
   }
 
@@ -242,36 +244,30 @@ final class _OvertimeConfirmationInspectorState
   Widget build(BuildContext context) => Semantics(
     container: true,
     explicitChildNodes: true,
-    label: 'Confirm shift overtime',
+    label: 'Finalize shift',
     child: Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Confirm overtime',
+            'Finalize shift',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
-          Text(
-            'Suggested from the agreement threshold: '
-            '${widget.suggestedOvertimeMinutes} minutes.',
+          const Text(
+            'Overtime, night and holiday pay are worked out from the '
+            'agreement.',
           ),
-          const SizedBox(height: 14),
-          TextField(
-            key: const ValueKey('shift-final-overtime'),
-            controller: _overtime,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Overtime minutes',
-              errorText: _error,
+          if (_error case final error?) ...[
+            const SizedBox(height: 10),
+            Text(
+              error,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
-          ),
+          ],
           const SizedBox(height: 18),
-          FilledButton(
-            onPressed: _submit,
-            child: const Text('Confirm finalization'),
-          ),
+          FilledButton(onPressed: _submit, child: const Text('Finalize shift')),
         ],
       ),
     ),
@@ -314,9 +310,6 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
   late final _timezone = TextEditingController(
     text: widget.prefill?.timezoneId ?? widget.initialTimezoneId ?? '',
   );
-  late final _overtime = TextEditingController(
-    text: '${widget.prefill?.overtimeMinutes ?? 0}',
-  );
   late final _note = TextEditingController(text: widget.prefill?.note ?? '');
   late final _breaks = <_BreakControllers>[
     for (final value in widget.prefill?.breaks ?? const <ManualBreakDraft>[])
@@ -335,7 +328,6 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     _endDate.dispose();
     _endTime.dispose();
     _timezone.dispose();
-    _overtime.dispose();
     _note.dispose();
     for (final value in _breaks) {
       value.dispose();
@@ -350,7 +342,6 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     final startTime = _parseTime(_startTime.text.trim());
     final endDate = LocalDate.tryParse(_endDate.text.trim());
     final endTime = _parseTime(_endTime.text.trim());
-    final overtime = int.tryParse(_overtime.text.trim());
     final timezone = _timezone.text.trim();
     final breaks = <ManualBreakDraft>[];
     final errors = <String, String>{};
@@ -360,9 +351,6 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     if (endDate == null) errors['endDate'] = 'Enter a valid ISO date.';
     if (endTime == null) errors['endTime'] = 'Enter a valid local time.';
     if (timezone.isEmpty) errors['timezone'] = 'Enter an IANA timezone.';
-    if (overtime == null || overtime < 0) {
-      errors['overtime'] = 'Enter zero or more minutes.';
-    }
     for (var index = 0; index < _breaks.length; index++) {
       final breakStartDate = LocalDate.tryParse(
         _breaks[index].startDate.text.trim(),
@@ -408,7 +396,6 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
         startFold: null,
         endFold: null,
         breaks: List.unmodifiable(breaks),
-        overtimeMinutes: overtime!,
         note: _trimOptional(_note.text),
       ),
     );
@@ -494,12 +481,6 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
             onPressed: _addBreak,
             child: const Text('Add break'),
           ),
-        ),
-        _field(
-          key: const ValueKey('shift-overtime'),
-          label: 'Overtime minutes',
-          controller: _overtime,
-          error: _errors['overtime'],
         ),
         _field(
           key: const ValueKey('shift-note'),

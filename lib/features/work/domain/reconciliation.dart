@@ -3,6 +3,7 @@ import 'facts.dart';
 import 'ids.dart';
 import 'pay.dart';
 import 'pay_period.dart';
+import 'pay_premiums.dart';
 import 'payslip.dart';
 import 'shift.dart';
 
@@ -75,6 +76,7 @@ List<ReconciliationGroup> reconcilePeriod({
   required Iterable<ShiftBreak> breaks,
   required Iterable<PayAgreement> agreements,
   required Iterable<Payslip> payslips,
+  required ZoneClocks zoneClocks,
 }) {
   final evidence = <_Evidence>[];
   var unavailable = false;
@@ -108,7 +110,11 @@ List<ReconciliationGroup> reconcilePeriod({
         unavailable = true;
         continue;
       }
-      final expectedPay = calculateExpectedPay(facts.toExpectedPayInput());
+      final clock = zoneClocks(shift.timezoneId);
+      final expectedPay = facts.expectedPay(
+        toLocal: clock.toLocal,
+        toInstants: clock.toInstants,
+      );
       evidence.add(
         _Evidence.expected(
           basis: agreement.basis,

@@ -42,6 +42,18 @@ void main() {
         .listSync()
         .map((entity) => entity.uri.pathSegments.last)
         .toList();
-    expect(specs, ['2026-09-29-lifeos-native-foundation-work-design.md']);
+    expect(
+      specs,
+      contains('2026-09-29-lifeos-native-foundation-work-design.md'),
+    );
+    // Native specifications start with the 2026-09-29 foundation; every
+    // earlier, pre-native specification was removed at the cutover.
+    for (final spec in specs) {
+      expect(
+        spec.compareTo('2026-09-29') >= 0,
+        isTrue,
+        reason: '$spec predates the native foundation',
+      );
+    }
   });
 }

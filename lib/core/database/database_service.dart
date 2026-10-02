@@ -73,13 +73,45 @@ final class DriftDatabaseService implements DatabaseService {
       if (applicationId != lifeOsApplicationId) {
         throw const DatabaseIdentityMismatch();
       }
+      if (_isFromEarlierBuild(raw)) {
+        throw DatabaseFromEarlierBuild(path: file.path);
+      }
     } on DatabaseIdentityMismatch {
+      rethrow;
+    } on DatabaseFromEarlierBuild {
       rethrow;
     } on Object {
       throw const DatabaseOpenFailure();
     } finally {
       raw?.close();
     }
+  }
+
+  /// Before the reset, development builds wrote schema versions 1 and 2,
+  /// and version 1 itself grew while unreleased. A version 1 database is
+  /// current only if it has every table and column the schema now has.
+  static bool _isFromEarlierBuild(sqlite.Database raw) {
+    final version = raw.userVersion;
+    if (version == 0) return false;
+    if (version != currentSchemaVersion) return true;
+    final tables = raw
+        .select("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .map((row) => row['name'])
+        .toSet();
+    if (!tables.containsAll(const [
+      'record_events',
+      'desks',
+      'desk_tiles',
+      'saved_views',
+      'preferences',
+    ])) {
+      return true;
+    }
+    final columns = raw
+        .select('PRAGMA table_info(pay_agreements)')
+        .map((row) => row['name'])
+        .toSet();
+    return !columns.contains('premium_stacking');
   }
 
   static void _configureFreshConnection(sqlite.Database database) {

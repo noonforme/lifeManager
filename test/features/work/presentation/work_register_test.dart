@@ -4,6 +4,7 @@ import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/data/daos/shift_dao.dart';
 import 'package:lifeos/features/work/data/projections/reconciliation_projection.dart';
 import 'package:lifeos/features/work/data/projections/work_register_projection.dart';
+import 'package:lifeos/features/work/domain/employment.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/pay.dart';
@@ -12,6 +13,7 @@ import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_register.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
+import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
 void main() {
@@ -26,11 +28,79 @@ void main() {
       ),
     );
 
-    expect(find.text('Create an employment to begin.'), findsOneWidget);
+    expect(find.text('Work'), findsOneWidget);
+    expect(
+      find.text(
+        'Track shifts, see what you should be paid, and compare it with '
+        'your payslips. Start by adding where you work.',
+      ),
+      findsOneWidget,
+    );
     expect(
       find.widgetWithText(FilledButton, 'Create employment'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('first launch Create employment opens the form in one press', (
+    tester,
+  ) async {
+    var created = 0;
+    await tester.pumpWidget(
+      _TestWorkRegister(
+        projection: WorkRegisterProjection.empty(
+          const WorkScope(employmentId: null, temporal: null),
+        ),
+        onCreateEmployment: () => created++,
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Create employment'));
+    expect(created, 1);
+  });
+
+  testWidgets('the Employment control switches, lists all and creates', (
+    tester,
+  ) async {
+    final opened = <EmploymentId>[];
+    var all = 0;
+    var created = 0;
+    await tester.pumpWidget(
+      _TestWorkRegister(
+        projection: _withEmployments(),
+        onOpenEmployment: opened.add,
+        onAllEmployments: () => all++,
+        onCreateEmployment: () => created++,
+      ),
+    );
+
+    Future<void> choose(String label) async {
+      await tester.tap(find.text('Employment'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+    }
+
+    await tester.tap(find.text('Employment'));
+    await tester.pumpAndSettle();
+    final current = find.ancestor(
+      of: find.text('Warehouse').last,
+      matching: find.byType(Row),
+    );
+    expect(
+      find.descendant(of: current.first, matching: find.byIcon(Icons.check)),
+      findsOneWidget,
+    );
+    expect(find.text('All employments'), findsOneWidget);
+    await tester.tapAt(Offset.zero);
+    await tester.pumpAndSettle();
+
+    await choose('Café');
+    await choose('All employments');
+    await choose('Create employment');
+    expect(opened, [_otherEmploymentId]);
+    expect(all, 1);
+    expect(created, 1);
   });
 
   testWidgets('unavailable projection is explicit and recoverable', (
@@ -51,7 +121,7 @@ void main() {
       _TestWorkRegister(projection: _projection(), onSelect: selected.add),
     );
 
-    await tester.tap(find.bySemanticsLabel('Shift on 2026-09-29'));
+    await tester.tap(find.text('2026-09-29'));
 
     expect(selected, hasLength(1));
     expect(selected.single.kind, WorkRecordKind.shift);
@@ -88,6 +158,205 @@ void main() {
     expect(find.text('Combined difference'), findsNothing);
   });
 
+  group('Work sheets', () {
+    WorkRouteState route({
+      WorkTemporalScope? scope,
+      WorkSheet sheet = WorkSheet.shifts,
+      bool showVoid = false,
+    }) => WorkRouteState(
+      employmentId: _employmentId,
+      scope: scope,
+      record: null,
+      mode: WorkInspectorMode.inspect,
+      sheet: sheet,
+      showVoid: showVoid,
+    );
+
+    WorkRegisterProjection sheets() => WorkRegisterProjection(
+      scope: const WorkScope(employmentId: _employmentId, temporal: null),
+      period: null,
+      shiftRows: const [],
+      payslipRows: const [],
+      paid: const Money(minorUnits: 0),
+      reconciliation: null,
+      shiftSheet: [
+        _sheetRow(_shiftId, ShiftState.finalized, period: _period),
+        _sheetRow(_otherShiftId, ShiftState.voided, period: _period),
+        _sheetRow(
+          const ShiftId('00000000-0000-7000-8000-000000000003'),
+          ShiftState.running,
+          date: const LocalDate(2026, 10, 2),
+        ),
+      ],
+      periodSheet: [
+        PeriodSheetRow(period: _period, shiftCount: 1, groups: const []),
+        PeriodSheetRow(period: _october, shiftCount: 0, groups: const []),
+      ],
+    );
+
+    testWidgets('shift columns follow the spec and states read as words', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1400, 800);
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        _TestWorkRegister(projection: sheets(), route: route()),
+      );
+
+      for (final column in [
+        'Date',
+        'Start',
+        'End',
+        'Break',
+        'Paid',
+        'Night',
+        'Holiday',
+        'OT',
+        'Est. pay',
+        'State',
+      ]) {
+        expect(find.text(column.toUpperCase()), findsOneWidget, reason: column);
+      }
+      expect(find.text('Finalized'), findsOneWidget);
+      expect(find.text('Running'), findsOneWidget);
+      // Vilnius is UTC+3 in September: 06:00Z is 09:00.
+      expect(find.text('09:00'), findsWidgets);
+      expect(find.text('0:30'), findsOneWidget);
+      // Grouped by pay period, then by month.
+      expect(find.text('September'), findsOneWidget);
+      expect(find.text('October 2026'), findsOneWidget);
+    });
+
+    testWidgets('void rows are hidden until the filter shows them', (
+      tester,
+    ) async {
+      final routes = <WorkRouteState>[];
+      await tester.pumpWidget(
+        _TestWorkRegister(
+          projection: sheets(),
+          route: route(),
+          onRoute: routes.add,
+        ),
+      );
+      expect(find.text('Void'), findsNothing);
+
+      await tester.tap(find.text('Status'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Include void'));
+      await tester.pumpAndSettle();
+      expect(routes.single.showVoid, isTrue);
+
+      await tester.pumpWidget(
+        _TestWorkRegister(projection: sheets(), route: route(showVoid: true)),
+      );
+      expect(find.text('Void'), findsOneWidget);
+    });
+
+    testWidgets('tabs switch the sheet in the route', (tester) async {
+      final routes = <WorkRouteState>[];
+      await tester.pumpWidget(
+        _TestWorkRegister(
+          projection: sheets(),
+          route: route(),
+          onRoute: routes.add,
+        ),
+      );
+      await tester.tap(find.text('Pay periods'));
+      await tester.tap(find.text('Agreements'));
+      expect(routes.map((value) => value.sheet), [
+        WorkSheet.periods,
+        WorkSheet.agreements,
+      ]);
+
+      await tester.pumpWidget(
+        _TestWorkRegister(
+          projection: sheets(),
+          route: route(sheet: WorkSheet.periods),
+        ),
+      );
+      expect(find.text('Shifts'), findsWidgets);
+      expect(find.text('EXPECTED'), findsOneWidget);
+      expect(find.text('Open'), findsNWidgets(2));
+    });
+
+    testWidgets('‹ and › step between pay periods', (tester) async {
+      final routes = <WorkRouteState>[];
+      await tester.pumpWidget(
+        _TestWorkRegister(
+          projection: sheets(),
+          route: route(scope: PayPeriodScope(_october.id)),
+          onRoute: routes.add,
+        ),
+      );
+      expect(find.bySemanticsLabel('Next period, unavailable'), findsOne);
+
+      await tester.tap(find.text('‹'));
+      expect((routes.single.scope! as PayPeriodScope).periodId, _periodId);
+    });
+
+    testWidgets('a date range steps by its own length', (tester) async {
+      final routes = <WorkRouteState>[];
+      await tester.pumpWidget(
+        _TestWorkRegister(
+          projection: sheets(),
+          route: route(
+            scope: const DateRangeScope(
+              start: LocalDate(2026, 9, 1),
+              end: LocalDate(2026, 9, 7),
+            ),
+          ),
+          onRoute: routes.add,
+        ),
+      );
+      await tester.tap(find.text('›'));
+      final next = routes.single.scope! as DateRangeScope;
+      expect(next.start, const LocalDate(2026, 9, 8));
+      expect(next.end, const LocalDate(2026, 9, 14));
+    });
+
+    testWidgets('an explicit date range is entered from the period menu', (
+      tester,
+    ) async {
+      final routes = <WorkRouteState>[];
+      await tester.pumpWidget(
+        _TestWorkRegister(
+          projection: sheets(),
+          route: route(),
+          onRoute: routes.add,
+        ),
+      );
+      await tester.tap(find.text('Period'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Date range…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('range-from')),
+        '2026-09-10',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('range-to')),
+        '2026-09-05',
+      );
+      await tester.tap(find.byKey(const ValueKey('range-apply')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('The range must end on or after its start.'),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('range-to')),
+        '2026-09-20',
+      );
+      await tester.tap(find.byKey(const ValueKey('range-apply')));
+      await tester.pumpAndSettle();
+
+      final range = routes.single.scope! as DateRangeScope;
+      expect(range.start, const LocalDate(2026, 9, 10));
+      expect(range.end, const LocalDate(2026, 9, 20));
+    });
+  });
+
   testWidgets('two-times text scale keeps all toolbar controls reachable', (
     tester,
   ) async {
@@ -98,12 +367,12 @@ void main() {
       _TestWorkRegister(projection: _projection(), textScale: 2),
     );
 
-    for (final label in ['Employment', 'Scope', 'Status']) {
-      final control = find.widgetWithText(OutlinedButton, label);
+    for (final label in ['Employment', 'Period', 'Status']) {
+      final control = find.text(label);
       expect(control, findsOneWidget);
       await tester.ensureVisible(control);
     }
-    final primaryAction = find.widgetWithText(FilledButton, 'Add shift');
+    final primaryAction = find.text('Add shift');
     expect(primaryAction, findsOneWidget);
     await tester.ensureVisible(primaryAction);
     expect(tester.takeException(), isNull);
@@ -115,11 +384,21 @@ final class _TestWorkRegister extends StatelessWidget {
     required this.projection,
     this.onSelect,
     this.textScale = 1,
+    this.onOpenEmployment,
+    this.onAllEmployments,
+    this.onCreateEmployment,
+    this.route,
+    this.onRoute,
   });
 
   final WorkRegisterProjection? projection;
   final ValueChanged<WorkRecordRef>? onSelect;
   final double textScale;
+  final ValueChanged<EmploymentId>? onOpenEmployment;
+  final VoidCallback? onAllEmployments;
+  final VoidCallback? onCreateEmployment;
+  final WorkRouteState? route;
+  final ValueChanged<WorkRouteState>? onRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -127,12 +406,19 @@ final class _TestWorkRegister extends StatelessWidget {
       theme: buildLifeOSTheme(highContrast: false),
       home: MediaQuery(
         data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
-        child: Scaffold(
-          body: WorkRegister(
-            projection: projection,
-            selectedRecord: null,
-            onSelect: onSelect ?? (_) {},
-            onPrimaryAction: () {},
+        child: LifeOSSkinScope(
+          child: Scaffold(
+            body: WorkRegister(
+              projection: projection,
+              selectedRecord: null,
+              onSelect: onSelect ?? (_) {},
+              onPrimaryAction: () {},
+              onOpenEmployment: onOpenEmployment,
+              onAllEmployments: onAllEmployments,
+              onCreateEmployment: onCreateEmployment,
+              route: route,
+              onRoute: onRoute,
+            ),
           ),
         ),
       ),
@@ -238,8 +524,74 @@ WorkRegisterProjection _projection() => WorkRegisterProjection(
   payslipRows: const [],
   paid: const Money(minorUnits: 12345),
   reconciliation: null,
+  shiftSheet: [_sheetRow(_shiftId, ShiftState.finalized)],
+);
+
+ShiftSheetRow _sheetRow(
+  ShiftId id,
+  ShiftState state, {
+  LocalDate date = const LocalDate(2026, 9, 29),
+  PayPeriod? period,
+}) => ShiftSheetRow(
+  shift: WorkShift(
+    id: id,
+    employmentId: _employmentId,
+    agreementId: state == ShiftState.draft ? null : _agreementId,
+    state: state,
+    startUtc: DateTime.utc(date.year, date.month, date.day, 6),
+    endUtc: state == ShiftState.running
+        ? null
+        : DateTime.utc(date.year, date.month, date.day, 14, 30),
+    timezoneId: 'Europe/Vilnius',
+    localStartDate: date,
+    note: null,
+    voidReason: state == ShiftState.voided ? 'Synthetic' : null,
+    replacementShiftId: state == ShiftState.voided ? _otherShiftId : null,
+    replacedShiftId: null,
+    createdAtUtc: DateTime.utc(2026, 9),
+    updatedAtUtc: DateTime.utc(2026, 9),
+    revision: const Revision(1),
+  ),
+  breakSeconds: state == ShiftState.running ? 0 : 1800,
+  paidSeconds: state == ShiftState.running ? null : 8 * 3600,
+  period: period,
+);
+
+WorkRegisterProjection _withEmployments() {
+  Employment employment(EmploymentId id, String name) => Employment(
+    id: id,
+    name: name,
+    legalLabel: null,
+    status: EmploymentStatus.active,
+    createdAtUtc: DateTime.utc(2026, 9),
+    updatedAtUtc: DateTime.utc(2026, 9),
+    revision: const Revision(0),
+  );
+  final warehouse = employment(_employmentId, 'Warehouse');
+  return WorkRegisterProjection(
+    scope: const WorkScope(employmentId: _employmentId, temporal: null),
+    period: null,
+    shiftRows: const [],
+    payslipRows: const [],
+    paid: const Money(minorUnits: 0),
+    reconciliation: null,
+    employment: warehouse,
+    availableEmployments: [warehouse, employment(_otherEmploymentId, 'Café')],
+  );
+}
+
+final _october = PayPeriod.create(
+  id: const PayPeriodId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c52'),
+  employmentId: _employmentId,
+  start: const LocalDate(2026, 10, 1),
+  end: const LocalDate(2026, 10, 31),
+  label: null,
+  nowUtc: DateTime.utc(2026, 10),
 );
 
 const _employmentId = EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11');
+const _otherEmploymentId = EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c12');
 const _periodId = PayPeriodId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c51');
 const _shiftId = ShiftId('00000000-0000-7000-8000-000000000001');
+const _otherShiftId = ShiftId('00000000-0000-7000-8000-000000000002');
+const _agreementId = AgreementId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21');

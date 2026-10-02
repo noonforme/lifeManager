@@ -110,18 +110,18 @@ final class OfficeMachineSkin implements LifeOSSkin { /* spec 4.1–4.6 */ }
 
 Task 1 implements only `OfficeMachineSkin`, but every control built here must take its painting from `LifeOSSkin.painters` so Task 11 adds skins without touching widgets.
 
-- [ ] **Step 1: Write failing token tests.** For each palette, assert `contrastRatio` ≥ 4.5 for ink, muted, runInk, negative and positive on paper, band and chrome; for actionInk on actionFill; for headInk on head; and for each area key's ink on its fill. Assert ≥ 3.0 for signal on paper.
-- [ ] **Step 2: Run** `flutter test test/shared/workbench/lifeos_tokens_test.dart`. Expected: FAIL (no tokens).
-- [ ] **Step 3: Implement tokens** with the exact values from spec 4.2. Expose them through a `LifeOSTheme` `InheritedWidget` or `ThemeExtension`. Resolve `system` from `MediaQuery.platformBrightness` and `highContrast`.
-- [ ] **Step 4: Bundle fonts.** Add the font files and `OFL.txt`, declare the families in `pubspec.yaml`, and build text styles per spec 4.3. Figures use `FontFeature.tabularFigures()`.
-- [ ] **Step 5: Implement controls through `SkinPainters` and test them.**
+- [x] **Step 1: Write failing token tests.** For each palette, assert `contrastRatio` ≥ 4.5 for ink, muted, runInk, negative and positive on paper, band and chrome; for actionInk on actionFill; for headInk on head; and for each area key's ink on its fill. Assert ≥ 3.0 for signal on paper.
+- [x] **Step 2: Run** `flutter test test/shared/workbench/lifeos_tokens_test.dart`. Expected: FAIL (no tokens).
+- [x] **Step 3: Implement tokens** with the exact values from spec 4.2. Expose them through a `LifeOSTheme` `InheritedWidget` or `ThemeExtension`. Resolve `system` from `MediaQuery.platformBrightness` and `highContrast`.
+- [x] **Step 4: Bundle fonts.** Add the font files and `OFL.txt`, declare the families in `pubspec.yaml`, and build text styles per spec 4.3. Figures use `FontFeature.tabularFigures()`.
+- [x] **Step 5: Implement controls through `SkinPainters` and test them.**
   - `KeyButton` (primary, secondary, small) has a 2-pixel bottom edge and loses it when pressed.
   - `AreaKey` chip with letter and semantics label (for example "Work").
   - `CountBadge`.
   - `SegmentedTabs`.
   - Widget tests: the focus ring is distinct from selection, the pressed state removes the edge, and 200% text scale does not overflow.
-- [ ] **Step 6: Run** `flutter test test/shared/workbench && flutter analyze`. Expected: PASS.
-- [ ] **Step 7: Commit** `feat: add Office Machine tokens, fonts and key controls`.
+- [x] **Step 6: Run** `flutter test test/shared/workbench && flutter analyze`. Expected: PASS.
+- [x] **Step 7: Commit** `feat: add Office Machine tokens, fonts and key controls`.
 
 ### Task 2: Shell frame, tree, menus, toolbar and status line
 
@@ -150,19 +150,19 @@ final class StatusSnapshot {
 }
 ```
 
-- [ ] **Step 1: Write failing frame tests.**
+- [x] **Step 1: Write failing frame tests.**
   - At 1280 × 800, all eight landmarks are present (spec 9).
   - At 1100, opening a record shows the inspector in place of the desk with **Back to desk**, and the desk's selection survives.
   - At 960, **Books** opens the tree pane, and choosing a sheet returns to the desk.
   - No width produces page-level horizontal overflow.
-- [ ] **Step 2: Write failing tree tests.**
+- [x] **Step 2: Write failing tree tests.**
   - Finance, Tracking and Knowledge show "Not built yet" and open an honest unavailable sheet.
   - A Work employment node shows the running state from the projection.
   - Right-click lists Open, Open on new desk and Add to desk.
-- [ ] **Step 3: Run** the shell tests. Expected: FAIL.
-- [ ] **Step 4: Implement** the frame, menu bar (spec 5.3; unbuilt items disabled with a reason tooltip), toolbar, tree, status line and routes. Rename `/money` to `/finance` and `/habits` to `/tracking`, and add `/knowledge`. Keep `/work` query parameters exactly as the master plan defines them.
-- [ ] **Step 5: Run** the shell tests, then `flutter test` and `flutter analyze`. Expected: PASS.
-- [ ] **Step 6: Commit** `feat: replace the rail frame with the Office Machine shell`.
+- [x] **Step 3: Run** the shell tests. Expected: FAIL.
+- [x] **Step 4: Implement** the frame, menu bar (spec 5.3; unbuilt items disabled with a reason tooltip), toolbar, tree, status line and routes. Rename `/money` to `/finance` and `/habits` to `/tracking`, and add `/knowledge`. Keep `/work` query parameters exactly as the master plan defines them.
+- [x] **Step 5: Run** the shell tests, then `flutter test` and `flutter analyze`. Expected: PASS.
+- [x] **Step 6: Commit** `feat: replace the rail frame with the Office Machine shell`.
 
 ### Task 3: Register v2
 
@@ -192,25 +192,25 @@ enum RowState { normal, draft, running, voided }
 final class CellRef { const CellRef(this.rowId, this.columnKey); }
 ```
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Clicking or using the arrow keys moves the cell selection, and Enter opens the row.
   - Group and subtotal lines are not selectable.
   - A voided row is struck and announced as "Void".
   - The entry line calls `onOpen`.
   - The right-click menu lists the actions passed for the row.
   - Optional columns hide before the table scrolls at narrow widths.
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** with tokens only. Publish the selected `CellRef` and its `Explanation` through a provider that the formula bar watches.
-- [ ] **Step 4: Run** the register tests and analysis. Expected: PASS.
-- [ ] **Step 5: Commit** `feat: add typed register lines, cell selection and entry row`.
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** with tokens only. Publish the selected `CellRef` and its `Explanation` through a provider that the formula bar watches.
+- [x] **Step 4: Run** the register tests and analysis. Expected: PASS.
+- [x] **Step 5: Commit** `feat: add typed register lines, cell selection and entry row`.
 
 ### Task 4: Explanations and formula bar
 
 **Files:**
-- Create: `lib/core/explain/explanation.dart`
-- Create: `lib/features/work/application/work_explanations.dart`
+- Create: `lib/core/explain/explanation.dart` (created in Task 3)
+- Create: `lib/features/work/presentation/work_explanations.dart` and `work_formats.dart` (presentation, because explanations hold display text and record routes)
 - Create: `lib/shared/shell/formula_bar.dart`
-- Create: `test/features/work/application/work_explanations_test.dart`
+- Create: `test/features/work/presentation/work_explanations_test.dart`
 - Create: `test/shared/shell/formula_bar_test.dart`
 
 **Interfaces:**
@@ -230,32 +230,32 @@ final class Explanation {
   final String label; final List<ExplanationToken> tokens; final SourceRef? source;
 }
 
-Explanation explainPaidTime(ShiftRecordProjection shift);
-Explanation explainExpectedPay(ShiftRecordProjection shift, ExpectedPay pay, PayAgreement agreement);
+Explanation explainPaidTime(FinalizationFacts facts, TimezoneService zones);
+Explanation explainExpectedPay(FinalizationFacts facts, ExpectedPay pay);
 Explanation explainPeriodExpected(ReconciliationGroup group);
 Explanation explainDifference(ReconciliationGroup group);
 ```
 
-- [ ] **Step 1: Write failing explanation tests.**
-  - For each premiums-spec pay case (day, night, holiday, stacking), the `ResultToken` text equals the formatted cell value from the same `ExpectedPay`.
+- [x] **Step 1: Write failing explanation tests.**
+  - The `ResultToken` text equals the formatted cell value from the same `ExpectedPay`, with and without overtime. The night, holiday and stacking cases are added when the premiums spec lands and `ExpectedPay` gains its breakdown.
   - Operand routes are structural: they contain no money, notes or labels.
-- [ ] **Step 2: Write failing formula-bar tests.**
+- [x] **Step 2: Write failing formula-bar tests.**
   - Shows the cell reference, label and tokens.
   - Clicking an operand navigates to its source.
   - A non-derived cell reads "Recorded fact · entered …".
   - The bar is empty with no selection.
   - **Copy explanation** copies the plain text.
-- [ ] **Step 3: Run.** Expected: FAIL.
-- [ ] **Step 4: Implement.** Build explanations only from result objects; never recompute pay.
-- [ ] **Step 5: Run** the tests and analysis. Expected: PASS.
-- [ ] **Step 6: Commit** `feat: explain derived Work values in the formula bar`.
+- [x] **Step 3: Run.** Expected: FAIL.
+- [x] **Step 4: Implement.** Build explanations only from result objects; never recompute pay.
+- [x] **Step 5: Run** the tests and analysis. Expected: PASS.
+- [x] **Step 6: Commit** `feat: explain derived Work values in the formula bar`.
 
 ### Task 5: Record history
 
 **Files:**
-- Create: `lib/core/history/record_events.dart`
+- Create: `lib/core/history/record_events.dart` (types, table, `diffFacts`), `lib/core/history/record_event_dao.dart`, `lib/features/work/data/work_history.dart` (fact describers, `WorkHistoryWriter`)
 - Modify: `lib/core/database/app_database.dart` and its generated file (schema per spec 8, joining the reset history from the premiums spec)
-- Modify: Work application services (each command appends its event inside its transaction)
+- Modify: Work repositories (`DriftWorkRepository`, `DriftShiftRepository` take an `AppClock`; each write appends its event inside its transaction)
 - Create: `test/core/history/record_events_test.dart`
 - Modify: Work application tests
 
@@ -277,15 +277,16 @@ abstract interface class RecordHistory {
 }
 ```
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Each Work command (create employment, update employment, create or update agreement, start shift, start or end break, end shift, finalize, manual shift, revise draft, void and replace, create period, review period, record payslip, correct payslip) appends exactly one event with the correct kind.
   - Stale, invalid and missing outcomes append none.
   - An injected commit failure leaves no orphan event.
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** the table, DAO and appends. `changes_json` holds formatted field values for display. It is local data, so it is never logged, never in diagnostics, and never in routes.
-- [ ] **Step 4: Regenerate Drift output and update the fingerprint test.** Run `dart run build_runner build --delete-conflicting-outputs`, then the database tests.
-- [ ] **Step 5: Run** the full suite and analysis. Expected: PASS.
-- [ ] **Step 6: Commit** `feat: record an append-only history for Work records`.
+  - Decisions made while building: a correction touches two records, so it appends `voided` on the original (with the reason) and `replaced` on the replacement, one event per record. A manual shift is `created`, and a revised replacement draft is `finalized`. Deleting an employment deletes its history and its agreements' history.
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** the table, DAO and appends. `changes_json` holds formatted field values for display. It is local data, so it is never logged, never in diagnostics, and never in routes.
+- [x] **Step 4: Regenerate Drift output and update the fingerprint test.** Run `dart run build_runner build --delete-conflicting-outputs`, then the database tests.
+- [x] **Step 5: Run** the full suite and analysis. Expected: PASS.
+- [x] **Step 6: Commit** `feat: record an append-only history for Work records`.
 
 ### Task 6: Work in the shell (Phase 0)
 
@@ -294,18 +295,19 @@ abstract interface class RecordHistory {
 - Create: `lib/features/work/presentation/work_sheets.dart` (Shifts, Pay periods, Payslips, Agreements)
 - Create: `lib/features/work/presentation/work_toolbar_controls.dart` (employment switcher, period picker, state filter)
 - Modify: `test/features/work/presentation/*`
+- Also built: `record_history_panel.dart` (Details/History tabs over `record_events`), the unified register load in `work_repository.dart` with `ShiftSheetRow`, `PeriodSheetRow` and `AgreementSheetRow`, and `sheet` and `void` route parameters. The forms keep their Material controls inside the shell; restyling them into office controls is left for the finish review (Task 12).
 
-- [ ] **Step 1: Write failing tests for every gap in spec 7.1.**
+- [x] **Step 1: Write failing tests for every gap in spec 7.1.**
   - The employment switcher lists employments, marks the current one, and offers All employments and Create employment.
   - The period picker steps with ‹ › and accepts an explicit range.
   - The state filter hides voided rows by default and shows them on request.
   - Shift columns match spec 7.2, and states read Running, On break, Draft, Finalized and Void.
   - A finalized shift's inspector shows its facts and the regular, night, holiday and overtime breakdown with the estimate note.
-- [ ] **Step 2: Write failing state-matrix tests.** Every inspector mode from foundation spec 15.4, except overtime confirmation, renders inside the shell with one inspector landmark and a stable desk.
-- [ ] **Step 3: Run.** Expected: FAIL.
-- [ ] **Step 4: Implement** the sheets on Register v2, attach explanations to Paid, Night, Holiday, OT, Est. pay, Expected, Paid and Difference, add the History tab, and apply the copy from spec 7.3.
-- [ ] **Step 5: Run** the Work presentation tests, the full suite and analysis. Expected: PASS.
-- [ ] **Step 6: Commit** `feat: move Work into the Office Machine shell`.
+- [x] **Step 2: Write failing state-matrix tests.** Every inspector mode from foundation spec 15.4, except overtime confirmation, renders inside the shell with one inspector landmark and a stable desk.
+- [x] **Step 3: Run.** Expected: FAIL.
+- [x] **Step 4: Implement** the sheets on Register v2, attach explanations to Paid, Night, Holiday, OT, Est. pay, Expected, Paid and Difference, add the History tab, and apply the copy from spec 7.3.
+- [x] **Step 5: Run** the Work presentation tests, the full suite and analysis. Expected: PASS.
+- [x] **Step 6: Commit** `feat: move Work into the Office Machine shell`.
 
 ### Task 7: Back and forward
 
@@ -314,14 +316,14 @@ abstract interface class RecordHistory {
 - Modify: `toolbar.dart`, `menu_bar.dart`, `shell_frame.dart`
 - Create: `test/shared/shell/navigation_history_test.dart`
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Back returns to the previous location and Forward re-applies it.
   - New navigation clears the forward stack.
   - The stack caps at 100 entries.
   - Pointer buttons 4 and 5 (`kBackMouseButton`, `kForwardMouseButton`) trigger Back and Forward.
   - Disabled buttons announce "Back, unavailable".
-- [ ] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
-- [ ] **Step 3: Commit** `feat: add back and forward navigation`.
+- [x] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
+- [x] **Step 3: Commit** `feat: add back and forward navigation`.
 
 ### Task 8: Quick add and "from last time"
 
@@ -338,16 +340,20 @@ final class QuickAddEntry {
   final LifeOSArea area; final String label; final VoidCallback open;
 }
 
-ManualShiftDraft? manualShiftFromLastTime(ShiftRecordProjection? last, LocalDate today);
+// As built: the application layer cannot depend on presentation drafts, so
+// the template is a wall-clock shape and the form builds its prefill.
+ShiftTemplate? shiftTemplateFromLast(Iterable<({WorkShift shift, List<ShiftBreak> breaks})> shifts, TimezoneService zones);
+factory ShiftFormPrefill.fromTemplate(ShiftTemplate template, LocalDate day);
 ```
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - "+ Add" lists the six Phase 0–1 record types.
   - "Manual shift from last time" uses the last shift's employment, local start and end times, break pattern and timezone on today's date.
   - With no previous shift, the button is absent.
   - Prefill never sets a value the owner did not enter before.
-- [ ] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
-- [ ] **Step 3: Commit** `feat: add quick add and prefilled Work templates`.
+- [x] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
+- [x] **Step 3: Commit** `feat: add quick add and prefilled Work templates`.
+- Also built: Work routes gain `add=` (payPeriod, payslip, agreement) and `template=last`, so every + Add entry is route-addressable; a new agreement takes the next free version.
 
 ### Task 9: Journal, desks and starter desks
 
@@ -372,22 +378,29 @@ final class Desk { /* id, name, starterKey, layout, position, revision, tiles */
 final class DeskTile { /* id, position, sheetRef, viewId */ }
 ```
 
-- [ ] **Step 1: Write failing journal tests.**
+- [x] **Step 1: Write failing journal tests.**
   - Work events appear in time order.
   - A void-and-replace shows the original as Void and the replacement once.
   - Day summaries equal the sum of their rows.
   - Days use the shift's captured timezone.
-- [ ] **Step 2: Write failing desk tests.**
+- [x] **Step 2: Write failing desk tests.**
   - First launch creates Today, Weekly review and Month close as in spec 6.4.
   - Today cannot be deleted.
   - Reset restores a starter desk.
   - Adding a sheet to a tiled desk replaces the focused tile.
   - Concurrent edits return `Stale`.
-- [ ] **Step 3: Write failing tile tests.**
+- [x] **Step 3: Write failing tile tests.**
   - Needs you lists the running shift, drafts and open periods with a difference, and shows the empty copy from spec 7.3.
   - The Month close checklist reflects only facts.
-- [ ] **Step 4: Run, implement, run.** Expected: FAIL, then PASS.
-- [ ] **Step 5: Commit** `feat: add the Journal and starter desks`.
+- [x] **Step 4: Run, implement, run.** Expected: FAIL, then PASS.
+- [x] **Step 5: Commit** `feat: add the Journal and starter desks`.
+
+  *As built:* starter shapes live in `desks.dart` with the desk types; the
+  desk host and `/today` route are in `lib/app/desk_host.dart`; Work's tiles
+  are pure functions in `work_desk_tiles.dart`. A tile spanning areas
+  (Journal, Needs you, the checklist) carries no area key, and a surface
+  with nothing to inspect (Today, Journal, unbuilt areas) leaves the
+  inspector out so the desk takes the width.
 
 ### Task 10: Saved views
 
@@ -396,13 +409,22 @@ final class DeskTile { /* id, position, sheetRef, viewId */ }
 - Modify: `book_tree.dart`, `data_register.dart` (Save as view), `desk_view.dart`
 - Create: `test/core/desks/saved_views_test.dart`
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Save as view stores the sheet, filters, sort and columns, and the view re-opens identically.
   - Rename and delete work; a stale revision returns `Stale`.
   - Filters reject free text, so personal values cannot be stored.
   - Views appear under Views in the tree and can be placed on a desk.
-- [ ] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
-- [ ] **Step 3: Commit** `feat: save filtered sheets as named views`.
+- [x] **Step 2: Run, implement, run.** Expected: FAIL, then PASS.
+- [x] **Step 3: Commit** `feat: save filtered sheets as named views`.
+
+  *As built:* filters are the Work route's own structural parameters
+  (employment, period, from/to, void), each checked as an id, a date or a
+  flag, so a view reopens exactly the route it was saved from. Sort and
+  columns are stored and validated against each sheet's column keys, but
+  Work sheets have no sort or column controls yet, so Save view keeps the
+  sheet's own. The tree's right-click offers Open plus each node's actions;
+  for a view these are Add to <desk>, Rename view… and Delete view. Deleting
+  a view removes its tiles and moves those desks' revisions on.
 
 ### Task 11: Millennium appearance
 
@@ -412,16 +434,40 @@ final class DeskTile { /* id, position, sheetRef, viewId */ }
 - Modify: `pubspec.yaml` and `assets/fonts/` (the Millennium face after licence review)
 - Create: `test/shared/workbench/skins_test.dart`, goldens under `test/goldens/skins_*`
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - Every Millennium text pair meets 4.5:1, and every indicator 3:1 (spec 4.7).
   - The semantics tree and hit-test regions of the 1280 × 800 shell are identical under Office Machine and Millennium.
   - With the system high-contrast flag on, Millennium falls back to the Office Machine high-contrast tokens.
   - Choosing an appearance persists it as a preference and restores it on restart.
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Choose and bundle the Millennium face.** Review candidate Tahoma-metric faces' licences, and bundle one with its notice, or fall back to Noto Sans. Record the decision and licence in `assets/fonts/README.md`.
-- [ ] **Step 4: Implement the skin** with the tokens and painting rules from spec 4.7. Use no Microsoft names, logos, icons, wallpapers or sounds.
-- [ ] **Step 5: Run** the skin tests, the full suite and analysis. Expected: PASS.
-- [ ] **Step 6: Commit** `feat: add the Millennium appearance`.
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Choose and bundle the Millennium face.** Review candidate Tahoma-metric faces' licences, and bundle one with its notice, or fall back to Noto Sans. Record the decision and licence in `assets/fonts/README.md`.
+- [x] **Step 4: Implement the skin** with the tokens and painting rules from spec 4.7. Use no Microsoft names, logos, icons, wallpapers or sounds.
+- [x] **Step 5: Run** the skin tests, the full suite and analysis. Expected: PASS.
+- [x] **Step 6: Commit** `feat: add the Millennium appearance`.
+
+  *As built:*
+  - **Face:** Noto Sans (OFL). Wine's Tahoma is LGPL and published only as
+    FontForge source, so it would need a font build step; the decision is
+    in `assets/fonts/README.md`.
+  - **Tokens:** `runInk` (#b83d0b), `positive` (#2a752d) and `signal`
+    (#d9500b) are a shade darker than the spec table, which missed 4.5:1 on
+    `band`/`chrome` and 3:1 on `chrome`.
+  - **Painting only:** keys, area keys, badge, dotted focus, property-sheet
+    tabs, toolbar gloss, tree pane, a face-coloured status line and a warm
+    cell cursor come from new painter hooks. The structural extras in spec
+    4.7 (task-pane groups, a Go to source button) were left out because
+    they would add or move controls; a test asserts that every semantics
+    node keeps its label, flags and position under Millennium.
+  - **Selection:** selected register rows, tree rows and hovered menu items
+    now draw their text in `selInk` in every skin, so text never sits on a
+    saturated selection in a lower-contrast colour.
+  - **Preference:** a `preferences` table with whitelisted keys holds the
+    appearance; `LifeOsApp` restores it at start and saves each change.
+  - **Goldens:** not added. Headless renders use the test font, so the
+    identical-layout test guards the shell instead.
+  - **Also fixed:** surfaces without a Scaffold (Today, Journal) lacked a
+    Material ancestor and showed debug-underlined text; `ShellFrame` now
+    provides one.
 
 ### Task 12: Verification, finish review and documentation
 
@@ -430,13 +476,20 @@ final class DeskTile { /* id, position, sheetRef, viewId */ }
 - Create: `integration_test/shell_work_flow_test.dart`
 - Modify: `app.sh` (only if commands changed), `README.md`, `DESIGN.md`, `.impeccable/design.json`
 
-- [ ] **Step 1: Add the integration flow from spec 10.** Fresh install → Today → create employment from Needs you → agreement with defaults → start shift → end → finalize. Then check the formula bar explanation, four History events and the Journal row.
-- [ ] **Step 2: Add goldens** at 1280 × 800 and 960 × 760 for every appearance: Office Machine day, night and high contrast; Millennium.
-- [ ] **Step 3: Run** `dart format --set-exit-if-changed lib test tool`, `flutter analyze`, `flutter test`, and the integration test against a guarded disposable root. Expected: all PASS.
-- [ ] **Step 4: Run the bounded Impeccable finish.** One batched capture of the shipped device classes, the finish reviewer against the direction contract, one batch of fixes and at most one confirmation pass.
-- [ ] **Step 5: Rewrite `DESIGN.md` and `.impeccable/design.json` from the built shell** using the Impeccable documenter. Remove the superseded-direction note at the top of `DESIGN.md`.
-- [ ] **Step 6: Verify `./app.sh`** starts and tests the app (repository rule in `CLAUDE.md`), and update it if commands changed.
-- [ ] **Step 7: Commit** `docs: document the shipped Office Machine shell`.
+- [x] **Step 1: Add the integration flow from spec 10.** Fresh install → Today → create employment from Needs you → agreement with defaults → start shift → end → finalize. Then check the formula bar explanation, four History events and the Journal row.
+- [x] **Step 2: Add goldens** at 1280 × 800 and 960 × 760 for every appearance: Office Machine day, night and high contrast; Millennium.
+- [x] **Step 3: Run** `dart format --set-exit-if-changed lib test tool`, `flutter analyze`, `flutter test`, and the integration test against a guarded disposable root. Expected: all PASS.
+- [x] **Step 4: Run the bounded Impeccable finish.** One batched capture of the shipped device classes, the finish reviewer against the direction contract, one batch of fixes and at most one confirmation pass.
+- [x] **Step 5: Rewrite `DESIGN.md` and `.impeccable/design.json` from the built shell** using the Impeccable documenter. Remove the superseded-direction note at the top of `DESIGN.md`.
+- [x] **Step 6: Verify `./app.sh`** starts and tests the app (repository rule in `CLAUDE.md`), and update it if commands changed.
+- [x] **Step 7: Commit** `docs: document the shipped Office Machine shell`.
+
+  *As built:*
+  - **Flow test:** the spec 10 flow is `test/integration/shell_work_flow_test.dart`, a headless widget test on the production composition, because `integration_test` needs a native device and the build container has no GTK. History shows three events (Created, Changed, Finalized), one per command; spec 10's "four" contradicts its own one-event-per-command rule.
+  - **Needs you:** on an empty install it now offers an **Add employment** key, so the flow can start from Today.
+  - **Goldens:** the Work shell in four appearances at two sizes. Text renders in the test font, so they guard colour, painting and layout.
+  - **Finish review,** done in-session rather than by subagents. Material forms, dialogs and menus used the pre-redesign theme and ignored Night and Millennium; the theme is now built from the active skin, with buttons painted by its key painters, and `LifeOSColors` is gone. Popup menu rows are 32 px. The status line's uncertain-save text passes 4.5:1. Form tests scroll their submit key on screen before tapping.
+  - **`./app.sh`:** options 2 (tests) and 3 (checks) pass unchanged. Option 1 (`flutter run -d linux`) cannot run in the build container, which has no GTK development files.
 
 ## Plan self-review
 

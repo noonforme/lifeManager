@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../application/work_commands.dart';
 import '../application/work_query_service.dart';
+import '../application/work_templates.dart';
 import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/agreement.dart';
@@ -36,6 +39,26 @@ final createEmploymentProvider = Provider<CreateEmployment>(
 
 final createAgreementProvider = Provider<CreateAgreement>(
   (ref) => throw StateError('CreateAgreement has not been provided.'),
+);
+
+typedef UpdateEmployment = Future<MutationOutcome<Employment>> Function(
+  UpdateEmploymentCommand command,
+);
+typedef RemoveEmployment = Future<MutationOutcome<Employment>> Function(
+  DeleteEmploymentCommand command,
+);
+typedef UpdateAgreement = Future<MutationOutcome<PayAgreement>> Function(
+  UpdateAgreementCommand command,
+);
+
+final updateEmploymentProvider = Provider<UpdateEmployment>(
+  (ref) => throw StateError('UpdateEmployment has not been provided.'),
+);
+final deleteEmploymentProvider = Provider<RemoveEmployment>(
+  (ref) => throw StateError('DeleteEmployment has not been provided.'),
+);
+final updateAgreementProvider = Provider<UpdateAgreement>(
+  (ref) => throw StateError('UpdateAgreement has not been provided.'),
 );
 
 typedef StartShift = Future<MutationOutcome<WorkShift>> Function(
@@ -110,6 +133,74 @@ final nextReplacementPayslipIdProvider = Provider<PayslipId Function()>(
 
 final reviseShiftDraftProvider = Provider<ReviseShiftDraft>(
   (ref) => throw StateError('ReviseShiftDraft has not been provided.'),
+);
+
+/// Record history, read for the inspector's History tab.
+final recordHistoryProvider = Provider<RecordHistory>(
+  (ref) => const _NoHistory(),
+);
+
+final class _NoHistory implements RecordHistory {
+  const _NoHistory();
+
+  @override
+  Stream<List<RecordEvent>> watch(String recordKind, String recordId) =>
+      Stream.value(const []);
+}
+
+/// One record's events, oldest first.
+final recordEventsProvider = StreamProvider.autoDispose
+    .family<List<RecordEvent>, WorkRecordRef>(
+      (ref, record) => ref
+          .watch(recordHistoryProvider)
+          .watch(record.kind.name, record.id.value),
+    );
+
+/// One employment's records across every date, for desk tiles and
+/// templates.
+final employmentRegisterProvider = StreamProvider.autoDispose
+    .family<WorkRegisterProjection, EmploymentId>(
+      (ref, employment) => ref
+          .watch(workQueryRepositoryProvider)
+          .watchRegister(WorkScope(employmentId: employment, temporal: null)),
+    );
+
+/// The records a saved view shows, keyed by its Work route so equal views
+/// share one stream.
+final workRouteRegisterProvider = StreamProvider.autoDispose
+    .family<WorkRegisterProjection, String>((ref, route) {
+      final state = switch (parseWorkRoute(Uri.parse(route))) {
+        ValidWorkRoute(:final state) => state,
+        InvalidWorkRoute() => throw ArgumentError.value(route, 'route'),
+      };
+      return ref
+          .watch(workQueryRepositoryProvider)
+          .watchRegister(
+            WorkScope(employmentId: state.employmentId, temporal: state.scope),
+          );
+    });
+
+/// "From last time": the employment's latest finalized shift as a
+/// template, computed from the current records; null when there is none.
+final lastShiftTemplateProvider = Provider.autoDispose
+    .family<AsyncValue<ShiftTemplate?>, EmploymentId>((ref, employment) {
+      final zones = ref.watch(timezoneServiceProvider);
+      return ref
+          .watch(employmentRegisterProvider(employment))
+          .whenData(
+            (register) => shiftTemplateFromLast([
+              for (final row in register.shiftSheet)
+                (shift: row.shift, breaks: row.breaks),
+            ], zones),
+          );
+    });
+
+/// Today's local date, the default start of a new agreement.
+final todayProvider = Provider<LocalDate Function()>(
+  (ref) => () {
+    final now = DateTime.now();
+    return LocalDate(now.year, now.month, now.day);
+  },
 );
 
 /// Converts stored UTC facts into wall-clock values for prefilled forms.
@@ -254,24 +345,109 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     return outcome;
   }
 
-  Future<MutationOutcome<PayAgreement>> submitAgreement(AgreementDraft value) {
+  /// Saves a new agreement. One added from + Add returns to the
+  /// employment; during setup the route moves on by itself.
+  Future<MutationOutcome<PayAgreement>> submitAgreement(
+    AgreementDraft value,
+  ) async {
     draft = value;
-    return ref.read(createAgreementProvider)(
+    final outcome = await ref.read(createAgreementProvider)(
       CreateAgreementCommand(
         employmentId: value.employmentId,
-        version: 1,
-        effectiveStart: value.effectiveStart,
-        effectiveEnd: value.effectiveEnd,
-        hourlyRateMicroEur: value.hourlyRateMicroEur,
-        basis: value.basis,
-        overtimeThresholdMinutes: value.overtimeThresholdMinutes,
-        overtimeMultiplierNumerator: value.multiplierNumerator,
-        overtimeMultiplierDenominator: value.multiplierDenominator,
-        label: _trimOptional(value.label),
-        note: _trimOptional(value.note),
+        version: _nextAgreementVersion(),
+        terms: value.terms,
       ),
     );
+    final parsed = ref.read(workRouteProvider);
+    if (outcome is Committed<PayAgreement> &&
+        parsed is ValidWorkRoute &&
+        parsed.state.adding == WorkAddKind.agreement) {
+      _showEmployment(value.employmentId);
+    }
+    return outcome;
   }
+
+  /// Renames an employment and returns to its header.
+  Future<MutationOutcome<Employment>> updateEmployment(
+    Employment current,
+    EmploymentDraft value,
+  ) async {
+    draft = value;
+    final outcome = await ref.read(updateEmploymentProvider)(
+      UpdateEmploymentCommand(
+        employmentId: current.id,
+        expectedRevision: current.revision,
+        name: value.name.trim(),
+        legalLabel: _trimOptional(value.legalLabel),
+      ),
+    );
+    if (outcome is Committed<Employment>) _showEmployment(current.id);
+    return outcome;
+  }
+
+  /// Deletes an employment with no history and clears it from the route.
+  Future<MutationOutcome<Employment>> deleteEmployment(
+    Employment current,
+  ) async {
+    final outcome = await ref.read(deleteEmploymentProvider)(
+      DeleteEmploymentCommand(
+        employmentId: current.id,
+        expectedRevision: current.revision,
+      ),
+    );
+    if (outcome is Committed<Employment>) {
+      ref.read(replaceWorkRouteProvider)(
+        const WorkRouteState(
+          employmentId: null,
+          scope: null,
+          record: null,
+          mode: WorkInspectorMode.inspect,
+        ),
+      );
+    }
+    return outcome;
+  }
+
+  /// Rewrites an unused agreement and returns to the employment header.
+  Future<MutationOutcome<PayAgreement>> updateAgreement(
+    PayAgreement current,
+    AgreementDraft value,
+  ) async {
+    draft = value;
+    final outcome = await ref.read(updateAgreementProvider)(
+      UpdateAgreementCommand(
+        agreementId: current.id,
+        employmentId: current.employmentId,
+        expectedRevision: current.revision,
+        terms: value.terms,
+      ),
+    );
+    if (outcome is Committed<PayAgreement>) {
+      _showEmployment(current.employmentId);
+    }
+    return outcome;
+  }
+
+  /// One past the highest version the selected employment has.
+  int _nextAgreementVersion() {
+    final ready = state.value;
+    if (ready is! WorkReady) return 1;
+    return ready.register.agreementSheet.fold(
+          0,
+          (highest, row) =>
+              row.agreement.version > highest ? row.agreement.version : highest,
+        ) +
+        1;
+  }
+
+  void _showEmployment(EmploymentId id) => ref.read(replaceWorkRouteProvider)(
+    WorkRouteState(
+      employmentId: id,
+      scope: null,
+      record: null,
+      mode: WorkInspectorMode.inspect,
+    ),
+  );
 
   Future<MutationOutcome<WorkShift>> startShift({
     required EmploymentId employmentId,
@@ -330,18 +506,12 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
         ),
       );
 
-  Future<MutationOutcome<WorkShift>> finalizeShift(
-    WorkShift shift, {
-    required int overtimeMinutes,
-  }) => _replaceRouteOnCommit(
-    ref.read(finalizeShiftProvider)(
-      FinalizeShiftCommand(
-        id: shift.id,
-        overtimeMinutes: overtimeMinutes,
-        expectedRevision: shift.revision,
-      ),
-    ),
-  );
+  Future<MutationOutcome<WorkShift>> finalizeShift(WorkShift shift) =>
+      _replaceRouteOnCommit(
+        ref.read(finalizeShiftProvider)(
+          FinalizeShiftCommand(id: shift.id, expectedRevision: shift.revision),
+        ),
+      );
 
   Future<MutationOutcome<WorkShift>> saveManualShift(ManualShiftDraft value) {
     draft = value;
@@ -367,7 +537,6 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
                 endFold: null,
               ),
           ],
-          overtimeMinutes: value.overtimeMinutes,
           note: _trimOptional(value.note),
         ),
       ),
@@ -404,7 +573,6 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
                 endFold: null,
               ),
           ],
-          overtimeMinutes: value.overtimeMinutes,
           note: _trimOptional(value.note),
         ),
       ),
@@ -557,7 +725,8 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     final unselected =
         route.record == null &&
         route.scope == null &&
-        route.mode == WorkInspectorMode.inspect;
+        route.mode == WorkInspectorMode.inspect &&
+        route.adding == null;
     var restoring = false;
     if (unselected) {
       final active = await _valueOf(

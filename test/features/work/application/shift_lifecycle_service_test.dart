@@ -132,16 +132,12 @@ void main() {
       repository.finalizeResult = Committed<WorkShift>(_finalizedShift());
 
       final result = await service.finalizeShift(
-        const FinalizeShiftCommand(
-          id: _shiftId,
-          overtimeMinutes: 15,
-          expectedRevision: Revision(4),
-        ),
+        const FinalizeShiftCommand(id: _shiftId, expectedRevision: Revision(4)),
       );
 
       expect(result, isA<Committed<WorkShift>>());
       expect((result as Committed<WorkShift>).value.agreementId, _agreementId);
-      expect(repository.finalizeOvertimeMinutes, 15);
+      expect(repository.finalizedId, _shiftId);
     },
   );
 
@@ -280,7 +276,7 @@ void main() {
     );
   });
 
-  test('invalid finalization rolls back confirmed overtime', () async {
+  test('Drift adapter finalizes a finished shift with derived pay', () async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
     await _seedReadyEmployment(database);
@@ -288,7 +284,7 @@ void main() {
     final driftService = ShiftLifecycleService(
       driftRepository,
       idFactory: const _Ids(),
-      clock: _SequenceClock([_now, _now.add(const Duration(hours: 8))]),
+      clock: _SequenceClock([_now, _now.add(const Duration(hours: 9))]),
       timezones: const _Zones(),
     );
     await driftService.startShift(
@@ -302,61 +298,17 @@ void main() {
     );
 
     final outcome = await driftService.finalizeShift(
-      const FinalizeShiftCommand(
-        id: _shiftId,
-        overtimeMinutes: 600,
-        expectedRevision: Revision(1),
-      ),
+      const FinalizeShiftCommand(id: _shiftId, expectedRevision: Revision(1)),
     );
 
-    expect(outcome, isA<Invalid<WorkShift>>());
-    final persisted = (await driftRepository.shiftById(_shiftId))!;
-    expect(persisted.state, ShiftState.draft);
-    expect(persisted.overtimeMinutes, 0);
+    final finalized = (outcome as Committed<WorkShift>).value;
+    expect(finalized.state, ShiftState.finalized);
+    expect(finalized.agreementId, _agreementId);
+    expect(
+      (await driftRepository.shiftById(_shiftId))!.state,
+      ShiftState.finalized,
+    );
   });
-
-  test(
-    'Drift adapter preserves overtime that differs from suggestion',
-    () async {
-      final database = AppDatabase(NativeDatabase.memory());
-      addTearDown(database.close);
-      await _seedReadyEmployment(database);
-      final driftRepository = DriftShiftRepository(database);
-      final driftService = ShiftLifecycleService(
-        driftRepository,
-        idFactory: const _Ids(),
-        clock: _SequenceClock([_now, _now.add(const Duration(hours: 8))]),
-        timezones: const _Zones(),
-      );
-      expect(
-        await driftService.startShift(
-          const StartShiftCommand(
-            employmentId: _employmentId,
-            timezoneId: 'Europe/Berlin',
-          ),
-        ),
-        isA<Committed<WorkShift>>(),
-      );
-      expect(
-        await driftService.endShift(
-          const EndShiftCommand(id: _shiftId, expectedRevision: Revision(0)),
-        ),
-        isA<Committed<WorkShift>>(),
-      );
-
-      final outcome = await driftService.finalizeShift(
-        const FinalizeShiftCommand(
-          id: _shiftId,
-          overtimeMinutes: 15,
-          expectedRevision: Revision(1),
-        ),
-      );
-
-      final finalized = (outcome as Committed<WorkShift>).value;
-      expect(finalized.overtimeMinutes, 15);
-      expect((await driftRepository.shiftById(_shiftId))!.overtimeMinutes, 15);
-    },
-  );
 }
 
 const _employmentId = EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11');
@@ -378,7 +330,6 @@ WorkShift _activeShift({
   endUtc: null,
   timezoneId: 'Europe/Berlin',
   localStartDate: const LocalDate(2026, 9, 29),
-  overtimeMinutes: 0,
   note: null,
   voidReason: null,
   replacementShiftId: null,
@@ -430,7 +381,6 @@ WorkShift _finalizedShift() => WorkShift(
   endUtc: DateTime.utc(2026, 9, 29, 16),
   timezoneId: 'Europe/Berlin',
   localStartDate: const LocalDate(2026, 9, 29),
-  overtimeMinutes: 15,
   note: null,
   voidReason: null,
   replacementShiftId: null,
@@ -449,7 +399,7 @@ final class _FakeShiftRepository implements ShiftLifecycleRepository {
   ShiftBreak? startedBreak;
   DateTime? endBreakAt;
   DateTime? endShiftAt;
-  int? finalizeOvertimeMinutes;
+  ShiftId? finalizedId;
   bool throwCommitUnknown = false;
   bool throwStorageUnavailable = false;
   int correctionAttempts = 0;
@@ -494,10 +444,9 @@ final class _FakeShiftRepository implements ShiftLifecycleRepository {
   @override
   Future<MutationOutcome<WorkShift>> commitFinalization(
     ShiftId id, {
-    required int overtimeMinutes,
     required Revision expected,
   }) async {
-    finalizeOvertimeMinutes = overtimeMinutes;
+    finalizedId = id;
     return finalizeResult;
   }
 

@@ -1,6 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/app/startup_recovery.dart';
 import 'package:lifeos/bootstrap.dart';
+import 'package:lifeos/core/database/database_identity.dart';
+import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 
 void main() {
   test('window is shown only after stable services and router exist', () async {
@@ -99,6 +102,31 @@ void main() {
     await bootstrap(dependencies);
 
     expect(trace, ['close', 'recovery:storageUnavailable']);
+  });
+
+  test('an earlier-build database shows its own recovery', () async {
+    StartupFailure? shown;
+    final dependencies = BootstrapDependencies(
+      initializeBindings: () async {},
+      resolveSupportDirectory: () async {},
+      initializeDiagnostics: () async {},
+      initializeTimezone: () async {},
+      initializeClock: () async {},
+      openDatabase: () async => throw const DatabaseFromEarlierBuild(
+        path: '/synthetic/lifeos-native-v1.sqlite',
+      ),
+      validateSchema: (_) async {},
+      buildProviders: (_) async => const BootstrapProviders(),
+      buildRouter: (_) async => const SizedBox(),
+      mountApp: (_) async => fail('app should not mount'),
+      showWindow: () async => fail('window should not show'),
+      showRecovery: (failure) async => shown = failure,
+    );
+
+    await bootstrap(dependencies);
+
+    expect(shown?.code, SafeFailureCode.databaseFromEarlierBuild);
+    expect(shown?.databasePath, '/synthetic/lifeos-native-v1.sqlite');
   });
 }
 

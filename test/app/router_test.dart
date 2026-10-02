@@ -99,10 +99,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel('System navigation'), findsOneWidget);
+    expect(find.bySemanticsLabel('Books'), findsOneWidget);
     expect(find.bySemanticsLabel('Work register'), findsOneWidget);
     expect(find.bySemanticsLabel('Record inspector'), findsOneWidget);
-    expect(find.text('Create an employment to begin.'), findsOneWidget);
+    expect(
+      find.text(
+        'Track shifts, see what you should be paid, and compare it with your payslips. Start by adding where you work.',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Work records will appear here.'), findsNothing);
   });
 
@@ -172,7 +177,15 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(repository.requestedScopes.single.employmentId, _employmentId);
+    // The book tree also watches the unscoped employment list, and
+    // "from last time" watches the employment's records.
+    expect(
+      repository.requestedScopes
+          .where((scope) => scope.employmentId != null)
+          .map((scope) => scope.employmentId)
+          .toSet(),
+      {_employmentId},
+    );
 
     await tester.tap(find.text('2026-09-29'));
     await tester.pumpAndSettle();
@@ -350,9 +363,7 @@ void main() {
     );
   });
 
-  testWidgets('ended shift offers agreement overtime suggestion to finalize', (
-    tester,
-  ) async {
+  testWidgets('ended shift finalizes from the inspector', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1280, 760);
     addTearDown(tester.view.reset);
@@ -362,11 +373,7 @@ void main() {
       endUtc: DateTime.utc(2026, 9, 29, 16),
     );
     final repository = _LiveShiftQueryRepository(
-      ShiftRecordProjection(
-        ended,
-        breaks: [_closedBreak],
-        suggestedOvertimeMinutes: 30,
-      ),
+      ShiftRecordProjection(ended, breaks: [_closedBreak]),
     );
     addTearDown(repository.close);
     FinalizeShiftCommand? issued;
@@ -397,18 +404,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Suggested from the agreement threshold: 30 minutes.'),
-      findsOneWidget,
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('shift-final-overtime')),
-      '25',
-    );
-    await tester.tap(find.text('Confirm finalization'));
+    expect(find.bySemanticsLabel('Finalize shift'), findsWidgets);
+    await tester.tap(find.widgetWithText(FilledButton, 'Finalize shift'));
     await tester.pumpAndSettle();
 
-    expect(issued?.overtimeMinutes, 25);
+    expect(issued?.id, _shiftId);
     expect(issued?.expectedRevision, const Revision(3));
   });
 
@@ -575,7 +575,7 @@ void main() {
     tester.view.physicalSize = const Size(1280, 760);
     addTearDown(tester.view.reset);
     final router = createAppRouter(
-      initialLocation: '/work?employment=${_employmentId.value}',
+      initialLocation: '/work?employment=${_employmentId.value}&sheet=periods',
     );
     addTearDown(router.dispose);
     await tester.pumpWidget(
@@ -590,13 +590,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Pay period'));
+    await tester.tap(
+      find.bySemanticsLabel('Pay period 2026-09-01 – 2026-09-30'),
+    );
     await tester.pumpAndSettle();
 
     expect(
       router.routeInformationProvider.value.uri.toString(),
       '/work?employment=${_employmentId.value}&period=${_periodId.value}'
-      '&record=payPeriod:${_periodId.value}&mode=inspect',
+      '&sheet=periods&record=payPeriod:${_periodId.value}&mode=inspect',
     );
   });
 
@@ -1014,11 +1016,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    router.go('/money');
+    router.go('/finance');
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Money is not available in this release.'),
+      find.text('Finance is not built yet. It arrives in a later update.'),
       findsOneWidget,
     );
   });
@@ -1029,7 +1031,16 @@ void main() {
     final router = createAppRouter(
       initialLocation: '/work?from=2026-09-31&to=2026-10-01',
     );
-    await tester.pumpWidget(LifeOsApp(router: router));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _EmptyWorkQueryRepository(),
+          ),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Invalid Work scope'), findsOneWidget);
@@ -1186,6 +1197,18 @@ final class _ShiftWorkQueryRepository implements WorkQueryRepository {
         payslipRows: const [],
         paid: const Money(minorUnits: 12345),
         reconciliation: null,
+        shiftSheet: [
+          ShiftSheetRow(
+            shift: _liveShift(
+              ShiftState.finalized,
+              const Revision(2),
+              endUtc: DateTime.utc(2026, 9, 29, 16),
+            ),
+            breakSeconds: 0,
+            paidSeconds: 8 * 3600,
+            period: null,
+          ),
+        ],
       ),
     );
   }
@@ -1251,7 +1274,6 @@ WorkShift _liveShift(ShiftState state, Revision revision, {DateTime? endUtc}) =>
       endUtc: endUtc,
       timezoneId: 'Europe/Amsterdam',
       localStartDate: const LocalDate(2026, 9, 29),
-      overtimeMinutes: 0,
       note: null,
       voidReason: null,
       replacementShiftId: null,
@@ -1330,6 +1352,9 @@ final class _PeriodQueryRepository implements WorkQueryRepository {
           paid: const Money(minorUnits: 0),
           reconciliation: null,
           periodRows: [_openPeriod],
+          periodSheet: [
+            PeriodSheetRow(period: _openPeriod, shiftCount: 0, groups: []),
+          ],
         ),
       );
     }
@@ -1416,7 +1441,6 @@ final _revisedFinalized = WorkShift(
   endUtc: DateTime.utc(2026, 9, 29, 15),
   timezoneId: 'Europe/Amsterdam',
   localStartDate: const LocalDate(2026, 9, 29),
-  overtimeMinutes: 0,
   note: null,
   voidReason: null,
   replacementShiftId: null,

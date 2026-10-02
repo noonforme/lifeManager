@@ -35,6 +35,33 @@ class PayAgreements extends Table {
   IntColumn get overtimeMultiplierDenominator => integer().check(
     const CustomExpression<bool>('overtime_multiplier_denominator > 0'),
   )();
+  BoolColumn get nightEnabled => boolean()();
+  IntColumn get nightStartMinute => integer().check(
+    const CustomExpression<bool>('night_start_minute BETWEEN 0 AND 1439'),
+  )();
+  IntColumn get nightEndMinute => integer().check(
+    const CustomExpression<bool>('night_end_minute BETWEEN 0 AND 1439'),
+  )();
+  IntColumn get nightMultiplierNumerator => integer().check(
+    const CustomExpression<bool>('night_multiplier_numerator > 0'),
+  )();
+  IntColumn get nightMultiplierDenominator => integer().check(
+    const CustomExpression<bool>('night_multiplier_denominator > 0'),
+  )();
+  TextColumn get holidayCalendar => text().check(
+    const CustomExpression<bool>("holiday_calendar IN ('none', 'lithuania')"),
+  )();
+  IntColumn get holidayMultiplierNumerator => integer().check(
+    const CustomExpression<bool>('holiday_multiplier_numerator > 0'),
+  )();
+  IntColumn get holidayMultiplierDenominator => integer().check(
+    const CustomExpression<bool>('holiday_multiplier_denominator > 0'),
+  )();
+  TextColumn get premiumStacking => text().check(
+    const CustomExpression<bool>(
+      "premium_stacking IN ('highest', 'additive', 'multiplicative')",
+    ),
+  )();
   TextColumn get label => text().nullable()();
   TextColumn get note => text().nullable()();
   IntColumn get createdAtUtcMicros => integer()();
@@ -47,6 +74,10 @@ class PayAgreements extends Table {
   @override
   List<String> get customConstraints => [
     'CHECK (effective_end IS NULL OR effective_end >= effective_start)',
+    'CHECK (overtime_multiplier_numerator >= overtime_multiplier_denominator)',
+    'CHECK (night_multiplier_numerator >= night_multiplier_denominator)',
+    'CHECK (holiday_multiplier_numerator >= holiday_multiplier_denominator)',
+    'CHECK (night_start_minute <> night_end_minute)',
     'UNIQUE (employment_id, version)',
   ];
 }
@@ -65,8 +96,6 @@ class WorkShifts extends Table {
   IntColumn get endUtcMicros => integer().nullable()();
   TextColumn get timezoneId => text()();
   TextColumn get localStartDate => text()();
-  IntColumn get overtimeMinutes =>
-      integer().check(const CustomExpression<bool>('overtime_minutes >= 0'))();
   TextColumn get note => text().nullable()();
   TextColumn get voidReason => text().nullable()();
   TextColumn get replacementShiftId => text().nullable().references(

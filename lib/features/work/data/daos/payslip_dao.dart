@@ -41,48 +41,21 @@ final class PayslipDao {
     return row == null ? null : payslipFromRow(row);
   }
 
-  Future<List<domain.Payslip>> forPeriod(PayPeriodId id) async {
-    final rows =
-        await (database.select(database.payslips)
-              ..where((table) => table.periodId.equals(id.value))
-              ..orderBy([(table) => OrderingTerm.asc(table.issuedDate)]))
-            .get();
-    return rows.map(payslipFromRow).toList(growable: false);
-  }
-
-  Stream<List<PayslipRegisterRow>> watchEffectiveRows(PayPeriodId id) {
-    final query = database.selectOnly(database.payslips)
-      ..addColumns([
-        database.payslips.id,
-        database.payslips.periodId,
-        database.payslips.issuedDate,
-        database.payslips.amountMinorUnits,
-        database.payslips.currency,
-        database.payslips.basis,
-        database.payslips.state,
-      ])
-      ..where(
-        database.payslips.periodId.equals(id.value) &
-            database.payslips.state.equals('effective'),
-      )
-      ..orderBy([OrderingTerm.asc(database.payslips.issuedDate)]);
-    return query.watch().map(
-      (rows) => rows
-          .map(
-            (row) => PayslipRegisterRow(
-              id: PayslipId(row.read(database.payslips.id)!),
-              periodId: PayPeriodId(row.read(database.payslips.periodId)!),
-              issuedDate: row.read(database.payslips.issuedDate)!,
-              amount: Money(
-                minorUnits: row.read(database.payslips.amountMinorUnits)!,
-                currency: _currency(row.read(database.payslips.currency)!),
-              ),
-              basis: _basis(row.read(database.payslips.basis)!),
-              state: domain.PayslipState.effective,
+  /// Every payslip in the employment's pay periods, effective or void.
+  Future<List<domain.Payslip>> forEmployment(EmploymentId id) async {
+    final query =
+        database.select(database.payslips).join([
+            innerJoin(
+              database.payPeriods,
+              database.payPeriods.id.equalsExp(database.payslips.periodId),
             ),
-          )
-          .toList(growable: false),
-    );
+          ])
+          ..where(database.payPeriods.employmentId.equals(id.value))
+          ..orderBy([OrderingTerm.asc(database.payslips.issuedDate)]);
+    final rows = await query.get();
+    return [
+      for (final row in rows) payslipFromRow(row.readTable(database.payslips)),
+    ];
   }
 
   Future<int> voidForCorrection(
@@ -107,14 +80,3 @@ final class PayslipDao {
     );
   }
 }
-
-CurrencyCode _currency(String value) => switch (value) {
-  'EUR' => const CurrencyCode.eur(),
-  _ => throw StateError('Unsupported stored currency.'),
-};
-
-RateBasis _basis(String value) => switch (value) {
-  'gross' => const GrossBasis(),
-  'net' => const NetBasis(),
-  _ => throw StateError('Unsupported stored pay basis.'),
-};

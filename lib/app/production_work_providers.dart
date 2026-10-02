@@ -1,10 +1,18 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:uuid/uuid.dart';
 
 import '../core/database/app_database.dart';
+import '../core/desks/desk_repository.dart';
+import '../core/desks/saved_view_repository.dart';
+import '../core/history/record_event_dao.dart';
+import '../core/history/record_events.dart';
+import '../core/preferences/preference_repository.dart';
 import '../core/time/app_clock.dart';
 import '../core/time/timezone_service.dart';
+import '../features/journal/journal_controller.dart';
+import '../features/journal/journal_source.dart';
 import '../features/work/application/agreement_service.dart';
 import '../features/work/application/employment_service.dart';
 import '../features/work/application/manual_shift_service.dart';
@@ -15,6 +23,7 @@ import '../features/work/application/work_commands.dart';
 import '../features/work/data/shift_repository.dart';
 import '../features/work/data/work_repository.dart';
 import '../features/work/presentation/work_controller.dart';
+import 'desk_providers.dart';
 
 ProductionWorkProviders buildWorkProviders({
   required AppDatabase database,
@@ -25,10 +34,15 @@ ProductionWorkProviders buildWorkProviders({
   required ShiftIdFactory shiftIds,
   required WorkEvidenceIdFactory evidenceIds,
 }) {
-  final workRepository = DriftWorkRepository(database);
+  final workRepository = DriftWorkRepository(
+    database,
+    timezones: timezones,
+    clock: clock,
+  );
   final shiftRepository = DriftShiftRepository(
     database,
     createBreakId: shiftIds.shiftBreakId,
+    clock: clock,
   );
   final employment = EmploymentService(
     workRepository,
@@ -82,6 +96,16 @@ ProductionWorkProviders buildWorkProviders({
     currentTimezoneId: currentTimezoneId,
     shiftIds: shiftIds,
     evidenceIds: evidenceIds,
+    clock: clock,
+    history: RecordEventDao(database),
+    journal: DriftJournalSource(
+      database,
+      timezones: timezones,
+      defaultZone: () => currentTimezoneId() ?? 'UTC',
+    ),
+    desks: DeskRepository(database, newId: () => const Uuid().v7()),
+    views: SavedViewRepository(database, newId: () => const Uuid().v7()),
+    preferences: PreferenceRepository(database),
   );
 }
 
@@ -99,6 +123,12 @@ final class ProductionWorkProviders {
     required this.currentTimezoneId,
     required this.shiftIds,
     required this.evidenceIds,
+    required this.clock,
+    required this.history,
+    required this.journal,
+    required this.desks,
+    required this.views,
+    required this.preferences,
   });
 
   final DriftWorkRepository workRepository;
@@ -113,11 +143,20 @@ final class ProductionWorkProviders {
   final CurrentTimezoneId currentTimezoneId;
   final ShiftIdFactory shiftIds;
   final WorkEvidenceIdFactory evidenceIds;
+  final AppClock clock;
+  final RecordHistory history;
+  final JournalSource journal;
+  final DeskRepository desks;
+  final SavedViewRepository views;
+  final PreferenceRepository preferences;
 
   List<Override> get _overrides => [
     workQueryRepositoryProvider.overrideWithValue(workRepository),
     createEmploymentProvider.overrideWithValue(employment.createEmployment),
     createAgreementProvider.overrideWithValue(agreement.createAgreement),
+    updateEmploymentProvider.overrideWithValue(employment.updateEmployment),
+    deleteEmploymentProvider.overrideWithValue(employment.deleteEmployment),
+    updateAgreementProvider.overrideWithValue(agreement.updateAgreement),
     startShiftProvider.overrideWithValue(shifts.startShift),
     startBreakProvider.overrideWithValue(shifts.startBreak),
     endBreakProvider.overrideWithValue(shifts.endBreak),
@@ -133,6 +172,13 @@ final class ProductionWorkProviders {
       draftRevisions.reviseAndFinalize,
     ),
     timezoneServiceProvider.overrideWithValue(timezones),
+    recordHistoryProvider.overrideWithValue(history),
+    journalSourceProvider.overrideWithValue(journal),
+    deskRepositoryProvider.overrideWithValue(desks),
+    savedViewRepositoryProvider.overrideWithValue(views),
+    todayProvider.overrideWithValue(
+      () => timezones.localDateAt(clock.nowUtc(), currentTimezoneId() ?? 'UTC'),
+    ),
     currentTimezoneIdProvider.overrideWithValue(currentTimezoneId),
     nextReplacementShiftIdProvider.overrideWithValue(shiftIds.shiftId),
     nextReplacementPayslipIdProvider.overrideWithValue(evidenceIds.payslipId),

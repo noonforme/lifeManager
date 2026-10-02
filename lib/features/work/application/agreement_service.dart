@@ -3,6 +3,7 @@ import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/app_clock.dart';
 import '../domain/agreement.dart';
 import '../domain/facts.dart';
+import '../domain/ids.dart';
 import 'work_commands.dart';
 
 final class AgreementService {
@@ -19,64 +20,71 @@ final class AgreementService {
   Future<MutationOutcome<PayAgreement>> createAgreement(
     CreateAgreementCommand command,
   ) async {
-    if (command.version <= 0 ||
-        command.hourlyRateMicroEur <= 0 ||
-        command.overtimeThresholdMinutes <= 0 ||
-        command.overtimeMultiplierNumerator <= 0 ||
-        command.overtimeMultiplierDenominator <= 0 ||
-        (command.effectiveEnd != null &&
-            command.effectiveEnd!.compareTo(command.effectiveStart) < 0)) {
-      return const Invalid<PayAgreement>({
-        'agreement': [FieldIssue(FieldIssueCode.invalid)],
-      });
-    }
-    late final PayAgreement value;
-    try {
-      value = PayAgreement(
-        id: _idFactory.agreementId(),
-        employmentId: command.employmentId,
-        version: command.version,
-        effectiveStart: command.effectiveStart,
-        effectiveEnd: command.effectiveEnd,
-        hourlyRateMicroEur: command.hourlyRateMicroEur,
-        basis: command.basis,
-        overtimeThresholdMinutes: command.overtimeThresholdMinutes,
-        overtimeMultiplier: RationalMultiplier(
-          numerator: command.overtimeMultiplierNumerator,
-          denominator: command.overtimeMultiplierDenominator,
-        ),
-        label: _trimOptional(command.label),
-        note: _trimOptional(command.note),
-        createdAtUtc: _clock.nowUtc(),
-        revision: const Revision(0),
-        usedByFinalizedShift: false,
-      );
-    } on ArgumentError {
-      return const Invalid<PayAgreement>({
-        'agreement': [FieldIssue(FieldIssueCode.invalid)],
-      });
-    }
+    final value = _build(
+      id: _idFactory.agreementId(),
+      employmentId: command.employmentId,
+      version: command.version,
+      terms: command.terms,
+      createdAtUtc: _clock.nowUtc(),
+      revision: const Revision(0),
+    );
+    if (value == null) return _invalidTerms;
 
-    try {
-      return await _repository.transaction((store) async {
+    return _guard(
+      () => _repository.transaction((store) async {
         final existing = await store.agreementsFor(value.employmentId);
         if (!validateAgreementSet([...existing, value]).isValid) {
-          return const Invalid<PayAgreement>({
-            'effectiveRange': [FieldIssue(FieldIssueCode.conflict)],
-          });
+          return _overlap;
         }
         await store.insertAgreement(value);
         return Committed<PayAgreement>(value);
-      });
-    } on DatabaseOpenFailure {
-      return const Unavailable<PayAgreement>(
-        SafeFailureCode.storageUnavailable,
-      );
-    } on DatabaseValidationFailure {
-      return const Unavailable<PayAgreement>(
-        SafeFailureCode.storageUnavailable,
-      );
-    }
+      }),
+    );
+  }
+
+  /// Rewrites an agreement's terms. An agreement used by a finalized shift
+  /// is evidence and stays as it is.
+  Future<MutationOutcome<PayAgreement>> updateAgreement(
+    UpdateAgreementCommand command,
+  ) {
+    return _guard(
+      () => _repository.transaction((store) async {
+        final agreements = await store.agreementsFor(command.employmentId);
+        final matches = agreements.where(
+          (value) => value.id == command.agreementId,
+        );
+        if (matches.isEmpty) return const Missing<PayAgreement>();
+        final current = matches.single;
+        if (current.revision != command.expectedRevision) {
+          return const Stale<PayAgreement>();
+        }
+        if (current.usedByFinalizedShift) {
+          return const Invalid<PayAgreement>({
+            'agreement.inUse': [FieldIssue(FieldIssueCode.conflict)],
+          });
+        }
+        final revised = _build(
+          id: current.id,
+          employmentId: current.employmentId,
+          version: current.version,
+          terms: command.terms,
+          createdAtUtc: current.createdAtUtc,
+          revision: current.revision.next(),
+        );
+        if (revised == null) return _invalidTerms;
+        final others = agreements.where((value) => value.id != current.id);
+        if (!validateAgreementSet([...others, revised]).isValid) {
+          return _overlap;
+        }
+        final changed = await store.updateUnusedAgreement(
+          revised,
+          expected: command.expectedRevision,
+        );
+        return changed == 0
+            ? const Stale<PayAgreement>()
+            : Committed<PayAgreement>(revised);
+      }),
+    );
   }
 
   Future<MutationOutcome<PayAgreement>> closeAgreement(
@@ -109,9 +117,7 @@ final class AgreementService {
           (value) => value.id != current.id,
         );
         if (!validateAgreementSet([...withoutCurrent, closed]).isValid) {
-          return const Invalid<PayAgreement>({
-            'effectiveRange': [FieldIssue(FieldIssueCode.conflict)],
-          });
+          return _overlap;
         }
         final changed = await store.updateUnusedAgreement(
           closed,
@@ -130,6 +136,64 @@ final class AgreementService {
         SafeFailureCode.storageUnavailable,
       );
     }
+  }
+}
+
+const _invalidTerms = Invalid<PayAgreement>({
+  'agreement': [FieldIssue(FieldIssueCode.invalid)],
+});
+
+const _overlap = Invalid<PayAgreement>({
+  'effectiveRange': [FieldIssue(FieldIssueCode.conflict)],
+});
+
+/// The agreement the terms describe, or null when they break its rules.
+PayAgreement? _build({
+  required AgreementId id,
+  required EmploymentId employmentId,
+  required int version,
+  required AgreementTerms terms,
+  required DateTime createdAtUtc,
+  required Revision revision,
+}) {
+  try {
+    return PayAgreement(
+      id: id,
+      employmentId: employmentId,
+      version: version,
+      effectiveStart: terms.effectiveStart,
+      effectiveEnd: terms.effectiveEnd,
+      hourlyRateMicroEur: terms.hourlyRateMicroEur,
+      basis: terms.basis,
+      overtimeThresholdMinutes: terms.overtimeThresholdMinutes,
+      overtimeMultiplier: terms.overtimeMultiplier,
+      label: _trimOptional(terms.label),
+      note: _trimOptional(terms.note),
+      createdAtUtc: createdAtUtc,
+      revision: revision,
+      usedByFinalizedShift: false,
+      nightEnabled: terms.nightEnabled,
+      nightStartMinute: terms.nightStartMinute,
+      nightEndMinute: terms.nightEndMinute,
+      nightMultiplier: terms.nightMultiplier,
+      holidayCalendar: terms.holidayCalendar,
+      holidayMultiplier: terms.holidayMultiplier,
+      premiumStacking: terms.premiumStacking,
+    );
+  } on ArgumentError {
+    return null;
+  }
+}
+
+Future<MutationOutcome<PayAgreement>> _guard(
+  Future<MutationOutcome<PayAgreement>> Function() body,
+) async {
+  try {
+    return await body();
+  } on DatabaseOpenFailure {
+    return const Unavailable<PayAgreement>(SafeFailureCode.storageUnavailable);
+  } on DatabaseValidationFailure {
+    return const Unavailable<PayAgreement>(SafeFailureCode.storageUnavailable);
   }
 }
 

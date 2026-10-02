@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
-import '../../../shared/workbench/inspector_pane.dart';
-import '../../../shared/workbench/lifeos_frame.dart';
+import '../../../shared/shell/shell_frame.dart';
 import '../../../shared/workbench/operational_state.dart';
-import '../../../shared/workbench/system_rail.dart';
+import '../application/work_templates.dart';
 import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
+import '../domain/agreement.dart';
+import '../domain/employment.dart';
 import '../domain/ids.dart';
 import '../domain/pay_period.dart';
 import '../domain/payslip.dart';
@@ -16,6 +18,7 @@ import '../domain/shift.dart';
 import 'correction_confirmation.dart';
 import 'employment_agreement_forms.dart';
 import 'period_payslip_forms.dart';
+import 'record_history_panel.dart';
 import 'shift_forms.dart';
 import 'work_controller.dart' hide SetPayPeriodState;
 import 'work_inspector.dart';
@@ -47,6 +50,12 @@ final class WorkScreen extends StatefulWidget {
     this.onCorrectPayslip,
     this.onReviseDraft,
     this.timezones,
+    this.onUpdateEmployment,
+    this.onDeleteEmployment,
+    this.onUpdateAgreement,
+    this.today,
+    this.lastShiftTemplate,
+    this.onSaveView,
     super.key,
   });
 
@@ -63,11 +72,7 @@ final class WorkScreen extends StatefulWidget {
   )?
   onEndBreak;
   final MutateShift? onEndShift;
-  final Future<MutationOutcome<WorkShift>> Function(
-    WorkShift shift,
-    int overtimeMinutes,
-  )?
-  onFinalize;
+  final MutateShift? onFinalize;
   final Future<MutationOutcome<WorkShift>> Function(EmploymentId employment)?
   onStartShift;
   final ValueChanged<EmploymentId>? onOpenManualShift;
@@ -94,6 +99,26 @@ final class WorkScreen extends StatefulWidget {
   )?
   onReviseDraft;
   final TimezoneService? timezones;
+  final Future<MutationOutcome<Employment>> Function(
+    Employment current,
+    EmploymentDraft value,
+  )?
+  onUpdateEmployment;
+  final DeleteEmployment? onDeleteEmployment;
+  final Future<MutationOutcome<PayAgreement>> Function(
+    PayAgreement current,
+    AgreementDraft value,
+  )?
+  onUpdateAgreement;
+
+  /// Today's local date for new agreements; the device date when null.
+  final LocalDate? today;
+
+  /// The selected employment's last finalized shift, for "from last time".
+  final ShiftTemplate? lastShiftTemplate;
+
+  /// Saves the sheet on the desk, with its filters, as a named view.
+  final ValueChanged<WorkRouteState>? onSaveView;
 
   @override
   State<WorkScreen> createState() => _WorkScreenState();
@@ -186,15 +211,21 @@ final class _WorkScreenState extends State<WorkScreen> {
       AsyncLoading() || AsyncError() => null,
     };
     final routeRecord = ready is WorkReady ? ready.route.record : null;
+    final creating =
+        ready is WorkReady &&
+        (ready.route.mode != WorkInspectorMode.inspect ||
+            ready.route.adding != null);
     final inspectorActive =
-        (routeRecord != null || _creatingPeriod || _payslipPeriod != null) &&
+        (routeRecord != null ||
+            creating ||
+            _creatingPeriod ||
+            _payslipPeriod != null) &&
         !_showRegister;
-    return LifeOSFrame(
-      rail: SystemRail(selectedPath: '/work', onNavigate: widget.onNavigate),
-      register: _register(ready),
-      inspector: InspectorPane(child: _inspector(ready)),
-      inspectorIsActive: inspectorActive,
-      onBackToRegister: () => setState(() => _showRegister = true),
+    return ShellFrame(
+      desk: _RegisterLandmark(child: _register(ready)),
+      inspector: _inspector(ready),
+      inspectorOpen: inspectorActive,
+      onBackToDesk: () => setState(() => _showRegister = true),
     );
   }
 
@@ -222,6 +253,7 @@ final class _WorkScreenState extends State<WorkScreen> {
       WorkReady(:final register, :final route) => WorkRegister(
         projection: register,
         selectedRecord: route.record,
+        onSaveView: widget.onSaveView,
         onSelect: widget.onSelect,
         onPrimaryAction: widget.onPrimaryAction,
         onOpenEmployment: (id) => widget.onNavigate(
@@ -241,6 +273,35 @@ final class _WorkScreenState extends State<WorkScreen> {
                 _creatingPeriod = true;
                 _showRegister = false;
               }),
+        onAllEmployments: () => _go(
+          const WorkRouteState(
+            employmentId: null,
+            scope: null,
+            record: null,
+            mode: WorkInspectorMode.inspect,
+          ),
+        ),
+        onCreateEmployment: () => _go(
+          const WorkRouteState(
+            employmentId: null,
+            scope: null,
+            record: null,
+            mode: WorkInspectorMode.create,
+          ),
+        ),
+        route: route,
+        onRoute: _go,
+        onAddManualShift:
+            widget.onOpenManualShift == null || route.employmentId == null
+            ? null
+            : () => widget.onOpenManualShift!(route.employmentId!),
+        onRecordPayslip: widget.onRecordPayslip == null
+            ? null
+            : (period) => setState(() {
+                _payslipPeriod = period;
+                _showRegister = false;
+              }),
+        timezones: widget.timezones,
       ),
       null => const OperationalState(
         kind: OperationalStateKind.unavailable,
@@ -267,8 +328,13 @@ final class _WorkScreenState extends State<WorkScreen> {
       return AgreementForm(
         key: ValueKey(employment.id),
         employmentId: employment.id,
+        today: widget.today,
         onSubmit: widget.onCreateAgreement,
       );
+    }
+    if (route.record == null && employmentId != null) {
+      final added = _added(route.adding, state.register, employmentId);
+      if (added != null) return added;
     }
     if (_creatingPeriod && employmentId != null) {
       return PeriodInspector.create(
@@ -297,14 +363,31 @@ final class _WorkScreenState extends State<WorkScreen> {
       }
       return EmploymentForm(onSubmit: widget.onCreateEmployment);
     }
+    if (route.record == null &&
+        route.mode == WorkInspectorMode.inspect &&
+        employment != null &&
+        state.inspector is WorkInspectorEmpty) {
+      return _employmentHeader(state.register, employment);
+    }
     final save = widget.onSaveManualShift;
     if (route.mode == WorkInspectorMode.edit &&
         route.record == null &&
         route.employmentId != null &&
         save != null) {
+      final template = route.fromLast ? widget.lastShiftTemplate : null;
       return ShiftEditInspector(
+        key: ValueKey(('manual-shift', template != null)),
         employmentId: route.employmentId!,
         initialTimezoneId: widget.systemTimezoneId,
+        title: template == null
+            ? 'Manual shift'
+            : 'Manual shift from last time',
+        prefill: template == null
+            ? null
+            : ShiftFormPrefill.fromTemplate(
+                template,
+                widget.today ?? _deviceToday(),
+              ),
         onSubmit: save,
       );
     }
@@ -322,6 +405,12 @@ final class _WorkScreenState extends State<WorkScreen> {
       WorkInspectorRecord(:final record)
           when route.mode == WorkInspectorMode.correct =>
         _correction(record),
+      WorkInspectorRecord(
+        record: EmploymentRecordProjection(:final employment),
+      ) =>
+        _employmentEditor(employment),
+      WorkInspectorRecord(record: final AgreementRecordProjection record) =>
+        _agreement(record, edit: route.mode == WorkInspectorMode.edit),
       WorkInspectorRecord(:final record)
           when route.mode == WorkInspectorMode.edit &&
               record is ShiftRecordProjection &&
@@ -338,7 +427,149 @@ final class _WorkScreenState extends State<WorkScreen> {
   }
 }
 
+LocalDate _deviceToday() {
+  final now = DateTime.now();
+  return LocalDate(now.year, now.month, now.day);
+}
+
 extension on _WorkScreenState {
+  /// The create form a route's `add=` opens (shell spec 6.7).
+  Widget? _added(
+    WorkAddKind? adding,
+    WorkRegisterProjection register,
+    EmploymentId employmentId,
+  ) {
+    switch (adding) {
+      case WorkAddKind.payPeriod when widget.onCreatePayPeriod != null:
+        return PeriodInspector.create(
+          employmentId: employmentId,
+          onSubmit: _createPeriod,
+        );
+      case WorkAddKind.payslip when widget.onRecordPayslip != null:
+        final period =
+            register.period ??
+            register.periodSheet.map((row) => row.period).lastOrNull;
+        if (period == null) {
+          return const OperationalState(
+            kind: OperationalStateKind.empty,
+            title: 'No pay period yet',
+            message: 'Add a pay period first, then record its payslip.',
+          );
+        }
+        return PayslipInspector.create(
+          key: ValueKey(('add-payslip', period.id)),
+          periodId: period.id,
+          onSubmit: widget.onRecordPayslip!,
+        );
+      case WorkAddKind.agreement:
+        return AgreementForm(
+          key: ValueKey(('add-agreement', employmentId)),
+          employmentId: employmentId,
+          today: widget.today,
+          onSubmit: widget.onCreateAgreement,
+        );
+      case WorkAddKind.payPeriod || WorkAddKind.payslip || null:
+        return null;
+    }
+  }
+
+  void _go(WorkRouteState route) =>
+      widget.onNavigate(workRouteUri(route).toString());
+
+  void _showEmployment(
+    EmploymentId id, {
+    WorkRecordRef? record,
+    bool edit = false,
+  }) => _go(
+    WorkRouteState(
+      employmentId: id,
+      scope: null,
+      record: record,
+      mode: edit ? WorkInspectorMode.edit : WorkInspectorMode.inspect,
+    ),
+  );
+
+  Widget _employmentHeader(
+    WorkRegisterProjection register,
+    Employment employment,
+  ) {
+    final agreement = register.currentAgreement;
+    final agreementRef = agreement == null
+        ? null
+        : WorkRecordRef(kind: WorkRecordKind.agreement, id: agreement.id);
+    final delete = widget.onDeleteEmployment;
+    return EmploymentHeader(
+      key: ValueKey(('employment', employment.id, employment.revision)),
+      employment: employment,
+      canDelete: register.canDeleteEmployment && delete != null,
+      agreementInUse: register.agreementInUse,
+      onEdit: () => _showEmployment(
+        employment.id,
+        record: WorkRecordRef(
+          kind: WorkRecordKind.employment,
+          id: employment.id,
+        ),
+        edit: true,
+      ),
+      onDelete:
+          delete ??
+          (_) async =>
+              const Unavailable<Employment>(SafeFailureCode.storageUnavailable),
+      onEditAgreement: agreementRef == null || widget.onUpdateAgreement == null
+          ? null
+          : () => _showEmployment(
+              employment.id,
+              record: agreementRef,
+              edit: true,
+            ),
+      onViewAgreement: agreementRef == null
+          ? null
+          : () => _showEmployment(employment.id, record: agreementRef),
+    );
+  }
+
+  Widget _employmentEditor(Employment employment) {
+    final update = widget.onUpdateEmployment;
+    if (update == null) return const MissingRecordInspector();
+    return EmploymentForm(
+      key: ValueKey(('edit-employment', employment.id, employment.revision)),
+      initial: employment,
+      onSubmit: (value) => update(employment, value),
+    );
+  }
+
+  Widget _agreement(AgreementRecordProjection record, {required bool edit}) {
+    final agreement = record.agreement;
+    final update = widget.onUpdateAgreement;
+    if (edit && !record.inUse && update != null) {
+      return AgreementForm(
+        key: ValueKey(('edit-agreement', agreement.id, agreement.revision)),
+        employmentId: agreement.employmentId,
+        initial: agreement,
+        onSubmit: (value) => update(agreement, value),
+      );
+    }
+    return RecordTabs(
+      key: ValueKey(('tabs', agreement.id)),
+      record: WorkRecordRef(kind: WorkRecordKind.agreement, id: agreement.id),
+      details: AgreementView(
+        key: ValueKey(('agreement', agreement.id, agreement.revision)),
+        agreement: agreement,
+        finishedShifts: record.finishedShifts,
+        onEdit: update == null
+            ? null
+            : () => _showEmployment(
+                agreement.employmentId,
+                record: WorkRecordRef(
+                  kind: WorkRecordKind.agreement,
+                  id: agreement.id,
+                ),
+                edit: true,
+              ),
+      ),
+    );
+  }
+
   Widget _startOutcome(
     MutationOutcome<WorkShift> outcome, {
     VoidCallback? dismiss,
@@ -442,37 +673,55 @@ extension on _WorkScreenState {
       if (_periodFailure case final failure?) {
         return _periodOutcome(failure);
       }
-      return WorkInspector.fromRecord(
-        key: ValueKey(record.id),
-        projection: record,
-        onSetPeriodState: widget.onSetPeriodState == null
-            ? null
-            : _setPeriodState,
-        onRecordPayslip: widget.onRecordPayslip == null
-            ? null
-            : () => _openPayslip(record.period.id),
-        reconciliation: register.period?.id == record.period.id
-            ? register.reconciliation?.groups ?? const []
-            : const [],
+      return _tabs(
+        WorkRecordKind.payPeriod,
+        record,
+        WorkInspector.fromRecord(
+          key: ValueKey(record.id),
+          projection: record,
+          onSetPeriodState: widget.onSetPeriodState == null
+              ? null
+              : _setPeriodState,
+          onRecordPayslip: widget.onRecordPayslip == null
+              ? null
+              : () => _openPayslip(record.period.id),
+          reconciliation: register.period?.id == record.period.id
+              ? register.reconciliation?.groups ?? const []
+              : const [],
+        ),
       );
     }
     final onEndBreak = widget.onEndBreak;
-    final onFinalize = widget.onFinalize;
     final shift = record is ShiftRecordProjection ? record.shift : null;
-    return WorkInspector.fromRecord(
-      key: ValueKey(record.id),
-      projection: record,
-      onStartBreak: widget.onStartBreak,
-      onEndBreak: onEndBreak == null || shift == null
-          ? null
-          : (value) => onEndBreak(shift, value),
-      onEndShift: widget.onEndShift,
-      onFinalize: onFinalize == null || shift == null
-          ? null
-          : (minutes) => onFinalize(shift, minutes),
-      onCorrect: widget.onOpenCorrection,
+    return _tabs(
+      record is PayslipRecordProjection
+          ? WorkRecordKind.payslip
+          : WorkRecordKind.shift,
+      record,
+      WorkInspector.fromRecord(
+        key: ValueKey(record.id),
+        projection: record,
+        timezones: widget.timezones,
+        onStartBreak: widget.onStartBreak,
+        onEndBreak: onEndBreak == null || shift == null
+            ? null
+            : (value) => onEndBreak(shift, value),
+        onEndShift: widget.onEndShift,
+        onFinalize: widget.onFinalize,
+        onCorrect: widget.onOpenCorrection,
+      ),
     );
   }
+
+  Widget _tabs(
+    WorkRecordKind kind,
+    WorkRecordProjection record,
+    Widget details,
+  ) => RecordTabs(
+    key: ValueKey(('tabs', record.id)),
+    record: WorkRecordRef(kind: kind, id: record.id),
+    details: details,
+  );
 }
 
 WorkRecordRef? _selectedRecord(AsyncValue<WorkViewState> state) {
@@ -523,4 +772,24 @@ final class _Rejected extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Keeps the Work register a named landmark inside the shell's desk.
+final class _RegisterLandmark extends StatelessWidget {
+  const _RegisterLandmark({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: 'Work register',
+      child: ColoredBox(
+        color: Theme.of(context).colorScheme.surface,
+        child: FocusTraversalGroup(child: child),
+      ),
+    );
+  }
 }

@@ -19,4 +19,29 @@ void main() {
     expect(find.textContaining('/home/'), findsNothing);
     expect(find.textContaining('SqliteException:'), findsNothing);
   });
+
+  testWidgets('an earlier-build database names only its own location', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: StartupRecovery(
+          failure: StartupFailure(
+            SafeFailureCode.databaseFromEarlierBuild,
+            databasePath: '/synthetic/support/lifeos-native-v1.sqlite',
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Database from an earlier build'), findsOneWidget);
+    expect(
+      find.text(
+        'This database was made by an earlier development build of LifeOS '
+        "and can't be opened. Close LifeOS, remove "
+        '/synthetic/support/lifeos-native-v1.sqlite, then start it again.',
+      ),
+      findsOneWidget,
+    );
+  });
 }

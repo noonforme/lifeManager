@@ -172,7 +172,8 @@ final class UnavailableInspector extends StatelessWidget {
       SafeFailureCode.storageUnavailable =>
         'Local storage is unavailable. Your draft has been kept.',
       SafeFailureCode.databaseIdentityMismatch => 'The local database identity could not be verified. Your draft has been kept.',
-      SafeFailureCode.migrationFailed =>
+      SafeFailureCode.migrationFailed ||
+      SafeFailureCode.databaseFromEarlierBuild =>
         'The local database could not be prepared. Your draft has been kept.',
       SafeFailureCode.invalidTimezone =>
         'The recorded timezone is unavailable. Your draft has been kept.',
@@ -188,33 +189,23 @@ final class UncertainOutcomeInspector extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const _OutcomeMessage(
     semanticLabel: 'Save outcome uncertain',
-    message: 'The save result is uncertain. Reload and inspect the record before trying again.',
-    detail: 'Do not retry yet.',
+    message:
+        "LifeOS can't tell whether this was saved. Reload to check before "
+        'trying again.',
   );
 }
 
 final class _OutcomeMessage extends StatelessWidget {
-  const _OutcomeMessage({
-    required this.semanticLabel,
-    required this.message,
-    this.detail,
-  });
+  const _OutcomeMessage({required this.semanticLabel, required this.message});
 
   final String semanticLabel;
   final String message;
-  final String? detail;
 
   @override
   Widget build(BuildContext context) => Semantics(
     container: true,
     explicitChildNodes: true,
     label: semanticLabel,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(message),
-        if (detail != null) ...[const SizedBox(height: 6), Text(detail!)],
-      ],
-    ),
+    child: Text(message),
   );
 }

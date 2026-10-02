@@ -944,6 +944,126 @@ class $PayAgreementsTable extends PayAgreements
         type: DriftSqlType.int,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _nightEnabledMeta = const VerificationMeta(
+    'nightEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> nightEnabled = GeneratedColumn<bool>(
+    'night_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("night_enabled" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _nightStartMinuteMeta = const VerificationMeta(
+    'nightStartMinute',
+  );
+  @override
+  late final GeneratedColumn<int> nightStartMinute = GeneratedColumn<int>(
+    'night_start_minute',
+    aliasedName,
+    false,
+    check: () =>
+        const CustomExpression<bool>('night_start_minute BETWEEN 0 AND 1439'),
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nightEndMinuteMeta = const VerificationMeta(
+    'nightEndMinute',
+  );
+  @override
+  late final GeneratedColumn<int> nightEndMinute = GeneratedColumn<int>(
+    'night_end_minute',
+    aliasedName,
+    false,
+    check: () =>
+        const CustomExpression<bool>('night_end_minute BETWEEN 0 AND 1439'),
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nightMultiplierNumeratorMeta =
+      const VerificationMeta('nightMultiplierNumerator');
+  @override
+  late final GeneratedColumn<int> nightMultiplierNumerator =
+      GeneratedColumn<int>(
+        'night_multiplier_numerator',
+        aliasedName,
+        false,
+        check: () =>
+            const CustomExpression<bool>('night_multiplier_numerator > 0'),
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _nightMultiplierDenominatorMeta =
+      const VerificationMeta('nightMultiplierDenominator');
+  @override
+  late final GeneratedColumn<int> nightMultiplierDenominator =
+      GeneratedColumn<int>(
+        'night_multiplier_denominator',
+        aliasedName,
+        false,
+        check: () =>
+            const CustomExpression<bool>('night_multiplier_denominator > 0'),
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _holidayCalendarMeta = const VerificationMeta(
+    'holidayCalendar',
+  );
+  @override
+  late final GeneratedColumn<String> holidayCalendar = GeneratedColumn<String>(
+    'holiday_calendar',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>(
+      "holiday_calendar IN ('none', 'lithuania')",
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _holidayMultiplierNumeratorMeta =
+      const VerificationMeta('holidayMultiplierNumerator');
+  @override
+  late final GeneratedColumn<int> holidayMultiplierNumerator =
+      GeneratedColumn<int>(
+        'holiday_multiplier_numerator',
+        aliasedName,
+        false,
+        check: () =>
+            const CustomExpression<bool>('holiday_multiplier_numerator > 0'),
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _holidayMultiplierDenominatorMeta =
+      const VerificationMeta('holidayMultiplierDenominator');
+  @override
+  late final GeneratedColumn<int> holidayMultiplierDenominator =
+      GeneratedColumn<int>(
+        'holiday_multiplier_denominator',
+        aliasedName,
+        false,
+        check: () =>
+            const CustomExpression<bool>('holiday_multiplier_denominator > 0'),
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _premiumStackingMeta = const VerificationMeta(
+    'premiumStacking',
+  );
+  @override
+  late final GeneratedColumn<String> premiumStacking = GeneratedColumn<String>(
+    'premium_stacking',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>(
+      "premium_stacking IN ('highest', 'additive', 'multiplicative')",
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _labelMeta = const VerificationMeta('label');
   @override
   late final GeneratedColumn<String> label = GeneratedColumn<String>(
@@ -996,6 +1116,15 @@ class $PayAgreementsTable extends PayAgreements
     overtimeThresholdMinutes,
     overtimeMultiplierNumerator,
     overtimeMultiplierDenominator,
+    nightEnabled,
+    nightStartMinute,
+    nightEndMinute,
+    nightMultiplierNumerator,
+    nightMultiplierDenominator,
+    holidayCalendar,
+    holidayMultiplierNumerator,
+    holidayMultiplierDenominator,
+    premiumStacking,
     label,
     note,
     createdAtUtcMicros,
@@ -1109,6 +1238,105 @@ class $PayAgreementsTable extends PayAgreements
     } else if (isInserting) {
       context.missing(_overtimeMultiplierDenominatorMeta);
     }
+    if (data.containsKey('night_enabled')) {
+      context.handle(
+        _nightEnabledMeta,
+        nightEnabled.isAcceptableOrUnknown(
+          data['night_enabled']!,
+          _nightEnabledMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nightEnabledMeta);
+    }
+    if (data.containsKey('night_start_minute')) {
+      context.handle(
+        _nightStartMinuteMeta,
+        nightStartMinute.isAcceptableOrUnknown(
+          data['night_start_minute']!,
+          _nightStartMinuteMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nightStartMinuteMeta);
+    }
+    if (data.containsKey('night_end_minute')) {
+      context.handle(
+        _nightEndMinuteMeta,
+        nightEndMinute.isAcceptableOrUnknown(
+          data['night_end_minute']!,
+          _nightEndMinuteMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nightEndMinuteMeta);
+    }
+    if (data.containsKey('night_multiplier_numerator')) {
+      context.handle(
+        _nightMultiplierNumeratorMeta,
+        nightMultiplierNumerator.isAcceptableOrUnknown(
+          data['night_multiplier_numerator']!,
+          _nightMultiplierNumeratorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nightMultiplierNumeratorMeta);
+    }
+    if (data.containsKey('night_multiplier_denominator')) {
+      context.handle(
+        _nightMultiplierDenominatorMeta,
+        nightMultiplierDenominator.isAcceptableOrUnknown(
+          data['night_multiplier_denominator']!,
+          _nightMultiplierDenominatorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nightMultiplierDenominatorMeta);
+    }
+    if (data.containsKey('holiday_calendar')) {
+      context.handle(
+        _holidayCalendarMeta,
+        holidayCalendar.isAcceptableOrUnknown(
+          data['holiday_calendar']!,
+          _holidayCalendarMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_holidayCalendarMeta);
+    }
+    if (data.containsKey('holiday_multiplier_numerator')) {
+      context.handle(
+        _holidayMultiplierNumeratorMeta,
+        holidayMultiplierNumerator.isAcceptableOrUnknown(
+          data['holiday_multiplier_numerator']!,
+          _holidayMultiplierNumeratorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_holidayMultiplierNumeratorMeta);
+    }
+    if (data.containsKey('holiday_multiplier_denominator')) {
+      context.handle(
+        _holidayMultiplierDenominatorMeta,
+        holidayMultiplierDenominator.isAcceptableOrUnknown(
+          data['holiday_multiplier_denominator']!,
+          _holidayMultiplierDenominatorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_holidayMultiplierDenominatorMeta);
+    }
+    if (data.containsKey('premium_stacking')) {
+      context.handle(
+        _premiumStackingMeta,
+        premiumStacking.isAcceptableOrUnknown(
+          data['premium_stacking']!,
+          _premiumStackingMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_premiumStackingMeta);
+    }
     if (data.containsKey('label')) {
       context.handle(
         _labelMeta,
@@ -1189,6 +1417,42 @@ class $PayAgreementsTable extends PayAgreements
         DriftSqlType.int,
         data['${effectivePrefix}overtime_multiplier_denominator'],
       )!,
+      nightEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}night_enabled'],
+      )!,
+      nightStartMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}night_start_minute'],
+      )!,
+      nightEndMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}night_end_minute'],
+      )!,
+      nightMultiplierNumerator: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}night_multiplier_numerator'],
+      )!,
+      nightMultiplierDenominator: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}night_multiplier_denominator'],
+      )!,
+      holidayCalendar: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}holiday_calendar'],
+      )!,
+      holidayMultiplierNumerator: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}holiday_multiplier_numerator'],
+      )!,
+      holidayMultiplierDenominator: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}holiday_multiplier_denominator'],
+      )!,
+      premiumStacking: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}premium_stacking'],
+      )!,
       label: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}label'],
@@ -1225,6 +1489,15 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
   final int overtimeThresholdMinutes;
   final int overtimeMultiplierNumerator;
   final int overtimeMultiplierDenominator;
+  final bool nightEnabled;
+  final int nightStartMinute;
+  final int nightEndMinute;
+  final int nightMultiplierNumerator;
+  final int nightMultiplierDenominator;
+  final String holidayCalendar;
+  final int holidayMultiplierNumerator;
+  final int holidayMultiplierDenominator;
+  final String premiumStacking;
   final String? label;
   final String? note;
   final int createdAtUtcMicros;
@@ -1240,6 +1513,15 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
     required this.overtimeThresholdMinutes,
     required this.overtimeMultiplierNumerator,
     required this.overtimeMultiplierDenominator,
+    required this.nightEnabled,
+    required this.nightStartMinute,
+    required this.nightEndMinute,
+    required this.nightMultiplierNumerator,
+    required this.nightMultiplierDenominator,
+    required this.holidayCalendar,
+    required this.holidayMultiplierNumerator,
+    required this.holidayMultiplierDenominator,
+    required this.premiumStacking,
     this.label,
     this.note,
     required this.createdAtUtcMicros,
@@ -1264,6 +1546,21 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
     map['overtime_multiplier_denominator'] = Variable<int>(
       overtimeMultiplierDenominator,
     );
+    map['night_enabled'] = Variable<bool>(nightEnabled);
+    map['night_start_minute'] = Variable<int>(nightStartMinute);
+    map['night_end_minute'] = Variable<int>(nightEndMinute);
+    map['night_multiplier_numerator'] = Variable<int>(nightMultiplierNumerator);
+    map['night_multiplier_denominator'] = Variable<int>(
+      nightMultiplierDenominator,
+    );
+    map['holiday_calendar'] = Variable<String>(holidayCalendar);
+    map['holiday_multiplier_numerator'] = Variable<int>(
+      holidayMultiplierNumerator,
+    );
+    map['holiday_multiplier_denominator'] = Variable<int>(
+      holidayMultiplierDenominator,
+    );
+    map['premium_stacking'] = Variable<String>(premiumStacking);
     if (!nullToAbsent || label != null) {
       map['label'] = Variable<String>(label);
     }
@@ -1289,6 +1586,15 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
       overtimeThresholdMinutes: Value(overtimeThresholdMinutes),
       overtimeMultiplierNumerator: Value(overtimeMultiplierNumerator),
       overtimeMultiplierDenominator: Value(overtimeMultiplierDenominator),
+      nightEnabled: Value(nightEnabled),
+      nightStartMinute: Value(nightStartMinute),
+      nightEndMinute: Value(nightEndMinute),
+      nightMultiplierNumerator: Value(nightMultiplierNumerator),
+      nightMultiplierDenominator: Value(nightMultiplierDenominator),
+      holidayCalendar: Value(holidayCalendar),
+      holidayMultiplierNumerator: Value(holidayMultiplierNumerator),
+      holidayMultiplierDenominator: Value(holidayMultiplierDenominator),
+      premiumStacking: Value(premiumStacking),
       label: label == null && nullToAbsent
           ? const Value.absent()
           : Value(label),
@@ -1320,6 +1626,23 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
       overtimeMultiplierDenominator: serializer.fromJson<int>(
         json['overtimeMultiplierDenominator'],
       ),
+      nightEnabled: serializer.fromJson<bool>(json['nightEnabled']),
+      nightStartMinute: serializer.fromJson<int>(json['nightStartMinute']),
+      nightEndMinute: serializer.fromJson<int>(json['nightEndMinute']),
+      nightMultiplierNumerator: serializer.fromJson<int>(
+        json['nightMultiplierNumerator'],
+      ),
+      nightMultiplierDenominator: serializer.fromJson<int>(
+        json['nightMultiplierDenominator'],
+      ),
+      holidayCalendar: serializer.fromJson<String>(json['holidayCalendar']),
+      holidayMultiplierNumerator: serializer.fromJson<int>(
+        json['holidayMultiplierNumerator'],
+      ),
+      holidayMultiplierDenominator: serializer.fromJson<int>(
+        json['holidayMultiplierDenominator'],
+      ),
+      premiumStacking: serializer.fromJson<String>(json['premiumStacking']),
       label: serializer.fromJson<String?>(json['label']),
       note: serializer.fromJson<String?>(json['note']),
       createdAtUtcMicros: serializer.fromJson<int>(json['createdAtUtcMicros']),
@@ -1346,6 +1669,23 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
       'overtimeMultiplierDenominator': serializer.toJson<int>(
         overtimeMultiplierDenominator,
       ),
+      'nightEnabled': serializer.toJson<bool>(nightEnabled),
+      'nightStartMinute': serializer.toJson<int>(nightStartMinute),
+      'nightEndMinute': serializer.toJson<int>(nightEndMinute),
+      'nightMultiplierNumerator': serializer.toJson<int>(
+        nightMultiplierNumerator,
+      ),
+      'nightMultiplierDenominator': serializer.toJson<int>(
+        nightMultiplierDenominator,
+      ),
+      'holidayCalendar': serializer.toJson<String>(holidayCalendar),
+      'holidayMultiplierNumerator': serializer.toJson<int>(
+        holidayMultiplierNumerator,
+      ),
+      'holidayMultiplierDenominator': serializer.toJson<int>(
+        holidayMultiplierDenominator,
+      ),
+      'premiumStacking': serializer.toJson<String>(premiumStacking),
       'label': serializer.toJson<String?>(label),
       'note': serializer.toJson<String?>(note),
       'createdAtUtcMicros': serializer.toJson<int>(createdAtUtcMicros),
@@ -1364,6 +1704,15 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
     int? overtimeThresholdMinutes,
     int? overtimeMultiplierNumerator,
     int? overtimeMultiplierDenominator,
+    bool? nightEnabled,
+    int? nightStartMinute,
+    int? nightEndMinute,
+    int? nightMultiplierNumerator,
+    int? nightMultiplierDenominator,
+    String? holidayCalendar,
+    int? holidayMultiplierNumerator,
+    int? holidayMultiplierDenominator,
+    String? premiumStacking,
     Value<String?> label = const Value.absent(),
     Value<String?> note = const Value.absent(),
     int? createdAtUtcMicros,
@@ -1382,6 +1731,19 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
         overtimeMultiplierNumerator ?? this.overtimeMultiplierNumerator,
     overtimeMultiplierDenominator:
         overtimeMultiplierDenominator ?? this.overtimeMultiplierDenominator,
+    nightEnabled: nightEnabled ?? this.nightEnabled,
+    nightStartMinute: nightStartMinute ?? this.nightStartMinute,
+    nightEndMinute: nightEndMinute ?? this.nightEndMinute,
+    nightMultiplierNumerator:
+        nightMultiplierNumerator ?? this.nightMultiplierNumerator,
+    nightMultiplierDenominator:
+        nightMultiplierDenominator ?? this.nightMultiplierDenominator,
+    holidayCalendar: holidayCalendar ?? this.holidayCalendar,
+    holidayMultiplierNumerator:
+        holidayMultiplierNumerator ?? this.holidayMultiplierNumerator,
+    holidayMultiplierDenominator:
+        holidayMultiplierDenominator ?? this.holidayMultiplierDenominator,
+    premiumStacking: premiumStacking ?? this.premiumStacking,
     label: label.present ? label.value : this.label,
     note: note.present ? note.value : this.note,
     createdAtUtcMicros: createdAtUtcMicros ?? this.createdAtUtcMicros,
@@ -1413,6 +1775,33 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
       overtimeMultiplierDenominator: data.overtimeMultiplierDenominator.present
           ? data.overtimeMultiplierDenominator.value
           : this.overtimeMultiplierDenominator,
+      nightEnabled: data.nightEnabled.present
+          ? data.nightEnabled.value
+          : this.nightEnabled,
+      nightStartMinute: data.nightStartMinute.present
+          ? data.nightStartMinute.value
+          : this.nightStartMinute,
+      nightEndMinute: data.nightEndMinute.present
+          ? data.nightEndMinute.value
+          : this.nightEndMinute,
+      nightMultiplierNumerator: data.nightMultiplierNumerator.present
+          ? data.nightMultiplierNumerator.value
+          : this.nightMultiplierNumerator,
+      nightMultiplierDenominator: data.nightMultiplierDenominator.present
+          ? data.nightMultiplierDenominator.value
+          : this.nightMultiplierDenominator,
+      holidayCalendar: data.holidayCalendar.present
+          ? data.holidayCalendar.value
+          : this.holidayCalendar,
+      holidayMultiplierNumerator: data.holidayMultiplierNumerator.present
+          ? data.holidayMultiplierNumerator.value
+          : this.holidayMultiplierNumerator,
+      holidayMultiplierDenominator: data.holidayMultiplierDenominator.present
+          ? data.holidayMultiplierDenominator.value
+          : this.holidayMultiplierDenominator,
+      premiumStacking: data.premiumStacking.present
+          ? data.premiumStacking.value
+          : this.premiumStacking,
       label: data.label.present ? data.label.value : this.label,
       note: data.note.present ? data.note.value : this.note,
       createdAtUtcMicros: data.createdAtUtcMicros.present
@@ -1437,6 +1826,17 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
           ..write(
             'overtimeMultiplierDenominator: $overtimeMultiplierDenominator, ',
           )
+          ..write('nightEnabled: $nightEnabled, ')
+          ..write('nightStartMinute: $nightStartMinute, ')
+          ..write('nightEndMinute: $nightEndMinute, ')
+          ..write('nightMultiplierNumerator: $nightMultiplierNumerator, ')
+          ..write('nightMultiplierDenominator: $nightMultiplierDenominator, ')
+          ..write('holidayCalendar: $holidayCalendar, ')
+          ..write('holidayMultiplierNumerator: $holidayMultiplierNumerator, ')
+          ..write(
+            'holidayMultiplierDenominator: $holidayMultiplierDenominator, ',
+          )
+          ..write('premiumStacking: $premiumStacking, ')
           ..write('label: $label, ')
           ..write('note: $note, ')
           ..write('createdAtUtcMicros: $createdAtUtcMicros, ')
@@ -1446,7 +1846,7 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     employmentId,
     version,
@@ -1457,11 +1857,20 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
     overtimeThresholdMinutes,
     overtimeMultiplierNumerator,
     overtimeMultiplierDenominator,
+    nightEnabled,
+    nightStartMinute,
+    nightEndMinute,
+    nightMultiplierNumerator,
+    nightMultiplierDenominator,
+    holidayCalendar,
+    holidayMultiplierNumerator,
+    holidayMultiplierDenominator,
+    premiumStacking,
     label,
     note,
     createdAtUtcMicros,
     revision,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1478,6 +1887,16 @@ class PayAgreement extends DataClass implements Insertable<PayAgreement> {
               this.overtimeMultiplierNumerator &&
           other.overtimeMultiplierDenominator ==
               this.overtimeMultiplierDenominator &&
+          other.nightEnabled == this.nightEnabled &&
+          other.nightStartMinute == this.nightStartMinute &&
+          other.nightEndMinute == this.nightEndMinute &&
+          other.nightMultiplierNumerator == this.nightMultiplierNumerator &&
+          other.nightMultiplierDenominator == this.nightMultiplierDenominator &&
+          other.holidayCalendar == this.holidayCalendar &&
+          other.holidayMultiplierNumerator == this.holidayMultiplierNumerator &&
+          other.holidayMultiplierDenominator ==
+              this.holidayMultiplierDenominator &&
+          other.premiumStacking == this.premiumStacking &&
           other.label == this.label &&
           other.note == this.note &&
           other.createdAtUtcMicros == this.createdAtUtcMicros &&
@@ -1495,6 +1914,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
   final Value<int> overtimeThresholdMinutes;
   final Value<int> overtimeMultiplierNumerator;
   final Value<int> overtimeMultiplierDenominator;
+  final Value<bool> nightEnabled;
+  final Value<int> nightStartMinute;
+  final Value<int> nightEndMinute;
+  final Value<int> nightMultiplierNumerator;
+  final Value<int> nightMultiplierDenominator;
+  final Value<String> holidayCalendar;
+  final Value<int> holidayMultiplierNumerator;
+  final Value<int> holidayMultiplierDenominator;
+  final Value<String> premiumStacking;
   final Value<String?> label;
   final Value<String?> note;
   final Value<int> createdAtUtcMicros;
@@ -1511,6 +1939,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
     this.overtimeThresholdMinutes = const Value.absent(),
     this.overtimeMultiplierNumerator = const Value.absent(),
     this.overtimeMultiplierDenominator = const Value.absent(),
+    this.nightEnabled = const Value.absent(),
+    this.nightStartMinute = const Value.absent(),
+    this.nightEndMinute = const Value.absent(),
+    this.nightMultiplierNumerator = const Value.absent(),
+    this.nightMultiplierDenominator = const Value.absent(),
+    this.holidayCalendar = const Value.absent(),
+    this.holidayMultiplierNumerator = const Value.absent(),
+    this.holidayMultiplierDenominator = const Value.absent(),
+    this.premiumStacking = const Value.absent(),
     this.label = const Value.absent(),
     this.note = const Value.absent(),
     this.createdAtUtcMicros = const Value.absent(),
@@ -1528,6 +1965,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
     required int overtimeThresholdMinutes,
     required int overtimeMultiplierNumerator,
     required int overtimeMultiplierDenominator,
+    required bool nightEnabled,
+    required int nightStartMinute,
+    required int nightEndMinute,
+    required int nightMultiplierNumerator,
+    required int nightMultiplierDenominator,
+    required String holidayCalendar,
+    required int holidayMultiplierNumerator,
+    required int holidayMultiplierDenominator,
+    required String premiumStacking,
     this.label = const Value.absent(),
     this.note = const Value.absent(),
     required int createdAtUtcMicros,
@@ -1542,6 +1988,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
        overtimeThresholdMinutes = Value(overtimeThresholdMinutes),
        overtimeMultiplierNumerator = Value(overtimeMultiplierNumerator),
        overtimeMultiplierDenominator = Value(overtimeMultiplierDenominator),
+       nightEnabled = Value(nightEnabled),
+       nightStartMinute = Value(nightStartMinute),
+       nightEndMinute = Value(nightEndMinute),
+       nightMultiplierNumerator = Value(nightMultiplierNumerator),
+       nightMultiplierDenominator = Value(nightMultiplierDenominator),
+       holidayCalendar = Value(holidayCalendar),
+       holidayMultiplierNumerator = Value(holidayMultiplierNumerator),
+       holidayMultiplierDenominator = Value(holidayMultiplierDenominator),
+       premiumStacking = Value(premiumStacking),
        createdAtUtcMicros = Value(createdAtUtcMicros),
        revision = Value(revision);
   static Insertable<PayAgreement> custom({
@@ -1555,6 +2010,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
     Expression<int>? overtimeThresholdMinutes,
     Expression<int>? overtimeMultiplierNumerator,
     Expression<int>? overtimeMultiplierDenominator,
+    Expression<bool>? nightEnabled,
+    Expression<int>? nightStartMinute,
+    Expression<int>? nightEndMinute,
+    Expression<int>? nightMultiplierNumerator,
+    Expression<int>? nightMultiplierDenominator,
+    Expression<String>? holidayCalendar,
+    Expression<int>? holidayMultiplierNumerator,
+    Expression<int>? holidayMultiplierDenominator,
+    Expression<String>? premiumStacking,
     Expression<String>? label,
     Expression<String>? note,
     Expression<int>? createdAtUtcMicros,
@@ -1576,6 +2040,19 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
         'overtime_multiplier_numerator': overtimeMultiplierNumerator,
       if (overtimeMultiplierDenominator != null)
         'overtime_multiplier_denominator': overtimeMultiplierDenominator,
+      if (nightEnabled != null) 'night_enabled': nightEnabled,
+      if (nightStartMinute != null) 'night_start_minute': nightStartMinute,
+      if (nightEndMinute != null) 'night_end_minute': nightEndMinute,
+      if (nightMultiplierNumerator != null)
+        'night_multiplier_numerator': nightMultiplierNumerator,
+      if (nightMultiplierDenominator != null)
+        'night_multiplier_denominator': nightMultiplierDenominator,
+      if (holidayCalendar != null) 'holiday_calendar': holidayCalendar,
+      if (holidayMultiplierNumerator != null)
+        'holiday_multiplier_numerator': holidayMultiplierNumerator,
+      if (holidayMultiplierDenominator != null)
+        'holiday_multiplier_denominator': holidayMultiplierDenominator,
+      if (premiumStacking != null) 'premium_stacking': premiumStacking,
       if (label != null) 'label': label,
       if (note != null) 'note': note,
       if (createdAtUtcMicros != null)
@@ -1596,6 +2073,15 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
     Value<int>? overtimeThresholdMinutes,
     Value<int>? overtimeMultiplierNumerator,
     Value<int>? overtimeMultiplierDenominator,
+    Value<bool>? nightEnabled,
+    Value<int>? nightStartMinute,
+    Value<int>? nightEndMinute,
+    Value<int>? nightMultiplierNumerator,
+    Value<int>? nightMultiplierDenominator,
+    Value<String>? holidayCalendar,
+    Value<int>? holidayMultiplierNumerator,
+    Value<int>? holidayMultiplierDenominator,
+    Value<String>? premiumStacking,
     Value<String?>? label,
     Value<String?>? note,
     Value<int>? createdAtUtcMicros,
@@ -1616,6 +2102,19 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
           overtimeMultiplierNumerator ?? this.overtimeMultiplierNumerator,
       overtimeMultiplierDenominator:
           overtimeMultiplierDenominator ?? this.overtimeMultiplierDenominator,
+      nightEnabled: nightEnabled ?? this.nightEnabled,
+      nightStartMinute: nightStartMinute ?? this.nightStartMinute,
+      nightEndMinute: nightEndMinute ?? this.nightEndMinute,
+      nightMultiplierNumerator:
+          nightMultiplierNumerator ?? this.nightMultiplierNumerator,
+      nightMultiplierDenominator:
+          nightMultiplierDenominator ?? this.nightMultiplierDenominator,
+      holidayCalendar: holidayCalendar ?? this.holidayCalendar,
+      holidayMultiplierNumerator:
+          holidayMultiplierNumerator ?? this.holidayMultiplierNumerator,
+      holidayMultiplierDenominator:
+          holidayMultiplierDenominator ?? this.holidayMultiplierDenominator,
+      premiumStacking: premiumStacking ?? this.premiumStacking,
       label: label ?? this.label,
       note: note ?? this.note,
       createdAtUtcMicros: createdAtUtcMicros ?? this.createdAtUtcMicros,
@@ -1663,6 +2162,41 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
         overtimeMultiplierDenominator.value,
       );
     }
+    if (nightEnabled.present) {
+      map['night_enabled'] = Variable<bool>(nightEnabled.value);
+    }
+    if (nightStartMinute.present) {
+      map['night_start_minute'] = Variable<int>(nightStartMinute.value);
+    }
+    if (nightEndMinute.present) {
+      map['night_end_minute'] = Variable<int>(nightEndMinute.value);
+    }
+    if (nightMultiplierNumerator.present) {
+      map['night_multiplier_numerator'] = Variable<int>(
+        nightMultiplierNumerator.value,
+      );
+    }
+    if (nightMultiplierDenominator.present) {
+      map['night_multiplier_denominator'] = Variable<int>(
+        nightMultiplierDenominator.value,
+      );
+    }
+    if (holidayCalendar.present) {
+      map['holiday_calendar'] = Variable<String>(holidayCalendar.value);
+    }
+    if (holidayMultiplierNumerator.present) {
+      map['holiday_multiplier_numerator'] = Variable<int>(
+        holidayMultiplierNumerator.value,
+      );
+    }
+    if (holidayMultiplierDenominator.present) {
+      map['holiday_multiplier_denominator'] = Variable<int>(
+        holidayMultiplierDenominator.value,
+      );
+    }
+    if (premiumStacking.present) {
+      map['premium_stacking'] = Variable<String>(premiumStacking.value);
+    }
     if (label.present) {
       map['label'] = Variable<String>(label.value);
     }
@@ -1696,6 +2230,17 @@ class PayAgreementsCompanion extends UpdateCompanion<PayAgreement> {
           ..write(
             'overtimeMultiplierDenominator: $overtimeMultiplierDenominator, ',
           )
+          ..write('nightEnabled: $nightEnabled, ')
+          ..write('nightStartMinute: $nightStartMinute, ')
+          ..write('nightEndMinute: $nightEndMinute, ')
+          ..write('nightMultiplierNumerator: $nightMultiplierNumerator, ')
+          ..write('nightMultiplierDenominator: $nightMultiplierDenominator, ')
+          ..write('holidayCalendar: $holidayCalendar, ')
+          ..write('holidayMultiplierNumerator: $holidayMultiplierNumerator, ')
+          ..write(
+            'holidayMultiplierDenominator: $holidayMultiplierDenominator, ',
+          )
+          ..write('premiumStacking: $premiumStacking, ')
           ..write('label: $label, ')
           ..write('note: $note, ')
           ..write('createdAtUtcMicros: $createdAtUtcMicros, ')
@@ -1802,18 +2347,6 @@ class $WorkShiftsTable extends WorkShifts
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _overtimeMinutesMeta = const VerificationMeta(
-    'overtimeMinutes',
-  );
-  @override
-  late final GeneratedColumn<int> overtimeMinutes = GeneratedColumn<int>(
-    'overtime_minutes',
-    aliasedName,
-    false,
-    check: () => const CustomExpression<bool>('overtime_minutes >= 0'),
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _noteMeta = const VerificationMeta('note');
   @override
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
@@ -1904,7 +2437,6 @@ class $WorkShiftsTable extends WorkShifts
     endUtcMicros,
     timezoneId,
     localStartDate,
-    overtimeMinutes,
     note,
     voidReason,
     replacementShiftId,
@@ -1996,17 +2528,6 @@ class $WorkShiftsTable extends WorkShifts
       );
     } else if (isInserting) {
       context.missing(_localStartDateMeta);
-    }
-    if (data.containsKey('overtime_minutes')) {
-      context.handle(
-        _overtimeMinutesMeta,
-        overtimeMinutes.isAcceptableOrUnknown(
-          data['overtime_minutes']!,
-          _overtimeMinutesMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_overtimeMinutesMeta);
     }
     if (data.containsKey('note')) {
       context.handle(
@@ -2109,10 +2630,6 @@ class $WorkShiftsTable extends WorkShifts
         DriftSqlType.string,
         data['${effectivePrefix}local_start_date'],
       )!,
-      overtimeMinutes: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}overtime_minutes'],
-      )!,
       note: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}note'],
@@ -2159,7 +2676,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
   final int? endUtcMicros;
   final String timezoneId;
   final String localStartDate;
-  final int overtimeMinutes;
   final String? note;
   final String? voidReason;
   final String? replacementShiftId;
@@ -2176,7 +2692,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
     this.endUtcMicros,
     required this.timezoneId,
     required this.localStartDate,
-    required this.overtimeMinutes,
     this.note,
     this.voidReason,
     this.replacementShiftId,
@@ -2200,7 +2715,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
     }
     map['timezone_id'] = Variable<String>(timezoneId);
     map['local_start_date'] = Variable<String>(localStartDate);
-    map['overtime_minutes'] = Variable<int>(overtimeMinutes);
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
@@ -2233,7 +2747,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
           : Value(endUtcMicros),
       timezoneId: Value(timezoneId),
       localStartDate: Value(localStartDate),
-      overtimeMinutes: Value(overtimeMinutes),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       voidReason: voidReason == null && nullToAbsent
           ? const Value.absent()
@@ -2264,7 +2777,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
       endUtcMicros: serializer.fromJson<int?>(json['endUtcMicros']),
       timezoneId: serializer.fromJson<String>(json['timezoneId']),
       localStartDate: serializer.fromJson<String>(json['localStartDate']),
-      overtimeMinutes: serializer.fromJson<int>(json['overtimeMinutes']),
       note: serializer.fromJson<String?>(json['note']),
       voidReason: serializer.fromJson<String?>(json['voidReason']),
       replacementShiftId: serializer.fromJson<String?>(
@@ -2288,7 +2800,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
       'endUtcMicros': serializer.toJson<int?>(endUtcMicros),
       'timezoneId': serializer.toJson<String>(timezoneId),
       'localStartDate': serializer.toJson<String>(localStartDate),
-      'overtimeMinutes': serializer.toJson<int>(overtimeMinutes),
       'note': serializer.toJson<String?>(note),
       'voidReason': serializer.toJson<String?>(voidReason),
       'replacementShiftId': serializer.toJson<String?>(replacementShiftId),
@@ -2308,7 +2819,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
     Value<int?> endUtcMicros = const Value.absent(),
     String? timezoneId,
     String? localStartDate,
-    int? overtimeMinutes,
     Value<String?> note = const Value.absent(),
     Value<String?> voidReason = const Value.absent(),
     Value<String?> replacementShiftId = const Value.absent(),
@@ -2325,7 +2835,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
     endUtcMicros: endUtcMicros.present ? endUtcMicros.value : this.endUtcMicros,
     timezoneId: timezoneId ?? this.timezoneId,
     localStartDate: localStartDate ?? this.localStartDate,
-    overtimeMinutes: overtimeMinutes ?? this.overtimeMinutes,
     note: note.present ? note.value : this.note,
     voidReason: voidReason.present ? voidReason.value : this.voidReason,
     replacementShiftId: replacementShiftId.present
@@ -2360,9 +2869,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
       localStartDate: data.localStartDate.present
           ? data.localStartDate.value
           : this.localStartDate,
-      overtimeMinutes: data.overtimeMinutes.present
-          ? data.overtimeMinutes.value
-          : this.overtimeMinutes,
       note: data.note.present ? data.note.value : this.note,
       voidReason: data.voidReason.present
           ? data.voidReason.value
@@ -2394,7 +2900,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
           ..write('endUtcMicros: $endUtcMicros, ')
           ..write('timezoneId: $timezoneId, ')
           ..write('localStartDate: $localStartDate, ')
-          ..write('overtimeMinutes: $overtimeMinutes, ')
           ..write('note: $note, ')
           ..write('voidReason: $voidReason, ')
           ..write('replacementShiftId: $replacementShiftId, ')
@@ -2416,7 +2921,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
     endUtcMicros,
     timezoneId,
     localStartDate,
-    overtimeMinutes,
     note,
     voidReason,
     replacementShiftId,
@@ -2437,7 +2941,6 @@ class WorkShift extends DataClass implements Insertable<WorkShift> {
           other.endUtcMicros == this.endUtcMicros &&
           other.timezoneId == this.timezoneId &&
           other.localStartDate == this.localStartDate &&
-          other.overtimeMinutes == this.overtimeMinutes &&
           other.note == this.note &&
           other.voidReason == this.voidReason &&
           other.replacementShiftId == this.replacementShiftId &&
@@ -2456,7 +2959,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
   final Value<int?> endUtcMicros;
   final Value<String> timezoneId;
   final Value<String> localStartDate;
-  final Value<int> overtimeMinutes;
   final Value<String?> note;
   final Value<String?> voidReason;
   final Value<String?> replacementShiftId;
@@ -2474,7 +2976,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
     this.endUtcMicros = const Value.absent(),
     this.timezoneId = const Value.absent(),
     this.localStartDate = const Value.absent(),
-    this.overtimeMinutes = const Value.absent(),
     this.note = const Value.absent(),
     this.voidReason = const Value.absent(),
     this.replacementShiftId = const Value.absent(),
@@ -2493,7 +2994,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
     this.endUtcMicros = const Value.absent(),
     required String timezoneId,
     required String localStartDate,
-    required int overtimeMinutes,
     this.note = const Value.absent(),
     this.voidReason = const Value.absent(),
     this.replacementShiftId = const Value.absent(),
@@ -2508,7 +3008,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
        startUtcMicros = Value(startUtcMicros),
        timezoneId = Value(timezoneId),
        localStartDate = Value(localStartDate),
-       overtimeMinutes = Value(overtimeMinutes),
        createdAtUtcMicros = Value(createdAtUtcMicros),
        updatedAtUtcMicros = Value(updatedAtUtcMicros),
        revision = Value(revision);
@@ -2521,7 +3020,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
     Expression<int>? endUtcMicros,
     Expression<String>? timezoneId,
     Expression<String>? localStartDate,
-    Expression<int>? overtimeMinutes,
     Expression<String>? note,
     Expression<String>? voidReason,
     Expression<String>? replacementShiftId,
@@ -2540,7 +3038,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
       if (endUtcMicros != null) 'end_utc_micros': endUtcMicros,
       if (timezoneId != null) 'timezone_id': timezoneId,
       if (localStartDate != null) 'local_start_date': localStartDate,
-      if (overtimeMinutes != null) 'overtime_minutes': overtimeMinutes,
       if (note != null) 'note': note,
       if (voidReason != null) 'void_reason': voidReason,
       if (replacementShiftId != null)
@@ -2564,7 +3061,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
     Value<int?>? endUtcMicros,
     Value<String>? timezoneId,
     Value<String>? localStartDate,
-    Value<int>? overtimeMinutes,
     Value<String?>? note,
     Value<String?>? voidReason,
     Value<String?>? replacementShiftId,
@@ -2583,7 +3079,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
       endUtcMicros: endUtcMicros ?? this.endUtcMicros,
       timezoneId: timezoneId ?? this.timezoneId,
       localStartDate: localStartDate ?? this.localStartDate,
-      overtimeMinutes: overtimeMinutes ?? this.overtimeMinutes,
       note: note ?? this.note,
       voidReason: voidReason ?? this.voidReason,
       replacementShiftId: replacementShiftId ?? this.replacementShiftId,
@@ -2621,9 +3116,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
     }
     if (localStartDate.present) {
       map['local_start_date'] = Variable<String>(localStartDate.value);
-    }
-    if (overtimeMinutes.present) {
-      map['overtime_minutes'] = Variable<int>(overtimeMinutes.value);
     }
     if (note.present) {
       map['note'] = Variable<String>(note.value);
@@ -2663,7 +3155,6 @@ class WorkShiftsCompanion extends UpdateCompanion<WorkShift> {
           ..write('endUtcMicros: $endUtcMicros, ')
           ..write('timezoneId: $timezoneId, ')
           ..write('localStartDate: $localStartDate, ')
-          ..write('overtimeMinutes: $overtimeMinutes, ')
           ..write('note: $note, ')
           ..write('voidReason: $voidReason, ')
           ..write('replacementShiftId: $replacementShiftId, ')
@@ -4862,6 +5353,2042 @@ class PayslipsCompanion extends UpdateCompanion<Payslip> {
   }
 }
 
+class $RecordEventsTable extends RecordEvents
+    with TableInfo<$RecordEventsTable, RecordEventRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecordEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _recordKindMeta = const VerificationMeta(
+    'recordKind',
+  );
+  @override
+  late final GeneratedColumn<String> recordKind = GeneratedColumn<String>(
+    'record_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _atUtcMicrosMeta = const VerificationMeta(
+    'atUtcMicros',
+  );
+  @override
+  late final GeneratedColumn<int> atUtcMicros = GeneratedColumn<int>(
+    'at_utc_micros',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>(
+      "kind IN ('created', 'changed', 'finalized', 'voided', 'replaced', "
+      "'reviewed')",
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _changesJsonMeta = const VerificationMeta(
+    'changesJson',
+  );
+  @override
+  late final GeneratedColumn<String> changesJson = GeneratedColumn<String>(
+    'changes_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _revisionAfterMeta = const VerificationMeta(
+    'revisionAfter',
+  );
+  @override
+  late final GeneratedColumn<int> revisionAfter = GeneratedColumn<int>(
+    'revision_after',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>('revision_after >= 0'),
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    recordKind,
+    recordId,
+    atUtcMicros,
+    kind,
+    changesJson,
+    reason,
+    revisionAfter,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'record_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RecordEventRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('record_kind')) {
+      context.handle(
+        _recordKindMeta,
+        recordKind.isAcceptableOrUnknown(data['record_kind']!, _recordKindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordKindMeta);
+    }
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('at_utc_micros')) {
+      context.handle(
+        _atUtcMicrosMeta,
+        atUtcMicros.isAcceptableOrUnknown(
+          data['at_utc_micros']!,
+          _atUtcMicrosMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_atUtcMicrosMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('changes_json')) {
+      context.handle(
+        _changesJsonMeta,
+        changesJson.isAcceptableOrUnknown(
+          data['changes_json']!,
+          _changesJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_changesJsonMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    }
+    if (data.containsKey('revision_after')) {
+      context.handle(
+        _revisionAfterMeta,
+        revisionAfter.isAcceptableOrUnknown(
+          data['revision_after']!,
+          _revisionAfterMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_revisionAfterMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RecordEventRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecordEventRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      recordKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_kind'],
+      )!,
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      atUtcMicros: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}at_utc_micros'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      changesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}changes_json'],
+      )!,
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      ),
+      revisionAfter: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision_after'],
+      )!,
+    );
+  }
+
+  @override
+  $RecordEventsTable createAlias(String alias) {
+    return $RecordEventsTable(attachedDatabase, alias);
+  }
+}
+
+class RecordEventRow extends DataClass implements Insertable<RecordEventRow> {
+  final int id;
+  final String recordKind;
+  final String recordId;
+  final int atUtcMicros;
+  final String kind;
+  final String changesJson;
+  final String? reason;
+  final int revisionAfter;
+  const RecordEventRow({
+    required this.id,
+    required this.recordKind,
+    required this.recordId,
+    required this.atUtcMicros,
+    required this.kind,
+    required this.changesJson,
+    this.reason,
+    required this.revisionAfter,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['record_kind'] = Variable<String>(recordKind);
+    map['record_id'] = Variable<String>(recordId);
+    map['at_utc_micros'] = Variable<int>(atUtcMicros);
+    map['kind'] = Variable<String>(kind);
+    map['changes_json'] = Variable<String>(changesJson);
+    if (!nullToAbsent || reason != null) {
+      map['reason'] = Variable<String>(reason);
+    }
+    map['revision_after'] = Variable<int>(revisionAfter);
+    return map;
+  }
+
+  RecordEventsCompanion toCompanion(bool nullToAbsent) {
+    return RecordEventsCompanion(
+      id: Value(id),
+      recordKind: Value(recordKind),
+      recordId: Value(recordId),
+      atUtcMicros: Value(atUtcMicros),
+      kind: Value(kind),
+      changesJson: Value(changesJson),
+      reason: reason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reason),
+      revisionAfter: Value(revisionAfter),
+    );
+  }
+
+  factory RecordEventRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecordEventRow(
+      id: serializer.fromJson<int>(json['id']),
+      recordKind: serializer.fromJson<String>(json['recordKind']),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      atUtcMicros: serializer.fromJson<int>(json['atUtcMicros']),
+      kind: serializer.fromJson<String>(json['kind']),
+      changesJson: serializer.fromJson<String>(json['changesJson']),
+      reason: serializer.fromJson<String?>(json['reason']),
+      revisionAfter: serializer.fromJson<int>(json['revisionAfter']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'recordKind': serializer.toJson<String>(recordKind),
+      'recordId': serializer.toJson<String>(recordId),
+      'atUtcMicros': serializer.toJson<int>(atUtcMicros),
+      'kind': serializer.toJson<String>(kind),
+      'changesJson': serializer.toJson<String>(changesJson),
+      'reason': serializer.toJson<String?>(reason),
+      'revisionAfter': serializer.toJson<int>(revisionAfter),
+    };
+  }
+
+  RecordEventRow copyWith({
+    int? id,
+    String? recordKind,
+    String? recordId,
+    int? atUtcMicros,
+    String? kind,
+    String? changesJson,
+    Value<String?> reason = const Value.absent(),
+    int? revisionAfter,
+  }) => RecordEventRow(
+    id: id ?? this.id,
+    recordKind: recordKind ?? this.recordKind,
+    recordId: recordId ?? this.recordId,
+    atUtcMicros: atUtcMicros ?? this.atUtcMicros,
+    kind: kind ?? this.kind,
+    changesJson: changesJson ?? this.changesJson,
+    reason: reason.present ? reason.value : this.reason,
+    revisionAfter: revisionAfter ?? this.revisionAfter,
+  );
+  RecordEventRow copyWithCompanion(RecordEventsCompanion data) {
+    return RecordEventRow(
+      id: data.id.present ? data.id.value : this.id,
+      recordKind: data.recordKind.present
+          ? data.recordKind.value
+          : this.recordKind,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      atUtcMicros: data.atUtcMicros.present
+          ? data.atUtcMicros.value
+          : this.atUtcMicros,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      changesJson: data.changesJson.present
+          ? data.changesJson.value
+          : this.changesJson,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      revisionAfter: data.revisionAfter.present
+          ? data.revisionAfter.value
+          : this.revisionAfter,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordEventRow(')
+          ..write('id: $id, ')
+          ..write('recordKind: $recordKind, ')
+          ..write('recordId: $recordId, ')
+          ..write('atUtcMicros: $atUtcMicros, ')
+          ..write('kind: $kind, ')
+          ..write('changesJson: $changesJson, ')
+          ..write('reason: $reason, ')
+          ..write('revisionAfter: $revisionAfter')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    recordKind,
+    recordId,
+    atUtcMicros,
+    kind,
+    changesJson,
+    reason,
+    revisionAfter,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecordEventRow &&
+          other.id == this.id &&
+          other.recordKind == this.recordKind &&
+          other.recordId == this.recordId &&
+          other.atUtcMicros == this.atUtcMicros &&
+          other.kind == this.kind &&
+          other.changesJson == this.changesJson &&
+          other.reason == this.reason &&
+          other.revisionAfter == this.revisionAfter);
+}
+
+class RecordEventsCompanion extends UpdateCompanion<RecordEventRow> {
+  final Value<int> id;
+  final Value<String> recordKind;
+  final Value<String> recordId;
+  final Value<int> atUtcMicros;
+  final Value<String> kind;
+  final Value<String> changesJson;
+  final Value<String?> reason;
+  final Value<int> revisionAfter;
+  const RecordEventsCompanion({
+    this.id = const Value.absent(),
+    this.recordKind = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.atUtcMicros = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.changesJson = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.revisionAfter = const Value.absent(),
+  });
+  RecordEventsCompanion.insert({
+    this.id = const Value.absent(),
+    required String recordKind,
+    required String recordId,
+    required int atUtcMicros,
+    required String kind,
+    required String changesJson,
+    this.reason = const Value.absent(),
+    required int revisionAfter,
+  }) : recordKind = Value(recordKind),
+       recordId = Value(recordId),
+       atUtcMicros = Value(atUtcMicros),
+       kind = Value(kind),
+       changesJson = Value(changesJson),
+       revisionAfter = Value(revisionAfter);
+  static Insertable<RecordEventRow> custom({
+    Expression<int>? id,
+    Expression<String>? recordKind,
+    Expression<String>? recordId,
+    Expression<int>? atUtcMicros,
+    Expression<String>? kind,
+    Expression<String>? changesJson,
+    Expression<String>? reason,
+    Expression<int>? revisionAfter,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (recordKind != null) 'record_kind': recordKind,
+      if (recordId != null) 'record_id': recordId,
+      if (atUtcMicros != null) 'at_utc_micros': atUtcMicros,
+      if (kind != null) 'kind': kind,
+      if (changesJson != null) 'changes_json': changesJson,
+      if (reason != null) 'reason': reason,
+      if (revisionAfter != null) 'revision_after': revisionAfter,
+    });
+  }
+
+  RecordEventsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? recordKind,
+    Value<String>? recordId,
+    Value<int>? atUtcMicros,
+    Value<String>? kind,
+    Value<String>? changesJson,
+    Value<String?>? reason,
+    Value<int>? revisionAfter,
+  }) {
+    return RecordEventsCompanion(
+      id: id ?? this.id,
+      recordKind: recordKind ?? this.recordKind,
+      recordId: recordId ?? this.recordId,
+      atUtcMicros: atUtcMicros ?? this.atUtcMicros,
+      kind: kind ?? this.kind,
+      changesJson: changesJson ?? this.changesJson,
+      reason: reason ?? this.reason,
+      revisionAfter: revisionAfter ?? this.revisionAfter,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (recordKind.present) {
+      map['record_kind'] = Variable<String>(recordKind.value);
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (atUtcMicros.present) {
+      map['at_utc_micros'] = Variable<int>(atUtcMicros.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (changesJson.present) {
+      map['changes_json'] = Variable<String>(changesJson.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (revisionAfter.present) {
+      map['revision_after'] = Variable<int>(revisionAfter.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('recordKind: $recordKind, ')
+          ..write('recordId: $recordId, ')
+          ..write('atUtcMicros: $atUtcMicros, ')
+          ..write('kind: $kind, ')
+          ..write('changesJson: $changesJson, ')
+          ..write('reason: $reason, ')
+          ..write('revisionAfter: $revisionAfter')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DesksTable extends Desks with TableInfo<$DesksTable, DeskRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DesksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _starterKeyMeta = const VerificationMeta(
+    'starterKey',
+  );
+  @override
+  late final GeneratedColumn<String> starterKey = GeneratedColumn<String>(
+    'starter_key',
+    aliasedName,
+    true,
+    check: () => const CustomExpression<bool>(
+      'starter_key IS NULL OR starter_key IN '
+      "('today', 'weeklyReview', 'monthClose')",
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _layoutMeta = const VerificationMeta('layout');
+  @override
+  late final GeneratedColumn<String> layout = GeneratedColumn<String>(
+    'layout',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>(
+      "layout IN ('single', 'twoColumns', 'mainAndSide')",
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>('revision >= 0'),
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    starterKey,
+    layout,
+    position,
+    revision,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'desks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DeskRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('starter_key')) {
+      context.handle(
+        _starterKeyMeta,
+        starterKey.isAcceptableOrUnknown(data['starter_key']!, _starterKeyMeta),
+      );
+    }
+    if (data.containsKey('layout')) {
+      context.handle(
+        _layoutMeta,
+        layout.isAcceptableOrUnknown(data['layout']!, _layoutMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_layoutMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_revisionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DeskRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DeskRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      starterKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}starter_key'],
+      ),
+      layout: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}layout'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+    );
+  }
+
+  @override
+  $DesksTable createAlias(String alias) {
+    return $DesksTable(attachedDatabase, alias);
+  }
+}
+
+class DeskRow extends DataClass implements Insertable<DeskRow> {
+  final String id;
+  final String name;
+  final String? starterKey;
+  final String layout;
+  final int position;
+  final int revision;
+  const DeskRow({
+    required this.id,
+    required this.name,
+    this.starterKey,
+    required this.layout,
+    required this.position,
+    required this.revision,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || starterKey != null) {
+      map['starter_key'] = Variable<String>(starterKey);
+    }
+    map['layout'] = Variable<String>(layout);
+    map['position'] = Variable<int>(position);
+    map['revision'] = Variable<int>(revision);
+    return map;
+  }
+
+  DesksCompanion toCompanion(bool nullToAbsent) {
+    return DesksCompanion(
+      id: Value(id),
+      name: Value(name),
+      starterKey: starterKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(starterKey),
+      layout: Value(layout),
+      position: Value(position),
+      revision: Value(revision),
+    );
+  }
+
+  factory DeskRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DeskRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      starterKey: serializer.fromJson<String?>(json['starterKey']),
+      layout: serializer.fromJson<String>(json['layout']),
+      position: serializer.fromJson<int>(json['position']),
+      revision: serializer.fromJson<int>(json['revision']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'starterKey': serializer.toJson<String?>(starterKey),
+      'layout': serializer.toJson<String>(layout),
+      'position': serializer.toJson<int>(position),
+      'revision': serializer.toJson<int>(revision),
+    };
+  }
+
+  DeskRow copyWith({
+    String? id,
+    String? name,
+    Value<String?> starterKey = const Value.absent(),
+    String? layout,
+    int? position,
+    int? revision,
+  }) => DeskRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    starterKey: starterKey.present ? starterKey.value : this.starterKey,
+    layout: layout ?? this.layout,
+    position: position ?? this.position,
+    revision: revision ?? this.revision,
+  );
+  DeskRow copyWithCompanion(DesksCompanion data) {
+    return DeskRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      starterKey: data.starterKey.present
+          ? data.starterKey.value
+          : this.starterKey,
+      layout: data.layout.present ? data.layout.value : this.layout,
+      position: data.position.present ? data.position.value : this.position,
+      revision: data.revision.present ? data.revision.value : this.revision,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeskRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('starterKey: $starterKey, ')
+          ..write('layout: $layout, ')
+          ..write('position: $position, ')
+          ..write('revision: $revision')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, name, starterKey, layout, position, revision);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeskRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.starterKey == this.starterKey &&
+          other.layout == this.layout &&
+          other.position == this.position &&
+          other.revision == this.revision);
+}
+
+class DesksCompanion extends UpdateCompanion<DeskRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String?> starterKey;
+  final Value<String> layout;
+  final Value<int> position;
+  final Value<int> revision;
+  final Value<int> rowid;
+  const DesksCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.starterKey = const Value.absent(),
+    this.layout = const Value.absent(),
+    this.position = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DesksCompanion.insert({
+    required String id,
+    required String name,
+    this.starterKey = const Value.absent(),
+    required String layout,
+    required int position,
+    required int revision,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       layout = Value(layout),
+       position = Value(position),
+       revision = Value(revision);
+  static Insertable<DeskRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? starterKey,
+    Expression<String>? layout,
+    Expression<int>? position,
+    Expression<int>? revision,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (starterKey != null) 'starter_key': starterKey,
+      if (layout != null) 'layout': layout,
+      if (position != null) 'position': position,
+      if (revision != null) 'revision': revision,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DesksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String?>? starterKey,
+    Value<String>? layout,
+    Value<int>? position,
+    Value<int>? revision,
+    Value<int>? rowid,
+  }) {
+    return DesksCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      starterKey: starterKey ?? this.starterKey,
+      layout: layout ?? this.layout,
+      position: position ?? this.position,
+      revision: revision ?? this.revision,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (starterKey.present) {
+      map['starter_key'] = Variable<String>(starterKey.value);
+    }
+    if (layout.present) {
+      map['layout'] = Variable<String>(layout.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DesksCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('starterKey: $starterKey, ')
+          ..write('layout: $layout, ')
+          ..write('position: $position, ')
+          ..write('revision: $revision, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SavedViewsTable extends SavedViews
+    with TableInfo<$SavedViewsTable, SavedViewRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SavedViewsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sheetRefMeta = const VerificationMeta(
+    'sheetRef',
+  );
+  @override
+  late final GeneratedColumn<String> sheetRef = GeneratedColumn<String>(
+    'sheet_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _filtersJsonMeta = const VerificationMeta(
+    'filtersJson',
+  );
+  @override
+  late final GeneratedColumn<String> filtersJson = GeneratedColumn<String>(
+    'filters_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortJsonMeta = const VerificationMeta(
+    'sortJson',
+  );
+  @override
+  late final GeneratedColumn<String> sortJson = GeneratedColumn<String>(
+    'sort_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _columnsJsonMeta = const VerificationMeta(
+    'columnsJson',
+  );
+  @override
+  late final GeneratedColumn<String> columnsJson = GeneratedColumn<String>(
+    'columns_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>('revision >= 0'),
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    sheetRef,
+    filtersJson,
+    sortJson,
+    columnsJson,
+    position,
+    revision,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'saved_views';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SavedViewRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('sheet_ref')) {
+      context.handle(
+        _sheetRefMeta,
+        sheetRef.isAcceptableOrUnknown(data['sheet_ref']!, _sheetRefMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sheetRefMeta);
+    }
+    if (data.containsKey('filters_json')) {
+      context.handle(
+        _filtersJsonMeta,
+        filtersJson.isAcceptableOrUnknown(
+          data['filters_json']!,
+          _filtersJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_filtersJsonMeta);
+    }
+    if (data.containsKey('sort_json')) {
+      context.handle(
+        _sortJsonMeta,
+        sortJson.isAcceptableOrUnknown(data['sort_json']!, _sortJsonMeta),
+      );
+    }
+    if (data.containsKey('columns_json')) {
+      context.handle(
+        _columnsJsonMeta,
+        columnsJson.isAcceptableOrUnknown(
+          data['columns_json']!,
+          _columnsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_revisionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SavedViewRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SavedViewRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      sheetRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sheet_ref'],
+      )!,
+      filtersJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}filters_json'],
+      )!,
+      sortJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sort_json'],
+      ),
+      columnsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}columns_json'],
+      ),
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+    );
+  }
+
+  @override
+  $SavedViewsTable createAlias(String alias) {
+    return $SavedViewsTable(attachedDatabase, alias);
+  }
+}
+
+class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
+  final String id;
+  final String name;
+  final String sheetRef;
+  final String filtersJson;
+  final String? sortJson;
+  final String? columnsJson;
+  final int position;
+  final int revision;
+  const SavedViewRow({
+    required this.id,
+    required this.name,
+    required this.sheetRef,
+    required this.filtersJson,
+    this.sortJson,
+    this.columnsJson,
+    required this.position,
+    required this.revision,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['sheet_ref'] = Variable<String>(sheetRef);
+    map['filters_json'] = Variable<String>(filtersJson);
+    if (!nullToAbsent || sortJson != null) {
+      map['sort_json'] = Variable<String>(sortJson);
+    }
+    if (!nullToAbsent || columnsJson != null) {
+      map['columns_json'] = Variable<String>(columnsJson);
+    }
+    map['position'] = Variable<int>(position);
+    map['revision'] = Variable<int>(revision);
+    return map;
+  }
+
+  SavedViewsCompanion toCompanion(bool nullToAbsent) {
+    return SavedViewsCompanion(
+      id: Value(id),
+      name: Value(name),
+      sheetRef: Value(sheetRef),
+      filtersJson: Value(filtersJson),
+      sortJson: sortJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sortJson),
+      columnsJson: columnsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(columnsJson),
+      position: Value(position),
+      revision: Value(revision),
+    );
+  }
+
+  factory SavedViewRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SavedViewRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      sheetRef: serializer.fromJson<String>(json['sheetRef']),
+      filtersJson: serializer.fromJson<String>(json['filtersJson']),
+      sortJson: serializer.fromJson<String?>(json['sortJson']),
+      columnsJson: serializer.fromJson<String?>(json['columnsJson']),
+      position: serializer.fromJson<int>(json['position']),
+      revision: serializer.fromJson<int>(json['revision']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'sheetRef': serializer.toJson<String>(sheetRef),
+      'filtersJson': serializer.toJson<String>(filtersJson),
+      'sortJson': serializer.toJson<String?>(sortJson),
+      'columnsJson': serializer.toJson<String?>(columnsJson),
+      'position': serializer.toJson<int>(position),
+      'revision': serializer.toJson<int>(revision),
+    };
+  }
+
+  SavedViewRow copyWith({
+    String? id,
+    String? name,
+    String? sheetRef,
+    String? filtersJson,
+    Value<String?> sortJson = const Value.absent(),
+    Value<String?> columnsJson = const Value.absent(),
+    int? position,
+    int? revision,
+  }) => SavedViewRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    sheetRef: sheetRef ?? this.sheetRef,
+    filtersJson: filtersJson ?? this.filtersJson,
+    sortJson: sortJson.present ? sortJson.value : this.sortJson,
+    columnsJson: columnsJson.present ? columnsJson.value : this.columnsJson,
+    position: position ?? this.position,
+    revision: revision ?? this.revision,
+  );
+  SavedViewRow copyWithCompanion(SavedViewsCompanion data) {
+    return SavedViewRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      sheetRef: data.sheetRef.present ? data.sheetRef.value : this.sheetRef,
+      filtersJson: data.filtersJson.present
+          ? data.filtersJson.value
+          : this.filtersJson,
+      sortJson: data.sortJson.present ? data.sortJson.value : this.sortJson,
+      columnsJson: data.columnsJson.present
+          ? data.columnsJson.value
+          : this.columnsJson,
+      position: data.position.present ? data.position.value : this.position,
+      revision: data.revision.present ? data.revision.value : this.revision,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedViewRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('sheetRef: $sheetRef, ')
+          ..write('filtersJson: $filtersJson, ')
+          ..write('sortJson: $sortJson, ')
+          ..write('columnsJson: $columnsJson, ')
+          ..write('position: $position, ')
+          ..write('revision: $revision')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    sheetRef,
+    filtersJson,
+    sortJson,
+    columnsJson,
+    position,
+    revision,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SavedViewRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.sheetRef == this.sheetRef &&
+          other.filtersJson == this.filtersJson &&
+          other.sortJson == this.sortJson &&
+          other.columnsJson == this.columnsJson &&
+          other.position == this.position &&
+          other.revision == this.revision);
+}
+
+class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> sheetRef;
+  final Value<String> filtersJson;
+  final Value<String?> sortJson;
+  final Value<String?> columnsJson;
+  final Value<int> position;
+  final Value<int> revision;
+  final Value<int> rowid;
+  const SavedViewsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.sheetRef = const Value.absent(),
+    this.filtersJson = const Value.absent(),
+    this.sortJson = const Value.absent(),
+    this.columnsJson = const Value.absent(),
+    this.position = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SavedViewsCompanion.insert({
+    required String id,
+    required String name,
+    required String sheetRef,
+    required String filtersJson,
+    this.sortJson = const Value.absent(),
+    this.columnsJson = const Value.absent(),
+    required int position,
+    required int revision,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       sheetRef = Value(sheetRef),
+       filtersJson = Value(filtersJson),
+       position = Value(position),
+       revision = Value(revision);
+  static Insertable<SavedViewRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? sheetRef,
+    Expression<String>? filtersJson,
+    Expression<String>? sortJson,
+    Expression<String>? columnsJson,
+    Expression<int>? position,
+    Expression<int>? revision,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (sheetRef != null) 'sheet_ref': sheetRef,
+      if (filtersJson != null) 'filters_json': filtersJson,
+      if (sortJson != null) 'sort_json': sortJson,
+      if (columnsJson != null) 'columns_json': columnsJson,
+      if (position != null) 'position': position,
+      if (revision != null) 'revision': revision,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SavedViewsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? sheetRef,
+    Value<String>? filtersJson,
+    Value<String?>? sortJson,
+    Value<String?>? columnsJson,
+    Value<int>? position,
+    Value<int>? revision,
+    Value<int>? rowid,
+  }) {
+    return SavedViewsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      sheetRef: sheetRef ?? this.sheetRef,
+      filtersJson: filtersJson ?? this.filtersJson,
+      sortJson: sortJson ?? this.sortJson,
+      columnsJson: columnsJson ?? this.columnsJson,
+      position: position ?? this.position,
+      revision: revision ?? this.revision,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (sheetRef.present) {
+      map['sheet_ref'] = Variable<String>(sheetRef.value);
+    }
+    if (filtersJson.present) {
+      map['filters_json'] = Variable<String>(filtersJson.value);
+    }
+    if (sortJson.present) {
+      map['sort_json'] = Variable<String>(sortJson.value);
+    }
+    if (columnsJson.present) {
+      map['columns_json'] = Variable<String>(columnsJson.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedViewsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('sheetRef: $sheetRef, ')
+          ..write('filtersJson: $filtersJson, ')
+          ..write('sortJson: $sortJson, ')
+          ..write('columnsJson: $columnsJson, ')
+          ..write('position: $position, ')
+          ..write('revision: $revision, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DeskTilesTable extends DeskTiles
+    with TableInfo<$DeskTilesTable, DeskTileRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DeskTilesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deskIdMeta = const VerificationMeta('deskId');
+  @override
+  late final GeneratedColumn<String> deskId = GeneratedColumn<String>(
+    'desk_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES desks (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sheetRefMeta = const VerificationMeta(
+    'sheetRef',
+  );
+  @override
+  late final GeneratedColumn<String> sheetRef = GeneratedColumn<String>(
+    'sheet_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _viewIdMeta = const VerificationMeta('viewId');
+  @override
+  late final GeneratedColumn<String> viewId = GeneratedColumn<String>(
+    'view_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES saved_views (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    deskId,
+    position,
+    sheetRef,
+    viewId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'desk_tiles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DeskTileRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('desk_id')) {
+      context.handle(
+        _deskIdMeta,
+        deskId.isAcceptableOrUnknown(data['desk_id']!, _deskIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deskIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('sheet_ref')) {
+      context.handle(
+        _sheetRefMeta,
+        sheetRef.isAcceptableOrUnknown(data['sheet_ref']!, _sheetRefMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sheetRefMeta);
+    }
+    if (data.containsKey('view_id')) {
+      context.handle(
+        _viewIdMeta,
+        viewId.isAcceptableOrUnknown(data['view_id']!, _viewIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DeskTileRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DeskTileRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      deskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}desk_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      sheetRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sheet_ref'],
+      )!,
+      viewId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}view_id'],
+      ),
+    );
+  }
+
+  @override
+  $DeskTilesTable createAlias(String alias) {
+    return $DeskTilesTable(attachedDatabase, alias);
+  }
+}
+
+class DeskTileRow extends DataClass implements Insertable<DeskTileRow> {
+  final String id;
+  final String deskId;
+  final int position;
+
+  /// A stable sheet key such as `work.shifts.week`.
+  final String sheetRef;
+  final String? viewId;
+  const DeskTileRow({
+    required this.id,
+    required this.deskId,
+    required this.position,
+    required this.sheetRef,
+    this.viewId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['desk_id'] = Variable<String>(deskId);
+    map['position'] = Variable<int>(position);
+    map['sheet_ref'] = Variable<String>(sheetRef);
+    if (!nullToAbsent || viewId != null) {
+      map['view_id'] = Variable<String>(viewId);
+    }
+    return map;
+  }
+
+  DeskTilesCompanion toCompanion(bool nullToAbsent) {
+    return DeskTilesCompanion(
+      id: Value(id),
+      deskId: Value(deskId),
+      position: Value(position),
+      sheetRef: Value(sheetRef),
+      viewId: viewId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(viewId),
+    );
+  }
+
+  factory DeskTileRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DeskTileRow(
+      id: serializer.fromJson<String>(json['id']),
+      deskId: serializer.fromJson<String>(json['deskId']),
+      position: serializer.fromJson<int>(json['position']),
+      sheetRef: serializer.fromJson<String>(json['sheetRef']),
+      viewId: serializer.fromJson<String?>(json['viewId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'deskId': serializer.toJson<String>(deskId),
+      'position': serializer.toJson<int>(position),
+      'sheetRef': serializer.toJson<String>(sheetRef),
+      'viewId': serializer.toJson<String?>(viewId),
+    };
+  }
+
+  DeskTileRow copyWith({
+    String? id,
+    String? deskId,
+    int? position,
+    String? sheetRef,
+    Value<String?> viewId = const Value.absent(),
+  }) => DeskTileRow(
+    id: id ?? this.id,
+    deskId: deskId ?? this.deskId,
+    position: position ?? this.position,
+    sheetRef: sheetRef ?? this.sheetRef,
+    viewId: viewId.present ? viewId.value : this.viewId,
+  );
+  DeskTileRow copyWithCompanion(DeskTilesCompanion data) {
+    return DeskTileRow(
+      id: data.id.present ? data.id.value : this.id,
+      deskId: data.deskId.present ? data.deskId.value : this.deskId,
+      position: data.position.present ? data.position.value : this.position,
+      sheetRef: data.sheetRef.present ? data.sheetRef.value : this.sheetRef,
+      viewId: data.viewId.present ? data.viewId.value : this.viewId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeskTileRow(')
+          ..write('id: $id, ')
+          ..write('deskId: $deskId, ')
+          ..write('position: $position, ')
+          ..write('sheetRef: $sheetRef, ')
+          ..write('viewId: $viewId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, deskId, position, sheetRef, viewId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeskTileRow &&
+          other.id == this.id &&
+          other.deskId == this.deskId &&
+          other.position == this.position &&
+          other.sheetRef == this.sheetRef &&
+          other.viewId == this.viewId);
+}
+
+class DeskTilesCompanion extends UpdateCompanion<DeskTileRow> {
+  final Value<String> id;
+  final Value<String> deskId;
+  final Value<int> position;
+  final Value<String> sheetRef;
+  final Value<String?> viewId;
+  final Value<int> rowid;
+  const DeskTilesCompanion({
+    this.id = const Value.absent(),
+    this.deskId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.sheetRef = const Value.absent(),
+    this.viewId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DeskTilesCompanion.insert({
+    required String id,
+    required String deskId,
+    required int position,
+    required String sheetRef,
+    this.viewId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       deskId = Value(deskId),
+       position = Value(position),
+       sheetRef = Value(sheetRef);
+  static Insertable<DeskTileRow> custom({
+    Expression<String>? id,
+    Expression<String>? deskId,
+    Expression<int>? position,
+    Expression<String>? sheetRef,
+    Expression<String>? viewId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (deskId != null) 'desk_id': deskId,
+      if (position != null) 'position': position,
+      if (sheetRef != null) 'sheet_ref': sheetRef,
+      if (viewId != null) 'view_id': viewId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DeskTilesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? deskId,
+    Value<int>? position,
+    Value<String>? sheetRef,
+    Value<String?>? viewId,
+    Value<int>? rowid,
+  }) {
+    return DeskTilesCompanion(
+      id: id ?? this.id,
+      deskId: deskId ?? this.deskId,
+      position: position ?? this.position,
+      sheetRef: sheetRef ?? this.sheetRef,
+      viewId: viewId ?? this.viewId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (deskId.present) {
+      map['desk_id'] = Variable<String>(deskId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (sheetRef.present) {
+      map['sheet_ref'] = Variable<String>(sheetRef.value);
+    }
+    if (viewId.present) {
+      map['view_id'] = Variable<String>(viewId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeskTilesCompanion(')
+          ..write('id: $id, ')
+          ..write('deskId: $deskId, ')
+          ..write('position: $position, ')
+          ..write('sheetRef: $sheetRef, ')
+          ..write('viewId: $viewId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PreferencesTable extends Preferences
+    with TableInfo<$PreferencesTable, PreferenceRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PreferencesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>("key IN ('appearance')"),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'preferences';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PreferenceRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  PreferenceRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PreferenceRow(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $PreferencesTable createAlias(String alias) {
+    return $PreferencesTable(attachedDatabase, alias);
+  }
+}
+
+class PreferenceRow extends DataClass implements Insertable<PreferenceRow> {
+  final String key;
+  final String value;
+  const PreferenceRow({required this.key, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['value'] = Variable<String>(value);
+    return map;
+  }
+
+  PreferencesCompanion toCompanion(bool nullToAbsent) {
+    return PreferencesCompanion(key: Value(key), value: Value(value));
+  }
+
+  factory PreferenceRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PreferenceRow(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String>(value),
+    };
+  }
+
+  PreferenceRow copyWith({String? key, String? value}) =>
+      PreferenceRow(key: key ?? this.key, value: value ?? this.value);
+  PreferenceRow copyWithCompanion(PreferencesCompanion data) {
+    return PreferenceRow(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PreferenceRow(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PreferenceRow &&
+          other.key == this.key &&
+          other.value == this.value);
+}
+
+class PreferencesCompanion extends UpdateCompanion<PreferenceRow> {
+  final Value<String> key;
+  final Value<String> value;
+  final Value<int> rowid;
+  const PreferencesCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PreferencesCompanion.insert({
+    required String key,
+    required String value,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       value = Value(value);
+  static Insertable<PreferenceRow> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PreferencesCompanion copyWith({
+    Value<String>? key,
+    Value<String>? value,
+    Value<int>? rowid,
+  }) {
+    return PreferencesCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PreferencesCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4872,6 +7399,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ShiftBreaksTable shiftBreaks = $ShiftBreaksTable(this);
   late final $PayPeriodsTable payPeriods = $PayPeriodsTable(this);
   late final $PayslipsTable payslips = $PayslipsTable(this);
+  late final $RecordEventsTable recordEvents = $RecordEventsTable(this);
+  late final $DesksTable desks = $DesksTable(this);
+  late final $SavedViewsTable savedViews = $SavedViewsTable(this);
+  late final $DeskTilesTable deskTiles = $DeskTilesTable(this);
+  late final $PreferencesTable preferences = $PreferencesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4884,7 +7416,29 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     shiftBreaks,
     payPeriods,
     payslips,
+    recordEvents,
+    desks,
+    savedViews,
+    deskTiles,
+    preferences,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'desks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('desk_tiles', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'saved_views',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('desk_tiles', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$CoreMetadataTableCreateCompanionBuilder =
@@ -5631,6 +8185,15 @@ typedef $$PayAgreementsTableCreateCompanionBuilder =
       required int overtimeThresholdMinutes,
       required int overtimeMultiplierNumerator,
       required int overtimeMultiplierDenominator,
+      required bool nightEnabled,
+      required int nightStartMinute,
+      required int nightEndMinute,
+      required int nightMultiplierNumerator,
+      required int nightMultiplierDenominator,
+      required String holidayCalendar,
+      required int holidayMultiplierNumerator,
+      required int holidayMultiplierDenominator,
+      required String premiumStacking,
       Value<String?> label,
       Value<String?> note,
       required int createdAtUtcMicros,
@@ -5649,6 +8212,15 @@ typedef $$PayAgreementsTableUpdateCompanionBuilder =
       Value<int> overtimeThresholdMinutes,
       Value<int> overtimeMultiplierNumerator,
       Value<int> overtimeMultiplierDenominator,
+      Value<bool> nightEnabled,
+      Value<int> nightStartMinute,
+      Value<int> nightEndMinute,
+      Value<int> nightMultiplierNumerator,
+      Value<int> nightMultiplierDenominator,
+      Value<String> holidayCalendar,
+      Value<int> holidayMultiplierNumerator,
+      Value<int> holidayMultiplierDenominator,
+      Value<String> premiumStacking,
       Value<String?> label,
       Value<String?> note,
       Value<int> createdAtUtcMicros,
@@ -5752,6 +8324,51 @@ class $$PayAgreementsTableFilterComposer
 
   ColumnFilters<int> get overtimeMultiplierDenominator => $composableBuilder(
     column: $table.overtimeMultiplierDenominator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get nightEnabled => $composableBuilder(
+    column: $table.nightEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nightStartMinute => $composableBuilder(
+    column: $table.nightStartMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nightEndMinute => $composableBuilder(
+    column: $table.nightEndMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nightMultiplierNumerator => $composableBuilder(
+    column: $table.nightMultiplierNumerator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nightMultiplierDenominator => $composableBuilder(
+    column: $table.nightMultiplierDenominator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get holidayCalendar => $composableBuilder(
+    column: $table.holidayCalendar,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get holidayMultiplierNumerator => $composableBuilder(
+    column: $table.holidayMultiplierNumerator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get holidayMultiplierDenominator => $composableBuilder(
+    column: $table.holidayMultiplierDenominator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get premiumStacking => $composableBuilder(
+    column: $table.premiumStacking,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5878,6 +8495,51 @@ class $$PayAgreementsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get nightEnabled => $composableBuilder(
+    column: $table.nightEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get nightStartMinute => $composableBuilder(
+    column: $table.nightStartMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get nightEndMinute => $composableBuilder(
+    column: $table.nightEndMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get nightMultiplierNumerator => $composableBuilder(
+    column: $table.nightMultiplierNumerator,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get nightMultiplierDenominator => $composableBuilder(
+    column: $table.nightMultiplierDenominator,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get holidayCalendar => $composableBuilder(
+    column: $table.holidayCalendar,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get holidayMultiplierNumerator => $composableBuilder(
+    column: $table.holidayMultiplierNumerator,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get holidayMultiplierDenominator => $composableBuilder(
+    column: $table.holidayMultiplierDenominator,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get premiumStacking => $composableBuilder(
+    column: $table.premiumStacking,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get label => $composableBuilder(
     column: $table.label,
     builder: (column) => ColumnOrderings(column),
@@ -5967,6 +8629,51 @@ class $$PayAgreementsTableAnnotationComposer
 
   GeneratedColumn<int> get overtimeMultiplierDenominator => $composableBuilder(
     column: $table.overtimeMultiplierDenominator,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get nightEnabled => $composableBuilder(
+    column: $table.nightEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get nightStartMinute => $composableBuilder(
+    column: $table.nightStartMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get nightEndMinute => $composableBuilder(
+    column: $table.nightEndMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get nightMultiplierNumerator => $composableBuilder(
+    column: $table.nightMultiplierNumerator,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get nightMultiplierDenominator => $composableBuilder(
+    column: $table.nightMultiplierDenominator,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get holidayCalendar => $composableBuilder(
+    column: $table.holidayCalendar,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get holidayMultiplierNumerator => $composableBuilder(
+    column: $table.holidayMultiplierNumerator,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get holidayMultiplierDenominator => $composableBuilder(
+    column: $table.holidayMultiplierDenominator,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get premiumStacking => $composableBuilder(
+    column: $table.premiumStacking,
     builder: (column) => column,
   );
 
@@ -6071,6 +8778,15 @@ class $$PayAgreementsTableTableManager
                 Value<int> overtimeThresholdMinutes = const Value.absent(),
                 Value<int> overtimeMultiplierNumerator = const Value.absent(),
                 Value<int> overtimeMultiplierDenominator = const Value.absent(),
+                Value<bool> nightEnabled = const Value.absent(),
+                Value<int> nightStartMinute = const Value.absent(),
+                Value<int> nightEndMinute = const Value.absent(),
+                Value<int> nightMultiplierNumerator = const Value.absent(),
+                Value<int> nightMultiplierDenominator = const Value.absent(),
+                Value<String> holidayCalendar = const Value.absent(),
+                Value<int> holidayMultiplierNumerator = const Value.absent(),
+                Value<int> holidayMultiplierDenominator = const Value.absent(),
+                Value<String> premiumStacking = const Value.absent(),
                 Value<String?> label = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<int> createdAtUtcMicros = const Value.absent(),
@@ -6087,6 +8803,15 @@ class $$PayAgreementsTableTableManager
                 overtimeThresholdMinutes: overtimeThresholdMinutes,
                 overtimeMultiplierNumerator: overtimeMultiplierNumerator,
                 overtimeMultiplierDenominator: overtimeMultiplierDenominator,
+                nightEnabled: nightEnabled,
+                nightStartMinute: nightStartMinute,
+                nightEndMinute: nightEndMinute,
+                nightMultiplierNumerator: nightMultiplierNumerator,
+                nightMultiplierDenominator: nightMultiplierDenominator,
+                holidayCalendar: holidayCalendar,
+                holidayMultiplierNumerator: holidayMultiplierNumerator,
+                holidayMultiplierDenominator: holidayMultiplierDenominator,
+                premiumStacking: premiumStacking,
                 label: label,
                 note: note,
                 createdAtUtcMicros: createdAtUtcMicros,
@@ -6105,6 +8830,15 @@ class $$PayAgreementsTableTableManager
                 required int overtimeThresholdMinutes,
                 required int overtimeMultiplierNumerator,
                 required int overtimeMultiplierDenominator,
+                required bool nightEnabled,
+                required int nightStartMinute,
+                required int nightEndMinute,
+                required int nightMultiplierNumerator,
+                required int nightMultiplierDenominator,
+                required String holidayCalendar,
+                required int holidayMultiplierNumerator,
+                required int holidayMultiplierDenominator,
+                required String premiumStacking,
                 Value<String?> label = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 required int createdAtUtcMicros,
@@ -6121,6 +8855,15 @@ class $$PayAgreementsTableTableManager
                 overtimeThresholdMinutes: overtimeThresholdMinutes,
                 overtimeMultiplierNumerator: overtimeMultiplierNumerator,
                 overtimeMultiplierDenominator: overtimeMultiplierDenominator,
+                nightEnabled: nightEnabled,
+                nightStartMinute: nightStartMinute,
+                nightEndMinute: nightEndMinute,
+                nightMultiplierNumerator: nightMultiplierNumerator,
+                nightMultiplierDenominator: nightMultiplierDenominator,
+                holidayCalendar: holidayCalendar,
+                holidayMultiplierNumerator: holidayMultiplierNumerator,
+                holidayMultiplierDenominator: holidayMultiplierDenominator,
+                premiumStacking: premiumStacking,
                 label: label,
                 note: note,
                 createdAtUtcMicros: createdAtUtcMicros,
@@ -6224,7 +8967,6 @@ typedef $$WorkShiftsTableCreateCompanionBuilder = WorkShiftsCompanion Function({
   Value<int?> endUtcMicros,
   required String timezoneId,
   required String localStartDate,
-  required int overtimeMinutes,
   Value<String?> note,
   Value<String?> voidReason,
   Value<String?> replacementShiftId,
@@ -6243,7 +8985,6 @@ typedef $$WorkShiftsTableUpdateCompanionBuilder = WorkShiftsCompanion Function({
   Value<int?> endUtcMicros,
   Value<String> timezoneId,
   Value<String> localStartDate,
-  Value<int> overtimeMinutes,
   Value<String?> note,
   Value<String?> voidReason,
   Value<String?> replacementShiftId,
@@ -6384,11 +9125,6 @@ class $$WorkShiftsTableFilterComposer
 
   ColumnFilters<String> get localStartDate => $composableBuilder(
     column: $table.localStartDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get overtimeMinutes => $composableBuilder(
-    column: $table.overtimeMinutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6574,11 +9310,6 @@ class $$WorkShiftsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get overtimeMinutes => $composableBuilder(
-    column: $table.overtimeMinutes,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get note => $composableBuilder(
     column: $table.note,
     builder: (column) => ColumnOrderings(column),
@@ -6729,11 +9460,6 @@ class $$WorkShiftsTableAnnotationComposer
 
   GeneratedColumn<String> get localStartDate => $composableBuilder(
     column: $table.localStartDate,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get overtimeMinutes => $composableBuilder(
-    column: $table.overtimeMinutes,
     builder: (column) => column,
   );
 
@@ -6918,7 +9644,6 @@ class $$WorkShiftsTableTableManager
                 Value<int?> endUtcMicros = const Value.absent(),
                 Value<String> timezoneId = const Value.absent(),
                 Value<String> localStartDate = const Value.absent(),
-                Value<int> overtimeMinutes = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<String?> voidReason = const Value.absent(),
                 Value<String?> replacementShiftId = const Value.absent(),
@@ -6936,7 +9661,6 @@ class $$WorkShiftsTableTableManager
                 endUtcMicros: endUtcMicros,
                 timezoneId: timezoneId,
                 localStartDate: localStartDate,
-                overtimeMinutes: overtimeMinutes,
                 note: note,
                 voidReason: voidReason,
                 replacementShiftId: replacementShiftId,
@@ -6956,7 +9680,6 @@ class $$WorkShiftsTableTableManager
                 Value<int?> endUtcMicros = const Value.absent(),
                 required String timezoneId,
                 required String localStartDate,
-                required int overtimeMinutes,
                 Value<String?> note = const Value.absent(),
                 Value<String?> voidReason = const Value.absent(),
                 Value<String?> replacementShiftId = const Value.absent(),
@@ -6974,7 +9697,6 @@ class $$WorkShiftsTableTableManager
                 endUtcMicros: endUtcMicros,
                 timezoneId: timezoneId,
                 localStartDate: localStartDate,
-                overtimeMinutes: overtimeMinutes,
                 note: note,
                 voidReason: voidReason,
                 replacementShiftId: replacementShiftId,
@@ -8743,6 +11465,1493 @@ typedef $$PayslipsTableProcessedTableManager =
         bool replacedPayslipId,
       })
     >;
+typedef $$RecordEventsTableCreateCompanionBuilder =
+    RecordEventsCompanion Function({
+      Value<int> id,
+      required String recordKind,
+      required String recordId,
+      required int atUtcMicros,
+      required String kind,
+      required String changesJson,
+      Value<String?> reason,
+      required int revisionAfter,
+    });
+typedef $$RecordEventsTableUpdateCompanionBuilder =
+    RecordEventsCompanion Function({
+      Value<int> id,
+      Value<String> recordKind,
+      Value<String> recordId,
+      Value<int> atUtcMicros,
+      Value<String> kind,
+      Value<String> changesJson,
+      Value<String?> reason,
+      Value<int> revisionAfter,
+    });
+
+class $$RecordEventsTableFilterComposer
+    extends Composer<_$AppDatabase, $RecordEventsTable> {
+  $$RecordEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordKind => $composableBuilder(
+    column: $table.recordKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get atUtcMicros => $composableBuilder(
+    column: $table.atUtcMicros,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get changesJson => $composableBuilder(
+    column: $table.changesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get revisionAfter => $composableBuilder(
+    column: $table.revisionAfter,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RecordEventsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecordEventsTable> {
+  $$RecordEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordKind => $composableBuilder(
+    column: $table.recordKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get atUtcMicros => $composableBuilder(
+    column: $table.atUtcMicros,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get changesJson => $composableBuilder(
+    column: $table.changesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get revisionAfter => $composableBuilder(
+    column: $table.revisionAfter,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RecordEventsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecordEventsTable> {
+  $$RecordEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get recordKind => $composableBuilder(
+    column: $table.recordKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<int> get atUtcMicros => $composableBuilder(
+    column: $table.atUtcMicros,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get changesJson => $composableBuilder(
+    column: $table.changesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<int> get revisionAfter => $composableBuilder(
+    column: $table.revisionAfter,
+    builder: (column) => column,
+  );
+}
+
+class $$RecordEventsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RecordEventsTable,
+          RecordEventRow,
+          $$RecordEventsTableFilterComposer,
+          $$RecordEventsTableOrderingComposer,
+          $$RecordEventsTableAnnotationComposer,
+          $$RecordEventsTableCreateCompanionBuilder,
+          $$RecordEventsTableUpdateCompanionBuilder,
+          (
+            RecordEventRow,
+            BaseReferences<_$AppDatabase, $RecordEventsTable, RecordEventRow>,
+          ),
+          RecordEventRow,
+          PrefetchHooks Function()
+        > {
+  $$RecordEventsTableTableManager(_$AppDatabase db, $RecordEventsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecordEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecordEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecordEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> recordKind = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<int> atUtcMicros = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> changesJson = const Value.absent(),
+                Value<String?> reason = const Value.absent(),
+                Value<int> revisionAfter = const Value.absent(),
+              }) => RecordEventsCompanion(
+                id: id,
+                recordKind: recordKind,
+                recordId: recordId,
+                atUtcMicros: atUtcMicros,
+                kind: kind,
+                changesJson: changesJson,
+                reason: reason,
+                revisionAfter: revisionAfter,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String recordKind,
+                required String recordId,
+                required int atUtcMicros,
+                required String kind,
+                required String changesJson,
+                Value<String?> reason = const Value.absent(),
+                required int revisionAfter,
+              }) => RecordEventsCompanion.insert(
+                id: id,
+                recordKind: recordKind,
+                recordId: recordId,
+                atUtcMicros: atUtcMicros,
+                kind: kind,
+                changesJson: changesJson,
+                reason: reason,
+                revisionAfter: revisionAfter,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$RecordEventsTable, RecordEventRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $RecordEventsTable,
+                    RecordEventRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RecordEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RecordEventsTable,
+      RecordEventRow,
+      $$RecordEventsTableFilterComposer,
+      $$RecordEventsTableOrderingComposer,
+      $$RecordEventsTableAnnotationComposer,
+      $$RecordEventsTableCreateCompanionBuilder,
+      $$RecordEventsTableUpdateCompanionBuilder,
+      (
+        RecordEventRow,
+        BaseReferences<_$AppDatabase, $RecordEventsTable, RecordEventRow>,
+      ),
+      RecordEventRow,
+      PrefetchHooks Function()
+    >;
+typedef $$DesksTableCreateCompanionBuilder = DesksCompanion Function({
+  required String id,
+  required String name,
+  Value<String?> starterKey,
+  required String layout,
+  required int position,
+  required int revision,
+  Value<int> rowid,
+});
+typedef $$DesksTableUpdateCompanionBuilder = DesksCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String?> starterKey,
+  Value<String> layout,
+  Value<int> position,
+  Value<int> revision,
+  Value<int> rowid,
+});
+
+final class $$DesksTableReferences
+    extends BaseReferences<_$AppDatabase, $DesksTable, DeskRow> {
+  $$DesksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$DeskTilesTable, List<DeskTileRow>>
+  _deskTilesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.deskTiles,
+    aliasName: 'desks__id__desk_tiles__desk_id',
+  );
+
+  $$DeskTilesTableProcessedTableManager get deskTilesRefs {
+    final manager = $$DeskTilesTableTableManager(
+      $_db,
+      $_db.deskTiles,
+    ).filter((f) => f.deskId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_deskTilesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$DesksTableFilterComposer extends Composer<_$AppDatabase, $DesksTable> {
+  $$DesksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get starterKey => $composableBuilder(
+    column: $table.starterKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get layout => $composableBuilder(
+    column: $table.layout,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> deskTilesRefs(
+    Expression<bool> Function($$DeskTilesTableFilterComposer f) f,
+  ) {
+    final $$DeskTilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.deskTiles,
+      getReferencedColumn: (t) => t.deskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeskTilesTableFilterComposer(
+            $db: $db,
+            $table: $db.deskTiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$DesksTableOrderingComposer
+    extends Composer<_$AppDatabase, $DesksTable> {
+  $$DesksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get starterKey => $composableBuilder(
+    column: $table.starterKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get layout => $composableBuilder(
+    column: $table.layout,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DesksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DesksTable> {
+  $$DesksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get starterKey => $composableBuilder(
+    column: $table.starterKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get layout =>
+      $composableBuilder(column: $table.layout, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<int> get revision =>
+      $composableBuilder(column: $table.revision, builder: (column) => column);
+
+  Expression<T> deskTilesRefs<T extends Object>(
+    Expression<T> Function($$DeskTilesTableAnnotationComposer a) f,
+  ) {
+    final $$DeskTilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.deskTiles,
+      getReferencedColumn: (t) => t.deskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeskTilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.deskTiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$DesksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DesksTable,
+          DeskRow,
+          $$DesksTableFilterComposer,
+          $$DesksTableOrderingComposer,
+          $$DesksTableAnnotationComposer,
+          $$DesksTableCreateCompanionBuilder,
+          $$DesksTableUpdateCompanionBuilder,
+          (DeskRow, $$DesksTableReferences),
+          DeskRow,
+          PrefetchHooks Function({bool deskTilesRefs})
+        > {
+  $$DesksTableTableManager(_$AppDatabase db, $DesksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DesksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DesksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DesksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> starterKey = const Value.absent(),
+                Value<String> layout = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> revision = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DesksCompanion(
+                id: id,
+                name: name,
+                starterKey: starterKey,
+                layout: layout,
+                position: position,
+                revision: revision,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<String?> starterKey = const Value.absent(),
+                required String layout,
+                required int position,
+                required int revision,
+                Value<int> rowid = const Value.absent(),
+              }) => DesksCompanion.insert(
+                id: id,
+                name: name,
+                starterKey: starterKey,
+                layout: layout,
+                position: position,
+                revision: revision,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DesksTable, DeskRow>(table),
+                  $$DesksTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({deskTilesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (deskTilesRefs) db.deskTiles],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (deskTilesRefs)
+                    await $_getPrefetchedData<
+                      DeskRow,
+                      $DesksTable,
+                      DeskTileRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$DesksTableReferences
+                          ._deskTilesRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$DesksTableReferences(db, table, p0).deskTilesRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.deskId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DesksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DesksTable,
+      DeskRow,
+      $$DesksTableFilterComposer,
+      $$DesksTableOrderingComposer,
+      $$DesksTableAnnotationComposer,
+      $$DesksTableCreateCompanionBuilder,
+      $$DesksTableUpdateCompanionBuilder,
+      (DeskRow, $$DesksTableReferences),
+      DeskRow,
+      PrefetchHooks Function({bool deskTilesRefs})
+    >;
+typedef $$SavedViewsTableCreateCompanionBuilder = SavedViewsCompanion Function({
+  required String id,
+  required String name,
+  required String sheetRef,
+  required String filtersJson,
+  Value<String?> sortJson,
+  Value<String?> columnsJson,
+  required int position,
+  required int revision,
+  Value<int> rowid,
+});
+typedef $$SavedViewsTableUpdateCompanionBuilder = SavedViewsCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String> sheetRef,
+  Value<String> filtersJson,
+  Value<String?> sortJson,
+  Value<String?> columnsJson,
+  Value<int> position,
+  Value<int> revision,
+  Value<int> rowid,
+});
+
+final class $$SavedViewsTableReferences
+    extends BaseReferences<_$AppDatabase, $SavedViewsTable, SavedViewRow> {
+  $$SavedViewsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$DeskTilesTable, List<DeskTileRow>>
+  _deskTilesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.deskTiles,
+    aliasName: 'saved_views__id__desk_tiles__view_id',
+  );
+
+  $$DeskTilesTableProcessedTableManager get deskTilesRefs {
+    final manager = $$DeskTilesTableTableManager(
+      $_db,
+      $_db.deskTiles,
+    ).filter((f) => f.viewId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_deskTilesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$SavedViewsTableFilterComposer
+    extends Composer<_$AppDatabase, $SavedViewsTable> {
+  $$SavedViewsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sheetRef => $composableBuilder(
+    column: $table.sheetRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filtersJson => $composableBuilder(
+    column: $table.filtersJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sortJson => $composableBuilder(
+    column: $table.sortJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get columnsJson => $composableBuilder(
+    column: $table.columnsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> deskTilesRefs(
+    Expression<bool> Function($$DeskTilesTableFilterComposer f) f,
+  ) {
+    final $$DeskTilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.deskTiles,
+      getReferencedColumn: (t) => t.viewId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeskTilesTableFilterComposer(
+            $db: $db,
+            $table: $db.deskTiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SavedViewsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SavedViewsTable> {
+  $$SavedViewsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sheetRef => $composableBuilder(
+    column: $table.sheetRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filtersJson => $composableBuilder(
+    column: $table.filtersJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sortJson => $composableBuilder(
+    column: $table.sortJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get columnsJson => $composableBuilder(
+    column: $table.columnsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SavedViewsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SavedViewsTable> {
+  $$SavedViewsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get sheetRef =>
+      $composableBuilder(column: $table.sheetRef, builder: (column) => column);
+
+  GeneratedColumn<String> get filtersJson => $composableBuilder(
+    column: $table.filtersJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sortJson =>
+      $composableBuilder(column: $table.sortJson, builder: (column) => column);
+
+  GeneratedColumn<String> get columnsJson => $composableBuilder(
+    column: $table.columnsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<int> get revision =>
+      $composableBuilder(column: $table.revision, builder: (column) => column);
+
+  Expression<T> deskTilesRefs<T extends Object>(
+    Expression<T> Function($$DeskTilesTableAnnotationComposer a) f,
+  ) {
+    final $$DeskTilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.deskTiles,
+      getReferencedColumn: (t) => t.viewId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeskTilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.deskTiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SavedViewsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SavedViewsTable,
+          SavedViewRow,
+          $$SavedViewsTableFilterComposer,
+          $$SavedViewsTableOrderingComposer,
+          $$SavedViewsTableAnnotationComposer,
+          $$SavedViewsTableCreateCompanionBuilder,
+          $$SavedViewsTableUpdateCompanionBuilder,
+          (SavedViewRow, $$SavedViewsTableReferences),
+          SavedViewRow,
+          PrefetchHooks Function({bool deskTilesRefs})
+        > {
+  $$SavedViewsTableTableManager(_$AppDatabase db, $SavedViewsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SavedViewsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SavedViewsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SavedViewsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> sheetRef = const Value.absent(),
+                Value<String> filtersJson = const Value.absent(),
+                Value<String?> sortJson = const Value.absent(),
+                Value<String?> columnsJson = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> revision = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SavedViewsCompanion(
+                id: id,
+                name: name,
+                sheetRef: sheetRef,
+                filtersJson: filtersJson,
+                sortJson: sortJson,
+                columnsJson: columnsJson,
+                position: position,
+                revision: revision,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String sheetRef,
+                required String filtersJson,
+                Value<String?> sortJson = const Value.absent(),
+                Value<String?> columnsJson = const Value.absent(),
+                required int position,
+                required int revision,
+                Value<int> rowid = const Value.absent(),
+              }) => SavedViewsCompanion.insert(
+                id: id,
+                name: name,
+                sheetRef: sheetRef,
+                filtersJson: filtersJson,
+                sortJson: sortJson,
+                columnsJson: columnsJson,
+                position: position,
+                revision: revision,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SavedViewsTable, SavedViewRow>(table),
+                  $$SavedViewsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({deskTilesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (deskTilesRefs) db.deskTiles],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (deskTilesRefs)
+                    await $_getPrefetchedData<
+                      SavedViewRow,
+                      $SavedViewsTable,
+                      DeskTileRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$SavedViewsTableReferences
+                          ._deskTilesRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$SavedViewsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).deskTilesRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.viewId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SavedViewsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SavedViewsTable,
+      SavedViewRow,
+      $$SavedViewsTableFilterComposer,
+      $$SavedViewsTableOrderingComposer,
+      $$SavedViewsTableAnnotationComposer,
+      $$SavedViewsTableCreateCompanionBuilder,
+      $$SavedViewsTableUpdateCompanionBuilder,
+      (SavedViewRow, $$SavedViewsTableReferences),
+      SavedViewRow,
+      PrefetchHooks Function({bool deskTilesRefs})
+    >;
+typedef $$DeskTilesTableCreateCompanionBuilder = DeskTilesCompanion Function({
+  required String id,
+  required String deskId,
+  required int position,
+  required String sheetRef,
+  Value<String?> viewId,
+  Value<int> rowid,
+});
+typedef $$DeskTilesTableUpdateCompanionBuilder = DeskTilesCompanion Function({
+  Value<String> id,
+  Value<String> deskId,
+  Value<int> position,
+  Value<String> sheetRef,
+  Value<String?> viewId,
+  Value<int> rowid,
+});
+
+final class $$DeskTilesTableReferences
+    extends BaseReferences<_$AppDatabase, $DeskTilesTable, DeskTileRow> {
+  $$DeskTilesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $DesksTable _deskIdTable(_$AppDatabase db) =>
+      db.desks.createAlias('desk_tiles__desk_id__desks__id');
+
+  $$DesksTableProcessedTableManager get deskId {
+    final $_column = $_itemColumn<String>('desk_id')!;
+
+    final manager = $$DesksTableTableManager(
+      $_db,
+      $_db.desks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_deskIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SavedViewsTable _viewIdTable(_$AppDatabase db) =>
+      db.savedViews.createAlias('desk_tiles__view_id__saved_views__id');
+
+  $$SavedViewsTableProcessedTableManager? get viewId {
+    final $_column = $_itemColumn<String>('view_id');
+    if ($_column == null) return null;
+    final manager = $$SavedViewsTableTableManager(
+      $_db,
+      $_db.savedViews,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_viewIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DeskTilesTableFilterComposer
+    extends Composer<_$AppDatabase, $DeskTilesTable> {
+  $$DeskTilesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sheetRef => $composableBuilder(
+    column: $table.sheetRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$DesksTableFilterComposer get deskId {
+    final $$DesksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deskId,
+      referencedTable: $db.desks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DesksTableFilterComposer(
+            $db: $db,
+            $table: $db.desks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SavedViewsTableFilterComposer get viewId {
+    final $$SavedViewsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.viewId,
+      referencedTable: $db.savedViews,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavedViewsTableFilterComposer(
+            $db: $db,
+            $table: $db.savedViews,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeskTilesTableOrderingComposer
+    extends Composer<_$AppDatabase, $DeskTilesTable> {
+  $$DeskTilesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sheetRef => $composableBuilder(
+    column: $table.sheetRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DesksTableOrderingComposer get deskId {
+    final $$DesksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deskId,
+      referencedTable: $db.desks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DesksTableOrderingComposer(
+            $db: $db,
+            $table: $db.desks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SavedViewsTableOrderingComposer get viewId {
+    final $$SavedViewsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.viewId,
+      referencedTable: $db.savedViews,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavedViewsTableOrderingComposer(
+            $db: $db,
+            $table: $db.savedViews,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeskTilesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DeskTilesTable> {
+  $$DeskTilesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<String> get sheetRef =>
+      $composableBuilder(column: $table.sheetRef, builder: (column) => column);
+
+  $$DesksTableAnnotationComposer get deskId {
+    final $$DesksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deskId,
+      referencedTable: $db.desks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DesksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.desks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SavedViewsTableAnnotationComposer get viewId {
+    final $$SavedViewsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.viewId,
+      referencedTable: $db.savedViews,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavedViewsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.savedViews,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeskTilesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DeskTilesTable,
+          DeskTileRow,
+          $$DeskTilesTableFilterComposer,
+          $$DeskTilesTableOrderingComposer,
+          $$DeskTilesTableAnnotationComposer,
+          $$DeskTilesTableCreateCompanionBuilder,
+          $$DeskTilesTableUpdateCompanionBuilder,
+          (DeskTileRow, $$DeskTilesTableReferences),
+          DeskTileRow,
+          PrefetchHooks Function({bool deskId, bool viewId})
+        > {
+  $$DeskTilesTableTableManager(_$AppDatabase db, $DeskTilesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DeskTilesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DeskTilesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DeskTilesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> deskId = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<String> sheetRef = const Value.absent(),
+                Value<String?> viewId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeskTilesCompanion(
+                id: id,
+                deskId: deskId,
+                position: position,
+                sheetRef: sheetRef,
+                viewId: viewId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String deskId,
+                required int position,
+                required String sheetRef,
+                Value<String?> viewId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeskTilesCompanion.insert(
+                id: id,
+                deskId: deskId,
+                position: position,
+                sheetRef: sheetRef,
+                viewId: viewId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DeskTilesTable, DeskTileRow>(table),
+                  $$DeskTilesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({deskId = false, viewId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (deskId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.deskId,
+                        referencedTable: $$DeskTilesTableReferences
+                            ._deskIdTable(db),
+                        referencedColumn: $$DeskTilesTableReferences
+                            ._deskIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+                    if (viewId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.viewId,
+                        referencedTable: $$DeskTilesTableReferences
+                            ._viewIdTable(db),
+                        referencedColumn: $$DeskTilesTableReferences
+                            ._viewIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DeskTilesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DeskTilesTable,
+      DeskTileRow,
+      $$DeskTilesTableFilterComposer,
+      $$DeskTilesTableOrderingComposer,
+      $$DeskTilesTableAnnotationComposer,
+      $$DeskTilesTableCreateCompanionBuilder,
+      $$DeskTilesTableUpdateCompanionBuilder,
+      (DeskTileRow, $$DeskTilesTableReferences),
+      DeskTileRow,
+      PrefetchHooks Function({bool deskId, bool viewId})
+    >;
+typedef $$PreferencesTableCreateCompanionBuilder =
+    PreferencesCompanion Function({
+      required String key,
+      required String value,
+      Value<int> rowid,
+    });
+typedef $$PreferencesTableUpdateCompanionBuilder =
+    PreferencesCompanion Function({
+      Value<String> key,
+      Value<String> value,
+      Value<int> rowid,
+    });
+
+class $$PreferencesTableFilterComposer
+    extends Composer<_$AppDatabase, $PreferencesTable> {
+  $$PreferencesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PreferencesTableOrderingComposer
+    extends Composer<_$AppDatabase, $PreferencesTable> {
+  $$PreferencesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PreferencesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PreferencesTable> {
+  $$PreferencesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$PreferencesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PreferencesTable,
+          PreferenceRow,
+          $$PreferencesTableFilterComposer,
+          $$PreferencesTableOrderingComposer,
+          $$PreferencesTableAnnotationComposer,
+          $$PreferencesTableCreateCompanionBuilder,
+          $$PreferencesTableUpdateCompanionBuilder,
+          (
+            PreferenceRow,
+            BaseReferences<_$AppDatabase, $PreferencesTable, PreferenceRow>,
+          ),
+          PreferenceRow,
+          PrefetchHooks Function()
+        > {
+  $$PreferencesTableTableManager(_$AppDatabase db, $PreferencesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PreferencesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PreferencesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PreferencesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> key = const Value.absent(),
+            Value<String> value = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => PreferencesCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String value,
+                Value<int> rowid = const Value.absent(),
+              }) => PreferencesCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PreferencesTable, PreferenceRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $PreferencesTable,
+                    PreferenceRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PreferencesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PreferencesTable,
+      PreferenceRow,
+      $$PreferencesTableFilterComposer,
+      $$PreferencesTableOrderingComposer,
+      $$PreferencesTableAnnotationComposer,
+      $$PreferencesTableCreateCompanionBuilder,
+      $$PreferencesTableUpdateCompanionBuilder,
+      (
+        PreferenceRow,
+        BaseReferences<_$AppDatabase, $PreferencesTable, PreferenceRow>,
+      ),
+      PreferenceRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8761,4 +12970,14 @@ class $AppDatabaseManager {
       $$PayPeriodsTableTableManager(_db, _db.payPeriods);
   $$PayslipsTableTableManager get payslips =>
       $$PayslipsTableTableManager(_db, _db.payslips);
+  $$RecordEventsTableTableManager get recordEvents =>
+      $$RecordEventsTableTableManager(_db, _db.recordEvents);
+  $$DesksTableTableManager get desks =>
+      $$DesksTableTableManager(_db, _db.desks);
+  $$SavedViewsTableTableManager get savedViews =>
+      $$SavedViewsTableTableManager(_db, _db.savedViews);
+  $$DeskTilesTableTableManager get deskTiles =>
+      $$DeskTilesTableTableManager(_db, _db.deskTiles);
+  $$PreferencesTableTableManager get preferences =>
+      $$PreferencesTableTableManager(_db, _db.preferences);
 }

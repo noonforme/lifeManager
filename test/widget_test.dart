@@ -31,10 +31,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel('System navigation'), findsOneWidget);
+    expect(find.bySemanticsLabel('Books'), findsOneWidget);
     expect(find.bySemanticsLabel('Work register'), findsOneWidget);
     expect(find.bySemanticsLabel('Record inspector'), findsOneWidget);
-    expect(find.text('Create an employment to begin.'), findsOneWidget);
+    expect(
+      find.text(
+        'Track shifts, see what you should be paid, and compare it with your payslips. Start by adding where you work.',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Work records will appear here.'), findsNothing);
     expect(find.text('Flutter Demo'), findsNothing);
   });

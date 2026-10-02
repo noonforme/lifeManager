@@ -121,6 +121,84 @@ void main() {
     expect(_summary('Difference'), 'EUR 10.00');
   });
 
+  testWidgets('first launch to a night premium, with defaults only', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1600);
+    addTearDown(tester.view.reset);
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final ids = UuidV7WorkIdFactory();
+    final composition = buildWorkProviders(
+      database: database,
+      clock: _FixedClock(),
+      timezones: IanaTimezoneService(),
+      currentTimezoneId: () => 'Europe/Vilnius',
+      workIds: ids,
+      shiftIds: ids,
+      evidenceIds: ids,
+    );
+    final router = createAppRouter();
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(composition.scope(LifeOsApp(router: router)));
+    await tester.pumpAndSettle();
+
+    // First launch: one press opens the employment form.
+    expect(find.text('Work'), findsWidgets);
+    await tester.tap(find.widgetWithText(FilledButton, 'Create employment'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('employment-name')),
+      'Synthetic warehouse',
+    );
+    await tester.tap(find.text('Save employment'));
+    await tester.pumpAndSettle();
+
+    // The agreement needs only a rate; it starts today, 2026-10-01.
+    expect(find.text('2026-10-01'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('agreement-hourly-rate')),
+      '20.00',
+    );
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('save-agreement')),
+      240,
+      scrollable: find
+          .descendant(
+            of: find.bySemanticsLabel('Create agreement'),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(find.byKey(const ValueKey('save-agreement')));
+    await tester.pumpAndSettle();
+
+    // A night shift, 22:00 to 06:00 local, finalized on save.
+    await tester.tap(_inInspector(find.text('Add manual shift')));
+    await tester.pumpAndSettle();
+    for (final (key, value) in [
+      ('shift-start-date', '2026-10-01'),
+      ('shift-start-time', '22:00'),
+      ('shift-end-date', '2026-10-02'),
+      ('shift-end-time', '06:00'),
+    ]) {
+      await tester.enterText(find.byKey(ValueKey(key)), value);
+    }
+    await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
+    await tester.pumpAndSettle();
+
+    // 8 night hours at EUR 20/h × 1.5.
+    expect(find.text('Shift finalized'), findsOneWidget);
+    expect(_fact('Expected pay'), 'EUR 240.00');
+    expect(_fact('Night hours'), '8:00');
+    expect(_fact('Overtime hours'), '0:00');
+    expect(_fact('Regular hours'), '0:00');
+  });
+
   testWidgets('saved employment stays selected and setup resumes', (
     tester,
   ) async {
@@ -159,18 +237,40 @@ void main() {
       router.routeInformationProvider.value.uri.toString(),
       contains('employment='),
     );
-    expect(find.text('Create an employment to begin.'), findsNothing);
-    expect(find.text('Synthetic studio'), findsOneWidget);
+    expect(
+      find.text(
+        'Track shifts, see what you should be paid, and compare it with your payslips. Start by adding where you work.',
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.bySemanticsLabel('Work register'),
+        matching: find.text('Synthetic studio'),
+      ),
+      findsOneWidget,
+    );
     expect(find.bySemanticsLabel('Create agreement'), findsOneWidget);
 
     // Leaving Work and returning resumes setup for the saved employment.
-    router.go('/money');
+    router.go('/finance');
     await tester.pumpAndSettle();
     router.go('/work');
     await tester.pumpAndSettle();
 
-    expect(find.text('Create an employment to begin.'), findsNothing);
-    expect(find.text('Synthetic studio'), findsOneWidget);
+    expect(
+      find.text(
+        'Track shifts, see what you should be paid, and compare it with your payslips. Start by adding where you work.',
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.bySemanticsLabel('Work register'),
+        matching: find.text('Synthetic studio'),
+      ),
+      findsOneWidget,
+    );
     expect(find.bySemanticsLabel('Create agreement'), findsOneWidget);
   });
 
@@ -225,7 +325,7 @@ void main() {
     clock.now = DateTime.utc(2026, 9, 29, 16, 30);
     await tester.tap(find.text('End shift'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Confirm finalization'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Finalize shift'));
     await tester.pumpAndSettle();
     expect(find.text('Shift finalized'), findsOneWidget);
     expect(location(), shiftLocation);
@@ -262,21 +362,33 @@ Future<void> _setUpEmployment(WidgetTester tester) async {
     find.byKey(const ValueKey('agreement-hourly-rate')),
     '20.00',
   );
-  await tester.enterText(
-    find.byKey(const ValueKey('agreement-threshold')),
-    '480',
-  );
-  await tester.enterText(
-    find.byKey(const ValueKey('agreement-multiplier-numerator')),
-    '3',
-  );
-  await tester.enterText(
-    find.byKey(const ValueKey('agreement-multiplier-denominator')),
-    '2',
+  final save = find.byKey(const ValueKey('save-agreement'));
+  await tester.scrollUntilVisible(
+    save,
+    240,
+    scrollable: find
+        .descendant(
+          of: find.bySemanticsLabel('Create agreement'),
+          matching: find.byType(Scrollable),
+        )
+        .first,
   );
   await tester.tap(find.byKey(const ValueKey('save-agreement')));
   await tester.pumpAndSettle();
   expect(_inInspector(find.text('Record work')), findsOneWidget);
+}
+
+/// The value beside a fact label in the inspector.
+String _fact(String label) {
+  final row = find.ancestor(
+    of: _inInspector(find.text(label)),
+    matching: find.byType(Row),
+  );
+  return find
+      .descendant(of: row.first, matching: find.byType(Text))
+      .evaluate()
+      .map((element) => (element.widget as Text).data)
+      .last!;
 }
 
 Finder _inInspector(Finder finder) => find.descendant(

@@ -1,7 +1,11 @@
 import 'package:drift/drift.dart' show TableUpdateQuery;
 
 import '../../../core/database/app_database.dart' show AppDatabase;
+import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/app_clock.dart';
+import '../../../core/time/timezone_service.dart';
+import '../../../core/time/wall_clock.dart';
 import '../application/pay_period_service.dart';
 import '../application/payslip_service.dart';
 import '../application/work_commands.dart';
@@ -13,7 +17,9 @@ import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart';
+import '../domain/pay_premiums.dart';
 import '../domain/payslip.dart';
+import '../domain/reconciliation.dart';
 import '../domain/shift.dart';
 import 'daos/agreement_dao.dart';
 import 'daos/employment_dao.dart';
@@ -23,6 +29,8 @@ import 'daos/shift_dao.dart';
 import 'projections/reconciliation_projection.dart';
 import 'projections/work_record_projection.dart';
 import 'projections/work_register_projection.dart';
+import 'work_history.dart';
+import 'work_sheet_rows.dart';
 import 'work_write_store.dart';
 
 final class DriftWorkRepository
@@ -32,14 +40,23 @@ final class DriftWorkRepository
         PayPeriodRepository,
         PayslipRepository,
         WorkQueryRepository {
-  DriftWorkRepository(this._database)
-    : _employments = EmploymentDao(_database),
-      _agreements = AgreementDao(_database),
-      _periods = PayPeriodDao(_database),
-      _payslips = PayslipDao(_database),
-      _shifts = ShiftDao(_database);
+  /// Expected pay reads each shift on its own wall clock through
+  /// [timezones]; history entries are stamped by [clock].
+  DriftWorkRepository(
+    this._database, {
+    TimezoneService? timezones,
+    AppClock? clock,
+  }) : _zoneClocks = zoneClocksOf(timezones ?? IanaTimezoneService()),
+       _history = WorkHistoryWriter(_database, clock ?? SystemAppClock()),
+       _employments = EmploymentDao(_database),
+       _agreements = AgreementDao(_database),
+       _periods = PayPeriodDao(_database),
+       _payslips = PayslipDao(_database),
+       _shifts = ShiftDao(_database);
 
   final AppDatabase _database;
+  final ZoneClocks _zoneClocks;
+  final WorkHistoryWriter _history;
   final EmploymentDao _employments;
   final AgreementDao _agreements;
   final PayPeriodDao _periods;
@@ -51,16 +68,61 @@ final class DriftWorkRepository
       _database.transaction(() => body(this));
 
   @override
-  Future<int> insertEmployment(Employment value) => _employments.insert(value);
+  Future<int> insertEmployment(Employment value) =>
+      _database.transaction(() async {
+        final inserted = await _employments.insert(value);
+        await _history.record(
+          WorkRecordKinds.employment,
+          value.id.value,
+          kind: RecordEventKind.created,
+          after: employmentFacts(value),
+          revisionAfter: value.revision,
+        );
+        return inserted;
+      });
 
   @override
   Future<int> updateEmployment(
     Employment value, {
     required Revision expected,
-  }) => _employments.update(value, expected);
+  }) => _database.transaction(() async {
+    final before = await _employments.byId(value.id);
+    final changed = await _employments.update(value, expected);
+    if (changed == 0 || before == null) return changed;
+    await _history.record(
+      WorkRecordKinds.employment,
+      value.id.value,
+      kind: RecordEventKind.changed,
+      before: employmentFacts(before),
+      after: employmentFacts(value),
+      revisionAfter: expected.next(),
+    );
+    return changed;
+  });
 
   @override
   Future<Employment?> employmentById(EmploymentId id) => _employments.byId(id);
+
+  @override
+  Future<bool> employmentHasHistory(EmploymentId id) =>
+      _employments.hasHistory(id);
+
+  @override
+  Future<int> deleteEmployment(EmploymentId id, {required Revision expected}) =>
+      _database.transaction(() async {
+        final agreements = await _agreements.forEmployment(id);
+        final deleted = await _employments.deleteWithAgreements(id, expected);
+        if (deleted == 0) return 0;
+        // A deleted record takes its history with it.
+        await _history.events.deleteFor(WorkRecordKinds.employment, id.value);
+        for (final agreement in agreements) {
+          await _history.events.deleteFor(
+            WorkRecordKinds.agreement,
+            agreement.id.value,
+          );
+        }
+        return deleted;
+      });
 
   Stream<Employment?> watchEmployment(EmploymentId id) =>
       _employments.watchById(id);
@@ -73,7 +135,20 @@ final class DriftWorkRepository
       _agreements.watchForEmployment(id);
 
   @override
-  Future<int> insertAgreement(PayAgreement value) => _agreements.insert(value);
+  Future<int> insertAgreement(PayAgreement value) =>
+      _database.transaction(() async {
+        final inserted = await _agreements.insert(value);
+        await _recordAgreementCreated(value);
+        return inserted;
+      });
+
+  Future<void> _recordAgreementCreated(PayAgreement value) => _history.record(
+    WorkRecordKinds.agreement,
+    value.id.value,
+    kind: RecordEventKind.created,
+    after: agreementFacts(value),
+    revisionAfter: value.revision,
+  );
 
   Future<MutationOutcome<PayAgreement>> createAgreement(PayAgreement value) {
     return _database.transaction(() async {
@@ -85,6 +160,7 @@ final class DriftWorkRepository
         });
       }
       await _agreements.insert(value);
+      await _recordAgreementCreated(value);
       return Committed<PayAgreement>(value);
     });
   }
@@ -99,7 +175,18 @@ final class DriftWorkRepository
       final withoutCurrent = existing.where((item) => item.id != value.id);
       final validation = validateAgreementSet([...withoutCurrent, value]);
       if (!validation.isValid) return 0;
-      return _agreements.updateUnused(value, expected);
+      final before = existing.where((item) => item.id == value.id).firstOrNull;
+      final changed = await _agreements.updateUnused(value, expected);
+      if (changed == 0 || before == null) return changed;
+      await _history.record(
+        WorkRecordKinds.agreement,
+        value.id.value,
+        kind: RecordEventKind.changed,
+        before: agreementFacts(before),
+        after: agreementFacts(value),
+        revisionAfter: expected.next(),
+      );
+      return changed;
     });
   }
 
@@ -121,6 +208,13 @@ final class DriftWorkRepository
         });
       }
       await _periods.insert(value);
+      await _history.record(
+        WorkRecordKinds.payPeriod,
+        value.id.value,
+        kind: RecordEventKind.created,
+        after: periodFacts(value),
+        revisionAfter: value.revision,
+      );
       return Committed<PayPeriod>(value);
     });
   }
@@ -131,7 +225,7 @@ final class DriftWorkRepository
     required PayPeriodState state,
     required Revision expected,
     required DateTime nowUtc,
-  }) async {
+  }) => _database.transaction(() async {
     final existing = await _periods.byId(id);
     if (existing == null) return const Missing<PayPeriod>();
     final changed = await _periods.setState(
@@ -141,11 +235,32 @@ final class DriftWorkRepository
       nowUtc: nowUtc,
     );
     if (changed == 0) return const Stale<PayPeriod>();
-    return Committed<PayPeriod>((await _periods.byId(id))!);
-  }
+    final after = (await _periods.byId(id))!;
+    await _history.record(
+      WorkRecordKinds.payPeriod,
+      id.value,
+      kind: state == PayPeriodState.reviewed
+          ? RecordEventKind.reviewed
+          : RecordEventKind.changed,
+      before: periodFacts(existing),
+      after: periodFacts(after),
+      revisionAfter: after.revision,
+    );
+    return Committed<PayPeriod>(after);
+  });
 
   @override
-  Future<int> insertPayslip(Payslip value) => _payslips.insert(value);
+  Future<int> insertPayslip(Payslip value) => _database.transaction(() async {
+    final inserted = await _payslips.insert(value);
+    await _history.record(
+      WorkRecordKinds.payslip,
+      value.id.value,
+      kind: RecordEventKind.created,
+      after: payslipFacts(value),
+      revisionAfter: value.revision,
+    );
+    return inserted;
+  });
 
   @override
   Future<Payslip?> payslipById(PayslipId id) => _payslips.byId(id);
@@ -181,6 +296,22 @@ final class DriftWorkRepository
           expected: expected,
         );
         if (changed == 0) throw const _StalePayslipCorrection();
+        await _history.record(
+          WorkRecordKinds.payslip,
+          original.id.value,
+          kind: RecordEventKind.voided,
+          before: payslipFacts(original),
+          after: payslipFacts(prepared.voidedOriginal),
+          revisionAfter: prepared.voidedOriginal.revision,
+          reason: prepared.voidedOriginal.voidReason,
+        );
+        await _history.record(
+          WorkRecordKinds.payslip,
+          replacement.id.value,
+          kind: RecordEventKind.replaced,
+          after: payslipFacts(replacement),
+          revisionAfter: replacement.revision,
+        );
         return Committed<Payslip>(replacement);
       });
     } on _StalePayslipCorrection {
@@ -191,7 +322,6 @@ final class DriftWorkRepository
   @override
   Stream<WorkRegisterProjection> watchRegister(WorkScope scope) async* {
     final employmentId = scope.employmentId;
-    final temporal = scope.temporal;
     if (employmentId == null) {
       yield WorkRegisterProjection.empty(
         scope,
@@ -207,99 +337,169 @@ final class DriftWorkRepository
       }
       return;
     }
-    if (temporal == null) {
-      // Re-read on setup changes too, so a new agreement moves the selected
-      // employment out of setup without re-selection.
-      Future<WorkRegisterProjection> load() async => WorkRegisterProjection(
-        scope: scope,
-        period: null,
-        shiftRows: const [],
-        payslipRows: const [],
-        paid: const Money(minorUnits: 0),
-        reconciliation: null,
-        periodRows: await _periods.forEmployment(employmentId),
-        employment: await _employments.byId(employmentId),
-        hasAgreement: (await _agreements.forEmployment(employmentId))
-            .isNotEmpty,
-      );
-      yield await load();
-      await for (final _ in _database.tableUpdates(
-        TableUpdateQuery.onAllTables([
-          _database.employments,
-          _database.payAgreements,
-          _database.payPeriods,
-        ]),
-      )) {
-        yield await load();
-      }
-      return;
+    // Every sheet derives from several tables, so any Work commit re-reads.
+    yield await _loadRegister(scope, employmentId);
+    await for (final _ in _database.tableUpdates(
+      TableUpdateQuery.onAllTables([
+        _database.employments,
+        _database.payAgreements,
+        _database.payPeriods,
+        _database.workShifts,
+        _database.shiftBreaks,
+        _database.payslips,
+      ]),
+    )) {
+      yield await _loadRegister(scope, employmentId);
     }
-    if (temporal is DateRangeScope) {
-      await for (final rows in _shifts.watchRowsForRange(
-        employmentId,
-        start: temporal.start.toString(),
-        end: temporal.end.toString(),
-      )) {
-        yield WorkRegisterProjection(
-          scope: scope,
-          period: null,
-          shiftRows: rows,
-          payslipRows: const [],
-          paid: const Money(minorUnits: 0),
-          reconciliation: null,
-        );
-      }
-      return;
-    }
-    if (temporal is! PayPeriodScope) {
-      yield WorkRegisterProjection.empty(scope);
-      return;
-    }
-    final period = await _periods.byId(temporal.periodId);
-    if (period == null || period.employmentId != employmentId) {
-      yield WorkRegisterProjection.empty(scope);
-      return;
-    }
-    await for (final rows in _payslips.watchEffectiveRows(period.id)) {
-      final paidMinorUnits = rows.fold(
-        0,
-        (total, row) => total + row.amount.minorUnits,
-      );
-      final shifts = await _shifts.finalizedForRange(
-        employmentId,
-        start: period.start.toString(),
-        end: period.end.toString(),
-      );
-      final breaks = await _shifts.breaksForShifts(
-        shifts.map((shift) => shift.id),
-      );
-      final agreements = await _agreements.forEmployment(employmentId);
-      final payslips = await _payslips.forPeriod(period.id);
-      yield WorkRegisterProjection(
-        scope: scope,
-        period: period,
-        shiftRows: [
-          for (final shift in shifts)
-            ShiftRegisterRow(
-              id: shift.id,
-              localStartDate: shift.localStartDate.toString(),
-              startUtc: shift.startUtc,
-              endUtc: shift.endUtc,
-              state: shift.state,
-            ),
-        ],
-        payslipRows: rows,
-        paid: Money(minorUnits: paidMinorUnits),
-        reconciliation: projectReconciliation(
-          employmentId: employmentId,
+  }
+
+  Future<WorkRegisterProjection> _loadRegister(
+    WorkScope scope,
+    EmploymentId employmentId,
+  ) async {
+    final temporal = scope.temporal;
+    final employment = await _employments.byId(employmentId);
+    final agreements = await _agreements.forEmployment(employmentId);
+    final periods = await _periods.forEmployment(employmentId);
+    final shifts = await _shifts.forEmployment(employmentId);
+    final breaks = await _shifts.breaksForShifts(shifts.map((s) => s.id));
+    final payslips = await _payslips.forEmployment(employmentId);
+    final agreementsById = {for (final a in agreements) a.id: a};
+
+    PayPeriod? periodOf(WorkShift shift) => periods
+        .where((period) => period.contains(shift.localStartDate))
+        .firstOrNull;
+    bool inScope(WorkShift shift) => switch (temporal) {
+      null => true,
+      DateRangeScope(:final start, :final end) =>
+        shift.localStartDate.compareTo(start) >= 0 &&
+            shift.localStartDate.compareTo(end) <= 0,
+      PayPeriodScope(:final periodId) => periodOf(shift)?.id == periodId,
+    };
+
+    final shiftSheet = [
+      for (final shift in shifts)
+        if (inScope(shift))
+          shiftSheetRow(
+            shift,
+            breaks.where((item) => item.shiftId == shift.id).toList(),
+            agreementsById,
+            periodOf(shift),
+            _zoneClocks,
+          ),
+    ];
+    final periodSheet = [
+      for (final period in periods)
+        PeriodSheetRow(
           period: period,
-          shifts: shifts,
-          breaks: breaks,
-          agreements: agreements,
-          payslips: payslips,
+          shiftCount: shifts
+              .where(
+                (shift) =>
+                    shift.state == ShiftState.finalized &&
+                    period.contains(shift.localStartDate),
+              )
+              .length,
+          groups: reconcilePeriod(
+            employmentId: employmentId,
+            period: period,
+            shifts: shifts,
+            breaks: breaks,
+            agreements: agreements,
+            payslips: payslips,
+            zoneClocks: _zoneClocks,
+          ),
         ),
-      );
-    }
+    ];
+    final agreementSheet = [
+      for (final agreement in agreements)
+        AgreementSheetRow(
+          agreement: agreement,
+          finishedShifts: await _agreements.finishedShiftCount(agreement.id),
+        ),
+    ];
+
+    final selectedPeriod = switch (temporal) {
+      PayPeriodScope(:final periodId) =>
+        periods.where((period) => period.id == periodId).firstOrNull,
+      _ => null,
+    };
+    final effectivePayslips = selectedPeriod == null
+        ? const <Payslip>[]
+        : payslips
+              .where(
+                (value) =>
+                    value.periodId == selectedPeriod.id && value.isEffective,
+              )
+              .toList();
+    final scopedFinalized = [
+      for (final row in shiftSheet)
+        if (row.shift.state == ShiftState.finalized) row.shift,
+    ];
+
+    return WorkRegisterProjection(
+      scope: scope,
+      period: selectedPeriod,
+      shiftRows:
+          temporal == null ||
+              (temporal is PayPeriodScope && selectedPeriod == null)
+          ? const []
+          : [
+              for (final shift in scopedFinalized)
+                ShiftRegisterRow(
+                  id: shift.id,
+                  localStartDate: shift.localStartDate.toString(),
+                  startUtc: shift.startUtc,
+                  endUtc: shift.endUtc,
+                  state: shift.state,
+                ),
+            ],
+      payslipRows: [
+        for (final value in effectivePayslips)
+          PayslipRegisterRow(
+            id: value.id,
+            periodId: value.periodId,
+            issuedDate: value.issuedDate.toString(),
+            amount: value.amount,
+            basis: value.basis,
+            state: value.state,
+          ),
+      ],
+      paid: Money(
+        minorUnits: effectivePayslips.fold(
+          0,
+          (total, value) => total + value.amount.minorUnits,
+        ),
+      ),
+      reconciliation: selectedPeriod == null
+          ? null
+          : projectReconciliation(
+              employmentId: employmentId,
+              period: selectedPeriod,
+              shifts: scopedFinalized,
+              breaks: breaks,
+              agreements: agreements,
+              payslips: payslips.where(
+                (value) => value.periodId == selectedPeriod.id,
+              ),
+              zoneClocks: _zoneClocks,
+            ),
+      periodRows: temporal == null ? periods : const [],
+      employment: employment,
+      hasAgreement: agreements.isNotEmpty,
+      currentAgreement: agreements.isEmpty
+          ? null
+          : agreements.reduce(
+              (a, b) =>
+                  a.effectiveStart.compareTo(b.effectiveStart) >= 0 ? a : b,
+            ),
+      canDeleteEmployment:
+          employment != null && !await _employments.hasHistory(employmentId),
+      availableEmployments: await _employments.active(),
+      shiftSheet: shiftSheet,
+      periodSheet: periodSheet,
+      payslipSheet: payslips,
+      agreementSheet: agreementSheet,
+    );
   }
 
   @override
@@ -310,6 +510,7 @@ final class DriftWorkRepository
     await for (final _ in _database.tableUpdates(
       TableUpdateQuery.onAllTables([
         _database.employments,
+        _database.payAgreements,
         _database.payPeriods,
         _database.payslips,
         _database.workShifts,
@@ -337,6 +538,15 @@ final class DriftWorkRepository
       final value = await _shifts.byId(id);
       return value == null ? null : _shiftRecord(value);
     }
+    if (id is AgreementId) {
+      final value = await _agreements.byId(id);
+      return value == null
+          ? null
+          : AgreementRecordProjection(
+              value,
+              finishedShifts: await _agreements.finishedShiftCount(id),
+            );
+    }
     return null;
   }
 
@@ -349,25 +559,28 @@ final class DriftWorkRepository
 
   Future<ShiftRecordProjection> _shiftRecord(WorkShift shift) async {
     final breaks = await _shifts.breaksFor(shift.id);
-    int? suggestion;
-    if (shift.state == ShiftState.draft && shift.endUtc != null) {
-      final validation = validateFinalization(
-        shift: shift,
-        breaks: breaks,
-        agreements: await _agreements.forEmployment(shift.employmentId),
-      );
-      final facts = validation.facts;
-      if (facts != null) {
-        suggestion = suggestedOvertimeMinutes(
-          paidWholeMinutes: facts.paidSeconds ~/ 60,
-          agreement: facts.agreement,
-        );
-      }
+    final agreementId = shift.agreementId;
+    if (shift.state != ShiftState.finalized || agreementId == null) {
+      return ShiftRecordProjection(shift, breaks: breaks);
     }
+    final agreement = await _agreements.byId(agreementId);
+    final facts = agreement == null
+        ? null
+        : validateFinalization(
+            shift: shift,
+            breaks: breaks,
+            agreements: [agreement],
+          ).facts;
+    if (facts == null) return ShiftRecordProjection(shift, breaks: breaks);
+    final clock = _zoneClocks(shift.timezoneId);
     return ShiftRecordProjection(
       shift,
       breaks: breaks,
-      suggestedOvertimeMinutes: suggestion,
+      facts: facts,
+      pay: facts.expectedPay(
+        toLocal: clock.toLocal,
+        toInstants: clock.toInstants,
+      ),
     );
   }
 }

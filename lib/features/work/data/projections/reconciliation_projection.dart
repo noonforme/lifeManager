@@ -2,6 +2,7 @@ import '../../domain/agreement.dart';
 import '../../domain/ids.dart';
 import '../../domain/pay.dart';
 import '../../domain/pay_period.dart';
+import '../../domain/pay_premiums.dart';
 import '../../domain/payslip.dart';
 import '../../domain/reconciliation.dart';
 import '../../domain/shift.dart';
@@ -34,6 +35,7 @@ ReconciliationProjection projectReconciliation({
   required Iterable<ShiftBreak> breaks,
   required Iterable<PayAgreement> agreements,
   required Iterable<Payslip> payslips,
+  required ZoneClocks zoneClocks,
 }) {
   final shiftFacts = shifts.toList(growable: false);
   final evidence = payslips
@@ -50,6 +52,7 @@ ReconciliationProjection projectReconciliation({
       breaks: breaks,
       agreements: agreements,
       payslips: evidence,
+      zoneClocks: zoneClocks,
     ),
   );
 }

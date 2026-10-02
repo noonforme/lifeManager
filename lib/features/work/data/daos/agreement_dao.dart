@@ -22,7 +22,12 @@ final class AgreementDao {
           hourly_rate_micro_eur = ?, basis = ?,
           overtime_threshold_minutes = ?,
           overtime_multiplier_numerator = ?,
-          overtime_multiplier_denominator = ?, label = ?, note = ?,
+          overtime_multiplier_denominator = ?,
+          night_enabled = ?, night_start_minute = ?, night_end_minute = ?,
+          night_multiplier_numerator = ?, night_multiplier_denominator = ?,
+          holiday_calendar = ?, holiday_multiplier_numerator = ?,
+          holiday_multiplier_denominator = ?, premium_stacking = ?,
+          label = ?, note = ?,
           revision = revision + 1
       WHERE id = ? AND revision = ?
         AND NOT EXISTS (
@@ -40,6 +45,15 @@ final class AgreementDao {
         Variable(value.overtimeThresholdMinutes),
         Variable(value.overtimeMultiplier.numerator),
         Variable(value.overtimeMultiplier.denominator),
+        Variable(value.nightEnabled),
+        Variable(value.nightStartMinute),
+        Variable(value.nightEndMinute),
+        Variable(value.nightMultiplier.numerator),
+        Variable(value.nightMultiplier.denominator),
+        Variable(holidayCalendarText(value.holidayCalendar)),
+        Variable(value.holidayMultiplier.numerator),
+        Variable(value.holidayMultiplier.denominator),
+        Variable(premiumStackingText(value.premiumStacking)),
         Variable(value.label),
         Variable(value.note),
         Variable(value.id.value),
@@ -47,6 +61,31 @@ final class AgreementDao {
       ],
       updates: {database.payAgreements},
     );
+  }
+
+  Future<domain.PayAgreement?> byId(AgreementId id) async {
+    final row = await (database.select(
+      database.payAgreements,
+    )..where((table) => table.id.equals(id.value))).getSingleOrNull();
+    if (row == null) return null;
+    return agreementFromRow(
+      row,
+      usedByFinalizedShift: await finishedShiftCount(id) > 0,
+    );
+  }
+
+  /// Shifts whose pay this agreement fixed: finalized ones and the voided
+  /// originals they replaced.
+  Future<int> finishedShiftCount(AgreementId id) async {
+    final row = await database
+        .customSelect(
+          'SELECT COUNT(*) AS count FROM work_shifts '
+          "WHERE agreement_id = ? AND state IN ('finalized', 'voided')",
+          variables: [Variable(id.value)],
+          readsFrom: {database.workShifts},
+        )
+        .getSingle();
+    return row.read<int>('count');
   }
 
   Future<List<domain.PayAgreement>> forEmployment(EmploymentId id) async {

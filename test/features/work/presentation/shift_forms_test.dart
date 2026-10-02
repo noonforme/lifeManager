@@ -45,7 +45,6 @@ void main() {
       find.byKey(const ValueKey('shift-timezone')),
       'Europe/Amsterdam',
     );
-    await tester.enterText(find.byKey(const ValueKey('shift-overtime')), '30');
     await tester.enterText(
       find.byKey(const ValueKey('shift-note')),
       'Night coverage',
@@ -75,7 +74,7 @@ void main() {
     expect(submitted?.localEndDate.toString(), '2026-10-02');
     expect(submitted?.localEndTime.toString(), '06:15:00');
     expect(submitted?.timezoneId, 'Europe/Amsterdam');
-    expect(submitted?.overtimeMinutes, 30);
+    expect(find.byKey(const ValueKey('shift-overtime')), findsNothing);
     expect(submitted?.note, 'Night coverage');
     expect(submitted?.breaks.single.startDate.toString(), '2026-10-02');
     expect(submitted?.breaks.single.start.toString(), '01:00:00');
@@ -131,43 +130,6 @@ void main() {
       findsOneWidget,
     );
   });
-
-  testWidgets('entered overtime remains distinct from threshold suggestion', (
-    tester,
-  ) async {
-    var submitted = -1;
-    await tester.pumpWidget(
-      _TestApp(
-        child: OvertimeConfirmationInspector(
-          shift: testShift,
-          suggestedOvertimeMinutes: 42,
-          enteredOvertimeMinutes: 0,
-          onFinalize: (minutes) async {
-            submitted = minutes;
-            return Committed(testShift);
-          },
-        ),
-      ),
-    );
-
-    expect(
-      find.text('Suggested from the agreement threshold: 42 minutes.'),
-      findsOneWidget,
-    );
-    expect(find.text('0'), findsOneWidget);
-    await tester.enterText(
-      find.byKey(const ValueKey('shift-final-overtime')),
-      '15',
-    );
-    expect(
-      find.text('Suggested from the agreement threshold: 42 minutes.'),
-      findsOneWidget,
-    );
-    await tester.tap(find.text('Confirm finalization'));
-    await tester.pumpAndSettle();
-
-    expect(submitted, 15);
-  });
 }
 
 Future<void> _save(WidgetTester tester) async {
@@ -177,6 +139,9 @@ Future<void> _save(WidgetTester tester) async {
     240,
     scrollable: find.byType(Scrollable).first,
   );
+  // Built is not on screen; bring it into view before tapping.
+  await tester.ensureVisible(action);
+  await tester.pumpAndSettle();
   await tester.tap(action);
   await tester.pumpAndSettle();
 }
@@ -193,7 +158,6 @@ final testShift = WorkShift(
   endUtc: DateTime.utc(2026, 10, 1, 16),
   timezoneId: 'Europe/Amsterdam',
   localStartDate: const LocalDate(2026, 10, 1),
-  overtimeMinutes: 0,
   note: null,
   voidReason: null,
   replacementShiftId: null,
@@ -211,6 +175,6 @@ final class _TestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     theme: buildLifeOSTheme(highContrast: false),
-    home: Scaffold(body: SizedBox(width: 520, height: 760, child: child)),
+    home: Scaffold(body: SizedBox(width: 520, child: child)),
   );
 }

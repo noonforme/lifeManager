@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/database/app_database.dart' as db;
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/data/work_converters.dart';
+import 'package:lifeos/features/work/domain/agreement.dart' as domain_agreement;
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/shift.dart' as domain;
@@ -17,7 +18,6 @@ void main() {
       endUtc: DateTime.utc(2026, 9, 29, 15, 45),
       timezoneId: 'Europe/Berlin',
       localStartDate: const LocalDate(2026, 9, 29),
-      overtimeMinutes: 75,
       note: 'Synthetic shift',
       voidReason: null,
       replacementShiftId: null,
@@ -37,7 +37,6 @@ void main() {
     expect(restored.endUtc, fact.endUtc);
     expect(restored.timezoneId, fact.timezoneId);
     expect(restored.localStartDate, fact.localStartDate);
-    expect(restored.overtimeMinutes, fact.overtimeMinutes);
     expect(restored.note, fact.note);
     expect(restored.voidReason, fact.voidReason);
     expect(restored.replacementShiftId, fact.replacementShiftId);
@@ -86,6 +85,99 @@ void main() {
     );
   });
 
+  test('agreement premium fields round trip by stable names', () {
+    for (final calendar in domain_agreement.HolidayCalendar.values) {
+      for (final stacking in domain_agreement.PremiumStacking.values) {
+        final fact = domain_agreement.PayAgreement(
+          id: const AgreementId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21'),
+          employmentId: const EmploymentId(
+            '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11',
+          ),
+          version: 2,
+          effectiveStart: const LocalDate(2026, 9, 1),
+          effectiveEnd: null,
+          hourlyRateMicroEur: 18400000,
+          basis: const GrossBasis(),
+          overtimeThresholdMinutes: 600,
+          overtimeMultiplier: const domain_agreement.RationalMultiplier(
+            numerator: 2,
+            denominator: 1,
+          ),
+          label: 'Synthetic',
+          note: null,
+          createdAtUtc: DateTime.utc(2026, 9),
+          revision: const Revision(3),
+          usedByFinalizedShift: false,
+          nightEnabled: false,
+          nightStartMinute: 21 * 60,
+          nightEndMinute: 7 * 60,
+          nightMultiplier: const domain_agreement.RationalMultiplier(
+            numerator: 5,
+            denominator: 4,
+          ),
+          holidayCalendar: calendar,
+          holidayMultiplier: const domain_agreement.RationalMultiplier(
+            numerator: 3,
+            denominator: 1,
+          ),
+          premiumStacking: stacking,
+        );
+
+        final restored = agreementFromRow(
+          _agreementRow(agreementToCompanion(fact)),
+          usedByFinalizedShift: false,
+        );
+
+        expect(restored.nightEnabled, fact.nightEnabled);
+        expect(restored.nightStartMinute, fact.nightStartMinute);
+        expect(restored.nightEndMinute, fact.nightEndMinute);
+        expect(restored.nightMultiplier, fact.nightMultiplier);
+        expect(restored.holidayCalendar, calendar);
+        expect(restored.holidayMultiplier, fact.holidayMultiplier);
+        expect(restored.premiumStacking, stacking);
+        expect(restored.overtimeThresholdMinutes, 600);
+        expect(restored.overtimeMultiplier, fact.overtimeMultiplier);
+      }
+    }
+    expect(
+      holidayCalendarText(domain_agreement.HolidayCalendar.lithuania),
+      'lithuania',
+    );
+    expect(
+      premiumStackingText(domain_agreement.PremiumStacking.multiplicative),
+      'multiplicative',
+    );
+  });
+
+  test('unknown stored premium names throw bounded corruption errors', () {
+    expect(
+      () => agreementFromRow(
+        _validAgreementRow(holidayCalendar: 'atlantis'),
+        usedByFinalizedShift: false,
+      ),
+      throwsA(
+        isA<WorkDataCorruption>().having(
+          (error) => error.field,
+          'field',
+          'holidayCalendar',
+        ),
+      ),
+    );
+    expect(
+      () => agreementFromRow(
+        _validAgreementRow(premiumStacking: 'sum'),
+        usedByFinalizedShift: false,
+      ),
+      throwsA(
+        isA<WorkDataCorruption>().having(
+          (error) => error.field,
+          'field',
+          'premiumStacking',
+        ),
+      ),
+    );
+  });
+
   test('malformed stored identifiers and dates throw corruption errors', () {
     expect(
       () => employmentFromRow(_validEmploymentRow(id: 'not-a-uuid')),
@@ -107,7 +199,6 @@ db.WorkShift _shiftRow(db.WorkShiftsCompanion value) => db.WorkShift(
   endUtcMicros: value.endUtcMicros.value,
   timezoneId: value.timezoneId.value,
   localStartDate: value.localStartDate.value,
-  overtimeMinutes: value.overtimeMinutes.value,
   note: value.note.value,
   voidReason: value.voidReason.value,
   replacementShiftId: value.replacementShiftId.value,
@@ -126,7 +217,6 @@ db.WorkShift _validShiftRow({String state = 'finalized'}) => db.WorkShift(
   endUtcMicros: DateTime.utc(2026, 9, 29, 14).microsecondsSinceEpoch,
   timezoneId: 'Europe/Berlin',
   localStartDate: '2026-09-29',
-  overtimeMinutes: 0,
   note: null,
   voidReason: null,
   replacementShiftId: null,
@@ -148,7 +238,38 @@ db.Employment _validEmploymentRow({
   revision: 0,
 );
 
-db.PayAgreement _validAgreementRow({String basis = 'gross'}) => db.PayAgreement(
+db.PayAgreement _agreementRow(db.PayAgreementsCompanion value) =>
+    db.PayAgreement(
+      id: value.id.value,
+      employmentId: value.employmentId.value,
+      version: value.version.value,
+      effectiveStart: value.effectiveStart.value,
+      effectiveEnd: value.effectiveEnd.value,
+      hourlyRateMicroEur: value.hourlyRateMicroEur.value,
+      basis: value.basis.value,
+      overtimeThresholdMinutes: value.overtimeThresholdMinutes.value,
+      overtimeMultiplierNumerator: value.overtimeMultiplierNumerator.value,
+      overtimeMultiplierDenominator: value.overtimeMultiplierDenominator.value,
+      nightEnabled: value.nightEnabled.value,
+      nightStartMinute: value.nightStartMinute.value,
+      nightEndMinute: value.nightEndMinute.value,
+      nightMultiplierNumerator: value.nightMultiplierNumerator.value,
+      nightMultiplierDenominator: value.nightMultiplierDenominator.value,
+      holidayCalendar: value.holidayCalendar.value,
+      holidayMultiplierNumerator: value.holidayMultiplierNumerator.value,
+      holidayMultiplierDenominator: value.holidayMultiplierDenominator.value,
+      premiumStacking: value.premiumStacking.value,
+      label: value.label.value,
+      note: value.note.value,
+      createdAtUtcMicros: value.createdAtUtcMicros.value,
+      revision: value.revision.value,
+    );
+
+db.PayAgreement _validAgreementRow({
+  String basis = 'gross',
+  String holidayCalendar = 'lithuania',
+  String premiumStacking = 'highest',
+}) => db.PayAgreement(
   id: '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21',
   employmentId: '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11',
   version: 1,
@@ -159,6 +280,15 @@ db.PayAgreement _validAgreementRow({String basis = 'gross'}) => db.PayAgreement(
   overtimeThresholdMinutes: 480,
   overtimeMultiplierNumerator: 3,
   overtimeMultiplierDenominator: 2,
+  nightEnabled: true,
+  nightStartMinute: 1320,
+  nightEndMinute: 360,
+  nightMultiplierNumerator: 3,
+  nightMultiplierDenominator: 2,
+  holidayCalendar: holidayCalendar,
+  holidayMultiplierNumerator: 2,
+  holidayMultiplierDenominator: 1,
+  premiumStacking: premiumStacking,
   label: null,
   note: null,
   createdAtUtcMicros: 1,

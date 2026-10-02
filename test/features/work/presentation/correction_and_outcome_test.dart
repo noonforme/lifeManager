@@ -151,11 +151,11 @@ void main() {
 
     expect(
       find.text(
-        'The save result is uncertain. Reload and inspect the record before trying again.',
+        "LifeOS can't tell whether this was saved. Reload to check before "
+        'trying again.',
       ),
       findsOneWidget,
     );
-    expect(find.text('Do not retry yet.'), findsOneWidget);
   });
 
   test(
@@ -370,7 +370,6 @@ WorkShift _shift({
   endUtc: DateTime.utc(2026, 10, 1, 16),
   timezoneId: 'Europe/Amsterdam',
   localStartDate: const LocalDate(2026, 10, 1),
-  overtimeMinutes: 0,
   note: null,
   voidReason: null,
   replacementShiftId: null,

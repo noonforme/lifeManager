@@ -38,6 +38,7 @@ enum SafeFailureCode {
   storageUnavailable,
   databaseIdentityMismatch,
   migrationFailed,
+  databaseFromEarlierBuild,
   invalidTimezone,
   commitOutcomeUnknown,
 }

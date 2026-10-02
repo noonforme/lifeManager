@@ -186,7 +186,6 @@ void main() {
       endUtc: DateTime.utc(2026, 9, 29, 17),
       timezoneId: 'Europe/Berlin',
       localStartDate: const LocalDate(2026, 9, 29),
-      overtimeMinutes: 0,
       note: 'Corrected start',
     );
     final newBreak = ShiftBreak(
@@ -222,7 +221,6 @@ void main() {
       endUtc: DateTime.utc(2026, 9, 29, 17),
       timezoneId: 'Europe/Berlin',
       localStartDate: const LocalDate(2026, 9, 29),
-      overtimeMinutes: 0,
       note: null,
     );
 
@@ -249,7 +247,6 @@ void main() {
         endUtc: DateTime.utc(2026, 9, 29, 17),
         timezoneId: 'Europe/Berlin',
         localStartDate: const LocalDate(2026, 9, 29),
-        overtimeMinutes: 0,
         note: null,
       ),
       expected: original.revision,
@@ -390,7 +387,6 @@ WorkShift _runningShift(ShiftId id) => WorkShift(
   endUtc: null,
   timezoneId: 'Europe/Berlin',
   localStartDate: const LocalDate(2026, 9, 29),
-  overtimeMinutes: 0,
   note: null,
   voidReason: null,
   replacementShiftId: null,

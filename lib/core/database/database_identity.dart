@@ -28,6 +28,16 @@ final class DatabaseIdentityMismatch implements Exception {
   const DatabaseIdentityMismatch();
 }
 
+/// A database made by a development build from before the schema reset.
+/// It is never migrated; the owner removes it and starts again.
+final class DatabaseFromEarlierBuild implements Exception {
+  const DatabaseFromEarlierBuild({this.path, this.from, this.to});
+
+  final String? path;
+  final int? from;
+  final int? to;
+}
+
 final class DatabaseOpenFailure implements Exception {
   const DatabaseOpenFailure();
 }

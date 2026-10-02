@@ -100,6 +100,79 @@ void main() {
       throwsArgumentError,
     );
   });
+  group('premium fields', () {
+    test('a new agreement carries the Labour Code defaults', () {
+      final value = PayAgreement(
+        id: const AgreementId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21'),
+        employmentId: const EmploymentId(
+          '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11',
+        ),
+        version: 1,
+        effectiveStart: LocalDate.parse('2026-09-01'),
+        effectiveEnd: null,
+        hourlyRateMicroEur: 18400000,
+        basis: const GrossBasis(),
+        overtimeThresholdMinutes: AgreementDefaults.overtimeThresholdMinutes,
+        overtimeMultiplier: AgreementDefaults.overtimeMultiplier,
+        label: null,
+        note: null,
+        createdAtUtc: DateTime.utc(2026),
+        revision: const Revision(0),
+        usedByFinalizedShift: false,
+      );
+      expect(value.nightEnabled, isTrue);
+      expect(value.nightStartMinute, 22 * 60);
+      expect(value.nightEndMinute, 6 * 60);
+      expect(
+        value.nightMultiplier,
+        const RationalMultiplier(numerator: 3, denominator: 2),
+      );
+      expect(value.holidayCalendar, HolidayCalendar.lithuania);
+      expect(
+        value.holidayMultiplier,
+        const RationalMultiplier(numerator: 2, denominator: 1),
+      );
+      expect(value.premiumStacking, PremiumStacking.highest);
+    });
+
+    test('every multiplier must be at least ×1', () {
+      const half = RationalMultiplier(numerator: 1, denominator: 2);
+      expect(() => agreement(overtime: half), throwsArgumentError);
+      expect(() => agreement(night: half), throwsArgumentError);
+      expect(() => agreement(holiday: half), throwsArgumentError);
+      const one = RationalMultiplier(numerator: 1, denominator: 1);
+      expect(agreement(overtime: one, night: one, holiday: one), isNotNull);
+    });
+
+    test('the night window stays within a day and must not be empty', () {
+      expect(() => agreement(nightStart: -1), throwsArgumentError);
+      expect(() => agreement(nightEnd: 1440), throwsArgumentError);
+      expect(
+        () => agreement(nightStart: 600, nightEnd: 600),
+        throwsArgumentError,
+      );
+    });
+
+    test('a switched-off window is kept so it can be switched back on', () {
+      final off = agreement(nightEnabled: false, nightStart: 1260);
+      expect(off.nightEnabled, isFalse);
+      expect(off.nightStartMinute, 1260);
+    });
+
+    test('closing an unused agreement keeps its premiums', () {
+      final value = agreement(
+        nightEnabled: false,
+        nightStart: 1260,
+        night: const RationalMultiplier(numerator: 5, denominator: 4),
+      );
+      final closed = value.withRangeEnd(LocalDate.parse('2026-12-31'));
+      expect(closed.nightEnabled, isFalse);
+      expect(closed.nightStartMinute, 1260);
+      expect(closed.nightMultiplier, value.nightMultiplier);
+      expect(closed.holidayMultiplier, value.holidayMultiplier);
+      expect(closed.premiumStacking, value.premiumStacking);
+    });
+  });
 }
 
 PayAgreement agreement({
@@ -112,6 +185,21 @@ PayAgreement agreement({
   int rate = 20000000,
   int thresholdMinutes = 480,
   bool usedByFinalizedShift = false,
+  RationalMultiplier overtime = const RationalMultiplier(
+    numerator: 3,
+    denominator: 2,
+  ),
+  bool nightEnabled = true,
+  int nightStart = 1320,
+  int nightEnd = 360,
+  RationalMultiplier night = const RationalMultiplier(
+    numerator: 3,
+    denominator: 2,
+  ),
+  RationalMultiplier holiday = const RationalMultiplier(
+    numerator: 2,
+    denominator: 1,
+  ),
 }) {
   return PayAgreement(
     id: AgreementId(
@@ -126,11 +214,16 @@ PayAgreement agreement({
     hourlyRateMicroEur: rate,
     basis: const GrossBasis(),
     overtimeThresholdMinutes: thresholdMinutes,
-    overtimeMultiplier: const RationalMultiplier(numerator: 3, denominator: 2),
+    overtimeMultiplier: overtime,
     label: null,
     note: null,
     createdAtUtc: DateTime.utc(2026),
     revision: const Revision(0),
     usedByFinalizedShift: usedByFinalizedShift,
+    nightEnabled: nightEnabled,
+    nightStartMinute: nightStart,
+    nightEndMinute: nightEnd,
+    nightMultiplier: night,
+    holidayMultiplier: holiday,
   );
 }

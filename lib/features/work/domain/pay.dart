@@ -1,7 +1,6 @@
-import 'dart:math' as math;
-
 import 'agreement.dart';
 import 'facts.dart';
+import 'pay_premiums.dart';
 
 int roundHalfUpRatio(BigInt numerator, BigInt denominator) {
   if (denominator <= BigInt.zero) {
@@ -32,91 +31,123 @@ final class Money {
   int get hashCode => Object.hash(minorUnits, currency);
 }
 
-final class ExpectedPayInput {
-  const ExpectedPayInput({
-    required this.paidSeconds,
-    required this.overtimeMinutes,
-    required this.hourlyRateMicroEur,
+/// Paid time sharing one set of premiums, and the multiplier they stack to.
+final class PayGroup {
+  const PayGroup({
+    required this.night,
+    required this.holiday,
+    required this.overtime,
+    required this.seconds,
     required this.multiplier,
-    required this.currency,
   });
 
-  final int paidSeconds;
-  final int overtimeMinutes;
-  final int hourlyRateMicroEur;
+  final bool night;
+  final bool holiday;
+  final bool overtime;
+  final int seconds;
   final RationalMultiplier multiplier;
-  final CurrencyCode currency;
 
-  ExpectedPayInput copyWith({
-    int? paidSeconds,
-    int? overtimeMinutes,
-    int? hourlyRateMicroEur,
-    RationalMultiplier? multiplier,
-    CurrencyCode? currency,
-  }) {
-    return ExpectedPayInput(
-      paidSeconds: paidSeconds ?? this.paidSeconds,
-      overtimeMinutes: overtimeMinutes ?? this.overtimeMinutes,
-      hourlyRateMicroEur: hourlyRateMicroEur ?? this.hourlyRateMicroEur,
-      multiplier: multiplier ?? this.multiplier,
-      currency: currency ?? this.currency,
-    );
-  }
+  bool get isRegular => !night && !holiday && !overtime;
 }
 
+/// Expected pay for one shift with its paid-time breakdown (spec 5.3). The
+/// categories overlap, so they need not add up to [totalPaidSeconds];
+/// [regularPaidSeconds] is paid time with no premium.
 final class ExpectedPay {
   const ExpectedPay({
-    required this.regularPaidSeconds,
+    required this.totalPaidSeconds,
+    required this.nightPaidSeconds,
+    required this.holidayPaidSeconds,
     required this.overtimePaidSeconds,
+    required this.regularPaidSeconds,
     required this.amount,
+    this.groups = const [],
   });
 
-  final int regularPaidSeconds;
+  final int totalPaidSeconds;
+  final int nightPaidSeconds;
+  final int holidayPaidSeconds;
   final int overtimePaidSeconds;
+  final int regularPaidSeconds;
   final Money amount;
+
+  /// The paid time by premium combination, regular first; together the
+  /// groups add up to [totalPaidSeconds] and give [amount].
+  final List<PayGroup> groups;
 }
 
-ExpectedPay calculateExpectedPay(ExpectedPayInput input) {
-  if (input.paidSeconds <= 0) {
-    throw ArgumentError.value(input.paidSeconds, 'paidSeconds');
+/// Σ(seconds × rate × multiplier) / 3600 over [segments], summed exactly and
+/// rounded half-up once, at the end.
+ExpectedPay calculateExpectedPay({
+  required List<PaySegment> segments,
+  required int hourlyRateMicroEur,
+  required PayAgreement agreement,
+  required CurrencyCode currency,
+}) {
+  if (segments.isEmpty || segments.any((item) => item.seconds <= 0)) {
+    throw ArgumentError.value(segments, 'segments');
   }
-  if (input.overtimeMinutes < 0) {
-    throw ArgumentError.value(input.overtimeMinutes, 'overtimeMinutes');
+  if (hourlyRateMicroEur <= 0) {
+    throw ArgumentError.value(hourlyRateMicroEur, 'hourlyRateMicroEur');
   }
-  if (input.hourlyRateMicroEur <= 0) {
-    throw ArgumentError.value(input.hourlyRateMicroEur, 'hourlyRateMicroEur');
-  }
+  var total = 0, night = 0, holiday = 0, overtime = 0, regular = 0;
+  var numerator = BigInt.zero;
+  var denominator = BigInt.one;
+  final grouped = <(bool, bool, bool), PayGroup>{};
+  for (final segment in segments) {
+    final key = (segment.night, segment.holiday, segment.overtime);
+    final multiplier = segmentMultiplier(segment, agreement);
+    final previous = grouped[key];
+    grouped[key] = PayGroup(
+      night: segment.night,
+      holiday: segment.holiday,
+      overtime: segment.overtime,
+      seconds: (previous?.seconds ?? 0) + segment.seconds,
+      multiplier: multiplier,
+    );
 
-  final overtimeSeconds = input.overtimeMinutes * 60;
-  if (overtimeSeconds > input.paidSeconds) {
-    throw ArgumentError.value(input.overtimeMinutes, 'overtimeMinutes');
-  }
-  final regularSeconds = input.paidSeconds - overtimeSeconds;
-  final rate = BigInt.from(input.hourlyRateMicroEur);
-  final multiplierNumerator = BigInt.from(input.multiplier.numerator);
-  final multiplierDenominator = BigInt.from(input.multiplier.denominator);
-  final weightedSeconds =
-      BigInt.from(regularSeconds) * multiplierDenominator +
-      BigInt.from(overtimeSeconds) * multiplierNumerator;
-  final numerator = rate * weightedSeconds;
-  final denominator = BigInt.from(3600 * 10000) * multiplierDenominator;
+    total += segment.seconds;
+    if (segment.night) night += segment.seconds;
+    if (segment.holiday) holiday += segment.seconds;
+    if (segment.overtime) overtime += segment.seconds;
+    if (!segment.hasPremium) regular += segment.seconds;
 
+    final d = BigInt.from(multiplier.denominator);
+    numerator =
+        numerator * d +
+        BigInt.from(segment.seconds) *
+            BigInt.from(multiplier.numerator) *
+            denominator;
+    denominator *= d;
+    final divisor = numerator.gcd(denominator);
+    numerator ~/= divisor;
+    denominator ~/= divisor;
+  }
   return ExpectedPay(
-    regularPaidSeconds: regularSeconds,
-    overtimePaidSeconds: overtimeSeconds,
+    totalPaidSeconds: total,
+    nightPaidSeconds: night,
+    holidayPaidSeconds: holiday,
+    overtimePaidSeconds: overtime,
+    regularPaidSeconds: regular,
     amount: Money(
-      minorUnits: roundHalfUpRatio(numerator, denominator),
-      currency: input.currency,
+      minorUnits: roundHalfUpRatio(
+        numerator * BigInt.from(hourlyRateMicroEur),
+        denominator * BigInt.from(3600 * 10000),
+      ),
+      currency: currency,
+    ),
+    groups: List.unmodifiable(
+      grouped.values.toList()..sort((a, b) => _order(a).compareTo(_order(b))),
     ),
   );
 }
 
-int suggestedOvertimeMinutes({
-  required int paidWholeMinutes,
-  required PayAgreement agreement,
-}) {
-  if (paidWholeMinutes < 0) {
-    throw ArgumentError.value(paidWholeMinutes, 'paidWholeMinutes');
-  }
-  return math.max(0, paidWholeMinutes - agreement.overtimeThresholdMinutes);
+/// Regular, then night, holiday and overtime, then their combinations.
+int _order(PayGroup group) {
+  final flags = [group.night, group.holiday, group.overtime];
+  final count = flags.where((flag) => flag).length;
+  return count * 8 +
+      (group.overtime ? 4 : 0) +
+      (group.holiday ? 2 : 0) +
+      (group.night ? 1 : 0);
 }

@@ -44,6 +44,29 @@ final class Employment {
   final DateTime updatedAtUtc;
   final Revision revision;
 
+  /// The same employment under a new name; only active ones change.
+  Employment renamed({
+    required String name,
+    required String? legalLabel,
+    required DateTime nowUtc,
+  }) {
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) throw ArgumentError.value(name, 'name');
+    if (status != EmploymentStatus.active) {
+      throw StateError('Archived employments are read-only.');
+    }
+    _requireUtc(nowUtc, 'nowUtc');
+    return Employment(
+      id: id,
+      name: normalizedName,
+      legalLabel: _trimOptional(legalLabel),
+      status: status,
+      createdAtUtc: createdAtUtc,
+      updatedAtUtc: nowUtc,
+      revision: revision.next(),
+    );
+  }
+
   Employment archive({required DateTime nowUtc}) {
     _requireUtc(nowUtc, 'nowUtc');
     return Employment(
