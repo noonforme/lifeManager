@@ -7,6 +7,8 @@ import '../core/history/record_event_dao.dart';
 import '../core/history/record_events.dart';
 import '../core/time/app_clock.dart';
 import '../core/time/timezone_service.dart';
+import '../features/journal/journal_controller.dart';
+import '../features/journal/journal_source.dart';
 import '../features/work/application/agreement_service.dart';
 import '../features/work/application/employment_service.dart';
 import '../features/work/application/manual_shift_service.dart';
@@ -91,6 +93,11 @@ ProductionWorkProviders buildWorkProviders({
     evidenceIds: evidenceIds,
     clock: clock,
     history: RecordEventDao(database),
+    journal: DriftJournalSource(
+      database,
+      timezones: timezones,
+      defaultZone: () => currentTimezoneId() ?? 'UTC',
+    ),
   );
 }
 
@@ -110,6 +117,7 @@ final class ProductionWorkProviders {
     required this.evidenceIds,
     required this.clock,
     required this.history,
+    required this.journal,
   });
 
   final DriftWorkRepository workRepository;
@@ -126,6 +134,7 @@ final class ProductionWorkProviders {
   final WorkEvidenceIdFactory evidenceIds;
   final AppClock clock;
   final RecordHistory history;
+  final JournalSource journal;
 
   List<Override> get _overrides => [
     workQueryRepositoryProvider.overrideWithValue(workRepository),
@@ -150,6 +159,7 @@ final class ProductionWorkProviders {
     ),
     timezoneServiceProvider.overrideWithValue(timezones),
     recordHistoryProvider.overrideWithValue(history),
+    journalSourceProvider.overrideWithValue(journal),
     todayProvider.overrideWithValue(
       () => timezones.localDateAt(clock.nowUtc(), currentTimezoneId() ?? 'UTC'),
     ),

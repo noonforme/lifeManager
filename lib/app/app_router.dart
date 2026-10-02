@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/journal/journal_controller.dart';
+import '../features/journal/journal_sheet.dart';
 import '../features/work/data/projections/work_register_projection.dart';
 import '../features/work/domain/ids.dart';
 import '../features/work/presentation/work_controller.dart';
@@ -32,10 +34,12 @@ GoRouter createAppRouter({String initialLocation = '/work'}) {
         path: '/work',
         builder: (context, state) => _workSurface(context, state.uri),
       ),
-      unavailable(
-        '/journal',
-        'Journal',
-        'The Journal is not built yet. It arrives in a later update.',
+      GoRoute(
+        path: '/journal',
+        builder: (context, state) => ShellChromeHost(
+          location: state.uri,
+          child: _JournalHost(uri: state.uri),
+        ),
       ),
       unavailable(
         '/finance',
@@ -204,6 +208,46 @@ final class _WorkRouteHost extends ConsumerWidget {
             },
           _ => null,
         },
+      ),
+    );
+  }
+}
+
+/// The Journal on the desk; its dates come from the route, the last seven
+/// days by default.
+final class _JournalHost extends ConsumerWidget {
+  const _JournalHost({required this.uri});
+
+  final Uri uri;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final range =
+        JournalRange.fromUri(uri) ??
+        JournalRange.lastWeek(ref.read(todayProvider)());
+    final entries = switch (ref.watch(journalEntriesProvider(range))) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
+    return ShellFrame(
+      inspectorOpen: false,
+      onBackToDesk: _noop,
+      inspector: const SizedBox.expand(),
+      desk: JournalSheet(
+        range: range,
+        entries: entries,
+        timezones: ref.read(timezoneServiceProvider),
+        onRange: (next) => context.go(next.uri.toString()),
+        onOpen: (entry) => context.go(
+          workRouteUri(
+            WorkRouteState(
+              employmentId: entry.employmentId,
+              scope: null,
+              record: entry.record,
+              mode: WorkInspectorMode.inspect,
+            ),
+          ).toString(),
+        ),
       ),
     );
   }

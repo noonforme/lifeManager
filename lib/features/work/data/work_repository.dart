@@ -30,6 +30,7 @@ import 'projections/reconciliation_projection.dart';
 import 'projections/work_record_projection.dart';
 import 'projections/work_register_projection.dart';
 import 'work_history.dart';
+import 'work_sheet_rows.dart';
 import 'work_write_store.dart';
 
 final class DriftWorkRepository
@@ -379,11 +380,12 @@ final class DriftWorkRepository
     final shiftSheet = [
       for (final shift in shifts)
         if (inScope(shift))
-          _shiftSheetRow(
+          shiftSheetRow(
             shift,
             breaks.where((item) => item.shiftId == shift.id).toList(),
             agreementsById,
             periodOf(shift),
+            _zoneClocks,
           ),
     ];
     final periodSheet = [
@@ -497,49 +499,6 @@ final class DriftWorkRepository
       periodSheet: periodSheet,
       payslipSheet: payslips,
       agreementSheet: agreementSheet,
-    );
-  }
-
-  ShiftSheetRow _shiftSheetRow(
-    WorkShift shift,
-    List<ShiftBreak> breaks,
-    Map<AgreementId, PayAgreement> agreements,
-    PayPeriod? period,
-  ) {
-    int second(DateTime utc) => utc.microsecondsSinceEpoch ~/ 1000000;
-    final breakSeconds = breaks.fold(
-      0,
-      (total, item) => item.endUtc == null
-          ? total
-          : total + second(item.endUtc!) - second(item.startUtc),
-    );
-    final end = shift.endUtc;
-    final paidSeconds = end == null
-        ? null
-        : second(end) - second(shift.startUtc) - breakSeconds;
-    final agreement = agreements[shift.agreementId];
-    final facts =
-        (shift.state == ShiftState.finalized ||
-                shift.state == ShiftState.voided) &&
-            agreement != null
-        ? validateFinalization(
-            shift: shift,
-            breaks: breaks,
-            agreements: [agreement],
-          ).facts
-        : null;
-    final clock = _zoneClocks(shift.timezoneId);
-    return ShiftSheetRow(
-      shift: shift,
-      breaks: breaks,
-      breakSeconds: breakSeconds,
-      paidSeconds: paidSeconds,
-      period: period,
-      facts: facts,
-      pay: facts?.expectedPay(
-        toLocal: clock.toLocal,
-        toInstants: clock.toInstants,
-      ),
     );
   }
 

@@ -220,7 +220,7 @@ final class LifeOSMenuBar extends StatelessWidget {
                         : null,
                   ),
                   later('Today', _desks),
-                  later('Journal', 'The Journal arrives in a later update'),
+                  item('Journal', () => onNavigate('/journal')),
                 ]),
                 menu('Help', [
                   item(

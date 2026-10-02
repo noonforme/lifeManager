@@ -84,6 +84,14 @@ final class EmploymentDao {
     return row == null ? null : employmentFromRow(row);
   }
 
+  /// Every employment, active or archived, oldest first.
+  Future<List<domain.Employment>> all() async {
+    final rows = await (database.select(
+      database.employments,
+    )..orderBy([(table) => OrderingTerm.asc(table.createdAtUtcMicros)])).get();
+    return rows.map(employmentFromRow).toList(growable: false);
+  }
+
   Future<List<domain.Employment>> active() async {
     final rows =
         await (database.select(database.employments)

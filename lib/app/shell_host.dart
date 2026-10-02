@@ -71,7 +71,7 @@ final class ShellChromeHost extends ConsumerWidget {
     ).toString();
 
     final nodes = <TreeNode>[
-      const TreeSheet(label: 'Journal', route: '/journal', built: false),
+      const TreeSheet(label: 'Journal', route: '/journal'),
       TreeArea(
         area: LifeOSArea.work,
         route: '/work',

@@ -50,6 +50,22 @@ final class RecordEventDao implements RecordHistory {
         updateKind: UpdateKind.delete,
       );
 
+  /// Every event at or after [fromUtc] and before [toUtc], oldest first.
+  Future<List<RecordEvent>> between(DateTime fromUtc, DateTime toUtc) async =>
+      _decodeRows(
+        await _database
+            .customSelect(
+              'SELECT * FROM record_events '
+              'WHERE at_utc_micros >= ? AND at_utc_micros < ? ORDER BY id',
+              variables: [
+                Variable(fromUtc.microsecondsSinceEpoch),
+                Variable(toUtc.microsecondsSinceEpoch),
+              ],
+              readsFrom: {_table},
+            )
+            .get(),
+      );
+
   @override
   Stream<List<RecordEvent>> watch(String recordKind, String recordId) =>
       _query(recordKind, recordId).watch().map(_decodeRows);
