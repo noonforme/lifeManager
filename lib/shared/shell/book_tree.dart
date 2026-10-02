@@ -382,9 +382,17 @@ final class _TreeRowState extends State<_TreeRow> {
         position.dy,
       ),
       items: [
-        const PopupMenuItem(value: -1, child: Text('Open')),
+        const PopupMenuItem(
+          height: menuRowHeight,
+          value: -1,
+          child: Text('Open'),
+        ),
         for (final (index, action) in widget.actions.indexed)
-          PopupMenuItem(value: index, child: Text(action.label)),
+          PopupMenuItem(
+            height: menuRowHeight,
+            value: index,
+            child: Text(action.label),
+          ),
       ],
     );
     switch (choice) {

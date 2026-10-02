@@ -27,6 +27,9 @@ void main() {
       240,
       scrollable: find.byType(Scrollable).first,
     );
+    // Built is not on screen; bring it into view before tapping.
+    await tester.ensureVisible(action);
+    await tester.pumpAndSettle();
     await tester.tap(action);
     await tester.pumpAndSettle();
   }

@@ -260,6 +260,19 @@ final class DeskHost extends ConsumerWidget {
                 ? 'Nothing waiting. Work is ready when you add an employment.'
                 : 'Nothing waiting.',
             onOpen: go,
+            action: noEmployment
+                ? (
+                    label: 'Add employment',
+                    route: workRouteUri(
+                      const WorkRouteState(
+                        employmentId: null,
+                        scope: null,
+                        record: null,
+                        mode: WorkInspectorMode.create,
+                      ),
+                    ).toString(),
+                  )
+                : null,
           ),
         );
       case DeskSheets.workThisPeriod:

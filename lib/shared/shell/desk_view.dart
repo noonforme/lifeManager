@@ -247,16 +247,19 @@ final class _TileCard extends StatelessWidget {
                             in sheetNames.entries)
                           if (tile.viewId != null || sheet != tile.sheetRef)
                             PopupMenuItem(
+                              height: menuRowHeight,
                               value: sheet,
                               child: Text('Replace with $name'),
                             ),
                         const PopupMenuDivider(),
                         PopupMenuItem(
+                          height: menuRowHeight,
                           value: 'open',
                           enabled: fullSize != null,
                           child: const Text('Open full size'),
                         ),
                         const PopupMenuItem(
+                          height: menuRowHeight,
                           value: 'remove',
                           child: Text('Remove'),
                         ),
@@ -343,24 +346,39 @@ final class _DeskMenu extends StatelessWidget {
         },
         itemBuilder: (context) => [
           for (final MapEntry(key: sheet, value: name) in sheetNames.entries)
-            PopupMenuItem(value: sheet, child: Text('Add $name')),
+            PopupMenuItem(
+              height: menuRowHeight,
+              value: sheet,
+              child: Text('Add $name'),
+            ),
           for (final MapEntry(key: id, value: name) in views.entries)
-            PopupMenuItem(value: _AddView(id), child: Text('Add view: $name')),
+            PopupMenuItem(
+              height: menuRowHeight,
+              value: _AddView(id),
+              child: Text('Add view: $name'),
+            ),
           const PopupMenuDivider(),
           for (final MapEntry(key: layout, value: name) in layouts.entries)
             CheckedPopupMenuItem(
+              height: menuRowHeight,
               value: layout,
               checked: desk.layout == layout,
               child: Text('Layout: $name'),
             ),
           const PopupMenuDivider(),
-          const PopupMenuItem(value: 'rename', child: Text('Rename desk…')),
+          const PopupMenuItem(
+            height: menuRowHeight,
+            value: 'rename',
+            child: Text('Rename desk…'),
+          ),
           PopupMenuItem(
+            height: menuRowHeight,
             value: 'reset',
             enabled: onReset != null,
             child: const Text('Reset starter desk'),
           ),
           PopupMenuItem(
+            height: menuRowHeight,
             value: 'delete',
             enabled: onDelete != null,
             child: const Text('Delete desk'),

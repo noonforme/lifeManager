@@ -62,6 +62,7 @@ final class EmploymentSwitcher extends StatelessWidget {
       itemBuilder: (context) => [
         for (final employment in employments)
           PopupMenuItem(
+            height: menuRowHeight,
             value: _OpenEmployment(employment.id),
             child: Row(
               children: [
@@ -77,10 +78,12 @@ final class EmploymentSwitcher extends StatelessWidget {
           ),
         const PopupMenuDivider(),
         const PopupMenuItem(
+          height: menuRowHeight,
           value: _AllEmployments(),
           child: Text('All employments'),
         ),
         const PopupMenuItem(
+          height: menuRowHeight,
           value: _CreateEmployment(),
           child: Text('Create employment'),
         ),
@@ -183,14 +186,23 @@ final class PeriodPicker extends StatelessWidget {
             _AskRange() => _askRange(context),
           },
           itemBuilder: (context) => [
-            const PopupMenuItem(value: _Scope(null), child: Text('All dates')),
+            const PopupMenuItem(
+              height: menuRowHeight,
+              value: _Scope(null),
+              child: Text('All dates'),
+            ),
             for (final period in periods.reversed)
               PopupMenuItem(
+                height: menuRowHeight,
                 value: _Scope(PayPeriodScope(period.id)),
                 child: Text(periodName(period)),
               ),
             const PopupMenuDivider(),
-            const PopupMenuItem(value: _AskRange(), child: Text('Date range…')),
+            const PopupMenuItem(
+              height: menuRowHeight,
+              value: _AskRange(),
+              child: Text('Date range…'),
+            ),
           ],
           child: _MenuFace(label: 'Period', detail: _label),
         ),
@@ -302,11 +314,13 @@ final class StateFilter extends StatelessWidget {
     onSelected: onChanged,
     itemBuilder: (context) => [
       CheckedPopupMenuItem(
+        height: menuRowHeight,
         value: false,
         checked: !showVoid,
         child: const Text('Effective and drafts'),
       ),
       CheckedPopupMenuItem(
+        height: menuRowHeight,
         value: true,
         checked: showVoid,
         child: const Text('Include void'),

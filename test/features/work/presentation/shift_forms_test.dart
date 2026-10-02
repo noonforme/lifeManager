@@ -139,6 +139,9 @@ Future<void> _save(WidgetTester tester) async {
     240,
     scrollable: find.byType(Scrollable).first,
   );
+  // Built is not on screen; bring it into view before tapping.
+  await tester.ensureVisible(action);
+  await tester.pumpAndSettle();
   await tester.tap(action);
   await tester.pumpAndSettle();
 }
@@ -172,6 +175,6 @@ final class _TestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     theme: buildLifeOSTheme(highContrast: false),
-    home: Scaffold(body: SizedBox(width: 520, height: 760, child: child)),
+    home: Scaffold(body: SizedBox(width: 520, child: child)),
   );
 }

@@ -5,7 +5,6 @@ import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/shell/shell_frame.dart';
-import '../../../shared/workbench/lifeos_theme.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../application/work_templates.dart';
 import '../data/projections/work_record_projection.dart';
@@ -788,7 +787,7 @@ final class _RegisterLandmark extends StatelessWidget {
       explicitChildNodes: true,
       label: 'Work register',
       child: ColoredBox(
-        color: LifeOSColors.ground,
+        color: Theme.of(context).colorScheme.surface,
         child: FocusTraversalGroup(child: child),
       ),
     );

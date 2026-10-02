@@ -173,6 +173,9 @@ void main() {
           )
           .first,
     );
+    // Built is not on screen; bring it into view before tapping.
+    await tester.ensureVisible(save);
+    await tester.pumpAndSettle();
     await tester.tap(save);
     await tester.pumpAndSettle();
 

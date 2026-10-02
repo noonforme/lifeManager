@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../core/explain/explanation.dart';
 import 'cell_selection.dart';
 import 'lifeos_skin.dart';
+import 'office_controls.dart';
 
 /// What a column holds. Numeric kinds are right-aligned in tabular figures.
 enum ColumnKind {
@@ -298,6 +299,7 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
       items: [
         for (var index = 0; index < actions.length; index++)
           PopupMenuItem<int>(
+            height: menuRowHeight,
             value: index,
             enabled: actions[index].onInvoke != null,
             child: Text(actions[index].label),

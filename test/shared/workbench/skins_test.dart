@@ -80,6 +80,26 @@ void main() {
     });
   });
 
+  test('the Office Machine status line meets 4.5:1 and 3:1', () {
+    const skin = OfficeMachineSkin();
+    for (final tokens in [
+      LifeOSTokens.day,
+      LifeOSTokens.night,
+      LifeOSTokens.highContrast,
+    ]) {
+      final status = skin.painters.statusLine(tokens);
+      expect(contrastRatio(status.ink, tokens.head), greaterThanOrEqualTo(4.5));
+      expect(
+        contrastRatio(status.alertInk, tokens.head),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrastRatio(status.indicator, tokens.head),
+        greaterThanOrEqualTo(3),
+      );
+    }
+  });
+
   test('Millennium keeps its palette whatever the system brightness', () {
     final (skin, brightness, highContrast) = LifeOSSkinScope.resolve(
       LifeOSAppearance.millennium,

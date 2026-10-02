@@ -294,7 +294,10 @@ final class _OfficeMachinePainters implements SkinPainters {
   StatusLineStyle statusLine(LifeOSTokens tokens) => StatusLineStyle(
     fill: BoxDecoration(color: tokens.head),
     ink: tokens.headInk,
-    alertInk: tokens.negative,
+    // The day and high-contrast negatives are too dark on the dark strip.
+    alertInk: contrastRatio(tokens.negative, tokens.head) >= 4.5
+        ? tokens.negative
+        : const Color(0xffff8a7a),
     indicator: tokens.signal,
     divider: tokens.headInk.withValues(alpha: 0.25),
   );

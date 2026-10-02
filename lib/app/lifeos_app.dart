@@ -126,7 +126,13 @@ final class _LifeOsAppState extends State<LifeOsApp> {
                       NavigationHistoryScope.maybeOf(context),
                     ),
                     child: LifeOSSkinScope(
-                      child: child ?? const SizedBox.shrink(),
+                      // Material forms, dialogs and menus follow the skin.
+                      child: Builder(
+                        builder: (context) => Theme(
+                          data: lifeOSThemeFor(LifeOSSkinScope.of(context)),
+                          child: child ?? const SizedBox.shrink(),
+                        ),
+                      ),
                     ),
                   ),
                 ),

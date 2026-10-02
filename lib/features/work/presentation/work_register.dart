@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
-import '../../../shared/workbench/lifeos_theme.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../data/projections/work_register_projection.dart';
@@ -225,10 +224,12 @@ final class _Summary extends StatelessWidget {
   Widget build(BuildContext context) {
     final groups = projection.reconciliation?.groups ?? const [];
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: LifeOSColors.surface,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: Border.symmetric(
-          horizontal: BorderSide(color: LifeOSColors.boundary),
+          horizontal: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
       ),
       child: Padding(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/time/local_date.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
+import '../../../shared/workbench/office_controls.dart';
 import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/pay.dart';
@@ -212,12 +213,16 @@ final class TileList extends StatelessWidget {
     required this.lines,
     required this.empty,
     this.onOpen,
+    this.action,
     super.key,
   });
 
   final List<({String text, String? detail, String? route, bool? done})> lines;
   final String empty;
   final ValueChanged<String>? onOpen;
+
+  /// A key under the empty copy, such as Add employment, with its route.
+  final ({String label, String route})? action;
 
   @override
   Widget build(BuildContext context) {
@@ -226,9 +231,22 @@ final class TileList extends StatelessWidget {
     if (lines.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(12),
-        child: Text(
-          empty,
-          style: skin.typography.body.copyWith(color: tokens.muted),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              empty,
+              style: skin.typography.body.copyWith(color: tokens.muted),
+            ),
+            if ((action, onOpen) case (final action?, final open?)) ...[
+              const SizedBox(height: 10),
+              KeyButton(
+                label: action.label,
+                kind: KeyKind.primary,
+                onPressed: () => open(action.route),
+              ),
+            ],
+          ],
         ),
       );
     }

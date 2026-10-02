@@ -3,6 +3,10 @@ import 'package:flutter/widgets.dart';
 import 'lifeos_skin.dart';
 import 'lifeos_tokens.dart';
 
+/// The height of a popup menu row: the register's density, not a touch
+/// target, and still above the 24-pixel minimum.
+const menuRowHeight = 32.0;
+
 /// A labelled key with a pressable bottom edge. Every action in LifeOS is a
 /// visible key; the label is always shown.
 final class KeyButton extends StatefulWidget {

@@ -40,6 +40,7 @@ final class QuickAddMenu extends StatelessWidget {
         itemBuilder: (context) => [
           for (final (index, entry) in entries.indexed)
             PopupMenuItem(
+              height: menuRowHeight,
               value: index,
               enabled: entry.open != null,
               child: Row(

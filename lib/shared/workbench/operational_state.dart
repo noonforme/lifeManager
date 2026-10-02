@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'lifeos_theme.dart';
-
 enum OperationalStateKind {
   loading,
   empty,
@@ -48,7 +46,9 @@ final class OperationalState extends StatelessWidget {
               children: [
                 Icon(
                   warning ? Icons.warning_amber_rounded : Icons.work_outline,
-                  color: warning ? LifeOSColors.warning : LifeOSColors.muted,
+                  color: warning
+                      ? Theme.of(context).colorScheme.tertiary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 12),
                 Text(title, style: Theme.of(context).textTheme.titleMedium),
