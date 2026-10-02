@@ -11,6 +11,7 @@ import 'package:lifeos/features/work/domain/payslip.dart';
 import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/presentation/period_payslip_forms.dart';
 import 'package:lifeos/features/work/presentation/work_inspector.dart';
+import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
 void main() {
@@ -44,8 +45,8 @@ void main() {
         find.text('Gross and net evidence cannot be combined.'),
         findsOneWidget,
       );
-      expect(find.text('Gross · EUR'), findsOneWidget);
-      expect(find.text('Net · EUR'), findsOneWidget);
+      expect(find.text('GROSS · EUR'), findsOneWidget);
+      expect(find.text('NET · EUR'), findsOneWidget);
       expect(find.text('Expected under recorded agreement'), findsNWidgets(2));
       expect(find.text('Paid evidence'), findsNWidgets(2));
       expect(find.text('Single difference'), findsNothing);
@@ -341,6 +342,8 @@ final class _TestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     theme: buildLifeOSTheme(highContrast: false),
-    home: Scaffold(body: SizedBox(width: 520, height: 760, child: child)),
+    home: LifeOSSkinScope(
+      child: Scaffold(body: SizedBox(width: 520, height: 760, child: child)),
+    ),
   );
 }

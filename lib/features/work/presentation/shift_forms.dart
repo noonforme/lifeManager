@@ -4,6 +4,9 @@ import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/local_time.dart';
 import '../../../core/time/timezone_service.dart';
+import '../../../shared/workbench/inspector_parts.dart';
+import '../../../shared/workbench/lifeos_skin.dart';
+import '../../../shared/workbench/office_controls.dart';
 import '../application/work_templates.dart';
 import '../domain/ids.dart';
 import '../domain/shift.dart';
@@ -135,21 +138,20 @@ final class ShiftCreateInspector extends StatelessWidget {
   final VoidCallback? onAddManualShift;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Record work', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 18),
-        FilledButton(onPressed: onStartShift, child: const Text('Start shift')),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: onAddManualShift,
-          child: const Text('Add manual shift'),
-        ),
-      ],
-    ),
+  Widget build(BuildContext context) => InspectorPane(
+    children: [
+      const InspectorTitle('Record work'),
+      InspectorActions(
+        children: [
+          KeyButton(
+            label: 'Start shift',
+            kind: KeyKind.primary,
+            onPressed: onStartShift,
+          ),
+          KeyButton(label: 'Add manual shift', onPressed: onAddManualShift),
+        ],
+      ),
+    ],
   );
 }
 
@@ -245,31 +247,25 @@ final class _FinalizeShiftInspectorState extends State<FinalizeShiftInspector> {
     container: true,
     explicitChildNodes: true,
     label: 'Finalize shift',
-    child: Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Finalize shift',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Overtime, night and holiday pay are worked out from the '
-            'agreement.',
-          ),
-          if (_error case final error?) ...[
-            const SizedBox(height: 10),
-            Text(
-              error,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+    child: InspectorPane(
+      children: [
+        const InspectorTitle('Finalize shift'),
+        const InspectorText(
+          'Overtime, night and holiday pay are worked out from the '
+          'agreement.',
+        ),
+        if (_error case final error?)
+          InspectorNote(error, tone: FactTone.negative),
+        InspectorActions(
+          children: [
+            KeyButton(
+              label: 'Finalize shift',
+              kind: KeyKind.primary,
+              onPressed: _submit,
             ),
           ],
-          const SizedBox(height: 18),
-          FilledButton(onPressed: _submit, child: const Text('Finalize shift')),
-        ],
-      ),
+        ),
+      ],
     ),
   );
 }
@@ -542,24 +538,21 @@ final class _LifecyclePane extends StatelessWidget {
   final VoidCallback? onSecondary;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.headlineSmall),
-        if (durationLabel != null) ...[
-          const SizedBox(height: 8),
-          Text(durationLabel!),
+  Widget build(BuildContext context) => InspectorPane(
+    children: [
+      InspectorTitle(title, meta: durationLabel),
+      InspectorActions(
+        children: [
+          KeyButton(
+            label: primaryLabel,
+            kind: KeyKind.primary,
+            onPressed: onPrimary,
+          ),
+          if (secondaryLabel case final label?)
+            KeyButton(label: label, onPressed: onSecondary),
         ],
-        const SizedBox(height: 18),
-        FilledButton(onPressed: onPrimary, child: Text(primaryLabel)),
-        if (secondaryLabel != null) ...[
-          const SizedBox(height: 8),
-          OutlinedButton(onPressed: onSecondary, child: Text(secondaryLabel!)),
-        ],
-      ],
-    ),
+      ),
+    ],
   );
 }
 

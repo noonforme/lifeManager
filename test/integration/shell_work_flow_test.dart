@@ -8,6 +8,7 @@ import 'package:lifeos/core/database/app_database.dart' show AppDatabase;
 import 'package:lifeos/core/time/app_clock.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 /// The shell spec's section 10 flow on the production composition: a
 /// fresh install from Today to a finalized shift, then the formula bar,
@@ -81,7 +82,7 @@ void main() {
     clock.now = DateTime.utc(2026, 10, 1, 14);
     await tester.tap(find.text('End shift'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Finalize shift'));
+    await tester.tap(find.widgetWithText(KeyButton, 'Finalize shift'));
     await tester.pumpAndSettle();
     expect(find.text('Shift finalized'), findsOneWidget);
 

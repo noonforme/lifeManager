@@ -517,7 +517,9 @@ final class _TestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     theme: buildLifeOSTheme(highContrast: false),
-    home: Scaffold(body: SizedBox(width: 520, height: 760, child: child)),
+    home: LifeOSSkinScope(
+      child: Scaffold(body: SizedBox(width: 520, height: 760, child: child)),
+    ),
   );
 }
 

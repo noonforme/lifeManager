@@ -14,6 +14,7 @@ import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/features/work/presentation/work_screen.dart';
+import 'package:lifeos/shared/workbench/inspector_parts.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
@@ -183,7 +184,7 @@ void main() {
     String fact(String label) {
       final row = find.ancestor(
         of: find.descendant(of: inspector, matching: find.text(label)),
-        matching: find.byType(Row),
+        matching: find.byType(InspectorFactRow),
       );
       return (tester
               .widgetList<Text>(

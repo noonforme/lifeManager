@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
+import '../../../shared/workbench/inspector_parts.dart';
+import '../../../shared/workbench/lifeos_skin.dart';
+import '../../../shared/workbench/office_controls.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay.dart';
@@ -146,53 +149,48 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
         container: true,
         explicitChildNodes: true,
         label: 'Pay period',
-        child: ListView(
-          padding: const EdgeInsets.all(20),
+        child: InspectorPane(
           children: [
-            Text(
-              period.label ?? '${period.start} – ${period.end}',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text('${period.start} – ${period.end}'),
-            const SizedBox(height: 8),
-            Text(period.state == PayPeriodState.reviewed ? 'Reviewed' : 'Open'),
-            if (widget.onSetState != null) ...[
-              const SizedBox(height: 20),
-              if (period.state == PayPeriodState.reviewed)
-                OutlinedButton(
-                  onPressed: () =>
-                      widget.onSetState!(period, PayPeriodState.open),
-                  child: const Text('Reopen period'),
-                )
-              else
-                FilledButton(
-                  onPressed: () =>
-                      widget.onSetState!(period, PayPeriodState.reviewed),
-                  child: const Text('Mark reviewed'),
-                ),
-            ],
-            if (widget.onRecordPayslip != null) ...[
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: widget.onRecordPayslip,
-                child: const Text('Record payslip'),
+            InspectorTitle(period.label ?? 'Pay period'),
+            InspectorFacts([
+              Fact('Dates', '${period.start} – ${period.end}'),
+              Fact.words(
+                'State',
+                period.state == PayPeriodState.reviewed ? 'Reviewed' : 'Open',
               ),
-            ],
+            ]),
+            if (widget.onSetState != null || widget.onRecordPayslip != null)
+              InspectorActions(
+                children: [
+                  if (widget.onSetState case final setPeriodState?)
+                    if (period.state == PayPeriodState.reviewed)
+                      KeyButton(
+                        label: 'Reopen period',
+                        onPressed: () =>
+                            setPeriodState(period, PayPeriodState.open),
+                      )
+                    else
+                      KeyButton(
+                        label: 'Mark reviewed',
+                        kind: KeyKind.primary,
+                        onPressed: () =>
+                            setPeriodState(period, PayPeriodState.reviewed),
+                      ),
+                  if (widget.onRecordPayslip case final record?)
+                    KeyButton(label: 'Record payslip', onPressed: record),
+                ],
+              ),
             if (widget.reconciliation.isNotEmpty) ...[
-              const Divider(height: 33),
               if (widget.reconciliation
                       .map((group) => group.basis.runtimeType)
                       .toSet()
                       .length >
-                  1) ...[
-                const Text('Gross and net evidence cannot be combined.'),
-                const SizedBox(height: 16),
-              ],
-              for (final group in widget.reconciliation) ...[
+                  1)
+                const InspectorNote(
+                  'Gross and net evidence cannot be combined.',
+                ),
+              for (final group in widget.reconciliation)
                 _ReconciliationGroupView(group: group),
-                const SizedBox(height: 16),
-              ],
             ],
           ],
         ),
@@ -418,17 +416,12 @@ final class ReconciliationInspector extends StatelessWidget {
       container: true,
       explicitChildNodes: true,
       label: 'Reconciliation',
-      child: ListView.separated(
-        padding: const EdgeInsets.all(20),
-        itemCount: groups.length + (basisTypes.length > 1 ? 1 : 0),
-        separatorBuilder: (_, _) => const Divider(height: 25),
-        itemBuilder: (context, index) {
-          if (basisTypes.length > 1 && index == 0) {
-            return const Text('Gross and net evidence cannot be combined.');
-          }
-          final group = groups[index - (basisTypes.length > 1 ? 1 : 0)];
-          return _ReconciliationGroupView(group: group);
-        },
+      child: InspectorPane(
+        children: [
+          if (basisTypes.length > 1)
+            const InspectorNote('Gross and net evidence cannot be combined.'),
+          for (final group in groups) _ReconciliationGroupView(group: group),
+        ],
       ),
     );
   }
@@ -441,57 +434,25 @@ final class _ReconciliationGroupView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(
-        '${_basisLabel(group.basis)} · ${group.currency.value}',
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
-      const SizedBox(height: 12),
-      _AmountLine(
-        label: 'Expected under recorded agreement',
-        value: group.expected,
-      ),
-      const SizedBox(height: 8),
-      _AmountLine(label: 'Paid evidence', value: group.paid),
-      if (group.difference != null) ...[
-        const SizedBox(height: 8),
-        _AmountLine(label: 'Difference', value: group.difference),
-      ],
-      const SizedBox(height: 10),
-      Text(
-        _statusLabel(group.status),
-        style: Theme.of(context).textTheme.labelLarge,
-      ),
-      const SizedBox(height: 4),
-      Text(_statusExplanation(group.status)),
-      if (group.payslipIds.length > 1) ...[
-        const SizedBox(height: 6),
-        Text('${group.payslipIds.length} payslips'),
-      ],
+      InspectorSection('${_basisLabel(group.basis)} · ${group.currency.value}'),
+      InspectorFacts([
+        _amount('Expected under recorded agreement', group.expected),
+        _amount('Paid evidence', group.paid),
+        if (group.difference != null) _amount('Difference', group.difference),
+        Fact.words('Status', _statusLabel(group.status)),
+      ]),
+      InspectorNote(_statusExplanation(group.status)),
+      if (group.payslipIds.length > 1)
+        InspectorNote('${group.payslipIds.length} payslips'),
     ],
   );
 }
 
-final class _AmountLine extends StatelessWidget {
-  const _AmountLine({required this.label, required this.value});
-
-  final String label;
-  final Money? value;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Flexible(child: Text(label)),
-      const SizedBox(width: 16),
-      Text(
-        value == null ? 'Not recorded' : _formatMoney(value!),
-        style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
-      ),
-    ],
-  );
-}
+Fact _amount(String label, Money? value) => value == null
+    ? Fact.words(label, 'Not recorded')
+    : Fact(label, _formatMoney(value));
 
 final class _Field extends StatelessWidget {
   const _Field({

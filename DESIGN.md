@@ -196,7 +196,7 @@ Motion is immediate, or a 120 ms cross-fade. With reduced motion it is zero. Not
 - **Secondary:** Paper with a Muted outline.
 - **Small:** 26 high.
 - **Disabled:** Chrome with Muted text, and no edge.
-- **Shared rules:** the label is always shown. Material buttons in forms are painted with the same key surfaces through the skin-derived theme.
+- **Shared rules:** the label is always shown. Material buttons in forms are painted with the same key surfaces, edge and height through the skin-derived theme.
 
 ### Segmented tabs
 Sheet tabs, inspector tabs and desk tabs. The active segment is Head with Head ink, inactive segments are Paper, and all share a Muted outline.
@@ -210,7 +210,14 @@ Sheet tabs, inspector tabs and desk tabs. The active segment is Head with Head i
 `ƒx`, then the reference, the calculation with operand links, and the source. It is empty when nothing is selected; it never shows placeholder text.
 
 ### Inspector
-Details and History tabs. Facts are label/value pairs with figures right-aligned. History lists created, changed, finalized, voided, replaced and reviewed events, newest first.
+Details and History tabs. Inspector content is built from the parts in `inspector_parts.dart`, on the tabs' 16-pixel inset:
+- **Title:** the record name in Title.
+- **Facts:** label/value pairs drawn as register rows with Rule separators, the label in Muted body and the value right-aligned in Figure (words stay in Body). A value that does not fit beside its label moves under it.
+- **Sections:** a Label heading, such as "Expected pay".
+- **Notes:** explanations in Small.
+- **Actions:** keys at their own width, left-aligned and wrapping. They are never stretched to the pane.
+
+History lists created, changed, finalized, voided, replaced and reviewed events, newest first, each as a row with its time in Figure.
 
 ### Status line
 A Head strip showing "● Shift running since 07:02" (the start on the shift's own clock), then counts, then "Local database" or "Last save uncertain. Reload to check".

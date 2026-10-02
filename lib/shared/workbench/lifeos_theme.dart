@@ -31,7 +31,7 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
   );
   TextStyle ink(TextStyle style) => style.copyWith(color: t.ink);
   final textTheme = TextTheme(
-    headlineSmall: ink(type.title.copyWith(fontSize: 20, height: 1.2)),
+    headlineSmall: ink(type.title),
     titleLarge: ink(type.title),
     titleMedium: ink(type.title),
     titleSmall: ink(type.body.copyWith(fontWeight: FontWeight.w700)),
@@ -61,27 +61,37 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
         borderRadius: BorderRadius.all(Radius.circular(4)),
       ),
     ),
-    minimumSize: const WidgetStatePropertyAll(Size(24, 30)),
-    padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 12)),
+    // A 30-pixel face over its 2-pixel edge.
+    minimumSize: const WidgetStatePropertyAll(Size(24, 32)),
+    padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 10)),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     textStyle: WidgetStatePropertyAll(
       type.body.copyWith(
         fontWeight: kind == KeyKind.primary ? FontWeight.w700 : FontWeight.w500,
       ),
     ),
-    backgroundBuilder: (context, states, child) => DecoratedBox(
-      decoration: skin.painters
-          .key(
-            t,
-            kind,
-            KeyState(
-              enabled: !states.contains(WidgetState.disabled),
-              pressed: states.contains(WidgetState.pressed),
-              hovered: states.contains(WidgetState.hovered),
-            ),
-          )
-          .decoration,
-      child: child,
-    ),
+    // The same face, edge and press travel as a KeyButton, so a form's
+    // keys stand beside the inspector's at one height.
+    backgroundBuilder: (context, states, child) {
+      final surface = skin.painters.key(
+        t,
+        kind,
+        KeyState(
+          enabled: !states.contains(WidgetState.disabled),
+          pressed: states.contains(WidgetState.pressed),
+          hovered: states.contains(WidgetState.hovered),
+        ),
+      );
+      return Container(
+        margin: EdgeInsets.only(top: surface.topInset),
+        padding: EdgeInsets.only(bottom: surface.edgeWidth),
+        decoration: BoxDecoration(
+          color: surface.edgeColor,
+          borderRadius: surface.radius,
+        ),
+        child: DecoratedBox(decoration: surface.decoration, child: child),
+      );
+    },
   );
 
   OutlineInputBorder outline(Color color, [double width = 1]) =>
