@@ -199,6 +199,10 @@ final class _EraDateFieldState extends State<EraDateField> {
               container: true,
               button: true,
               enabled: _enabled,
+              // The Focus below is excluded with the box's inner text, so
+              // the button reports focus itself, as EraTimeField does. A
+              // non-null value also marks it focusable; a clear box is not.
+              focused: _enabled ? _focused : null,
               label: widget.error == null ? name : '$name, ${widget.error}',
               onTap: _enabled ? _open : null,
               child: Container(

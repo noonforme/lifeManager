@@ -97,6 +97,19 @@ void main() {
         isButton: true,
         hasTapAction: true,
         isEnabled: true,
+        isFocusable: true,
+        isFocused: false,
+      ),
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    expect(
+      tester.getSemantics(find.byKey(_box)),
+      isSemantics(
+        label: 'Starts on, Monday 5 October 2026',
+        isButton: true,
+        isFocusable: true,
+        isFocused: true,
       ),
     );
   });
@@ -210,7 +223,7 @@ void main() {
     await _pump(tester, value: null, optional: true);
     expect(
       tester.getSemantics(find.byKey(_box)),
-      isSemantics(label: 'Ends on, none', isEnabled: false),
+      isSemantics(label: 'Ends on, none', isEnabled: false, isFocusable: false),
     );
     expect(
       tester.getSemantics(find.byKey(const ValueKey('era-date-check'))),
