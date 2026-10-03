@@ -59,6 +59,13 @@ final class _EraDateFieldState extends State<EraDateField> {
   void initState() {
     super.initState();
     _lastShown = widget.value;
+    _calendarNode.addListener(_onCalendarFocus);
+  }
+
+  /// Any way focus leaves the open calendar closes it, so it never stays
+  /// open without the keyboard. Focus stays where it went.
+  void _onCalendarFocus() {
+    if (mounted && !_calendarNode.hasFocus) _dismiss();
   }
 
   @override
@@ -81,7 +88,9 @@ final class _EraDateFieldState extends State<EraDateField> {
   void dispose() {
     _scroll?.removeListener(_dismiss);
     _box.dispose();
-    _calendarNode.dispose();
+    _calendarNode
+      ..removeListener(_onCalendarFocus)
+      ..dispose();
     super.dispose();
   }
 

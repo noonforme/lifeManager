@@ -207,6 +207,93 @@ void main() {
     expect(_value(tester), _today);
   });
 
+  testWidgets('a held Tab keeps focus in the open calendar', (tester) async {
+    await _pump(tester);
+    await tester.tap(find.byKey(_box));
+    await tester.pumpAndSettle();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    for (var index = 0; index < 3; index++) {
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+    }
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
+    await tester.pumpAndSettle();
+    expect(_calendar, findsOneWidget);
+    expect(
+      tester.binding.focusManager.primaryFocus?.debugLabel,
+      'EraDateFieldCalendar',
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(_calendar, findsNothing);
+  });
+
+  testWidgets('focus moving elsewhere closes the calendar and stays there', (
+    tester,
+  ) async {
+    final elsewhere = FocusNode(debugLabel: 'Elsewhere');
+    addTearDown(elsewhere.dispose);
+    await _pump(
+      tester,
+      wrap: (field) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          field,
+          Focus(focusNode: elsewhere, child: const SizedBox(height: 24)),
+        ],
+      ),
+    );
+    await tester.tap(find.byKey(_box));
+    await tester.pumpAndSettle();
+    expect(_calendar, findsOneWidget);
+    elsewhere.requestFocus();
+    await tester.pumpAndSettle();
+    expect(_calendar, findsNothing);
+    expect(tester.binding.focusManager.primaryFocus, elsewhere);
+    expect(_value(tester), _today);
+  });
+
+  testWidgets('a click on a day picks once and focus returns to the box', (
+    tester,
+  ) async {
+    var changes = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLifeOSTheme(),
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: 240,
+                child: StatefulBuilder(
+                  builder: (context, setState) => EraDateField(
+                    label: 'Starts on',
+                    value: _today,
+                    today: _today,
+                    fieldKey: _box,
+                    onChanged: (_) => changes++,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(_box));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('era-day-2026-10-07')));
+    await tester.pumpAndSettle();
+    expect(changes, 1);
+    expect(_calendar, findsNothing);
+    expect(
+      tester.binding.focusManager.primaryFocus?.debugLabel,
+      'EraDateField',
+    );
+  });
+
   testWidgets('the calendar opens above a box near the bottom', (tester) async {
     await _pump(tester, alignment: Alignment.bottomCenter);
     await tester.tap(find.byKey(_box));

@@ -68,6 +68,11 @@ final class _EraMonthCalendarState extends State<EraMonthCalendar> {
       _moveTo(day);
       return KeyEventResult.handled;
     }
+    // A drop-down keeps Tab inside, held down too: a repeat that escaped
+    // would leave the calendar open with nothing to close it.
+    if (widget.onCancel != null && key == LogicalKeyboardKey.tab) {
+      return KeyEventResult.handled;
+    }
     if (event is KeyRepeatEvent) return KeyEventResult.ignored;
     if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter ||
@@ -80,7 +85,6 @@ final class _EraMonthCalendarState extends State<EraMonthCalendar> {
         cancel();
         return KeyEventResult.handled;
       }
-      if (key == LogicalKeyboardKey.tab) return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
   }
