@@ -4,23 +4,33 @@ import '../../../core/database/app_database.dart' show AppDatabase;
 import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/app_clock.dart';
+import '../../../core/time/local_date.dart';
+import '../application/day_plan_service.dart';
 import '../application/schedule_service.dart';
+import '../domain/day_exception.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/schedule.dart';
+import 'daos/agreement_dao.dart';
+import 'daos/day_exception_dao.dart';
 import 'daos/schedule_dao.dart';
 import 'work_history.dart';
 
 /// Schedules, day exceptions, confirmed days and leave in SQLite.
-final class DriftScheduleRepository implements ScheduleRepository {
+final class DriftScheduleRepository
+    implements ScheduleRepository, DayPlanRepository {
   /// History entries are stamped by [clock].
   DriftScheduleRepository(this._database, {AppClock? clock})
     : _history = WorkHistoryWriter(_database, clock ?? SystemAppClock()),
-      _schedules = ScheduleDao(_database);
+      _schedules = ScheduleDao(_database),
+      _exceptions = DayExceptionDao(_database),
+      _agreements = AgreementDao(_database);
 
   final AppDatabase _database;
   final WorkHistoryWriter _history;
   final ScheduleDao _schedules;
+  final DayExceptionDao _exceptions;
+  final AgreementDao _agreements;
 
   @override
   Future<List<WorkSchedule>> schedulesFor(EmploymentId id) =>
@@ -127,4 +137,85 @@ final class DriftScheduleRepository implements ScheduleRepository {
     }
     return Committed<WorkSchedule>(latest);
   });
+
+  @override
+  Future<PlanInputs> planInputs(EmploymentId id) => _database.transaction(
+    () async => PlanInputs(
+      schedules: await _schedules.forEmployment(id),
+      exceptions: await _exceptions.forEmployment(id),
+      confirmedDates: await _confirmedDates(id),
+      agreements: await _agreements.forEmployment(id),
+    ),
+  );
+
+  @override
+  Stream<PlanInputs> watchPlanInputs(EmploymentId id) async* {
+    yield await planInputs(id);
+    await for (final _ in _database.tableUpdates(
+      TableUpdateQuery.onAllTables([
+        _database.workSchedules,
+        _database.workScheduleShiftTypes,
+        _database.workScheduleBlocks,
+        _database.workDayExceptions,
+        _database.workShifts,
+        _database.workLeaveRecords,
+        _database.payAgreements,
+      ]),
+    )) {
+      yield await planInputs(id);
+    }
+  }
+
+  @override
+  Future<MutationOutcome<DayException>> putException(
+    DayException value, {
+    Revision? expected,
+  }) => _database.transaction(() async {
+    if ((await _confirmedDates(value.employmentId)).contains(value.date)) {
+      return const Invalid<DayException>({
+        'date': [FieldIssue(FieldIssueCode.conflict)],
+      });
+    }
+    if (expected == null) {
+      final taken = (await _exceptions.forEmployment(value.employmentId))
+          .any((other) => other.date == value.date);
+      if (taken) return const Stale<DayException>();
+      await _exceptions.insert(value);
+    } else {
+      final changed = await _exceptions.replace(value, expected: expected);
+      if (changed == 0) return const Stale<DayException>();
+    }
+    return Committed<DayException>((await _exceptions.byId(value.id))!);
+  });
+
+  @override
+  Future<MutationOutcome<DayException>> removeException(
+    DayExceptionId id, {
+    required Revision expected,
+  }) => _database.transaction(() async {
+    final value = await _exceptions.byId(id);
+    if (value == null) return const Missing<DayException>();
+    if ((await _confirmedDates(value.employmentId)).contains(value.date)) {
+      return const Invalid<DayException>({
+        'date': [FieldIssue(FieldIssueCode.conflict)],
+      });
+    }
+    final removed = await _exceptions.delete(id, expected: expected);
+    if (removed == 0) return const Stale<DayException>();
+    return Committed<DayException>(value);
+  });
+
+  /// Planned dates of non-voided linked shifts, and confirmed leave dates.
+  Future<Set<LocalDate>> _confirmedDates(EmploymentId id) async {
+    final rows = await _database
+        .customSelect(
+          'SELECT planned_date AS date FROM work_shifts WHERE employment_id = ?1 '
+          "AND planned_date IS NOT NULL AND state <> 'voided' "
+          'UNION SELECT date FROM work_leave_records WHERE employment_id = ?1 '
+          "AND state = 'confirmed'",
+          variables: [Variable(id.value)],
+        )
+        .get();
+    return {for (final row in rows) LocalDate.parse(row.read<String>('date'))};
+  }
 }

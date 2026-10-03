@@ -4,6 +4,7 @@ import '../../../core/database/app_database.dart' as db;
 import '../../../core/time/local_date.dart';
 import '../../../core/time/local_time.dart';
 import '../domain/agreement.dart' as domain;
+import '../domain/day_exception.dart';
 import '../domain/employment.dart' as domain;
 import '../domain/facts.dart';
 import '../domain/ids.dart';
@@ -654,3 +655,139 @@ WorkSchedule scheduleFromRows(
     usedByConfirmedDay: usedByConfirmedDay,
   ),
 );
+
+db.WorkDayExceptionsCompanion dayExceptionToCompanion(DayException value) {
+  int minute(LocalTime time) => time.hour * 60 + time.minute;
+  final base = db.WorkDayExceptionsCompanion.insert(
+    id: value.id.value,
+    employmentId: value.employmentId.value,
+    date: value.date.toString(),
+    kind: switch (value) {
+      ChangedDay() => 'changed',
+      CancelledDay() => 'cancelled',
+      LeaveDay() => 'leave',
+      ExtraDay() => 'extra',
+    },
+    createdAtUtcMicros: value.createdAtUtc.microsecondsSinceEpoch,
+    updatedAtUtcMicros: value.updatedAtUtc.microsecondsSinceEpoch,
+    revision: value.revision.value,
+  );
+  return switch (value) {
+    ChangedDay() => base.copyWith(
+      startMinute: Value(minute(value.start)),
+      endMinute: Value(minute(value.end)),
+      endDayOffset: Value(value.endDayOffset),
+      breaks: Value(encodeBreaks(value.breaks)),
+      shiftTypeId: Value(value.shiftTypeId?.value),
+    ),
+    CancelledDay() => base.copyWith(
+      reason: Value(value.reason.name),
+      note: Value(value.note),
+    ),
+    LeaveDay() => base.copyWith(
+      leaveType: Value(value.leaveType.name),
+      illnessStartedOn: Value(value.illnessStartedOn?.toString()),
+    ),
+    ExtraDay() => base.copyWith(
+      startMinute: Value(minute(value.start)),
+      endMinute: Value(minute(value.end)),
+      endDayOffset: Value(value.endDayOffset),
+      breaks: Value(encodeBreaks(value.breaks)),
+      shiftTypeId: Value(value.shiftTypeId?.value),
+      countsAsOvertime: Value(value.countsAsOvertime),
+    ),
+  };
+}
+
+DayException dayExceptionFromRow(
+  db.WorkDayException row,
+) => _decode('dayException', () {
+  final id = _requiredId('dayException', 'id', row.id, DayExceptionId.tryParse);
+  final employmentId = _requiredId(
+    'dayException',
+    'employmentId',
+    row.employmentId,
+    EmploymentId.tryParse,
+  );
+  final date = _date('dayException', 'date', row.date);
+  final createdAtUtc = _utc(row.createdAtUtcMicros);
+  final updatedAtUtc = _utc(row.updatedAtUtcMicros);
+  final revision = Revision.checked(row.revision);
+  LocalTime time(int? minute, String field) {
+    if (minute == null || minute < 0 || minute > 1439) {
+      throw WorkDataCorruption(
+        recordType: 'dayException',
+        field: field,
+        value: minute,
+      );
+    }
+    return LocalTime(minute ~/ 60, minute % 60);
+  }
+
+  T named<T extends Enum>(List<T> values, String? text, String field) =>
+      values.where((value) => value.name == text).firstOrNull ??
+      (throw WorkDataCorruption(
+        recordType: 'dayException',
+        field: field,
+        value: text,
+      ));
+  final typeId = row.shiftTypeId == null ? null : ShiftTypeId(row.shiftTypeId!);
+  return switch (row.kind) {
+    'changed' => ChangedDay(
+      id: id,
+      employmentId: employmentId,
+      date: date,
+      start: time(row.startMinute, 'startMinute'),
+      end: time(row.endMinute, 'endMinute'),
+      endDayOffset: row.endDayOffset ?? 0,
+      breaks: decodeBreaks(row.breaks ?? ''),
+      shiftTypeId: typeId,
+      createdAtUtc: createdAtUtc,
+      updatedAtUtc: updatedAtUtc,
+      revision: revision,
+    ),
+    'cancelled' => CancelledDay(
+      id: id,
+      employmentId: employmentId,
+      date: date,
+      reason: named(CancelReason.values, row.reason, 'reason'),
+      note: row.note,
+      createdAtUtc: createdAtUtc,
+      updatedAtUtc: updatedAtUtc,
+      revision: revision,
+    ),
+    'leave' => LeaveDay(
+      id: id,
+      employmentId: employmentId,
+      date: date,
+      leaveType: named(LeaveType.values, row.leaveType, 'leaveType'),
+      illnessStartedOn: _nullableDate(
+        'dayException',
+        'illnessStartedOn',
+        row.illnessStartedOn,
+      ),
+      createdAtUtc: createdAtUtc,
+      updatedAtUtc: updatedAtUtc,
+      revision: revision,
+    ),
+    'extra' => ExtraDay(
+      id: id,
+      employmentId: employmentId,
+      date: date,
+      start: time(row.startMinute, 'startMinute'),
+      end: time(row.endMinute, 'endMinute'),
+      endDayOffset: row.endDayOffset ?? 0,
+      breaks: decodeBreaks(row.breaks ?? ''),
+      shiftTypeId: typeId,
+      countsAsOvertime: row.countsAsOvertime,
+      createdAtUtc: createdAtUtc,
+      updatedAtUtc: updatedAtUtc,
+      revision: revision,
+    ),
+    final kind => throw WorkDataCorruption(
+      recordType: 'dayException',
+      field: 'kind',
+      value: kind,
+    ),
+  };
+});

@@ -4,6 +4,9 @@ import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/app_clock.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/core/time/local_time.dart';
+import 'package:lifeos/core/time/timezone_service.dart';
+import 'package:lifeos/core/time/wall_clock.dart';
+import 'package:lifeos/features/work/application/day_plan_service.dart';
 import 'package:lifeos/features/work/application/schedule_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/features/work/data/schedule_repository.dart';
@@ -39,6 +42,7 @@ final class ScheduleFixture {
     required this.shifts,
     required this.repository,
     required this.schedules,
+    required this.plans,
   });
 
   final AppDatabase database;
@@ -47,6 +51,7 @@ final class ScheduleFixture {
   final DriftShiftRepository shifts;
   final DriftScheduleRepository repository;
   final ScheduleService schedules;
+  final DayPlanService plans;
 
   static Future<ScheduleFixture> create() async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -97,6 +102,12 @@ final class ScheduleFixture {
         repository: repository,
         ids: ids,
         clock: clock,
+      ),
+      plans: DayPlanService(
+        repository: repository,
+        ids: ids,
+        clock: clock,
+        zoneClocks: zoneClocksOf(IanaTimezoneService()),
       ),
     );
   }

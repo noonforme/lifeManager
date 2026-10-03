@@ -178,30 +178,13 @@ List<DomainIssue> validateSchedule(WorkSchedule value) {
         DomainIssue('schedule.typeName', field: 'shiftTypes[$index].name'),
       );
     }
-    if (type.endDayOffset < 0 ||
-        type.endDayOffset > 1 ||
-        type.lengthMinutes <= 0 ||
-        type.lengthMinutes > 1440) {
+    final check = checkShiftTimes(type);
+    if (!check.times) {
       issues.add(
         DomainIssue('schedule.typeTimes', field: 'shiftTypes[$index].end'),
       );
     }
-    final ordered = [...type.breaks]
-      ..sort((a, b) => a.startMinute.compareTo(b.startMinute));
-    var previousEnd = type.startMinute;
-    var breaksValid = true;
-    for (final item in ordered) {
-      if (item.minutes < 1 ||
-          item.minutes > 240 ||
-          item.dayOffset < 0 ||
-          item.dayOffset > 1 ||
-          item.startMinute < previousEnd ||
-          item.endMinute > type.endMinute) {
-        breaksValid = false;
-      }
-      previousEnd = item.endMinute;
-    }
-    if (!breaksValid || (type.breaks.isNotEmpty && type.paidMinutes <= 0)) {
+    if (!check.breaks) {
       issues.add(
         DomainIssue('schedule.breaks', field: 'shiftTypes[$index].breaks'),
       );
@@ -228,6 +211,34 @@ List<DomainIssue> validateSchedule(WorkSchedule value) {
     issues.add(const DomainIssue('schedule.cycleLength', field: 'blocks'));
   }
   return List.unmodifiable(issues);
+}
+
+/// Whether a shift's times and breaks are valid (spec 3.2): it lasts more
+/// than a minute and at most 24 h, and its breaks are 1..240 min, lie
+/// inside it, do not overlap and leave paid time.
+({bool times, bool breaks}) checkShiftTimes(ShiftType type) {
+  final times =
+      type.endDayOffset >= 0 &&
+      type.endDayOffset <= 1 &&
+      type.lengthMinutes > 0 &&
+      type.lengthMinutes <= 1440;
+  final ordered = [...type.breaks]
+    ..sort((a, b) => a.startMinute.compareTo(b.startMinute));
+  var previousEnd = type.startMinute;
+  var breaks = true;
+  for (final item in ordered) {
+    if (item.minutes < 1 ||
+        item.minutes > 240 ||
+        item.dayOffset < 0 ||
+        item.dayOffset > 1 ||
+        item.startMinute < previousEnd ||
+        item.endMinute > type.endMinute) {
+      breaks = false;
+    }
+    previousEnd = item.endMinute;
+  }
+  if (type.breaks.isNotEmpty && type.paidMinutes <= 0) breaks = false;
+  return (times: times, breaks: breaks);
 }
 
 /// Whether [candidate] shares a date with another schedule version of the
