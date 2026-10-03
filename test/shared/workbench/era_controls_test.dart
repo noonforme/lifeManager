@@ -21,6 +21,20 @@ void main() {
     final semantics = tester.getSemantics(find.byType(Orb));
     expect(semantics.label, isEmpty);
   });
+  testWidgets('step glyphs paint at their size and stay silent', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: EraGlyph(EraGlyphKind.stepBack, color: Color(0xff000000)),
+        ),
+      ),
+    );
+    expect(tester.getSize(find.byType(EraGlyph)), const Size(9, 9));
+    expect(tester.getSemantics(find.byType(EraGlyph)).label, isEmpty);
+  });
   testWidgets('a group box announces its legend and shows its content', (
     tester,
   ) async {

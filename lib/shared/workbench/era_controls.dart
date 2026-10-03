@@ -258,10 +258,19 @@ final class FormFooter extends StatelessWidget {
   );
 }
 
-enum EraGlyphKind { dropDown, sortUp, sortDown, collapse, expand, tick }
+enum EraGlyphKind {
+  dropDown,
+  sortUp,
+  sortDown,
+  collapse,
+  expand,
+  tick,
+  stepBack,
+  stepForward,
+}
 
-/// A small painted mark: drop arrow, sort arrow, collapse chevrons or a
-/// tick. Painted because the bundled Noto Sans has none of these
+/// A small painted mark: drop arrow, sort arrow, step arrow, collapse
+/// chevrons or a tick. Painted because the bundled Noto Sans has none of these
 /// characters. Decorative; the control beside it carries the words.
 final class EraGlyph extends StatelessWidget {
   const EraGlyph(this.kind, {required this.color, this.size = 9, super.key});
@@ -301,6 +310,11 @@ final class _GlyphPainter extends CustomPainter {
           ..lineTo(w * 0.9, h * (up ? bottom : top))
           ..lineTo(w * 0.5, h * (up ? top : bottom))
           ..close();
+    Path sideways({required bool back}) => Path()
+      ..moveTo(w * (back ? 0.7 : 0.3), h * 0.1)
+      ..lineTo(w * (back ? 0.7 : 0.3), h * 0.9)
+      ..lineTo(w * (back ? 0.3 : 0.7), h * 0.5)
+      ..close();
     Path chevron(double y, {required bool up}) => Path()
       ..moveTo(w * 0.15, h * (up ? y + 0.2 : y))
       ..lineTo(w * 0.5, h * (up ? y : y + 0.2))
@@ -310,6 +324,8 @@ final class _GlyphPainter extends CustomPainter {
         canvas.drawPath(triangle(up: false), fill);
       case EraGlyphKind.sortUp:
         canvas.drawPath(triangle(up: true), fill);
+      case EraGlyphKind.stepBack || EraGlyphKind.stepForward:
+        canvas.drawPath(sideways(back: kind == EraGlyphKind.stepBack), fill);
       case EraGlyphKind.collapse || EraGlyphKind.expand:
         final up = kind == EraGlyphKind.collapse;
         canvas
