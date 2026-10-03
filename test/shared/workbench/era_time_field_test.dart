@@ -1,0 +1,268 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/core/time/local_time.dart';
+import 'package:lifeos/shared/workbench/era_time_field.dart';
+import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+
+const _box = ValueKey('start-time');
+
+final class _Host extends StatefulWidget {
+  const _Host({
+    required this.initial,
+    required this.emptyStart,
+    required this.enabled,
+  });
+
+  final LocalTime? initial;
+  final LocalTime emptyStart;
+  final bool enabled;
+
+  @override
+  State<_Host> createState() => _HostState();
+}
+
+final class _HostState extends State<_Host> {
+  late LocalTime? value = widget.initial;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 160,
+    child: EraTimeField(
+      label: 'Start time',
+      value: value,
+      emptyStart: widget.emptyStart,
+      enabled: widget.enabled,
+      fieldKey: _box,
+      onChanged: (next) => setState(() => value = next),
+    ),
+  );
+}
+
+Future<void> _pump(
+  WidgetTester tester, {
+  LocalTime? value = const LocalTime(7, 0),
+  LocalTime emptyStart = const LocalTime(12, 30),
+  bool enabled = true,
+  double textScale = 1,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: buildLifeOSTheme(),
+      home: MediaQuery(
+        data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+        child: LifeOSSkinScope(
+          child: Scaffold(
+            body: Center(
+              child: _Host(
+                initial: value,
+                emptyStart: emptyStart,
+                enabled: enabled,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+LocalTime? _value(WidgetTester tester) =>
+    tester.widget<EraTimeField>(find.byType(EraTimeField)).value;
+
+Future<void> _press(
+  WidgetTester tester,
+  LogicalKeyboardKey key, [
+  int times = 1,
+]) async {
+  for (var i = 0; i < times; i++) {
+    await tester.sendKeyEvent(key);
+    await tester.pump();
+  }
+}
+
+Future<void> _select(WidgetTester tester, String part) async {
+  await tester.tap(find.byKey(ValueKey('era-time-$part')));
+  await tester.pump();
+}
+
+void main() {
+  test('steps wrap within their part and never carry', () {
+    const late = LocalTime(23, 59);
+    expect(stepTime(late, TimePart.hour, 1), const LocalTime(0, 59));
+    expect(stepTime(late, TimePart.minute, 1), const LocalTime(23, 0));
+    expect(
+      stepTime(const LocalTime(0, 0), TimePart.hour, -1),
+      const LocalTime(23, 0),
+    );
+    expect(
+      stepTime(const LocalTime(0, 5), TimePart.minute, -10),
+      const LocalTime(0, 55),
+    );
+    expect(
+      stepTime(const LocalTime(1, 2, 59), TimePart.second, 1),
+      const LocalTime(1, 2, 0),
+    );
+  });
+
+  testWidgets('the box shows hours and minutes and a spin pair', (
+    tester,
+  ) async {
+    await _pump(tester);
+    expect(find.text('07'), findsOneWidget);
+    expect(find.text('00'), findsOneWidget);
+    expect(find.byKey(const ValueKey('era-time-second')), findsNothing);
+    expect(find.byKey(const ValueKey('era-time-up')), findsOneWidget);
+    expect(tester.getSize(find.byKey(_box)).height, greaterThanOrEqualTo(24));
+  });
+
+  testWidgets('the box is one node with increase and decrease', (tester) async {
+    await _pump(tester);
+    expect(
+      tester.getSemantics(find.byKey(_box)),
+      isSemantics(
+        label: 'Start time, 07:00',
+        hasIncreaseAction: true,
+        hasDecreaseAction: true,
+      ),
+    );
+  });
+
+  testWidgets('focus selects the hours; arrows step them', (tester) async {
+    await _pump(tester);
+    await _press(tester, LogicalKeyboardKey.tab);
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(8, 0));
+    await _press(tester, LogicalKeyboardKey.arrowDown, 2);
+    expect(_value(tester), const LocalTime(6, 0));
+  });
+
+  testWidgets('a click selects a part; left and right switch parts', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await _select(tester, 'minute');
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(7, 1));
+    await _press(tester, LogicalKeyboardKey.arrowLeft);
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(8, 1));
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    expect(_value(tester), const LocalTime(8, 0));
+  });
+
+  testWidgets('PageUp and PageDown step by ten and wrap', (tester) async {
+    await _pump(tester, value: const LocalTime(17, 5));
+    await _select(tester, 'hour');
+    await _press(tester, LogicalKeyboardKey.pageUp);
+    expect(_value(tester), const LocalTime(3, 5));
+    await _select(tester, 'minute');
+    await _press(tester, LogicalKeyboardKey.pageDown);
+    expect(_value(tester), const LocalTime(3, 55));
+  });
+
+  testWidgets('23 steps to 00 without changing the minutes', (tester) async {
+    await _pump(tester, value: const LocalTime(23, 59));
+    await _select(tester, 'hour');
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(0, 59));
+    await _select(tester, 'minute');
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(0, 0));
+  });
+
+  testWidgets('the spin buttons step the selected part', (tester) async {
+    await _pump(tester);
+    await tester.tap(find.byKey(const ValueKey('era-time-up')));
+    await tester.pump();
+    expect(_value(tester), const LocalTime(8, 0));
+    await _select(tester, 'minute');
+    await tester.tap(find.byKey(const ValueKey('era-time-down')));
+    await tester.pump();
+    expect(_value(tester), const LocalTime(8, 59));
+  });
+
+  testWidgets('holding a spin button repeats after 400 ms, then every 60 ms', (
+    tester,
+  ) async {
+    await _pump(tester);
+    final hold = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('era-time-up'))),
+    );
+    await tester.pump();
+    expect(_value(tester), const LocalTime(8, 0));
+    await tester.pump(const Duration(milliseconds: 399));
+    expect(_value(tester), const LocalTime(8, 0));
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(_value(tester), const LocalTime(9, 0));
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(_value(tester), const LocalTime(10, 0));
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(_value(tester), const LocalTime(11, 0));
+    await hold.up();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(_value(tester), const LocalTime(11, 0));
+  });
+
+  testWidgets('a held spin button stops when the box goes away', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('era-time-up'))),
+    );
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('seconds show only for a value that has them', (tester) async {
+    await _pump(tester, value: const LocalTime(7, 0, 13));
+    expect(find.text('13'), findsOneWidget);
+    await _select(tester, 'second');
+    await _press(tester, LogicalKeyboardKey.arrowUp, 47);
+    expect(_value(tester), const LocalTime(7, 0, 0));
+    expect(find.byKey(const ValueKey('era-time-second')), findsOneWidget);
+  });
+
+  testWidgets('a value without seconds never gains them', (tester) async {
+    await _pump(tester);
+    await _select(tester, 'minute');
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(7, 1));
+    expect(find.byKey(const ValueKey('era-time-second')), findsNothing);
+  });
+
+  testWidgets('an empty box shows dashes; its first step is emptyStart', (
+    tester,
+  ) async {
+    await _pump(tester, value: null);
+    expect(find.text('--'), findsNWidgets(2));
+    expect(
+      tester.getSemantics(find.byKey(_box)),
+      isSemantics(label: 'Start time, not set'),
+    );
+    await _select(tester, 'hour');
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(12, 30));
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(13, 30));
+  });
+
+  testWidgets('a disabled box does not step', (tester) async {
+    await _pump(tester, enabled: false);
+    await tester.tap(find.byKey(const ValueKey('era-time-up')));
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(7, 0));
+  });
+
+  testWidgets('the box holds at 200 % text', (tester) async {
+    await _pump(tester, textScale: 2);
+    expect(tester.takeException(), isNull);
+    expect(find.text('07'), findsOneWidget);
+  });
+}
