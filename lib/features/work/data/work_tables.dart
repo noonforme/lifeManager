@@ -308,6 +308,9 @@ class WorkDayExceptions extends Table {
   IntColumn get endDayOffset => integer().nullable()();
   TextColumn get breaks => text().nullable()();
   TextColumn get shiftTypeId => text().nullable()();
+
+  /// The type the cycle planned when a Changed or Leave day was made.
+  TextColumn get plannedTypeId => text().nullable()();
   TextColumn get reason => text().nullable()();
   TextColumn get note => text().nullable()();
   TextColumn get leaveType => text().nullable()();

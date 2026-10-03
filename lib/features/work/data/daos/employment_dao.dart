@@ -41,6 +41,13 @@ final class EmploymentDao {
           SELECT
             EXISTS (SELECT 1 FROM work_shifts WHERE employment_id = ?1)
             OR EXISTS (SELECT 1 FROM pay_periods WHERE employment_id = ?1)
+            OR EXISTS (SELECT 1 FROM work_schedules WHERE employment_id = ?1)
+            OR EXISTS (
+              SELECT 1 FROM work_day_exceptions WHERE employment_id = ?1
+            )
+            OR EXISTS (
+              SELECT 1 FROM work_leave_records WHERE employment_id = ?1
+            )
             OR EXISTS (
               SELECT 1 FROM payslips
               JOIN pay_periods ON pay_periods.id = payslips.period_id
@@ -51,6 +58,9 @@ final class EmploymentDao {
           readsFrom: {
             database.workShifts,
             database.payPeriods,
+            database.workSchedules,
+            database.workDayExceptions,
+            database.workLeaveRecords,
             database.payslips,
           },
         )

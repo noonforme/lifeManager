@@ -48,6 +48,7 @@ final class DayExceptionDao {
               endDayOffset: Value(null),
               breaks: Value(null),
               shiftTypeId: Value(null),
+              plannedTypeId: Value(null),
               reason: Value(null),
               note: Value(null),
               leaveType: Value(null),

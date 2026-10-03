@@ -197,9 +197,16 @@ List<PlannedDay> planDays({
 
     final exception = byDate[date];
     final planned = underlying is PlannedShift ? underlying : null;
+    // Made against the type the cycle no longer plans on this date.
+    final madeFor = switch (exception) {
+      ChangedDay(:final plannedTypeId) => plannedTypeId,
+      LeaveDay(:final plannedTypeId) => plannedTypeId,
+      _ => null,
+    };
+    final stillFits = madeFor == null || madeFor == cycleType?.id;
     days.add(switch (exception) {
       null => underlying,
-      ChangedDay() when planned != null => () {
+      ChangedDay() when planned != null && stillFits => () {
         final chosen = exception.shiftTypeId == null
             ? null
             : schedule.typeById(exception.shiftTypeId!);
@@ -223,7 +230,7 @@ List<PlannedDay> planDays({
         note: exception.note,
         replaced: planned,
       ),
-      LeaveDay() when planned != null => PlannedLeave(
+      LeaveDay() when planned != null && stillFits => PlannedLeave(
         date,
         scheduleId: schedule.id,
         scheduleVersion: schedule.version,

@@ -88,7 +88,8 @@ void main() {
       illnessStartedOn: null,
     );
 
-    // 4. Confirm everything up to 12 September.
+    // 4. On 13 September, confirm everything up to 12 September.
+    clock.value = DateTime.utc(2026, 9, 13, 6);
     final pending = await work.plans.daysToConfirm(
       employment,
       today: const LocalDate(2026, 9, 13),

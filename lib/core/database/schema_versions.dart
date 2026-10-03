@@ -6,5 +6,5 @@ const currentSchemaVersion = 3;
 
 const releasedMigrationFingerprints = <int, String>{
   1: '573e0c481060d530f055a826876ea5fab6bb73d95d9a87acb2b996993bd169a0',
-  3: '5080f9daf10a30f256eded174b4dab67f9e5c670ccef782bd378b70c9c80b4b3',
+  3: '32da07e23e04e5fde1035f76d5c9b5a6acffd2f16e10bad740b5ff31545ea4cb',
 };

@@ -262,6 +262,29 @@ void main() {
     expect(review.underlying, isA<OffDay>());
   });
 
+  test('leave made against another shift type needs review', () {
+    final now = DateTime.utc(2026, 10, 1);
+    // 2026-10-11 is a Night; the leave was marked when it was a Day.
+    final day = plan(
+      const LocalDate(2026, 10, 11),
+      const LocalDate(2026, 10, 11),
+      exceptions: [
+        LeaveDay(
+          id: const DayExceptionId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4e07'),
+          employmentId: employment,
+          date: const LocalDate(2026, 10, 11),
+          leaveType: LeaveType.vacation,
+          illnessStartedOn: null,
+          plannedTypeId: const ShiftTypeId('day'),
+          createdAtUtc: now,
+          updatedAtUtc: now,
+          revision: const Revision(0),
+        ),
+      ],
+    ).single;
+    expect(day, isA<NeedsReview>());
+  });
+
   test('a later version takes over from its first date', () {
     final first = rotation(until: const LocalDate(2026, 10, 7));
     final second = WorkSchedule(

@@ -680,6 +680,7 @@ db.WorkDayExceptionsCompanion dayExceptionToCompanion(DayException value) {
       endDayOffset: Value(value.endDayOffset),
       breaks: Value(encodeBreaks(value.breaks)),
       shiftTypeId: Value(value.shiftTypeId?.value),
+      plannedTypeId: Value(value.plannedTypeId?.value),
     ),
     CancelledDay() => base.copyWith(
       reason: Value(value.reason.name),
@@ -688,6 +689,7 @@ db.WorkDayExceptionsCompanion dayExceptionToCompanion(DayException value) {
     LeaveDay() => base.copyWith(
       leaveType: Value(value.leaveType.name),
       illnessStartedOn: Value(value.illnessStartedOn?.toString()),
+      plannedTypeId: Value(value.plannedTypeId?.value),
     ),
     ExtraDay() => base.copyWith(
       startMinute: Value(minute(value.start)),
@@ -733,6 +735,9 @@ DayException dayExceptionFromRow(
         value: text,
       ));
   final typeId = row.shiftTypeId == null ? null : ShiftTypeId(row.shiftTypeId!);
+  final plannedTypeId = row.plannedTypeId == null
+      ? null
+      : ShiftTypeId(row.plannedTypeId!);
   return switch (row.kind) {
     'changed' => ChangedDay(
       id: id,
@@ -743,6 +748,7 @@ DayException dayExceptionFromRow(
       endDayOffset: row.endDayOffset ?? 0,
       breaks: decodeBreaks(row.breaks ?? ''),
       shiftTypeId: typeId,
+      plannedTypeId: plannedTypeId,
       createdAtUtc: createdAtUtc,
       updatedAtUtc: updatedAtUtc,
       revision: revision,
@@ -767,6 +773,7 @@ DayException dayExceptionFromRow(
         'illnessStartedOn',
         row.illnessStartedOn,
       ),
+      plannedTypeId: plannedTypeId,
       createdAtUtc: createdAtUtc,
       updatedAtUtc: updatedAtUtc,
       revision: revision,

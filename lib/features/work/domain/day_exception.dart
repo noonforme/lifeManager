@@ -41,6 +41,7 @@ final class ChangedDay extends DayException {
     required super.createdAtUtc,
     required super.updatedAtUtc,
     required super.revision,
+    this.plannedTypeId,
   });
 
   final LocalTime start;
@@ -50,6 +51,10 @@ final class ChangedDay extends DayException {
 
   /// The type worked instead, when the type changed.
   final ShiftTypeId? shiftTypeId;
+
+  /// The type the cycle planned when the change was made; a later version
+  /// that plans another type makes the change Needs review.
+  final ShiftTypeId? plannedTypeId;
 }
 
 /// A planned day not worked and not paid.
@@ -80,9 +85,14 @@ final class LeaveDay extends DayException {
     required super.createdAtUtc,
     required super.updatedAtUtc,
     required super.revision,
+    this.plannedTypeId,
   });
 
   final LeaveType leaveType;
+
+  /// The type the cycle planned when the leave was marked; its hours are
+  /// that shift's, so another type later makes the leave Needs review.
+  final ShiftTypeId? plannedTypeId;
 
   /// Sick leave only; null means the default (spec 4.3).
   final LocalDate? illnessStartedOn;

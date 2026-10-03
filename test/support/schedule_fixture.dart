@@ -55,7 +55,8 @@ final class ScheduleFixture {
 
   static Future<ScheduleFixture> create() async {
     final database = AppDatabase(NativeDatabase.memory());
-    final clock = FixedClock(DateTime.utc(2026, 10, 1));
+    // Late enough that the October days the tests confirm are past.
+    final clock = FixedClock(DateTime.utc(2026, 12, 1, 12));
     final ids = UuidV7WorkIdFactory();
     final work = DriftWorkRepository(database, clock: clock);
     await work.insertEmployment(
@@ -170,6 +171,7 @@ ScheduleDraft depotDraft({
   int firstCount = 3,
   bool onlyOff = false,
   LocalDate from = const LocalDate(2026, 10, 5),
+  List<CycleBlock>? blocks,
 }) => ScheduleDraft(
   employmentId: fixtureEmployment,
   name: name,
@@ -195,12 +197,17 @@ ScheduleDraft depotDraft({
       breaks: [FixedBreak(start: LocalTime(0, 0), dayOffset: 1, minutes: 30)],
     ),
   ],
-  blocks: onlyOff
-      ? const [CycleBlock(count: 1, shiftTypeId: null)]
-      : [
-          CycleBlock(count: firstCount, shiftTypeId: const ShiftTypeId('day')),
-          const CycleBlock(count: 3, shiftTypeId: null),
-          const CycleBlock(count: 3, shiftTypeId: ShiftTypeId('night')),
-          const CycleBlock(count: 3, shiftTypeId: null),
-        ],
+  blocks:
+      blocks ??
+      (onlyOff
+          ? const [CycleBlock(count: 1, shiftTypeId: null)]
+          : [
+              CycleBlock(
+                count: firstCount,
+                shiftTypeId: const ShiftTypeId('day'),
+              ),
+              const CycleBlock(count: 3, shiftTypeId: null),
+              const CycleBlock(count: 3, shiftTypeId: ShiftTypeId('night')),
+              const CycleBlock(count: 3, shiftTypeId: null),
+            ]),
 );

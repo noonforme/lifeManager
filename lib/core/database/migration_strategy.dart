@@ -35,48 +35,52 @@ MigrationStrategy lifeOsMigrationStrategy(AppDatabase database) {
       if (from != 1 || to != 3) {
         throw DatabaseFromEarlierBuild(from: from, to: to);
       }
-      for (final table in <TableInfo<Table, dynamic>>[
-        database.workSchedules,
-        database.workScheduleShiftTypes,
-        database.workScheduleBlocks,
-        database.workDayExceptions,
-        database.workLeaveRecords,
-      ]) {
-        await migrator.createTable(table);
-      }
-      final shifts = database.workShifts;
-      for (final column in <GeneratedColumn<Object>>[
-        shifts.scheduleId,
-        shifts.scheduleVersion,
-        shifts.plannedDate,
-        shifts.plannedStartUtcMicros,
-        shifts.plannedEndUtcMicros,
-        shifts.isExtra,
-        shifts.extraCountsAsOvertime,
-      ]) {
-        await migrator.addColumn(shifts, column);
-      }
-      final agreements = database.payAgreements;
-      for (final column in <GeneratedColumn<Object>>[
-        agreements.vacationPayNumerator,
-        agreements.vacationPayDenominator,
-        agreements.sickPayNumerator,
-        agreements.sickPayDenominator,
-        agreements.sickEmployerDays,
-      ]) {
-        await migrator.addColumn(agreements, column);
-      }
-      // The live tracker is gone (spec 3.8): a shift still running becomes
-      // a draft to finish by hand; an unfinished break is dropped.
-      await database.customStatement(
-        'DELETE FROM shift_breaks WHERE end_utc_micros IS NULL',
-      );
-      await database.customStatement(
-        "UPDATE work_shifts SET state = 'draft' "
-        "WHERE state IN ('running', 'onBreak')",
-      );
-      await database.customStatement('DROP INDEX IF EXISTS one_active_shift');
-      await scheduleIndexes();
+      // Drift runs migrations outside a transaction; one keeps a failed
+      // upgrade from leaving a half-migrated file behind.
+      await database.transaction(() async {
+        for (final table in <TableInfo<Table, dynamic>>[
+          database.workSchedules,
+          database.workScheduleShiftTypes,
+          database.workScheduleBlocks,
+          database.workDayExceptions,
+          database.workLeaveRecords,
+        ]) {
+          await migrator.createTable(table);
+        }
+        final shifts = database.workShifts;
+        for (final column in <GeneratedColumn<Object>>[
+          shifts.scheduleId,
+          shifts.scheduleVersion,
+          shifts.plannedDate,
+          shifts.plannedStartUtcMicros,
+          shifts.plannedEndUtcMicros,
+          shifts.isExtra,
+          shifts.extraCountsAsOvertime,
+        ]) {
+          await migrator.addColumn(shifts, column);
+        }
+        final agreements = database.payAgreements;
+        for (final column in <GeneratedColumn<Object>>[
+          agreements.vacationPayNumerator,
+          agreements.vacationPayDenominator,
+          agreements.sickPayNumerator,
+          agreements.sickPayDenominator,
+          agreements.sickEmployerDays,
+        ]) {
+          await migrator.addColumn(agreements, column);
+        }
+        // The live tracker is gone (spec 3.8): a shift still running becomes
+        // a draft to finish by hand; an unfinished break is dropped.
+        await database.customStatement(
+          'DELETE FROM shift_breaks WHERE end_utc_micros IS NULL',
+        );
+        await database.customStatement(
+          "UPDATE work_shifts SET state = 'draft' "
+          "WHERE state IN ('running', 'onBreak')",
+        );
+        await database.customStatement('DROP INDEX IF EXISTS one_active_shift');
+        await scheduleIndexes();
+      });
     },
     beforeOpen: (details) async {
       await database.customStatement('PRAGMA foreign_keys = ON');

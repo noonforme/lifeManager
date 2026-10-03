@@ -27,6 +27,9 @@ final class AgreementDao {
           night_multiplier_numerator = ?, night_multiplier_denominator = ?,
           holiday_calendar = ?, holiday_multiplier_numerator = ?,
           holiday_multiplier_denominator = ?, premium_stacking = ?,
+          vacation_pay_numerator = ?, vacation_pay_denominator = ?,
+          sick_pay_numerator = ?, sick_pay_denominator = ?,
+          sick_employer_days = ?,
           label = ?, note = ?,
           revision = revision + 1
       WHERE id = ? AND revision = ?
@@ -34,6 +37,10 @@ final class AgreementDao {
           SELECT 1 FROM work_shifts
           WHERE agreement_id = pay_agreements.id
             AND state IN ('finalized', 'voided')
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM work_leave_records
+          WHERE agreement_id = pay_agreements.id
         )
       ''',
       variables: [
@@ -54,6 +61,11 @@ final class AgreementDao {
         Variable(value.holidayMultiplier.numerator),
         Variable(value.holidayMultiplier.denominator),
         Variable(premiumStackingText(value.premiumStacking)),
+        Variable(value.vacationPay.numerator),
+        Variable(value.vacationPay.denominator),
+        Variable(value.sickPay.numerator),
+        Variable(value.sickPay.denominator),
+        Variable(value.sickEmployerDays),
         Variable(value.label),
         Variable(value.note),
         Variable(value.id.value),
@@ -70,7 +82,8 @@ final class AgreementDao {
     if (row == null) return null;
     return agreementFromRow(
       row,
-      usedByFinalizedShift: await finishedShiftCount(id) > 0,
+      usedByFinalizedShift:
+          await finishedShiftCount(id) > 0 || await _usedByLeave(id),
     );
   }
 
@@ -88,42 +101,38 @@ final class AgreementDao {
     return row.read<int>('count');
   }
 
+  /// Leave records are evidence too: confirmed leave was priced by this
+  /// agreement, and voided leave was replaced against it.
+  Future<bool> _usedByLeave(AgreementId id) async {
+    final row = await database
+        .customSelect(
+          'SELECT EXISTS (SELECT 1 FROM work_leave_records '
+          'WHERE agreement_id = ?) AS used',
+          variables: [Variable(id.value)],
+          readsFrom: {database.workLeaveRecords},
+        )
+        .getSingle();
+    return row.read<bool>('used');
+  }
+
   Future<List<domain.PayAgreement>> forEmployment(EmploymentId id) async {
     final rows = await _rowsFor(id).get();
     return _decodeRows(rows, await _usedAgreementIds(id));
   }
 
-  Stream<List<domain.PayAgreement>> watchForEmployment(EmploymentId id) {
-    final query = database.select(database.payAgreements).join([
-      leftOuterJoin(
+  /// Re-reads whenever agreements, shifts or leave change, since either can
+  /// put an agreement in use.
+  Stream<List<domain.PayAgreement>> watchForEmployment(EmploymentId id) async* {
+    yield await forEmployment(id);
+    await for (final _ in database.tableUpdates(
+      TableUpdateQuery.onAllTables([
+        database.payAgreements,
         database.workShifts,
-        database.workShifts.agreementId.equalsExp(database.payAgreements.id) &
-            database.workShifts.state.isIn(const ['finalized', 'voided']),
-      ),
-    ])..where(database.payAgreements.employmentId.equals(id.value));
-    return query.watch().map((rows) {
-      final byId = <String, ({db.PayAgreement row, bool used})>{};
-      for (final result in rows) {
-        final agreement = result.readTable(database.payAgreements);
-        byId[agreement.id] = (
-          row: agreement,
-          used:
-              byId[agreement.id]?.used == true ||
-              result.readTableOrNull(database.workShifts) != null,
-        );
-      }
-      final values = byId.values.toList(growable: false)
-        ..sort(
-          (left, right) =>
-              left.row.effectiveStart.compareTo(right.row.effectiveStart),
-        );
-      return values
-          .map(
-            (value) =>
-                agreementFromRow(value.row, usedByFinalizedShift: value.used),
-          )
-          .toList(growable: false);
-    });
+        database.workLeaveRecords,
+      ]),
+    )) {
+      yield await forEmployment(id);
+    }
   }
 
   SimpleSelectStatement<db.$PayAgreementsTable, db.PayAgreement> _rowsFor(
@@ -145,9 +154,18 @@ final class AgreementDao {
                     ]),
               ))
             .get();
+    final leave = await database
+        .customSelect(
+          'SELECT DISTINCT agreement_id FROM work_leave_records '
+          'WHERE employment_id = ?',
+          variables: [Variable(employmentId.value)],
+          readsFrom: {database.workLeaveRecords},
+        )
+        .get();
     return {
       for (final row in rows)
         if (row.read(database.workShifts.agreementId) case final String id) id,
+      for (final row in leave) row.read<String>('agreement_id'),
     };
   }
 

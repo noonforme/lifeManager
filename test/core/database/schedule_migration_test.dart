@@ -159,6 +159,45 @@ void main() {
     expect(register.shiftSheet, hasLength(2));
   });
 
+  test('a migration that fails part-way leaves schema 1 intact', () async {
+    final root = await OwnedTestRoot.create();
+    addTearDown(root.dispose);
+    final file = releasedV1(root);
+    // A stray table makes one of the new CREATE TABLEs fail after others ran.
+    final raw = sqlite.sqlite3.open(file.path);
+    raw.execute('CREATE TABLE work_leave_records (id TEXT PRIMARY KEY)');
+    raw.close();
+
+    await expectLater(
+      DriftDatabaseService.open(
+        DatabaseConfig.test(root: root.uri, markerToken: root.token),
+        location: _locationFor(root),
+      ),
+      throwsA(anything),
+    );
+
+    final after = sqlite.sqlite3.open(
+      file.path,
+      mode: sqlite.OpenMode.readOnly,
+    );
+    addTearDown(after.close);
+    expect(after.userVersion, 1);
+    expect(
+      after.select(
+        "SELECT name FROM sqlite_master WHERE name = 'work_schedules'",
+      ),
+      isEmpty,
+    );
+    expect(
+      after
+          .select(
+            "SELECT state FROM work_shifts WHERE id = '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c32'",
+          )
+          .single['state'],
+      'onBreak',
+    );
+  });
+
   test('a fresh database starts at 3 with no active-shift index', () async {
     final root = await OwnedTestRoot.create();
     addTearDown(root.dispose);

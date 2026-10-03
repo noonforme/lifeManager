@@ -7711,6 +7711,17 @@ class $WorkDayExceptionsTable extends WorkDayExceptions
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _plannedTypeIdMeta = const VerificationMeta(
+    'plannedTypeId',
+  );
+  @override
+  late final GeneratedColumn<String> plannedTypeId = GeneratedColumn<String>(
+    'planned_type_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
   @override
   late final GeneratedColumn<String> reason = GeneratedColumn<String>(
@@ -7809,6 +7820,7 @@ class $WorkDayExceptionsTable extends WorkDayExceptions
     endDayOffset,
     breaks,
     shiftTypeId,
+    plannedTypeId,
     reason,
     note,
     leaveType,
@@ -7898,6 +7910,15 @@ class $WorkDayExceptionsTable extends WorkDayExceptions
         shiftTypeId.isAcceptableOrUnknown(
           data['shift_type_id']!,
           _shiftTypeIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('planned_type_id')) {
+      context.handle(
+        _plannedTypeIdMeta,
+        plannedTypeId.isAcceptableOrUnknown(
+          data['planned_type_id']!,
+          _plannedTypeIdMeta,
         ),
       );
     }
@@ -8012,6 +8033,10 @@ class $WorkDayExceptionsTable extends WorkDayExceptions
         DriftSqlType.string,
         data['${effectivePrefix}shift_type_id'],
       ),
+      plannedTypeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}planned_type_id'],
+      ),
       reason: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}reason'],
@@ -8064,6 +8089,9 @@ class WorkDayException extends DataClass
   final int? endDayOffset;
   final String? breaks;
   final String? shiftTypeId;
+
+  /// The type the cycle planned when a Changed or Leave day was made.
+  final String? plannedTypeId;
   final String? reason;
   final String? note;
   final String? leaveType;
@@ -8082,6 +8110,7 @@ class WorkDayException extends DataClass
     this.endDayOffset,
     this.breaks,
     this.shiftTypeId,
+    this.plannedTypeId,
     this.reason,
     this.note,
     this.leaveType,
@@ -8112,6 +8141,9 @@ class WorkDayException extends DataClass
     }
     if (!nullToAbsent || shiftTypeId != null) {
       map['shift_type_id'] = Variable<String>(shiftTypeId);
+    }
+    if (!nullToAbsent || plannedTypeId != null) {
+      map['planned_type_id'] = Variable<String>(plannedTypeId);
     }
     if (!nullToAbsent || reason != null) {
       map['reason'] = Variable<String>(reason);
@@ -8153,6 +8185,9 @@ class WorkDayException extends DataClass
       shiftTypeId: shiftTypeId == null && nullToAbsent
           ? const Value.absent()
           : Value(shiftTypeId),
+      plannedTypeId: plannedTypeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plannedTypeId),
       reason: reason == null && nullToAbsent
           ? const Value.absent()
           : Value(reason),
@@ -8185,6 +8220,7 @@ class WorkDayException extends DataClass
       endDayOffset: serializer.fromJson<int?>(json['endDayOffset']),
       breaks: serializer.fromJson<String?>(json['breaks']),
       shiftTypeId: serializer.fromJson<String?>(json['shiftTypeId']),
+      plannedTypeId: serializer.fromJson<String?>(json['plannedTypeId']),
       reason: serializer.fromJson<String?>(json['reason']),
       note: serializer.fromJson<String?>(json['note']),
       leaveType: serializer.fromJson<String?>(json['leaveType']),
@@ -8208,6 +8244,7 @@ class WorkDayException extends DataClass
       'endDayOffset': serializer.toJson<int?>(endDayOffset),
       'breaks': serializer.toJson<String?>(breaks),
       'shiftTypeId': serializer.toJson<String?>(shiftTypeId),
+      'plannedTypeId': serializer.toJson<String?>(plannedTypeId),
       'reason': serializer.toJson<String?>(reason),
       'note': serializer.toJson<String?>(note),
       'leaveType': serializer.toJson<String?>(leaveType),
@@ -8229,6 +8266,7 @@ class WorkDayException extends DataClass
     Value<int?> endDayOffset = const Value.absent(),
     Value<String?> breaks = const Value.absent(),
     Value<String?> shiftTypeId = const Value.absent(),
+    Value<String?> plannedTypeId = const Value.absent(),
     Value<String?> reason = const Value.absent(),
     Value<String?> note = const Value.absent(),
     Value<String?> leaveType = const Value.absent(),
@@ -8247,6 +8285,9 @@ class WorkDayException extends DataClass
     endDayOffset: endDayOffset.present ? endDayOffset.value : this.endDayOffset,
     breaks: breaks.present ? breaks.value : this.breaks,
     shiftTypeId: shiftTypeId.present ? shiftTypeId.value : this.shiftTypeId,
+    plannedTypeId: plannedTypeId.present
+        ? plannedTypeId.value
+        : this.plannedTypeId,
     reason: reason.present ? reason.value : this.reason,
     note: note.present ? note.value : this.note,
     leaveType: leaveType.present ? leaveType.value : this.leaveType,
@@ -8277,6 +8318,9 @@ class WorkDayException extends DataClass
       shiftTypeId: data.shiftTypeId.present
           ? data.shiftTypeId.value
           : this.shiftTypeId,
+      plannedTypeId: data.plannedTypeId.present
+          ? data.plannedTypeId.value
+          : this.plannedTypeId,
       reason: data.reason.present ? data.reason.value : this.reason,
       note: data.note.present ? data.note.value : this.note,
       leaveType: data.leaveType.present ? data.leaveType.value : this.leaveType,
@@ -8308,6 +8352,7 @@ class WorkDayException extends DataClass
           ..write('endDayOffset: $endDayOffset, ')
           ..write('breaks: $breaks, ')
           ..write('shiftTypeId: $shiftTypeId, ')
+          ..write('plannedTypeId: $plannedTypeId, ')
           ..write('reason: $reason, ')
           ..write('note: $note, ')
           ..write('leaveType: $leaveType, ')
@@ -8331,6 +8376,7 @@ class WorkDayException extends DataClass
     endDayOffset,
     breaks,
     shiftTypeId,
+    plannedTypeId,
     reason,
     note,
     leaveType,
@@ -8353,6 +8399,7 @@ class WorkDayException extends DataClass
           other.endDayOffset == this.endDayOffset &&
           other.breaks == this.breaks &&
           other.shiftTypeId == this.shiftTypeId &&
+          other.plannedTypeId == this.plannedTypeId &&
           other.reason == this.reason &&
           other.note == this.note &&
           other.leaveType == this.leaveType &&
@@ -8373,6 +8420,7 @@ class WorkDayExceptionsCompanion extends UpdateCompanion<WorkDayException> {
   final Value<int?> endDayOffset;
   final Value<String?> breaks;
   final Value<String?> shiftTypeId;
+  final Value<String?> plannedTypeId;
   final Value<String?> reason;
   final Value<String?> note;
   final Value<String?> leaveType;
@@ -8392,6 +8440,7 @@ class WorkDayExceptionsCompanion extends UpdateCompanion<WorkDayException> {
     this.endDayOffset = const Value.absent(),
     this.breaks = const Value.absent(),
     this.shiftTypeId = const Value.absent(),
+    this.plannedTypeId = const Value.absent(),
     this.reason = const Value.absent(),
     this.note = const Value.absent(),
     this.leaveType = const Value.absent(),
@@ -8412,6 +8461,7 @@ class WorkDayExceptionsCompanion extends UpdateCompanion<WorkDayException> {
     this.endDayOffset = const Value.absent(),
     this.breaks = const Value.absent(),
     this.shiftTypeId = const Value.absent(),
+    this.plannedTypeId = const Value.absent(),
     this.reason = const Value.absent(),
     this.note = const Value.absent(),
     this.leaveType = const Value.absent(),
@@ -8438,6 +8488,7 @@ class WorkDayExceptionsCompanion extends UpdateCompanion<WorkDayException> {
     Expression<int>? endDayOffset,
     Expression<String>? breaks,
     Expression<String>? shiftTypeId,
+    Expression<String>? plannedTypeId,
     Expression<String>? reason,
     Expression<String>? note,
     Expression<String>? leaveType,
@@ -8458,6 +8509,7 @@ class WorkDayExceptionsCompanion extends UpdateCompanion<WorkDayException> {
       if (endDayOffset != null) 'end_day_offset': endDayOffset,
       if (breaks != null) 'breaks': breaks,
       if (shiftTypeId != null) 'shift_type_id': shiftTypeId,
+      if (plannedTypeId != null) 'planned_type_id': plannedTypeId,
       if (reason != null) 'reason': reason,
       if (note != null) 'note': note,
       if (leaveType != null) 'leave_type': leaveType,
@@ -8482,6 +8534,7 @@ class WorkDayExceptionsCompanion extends UpdateCompanion<WorkDayException> {
     Value<int?>? endDayOffset,
     Value<String?>? breaks,
     Value<String?>? shiftTypeId,
+    Value<String?>? plannedTypeId,
     Value<String?>? reason,
     Value<String?>? note,
     Value<String?>? leaveType,
@@ -8502,6 +8555,7 @@ class WorkDayExceptionsCompanion extends UpdateCompanion<WorkDayException> {
       endDayOffset: endDayOffset ?? this.endDayOffset,
       breaks: breaks ?? this.breaks,
       shiftTypeId: shiftTypeId ?? this.shiftTypeId,
+      plannedTypeId: plannedTypeId ?? this.plannedTypeId,
       reason: reason ?? this.reason,
       note: note ?? this.note,
       leaveType: leaveType ?? this.leaveType,
@@ -8543,6 +8597,9 @@ class WorkDayExceptionsCompanion extends UpdateCompanion<WorkDayException> {
     }
     if (shiftTypeId.present) {
       map['shift_type_id'] = Variable<String>(shiftTypeId.value);
+    }
+    if (plannedTypeId.present) {
+      map['planned_type_id'] = Variable<String>(plannedTypeId.value);
     }
     if (reason.present) {
       map['reason'] = Variable<String>(reason.value);
@@ -8586,6 +8643,7 @@ class WorkDayExceptionsCompanion extends UpdateCompanion<WorkDayException> {
           ..write('endDayOffset: $endDayOffset, ')
           ..write('breaks: $breaks, ')
           ..write('shiftTypeId: $shiftTypeId, ')
+          ..write('plannedTypeId: $plannedTypeId, ')
           ..write('reason: $reason, ')
           ..write('note: $note, ')
           ..write('leaveType: $leaveType, ')
@@ -17319,6 +17377,7 @@ typedef $$WorkDayExceptionsTableCreateCompanionBuilder =
       Value<int?> endDayOffset,
       Value<String?> breaks,
       Value<String?> shiftTypeId,
+      Value<String?> plannedTypeId,
       Value<String?> reason,
       Value<String?> note,
       Value<String?> leaveType,
@@ -17340,6 +17399,7 @@ typedef $$WorkDayExceptionsTableUpdateCompanionBuilder =
       Value<int?> endDayOffset,
       Value<String?> breaks,
       Value<String?> shiftTypeId,
+      Value<String?> plannedTypeId,
       Value<String?> reason,
       Value<String?> note,
       Value<String?> leaveType,
@@ -17429,6 +17489,11 @@ class $$WorkDayExceptionsTableFilterComposer
 
   ColumnFilters<String> get shiftTypeId => $composableBuilder(
     column: $table.shiftTypeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plannedTypeId => $composableBuilder(
+    column: $table.plannedTypeId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17545,6 +17610,11 @@ class $$WorkDayExceptionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get plannedTypeId => $composableBuilder(
+    column: $table.plannedTypeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get reason => $composableBuilder(
     column: $table.reason,
     builder: (column) => ColumnOrderings(column),
@@ -17648,6 +17718,11 @@ class $$WorkDayExceptionsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get plannedTypeId => $composableBuilder(
+    column: $table.plannedTypeId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get reason =>
       $composableBuilder(column: $table.reason, builder: (column) => column);
 
@@ -17746,6 +17821,7 @@ class $$WorkDayExceptionsTableTableManager
                 Value<int?> endDayOffset = const Value.absent(),
                 Value<String?> breaks = const Value.absent(),
                 Value<String?> shiftTypeId = const Value.absent(),
+                Value<String?> plannedTypeId = const Value.absent(),
                 Value<String?> reason = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<String?> leaveType = const Value.absent(),
@@ -17765,6 +17841,7 @@ class $$WorkDayExceptionsTableTableManager
                 endDayOffset: endDayOffset,
                 breaks: breaks,
                 shiftTypeId: shiftTypeId,
+                plannedTypeId: plannedTypeId,
                 reason: reason,
                 note: note,
                 leaveType: leaveType,
@@ -17786,6 +17863,7 @@ class $$WorkDayExceptionsTableTableManager
                 Value<int?> endDayOffset = const Value.absent(),
                 Value<String?> breaks = const Value.absent(),
                 Value<String?> shiftTypeId = const Value.absent(),
+                Value<String?> plannedTypeId = const Value.absent(),
                 Value<String?> reason = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<String?> leaveType = const Value.absent(),
@@ -17805,6 +17883,7 @@ class $$WorkDayExceptionsTableTableManager
                 endDayOffset: endDayOffset,
                 breaks: breaks,
                 shiftTypeId: shiftTypeId,
+                plannedTypeId: plannedTypeId,
                 reason: reason,
                 note: note,
                 leaveType: leaveType,

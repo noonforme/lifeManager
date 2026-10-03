@@ -154,7 +154,7 @@ final class DayPlanService {
     expected: expected,
     needsShift: true,
     times: (start: start, end: end, endDayOffset: endDayOffset, breaks: breaks),
-    build: (key, created, now, revision) => ChangedDay(
+    build: (key, created, now, revision, plannedTypeId) => ChangedDay(
       id: key,
       employmentId: id,
       date: date,
@@ -163,6 +163,7 @@ final class DayPlanService {
       endDayOffset: endDayOffset,
       breaks: List.unmodifiable(breaks),
       shiftTypeId: shiftTypeId,
+      plannedTypeId: plannedTypeId,
       createdAtUtc: created,
       updatedAtUtc: now,
       revision: revision,
@@ -180,7 +181,7 @@ final class DayPlanService {
     date,
     expected: expected,
     needsShift: true,
-    build: (key, created, now, revision) => CancelledDay(
+    build: (key, created, now, revision, _) => CancelledDay(
       id: key,
       employmentId: id,
       date: date,
@@ -212,12 +213,13 @@ final class DayPlanService {
       date,
       expected: expected,
       needsShift: true,
-      build: (key, created, now, revision) => LeaveDay(
+      build: (key, created, now, revision, plannedTypeId) => LeaveDay(
         id: key,
         employmentId: id,
         date: date,
         leaveType: leaveType,
         illnessStartedOn: illnessStartedOn,
+        plannedTypeId: plannedTypeId,
         createdAtUtc: created,
         updatedAtUtc: now,
         revision: revision,
@@ -241,7 +243,7 @@ final class DayPlanService {
     expected: expected,
     needsShift: false,
     times: (start: start, end: end, endDayOffset: endDayOffset, breaks: breaks),
-    build: (key, created, now, revision) => ExtraDay(
+    build: (key, created, now, revision, _) => ExtraDay(
       id: key,
       employmentId: id,
       date: date,
@@ -262,7 +264,8 @@ final class DayPlanService {
     required Revision expected,
   }) => _guard(() => repository.removeException(id, expected: expected));
 
-  /// Confirms one past or present planned day: a planned shift becomes a
+  /// Confirms one past or present planned day (a future date is Invalid on
+  /// `date`): a planned shift becomes a
   /// finalized shift linked to its plan, planned leave a leave record
   /// (schedules spec 3.6). A date already confirmed is Stale.
   Future<MutationOutcome<ConfirmedDay>> confirm(
@@ -276,6 +279,19 @@ final class DayPlanService {
       }
       final day = _plan(inputs, date, date).firstOrNull;
       if (day is! PlannedShift && day is! PlannedLeave) {
+        return const Invalid<ConfirmedDay>({
+          'date': [FieldIssue(FieldIssueCode.invalid)],
+        });
+      }
+      // Work that has not happened is not confirmed: today at most, on the
+      // schedule's own clock.
+      final zone = switch (day) {
+        PlannedShift(:final timezoneId) => timezoneId,
+        PlannedLeave(:final replaced) => replaced.timezoneId,
+        _ => throw StateError('unreachable'),
+      };
+      final today = zoneClocks(zone).toLocal(clock.nowUtc()).date;
+      if (date.compareTo(today) > 0) {
         return const Invalid<ConfirmedDay>({
           'date': [FieldIssue(FieldIssueCode.invalid)],
         });
@@ -521,6 +537,7 @@ final class DayPlanService {
       DateTime createdAtUtc,
       DateTime nowUtc,
       Revision revision,
+      ShiftTypeId? plannedTypeId,
     )
     build,
     ({
@@ -577,6 +594,7 @@ final class DayPlanService {
       existing?.createdAtUtc ?? now,
       now,
       existing == null ? const Revision(0) : existing.revision.next(),
+      cycle is PlannedShift ? cycle.type?.id : null,
     );
     return repository.putException(value, expected: expected);
   });

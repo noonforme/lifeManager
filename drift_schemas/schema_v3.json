@@ -2319,6 +2319,16 @@
             "dsl_features": []
           },
           {
+            "name": "planned_type_id",
+            "getter_name": "plannedTypeId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
             "name": "reason",
             "getter_name": "reason",
             "moor_type": "string",
@@ -3409,7 +3419,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"work_day_exceptions\" (\"id\" TEXT NOT NULL, \"employment_id\" TEXT NOT NULL REFERENCES employments (id) ON DELETE RESTRICT, \"date\" TEXT NOT NULL, \"kind\" TEXT NOT NULL CHECK(kind IN ('changed', 'cancelled', 'leave', 'extra')), \"start_minute\" INTEGER NULL, \"end_minute\" INTEGER NULL, \"end_day_offset\" INTEGER NULL, \"breaks\" TEXT NULL, \"shift_type_id\" TEXT NULL, \"reason\" TEXT NULL, \"note\" TEXT NULL, \"leave_type\" TEXT NULL, \"illness_started_on\" TEXT NULL, \"counts_as_overtime\" INTEGER NOT NULL DEFAULT 0 CHECK (\"counts_as_overtime\" IN (0, 1)), \"created_at_utc_micros\" INTEGER NOT NULL, \"updated_at_utc_micros\" INTEGER NOT NULL, \"revision\" INTEGER NOT NULL CHECK(revision >= 0), PRIMARY KEY (\"id\"), UNIQUE (employment_id, date));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"work_day_exceptions\" (\"id\" TEXT NOT NULL, \"employment_id\" TEXT NOT NULL REFERENCES employments (id) ON DELETE RESTRICT, \"date\" TEXT NOT NULL, \"kind\" TEXT NOT NULL CHECK(kind IN ('changed', 'cancelled', 'leave', 'extra')), \"start_minute\" INTEGER NULL, \"end_minute\" INTEGER NULL, \"end_day_offset\" INTEGER NULL, \"breaks\" TEXT NULL, \"shift_type_id\" TEXT NULL, \"planned_type_id\" TEXT NULL, \"reason\" TEXT NULL, \"note\" TEXT NULL, \"leave_type\" TEXT NULL, \"illness_started_on\" TEXT NULL, \"counts_as_overtime\" INTEGER NOT NULL DEFAULT 0 CHECK (\"counts_as_overtime\" IN (0, 1)), \"created_at_utc_micros\" INTEGER NOT NULL, \"updated_at_utc_micros\" INTEGER NOT NULL, \"revision\" INTEGER NOT NULL CHECK(revision >= 0), PRIMARY KEY (\"id\"), UNIQUE (employment_id, date));"
         }
       ]
     },
