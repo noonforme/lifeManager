@@ -6,6 +6,7 @@ import '../domain/agreement.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay_period.dart';
+import '../domain/schedule.dart';
 
 abstract interface class WorkCommandRepository {
   Future<T> transaction<T>(Future<T> Function(WorkWriteStore store) body);
@@ -215,6 +216,16 @@ final class CorrectPayslipCommand {
   final PayslipId replacementId;
   final Revision expectedRevision;
   final String voidReason;
+}
+
+abstract interface class ScheduleIdFactory {
+  ScheduleId scheduleId();
+
+  ShiftTypeId shiftTypeId();
+
+  DayExceptionId dayExceptionId();
+
+  LeaveRecordId leaveRecordId();
 }
 
 abstract interface class ShiftIdFactory {

@@ -8,6 +8,7 @@ import '../domain/facts.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart';
 import '../domain/payslip.dart';
+import '../domain/schedule.dart';
 import '../domain/shift.dart';
 
 /// Stable `record_kind` values, matching the route's record kinds.
@@ -17,6 +18,8 @@ abstract final class WorkRecordKinds {
   static const shift = 'shift';
   static const payPeriod = 'payPeriod';
   static const payslip = 'payslip';
+  static const schedule = 'schedule';
+  static const leave = 'leave';
 }
 
 /// Appends Work history inside the caller's transaction.
@@ -89,6 +92,29 @@ Map<String, String?> shiftFacts(WorkShift value, List<ShiftBreak> breaks) => {
         ].join(', '),
   'Note': value.note,
   'Void reason': value.voidReason,
+};
+
+/// A schedule version's history id: one record per version.
+String scheduleRecordId(WorkSchedule value) =>
+    '${value.id.value}@${value.version}';
+
+Map<String, String?> scheduleFacts(WorkSchedule value) => {
+  'Name': value.name,
+  'Version': '${value.version}',
+  'Timezone': value.timezoneId,
+  'Cycle day 1': value.cycleStart.toString(),
+  'In use from': value.inUseFrom.toString(),
+  'In use until': value.inUseUntil?.toString(),
+  'Shift types': [
+    for (final type in value.shiftTypes)
+      '${type.name} ${_clock(type.startMinute)}–'
+          '${_clock(type.endMinute % 1440)}'
+          '${type.breaks.isEmpty ? '' : ', breaks ${type.breakMinutes} min'}',
+  ].join('; '),
+  'Cycle': [
+    for (final block in value.blocks)
+      '${block.count} ${block.shiftTypeId == null ? 'Off' : value.typeById(block.shiftTypeId!)?.name ?? '?'}',
+  ].join(', '),
 };
 
 Map<String, String?> periodFacts(PayPeriod value) => {

@@ -563,3 +563,94 @@ domain.ScheduleLink? _scheduleLink(db.WorkShift row) {
     extraCountsAsOvertime: row.extraCountsAsOvertime,
   );
 }
+
+db.WorkSchedulesCompanion scheduleToCompanion(WorkSchedule value) =>
+    db.WorkSchedulesCompanion.insert(
+      id: value.id.value,
+      version: value.version,
+      employmentId: value.employmentId.value,
+      name: value.name,
+      timezoneId: value.timezoneId,
+      cycleStart: value.cycleStart.toString(),
+      inUseFrom: value.inUseFrom.toString(),
+      inUseUntil: Value(value.inUseUntil?.toString()),
+      createdAtUtcMicros: value.createdAtUtc.microsecondsSinceEpoch,
+      revision: value.revision.value,
+    );
+
+List<db.WorkScheduleShiftTypesCompanion> shiftTypesToCompanions(
+  WorkSchedule value,
+) => [
+  for (final (position, type) in value.shiftTypes.indexed)
+    db.WorkScheduleShiftTypesCompanion.insert(
+      scheduleId: value.id.value,
+      scheduleVersion: value.version,
+      id: type.id.value,
+      position: position,
+      name: type.name,
+      startMinute: type.startMinute,
+      endMinute: type.end.hour * 60 + type.end.minute,
+      endDayOffset: type.endDayOffset,
+      breaks: encodeBreaks(type.breaks),
+    ),
+];
+
+List<db.WorkScheduleBlocksCompanion> blocksToCompanions(WorkSchedule value) => [
+  for (final (position, block) in value.blocks.indexed)
+    db.WorkScheduleBlocksCompanion.insert(
+      scheduleId: value.id.value,
+      scheduleVersion: value.version,
+      position: position,
+      count: block.count,
+      shiftTypeId: Value(block.shiftTypeId?.value),
+    ),
+];
+
+/// A stored schedule version with its types and blocks, both in position
+/// order.
+WorkSchedule scheduleFromRows(
+  db.WorkSchedule row, {
+  required List<db.WorkScheduleShiftType> types,
+  required List<db.WorkScheduleBlock> blocks,
+  required bool usedByConfirmedDay,
+}) => _decode(
+  'schedule',
+  () => WorkSchedule(
+    id: _requiredId('schedule', 'id', row.id, ScheduleId.tryParse),
+    employmentId: _requiredId(
+      'schedule',
+      'employmentId',
+      row.employmentId,
+      EmploymentId.tryParse,
+    ),
+    name: row.name,
+    timezoneId: row.timezoneId,
+    version: row.version,
+    cycleStart: _date('schedule', 'cycleStart', row.cycleStart),
+    inUseFrom: _date('schedule', 'inUseFrom', row.inUseFrom),
+    inUseUntil: _nullableDate('schedule', 'inUseUntil', row.inUseUntil),
+    shiftTypes: [
+      for (final type in types)
+        ShiftType(
+          id: ShiftTypeId(type.id),
+          name: type.name,
+          start: LocalTime(type.startMinute ~/ 60, type.startMinute % 60),
+          end: LocalTime(type.endMinute ~/ 60, type.endMinute % 60),
+          endDayOffset: type.endDayOffset,
+          breaks: decodeBreaks(type.breaks),
+        ),
+    ],
+    blocks: [
+      for (final block in blocks)
+        CycleBlock(
+          count: block.count,
+          shiftTypeId: block.shiftTypeId == null
+              ? null
+              : ShiftTypeId(block.shiftTypeId!),
+        ),
+    ],
+    createdAtUtc: _utc(row.createdAtUtcMicros),
+    revision: Revision.checked(row.revision),
+    usedByConfirmedDay: usedByConfirmedDay,
+  ),
+);

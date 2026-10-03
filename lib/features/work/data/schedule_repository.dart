@@ -1,0 +1,130 @@
+import 'package:drift/drift.dart';
+
+import '../../../core/database/app_database.dart' show AppDatabase;
+import '../../../core/history/record_events.dart';
+import '../../../core/outcomes/mutation_outcome.dart';
+import '../../../core/time/app_clock.dart';
+import '../application/schedule_service.dart';
+import '../domain/facts.dart';
+import '../domain/ids.dart';
+import '../domain/schedule.dart';
+import 'daos/schedule_dao.dart';
+import 'work_history.dart';
+
+/// Schedules, day exceptions, confirmed days and leave in SQLite.
+final class DriftScheduleRepository implements ScheduleRepository {
+  /// History entries are stamped by [clock].
+  DriftScheduleRepository(this._database, {AppClock? clock})
+    : _history = WorkHistoryWriter(_database, clock ?? SystemAppClock()),
+      _schedules = ScheduleDao(_database);
+
+  final AppDatabase _database;
+  final WorkHistoryWriter _history;
+  final ScheduleDao _schedules;
+
+  @override
+  Future<List<WorkSchedule>> schedulesFor(EmploymentId id) =>
+      _schedules.forEmployment(id);
+
+  @override
+  Stream<List<WorkSchedule>> watchSchedules(EmploymentId id) async* {
+    yield await _schedules.forEmployment(id);
+    await for (final _ in _database.tableUpdates(
+      TableUpdateQuery.onAllTables([
+        _database.workSchedules,
+        _database.workScheduleShiftTypes,
+        _database.workScheduleBlocks,
+        _database.workShifts,
+        _database.workLeaveRecords,
+      ]),
+    )) {
+      yield await _schedules.forEmployment(id);
+    }
+  }
+
+  @override
+  Future<MutationOutcome<WorkSchedule>> insertVersion(
+    WorkSchedule value, {
+    WorkSchedule? closing,
+    Revision? closingExpected,
+  }) => _database.transaction(() async {
+    if (closing != null) {
+      final before = await _schedules.version(closing.id, closing.version);
+      if (before == null) return const Missing<WorkSchedule>();
+      final closed = await _schedules.closeVersion(
+        closing.id,
+        closing.version,
+        closing.inUseUntil!,
+        expected: closingExpected ?? before.revision,
+      );
+      if (closed == 0) return const Stale<WorkSchedule>();
+      final after = (await _schedules.version(closing.id, closing.version))!;
+      await _history.record(
+        WorkRecordKinds.schedule,
+        scheduleRecordId(after),
+        kind: RecordEventKind.changed,
+        before: scheduleFacts(before),
+        after: scheduleFacts(after),
+        revisionAfter: after.revision,
+      );
+    }
+    await _schedules.insertVersion(value);
+    await _history.record(
+      WorkRecordKinds.schedule,
+      scheduleRecordId(value),
+      kind: RecordEventKind.created,
+      after: scheduleFacts(value),
+      revisionAfter: value.revision,
+    );
+    return Committed<WorkSchedule>(
+      (await _schedules.version(value.id, value.version))!,
+    );
+  });
+
+  @override
+  Future<MutationOutcome<WorkSchedule>> replaceVersion(
+    WorkSchedule value, {
+    required Revision expected,
+  }) => _database.transaction(() async {
+    final before = await _schedules.version(value.id, value.version);
+    if (before == null) return const Missing<WorkSchedule>();
+    // A day confirmed since the edit began makes this version evidence.
+    if (before.usedByConfirmedDay) return const Stale<WorkSchedule>();
+    final changed = await _schedules.replaceVersion(value, expected: expected);
+    if (changed == 0) return const Stale<WorkSchedule>();
+    final after = (await _schedules.version(value.id, value.version))!;
+    await _history.record(
+      WorkRecordKinds.schedule,
+      scheduleRecordId(after),
+      kind: RecordEventKind.changed,
+      before: scheduleFacts(before),
+      after: scheduleFacts(after),
+      revisionAfter: after.revision,
+    );
+    return Committed<WorkSchedule>(after);
+  });
+
+  @override
+  Future<MutationOutcome<WorkSchedule>> deleteSchedule(
+    ScheduleId id, {
+    required Revision expected,
+  }) => _database.transaction(() async {
+    final versions = await _schedules.versionsOf(id);
+    if (versions.isEmpty) return const Missing<WorkSchedule>();
+    final latest = versions.reduce((a, b) => a.version > b.version ? a : b);
+    if (latest.revision != expected) return const Stale<WorkSchedule>();
+    if (await _schedules.scheduleUsed(id)) {
+      return const Invalid<WorkSchedule>({
+        'schedule': [FieldIssue(FieldIssueCode.conflict)],
+      });
+    }
+    await _schedules.deleteSchedule(id);
+    for (final value in versions) {
+      await _history.events.deleteFor(
+        WorkRecordKinds.schedule,
+        scheduleRecordId(value),
+      );
+    }
+    return Committed<WorkSchedule>(latest);
+  });
+}
