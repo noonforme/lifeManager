@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart' show Variable;
+
 import '../../../core/database/app_database.dart' show AppDatabase;
 import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
@@ -106,6 +108,20 @@ final class DriftShiftRepository
     List<ShiftBreak> breaks,
   ) {
     return _database.transaction(() async {
+      // A planned day is confirmed once (schedules spec 3.6).
+      if (draft.schedule case final link?) {
+        final taken = await _database
+            .customSelect(
+              'SELECT 1 FROM work_shifts WHERE employment_id = ? '
+              "AND planned_date = ? AND state <> 'voided'",
+              variables: [
+                Variable(draft.employmentId.value),
+                Variable(link.plannedDate.toString()),
+              ],
+            )
+            .get();
+        if (taken.isNotEmpty) return const Stale<WorkShift>();
+      }
       final employment = await _employments.byId(draft.employmentId);
       if (employment == null || employment.status != EmploymentStatus.active) {
         return const Invalid<WorkShift>({

@@ -1,3 +1,5 @@
+import 'package:sqlite3/sqlite3.dart' show SqliteException;
+
 import '../../../core/database/database_identity.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/app_clock.dart';
@@ -7,10 +9,30 @@ import '../domain/agreement.dart';
 import '../domain/day_exception.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
+import '../domain/leave.dart';
 import '../domain/pay_premiums.dart';
 import '../domain/planner.dart';
 import '../domain/schedule.dart';
+import '../domain/shift.dart';
+import 'manual_shift_service.dart';
 import 'work_commands.dart';
+
+/// What confirming a planned day wrote.
+sealed class ConfirmedDay {
+  const ConfirmedDay();
+}
+
+final class ConfirmedShift extends ConfirmedDay {
+  const ConfirmedShift(this.shift);
+
+  final WorkShift shift;
+}
+
+final class ConfirmedLeave extends ConfirmedDay {
+  const ConfirmedLeave(this.leave);
+
+  final LeaveRecord leave;
+}
 
 /// Everything the planner reads for one employment, read together.
 final class PlanInputs {
@@ -47,6 +69,24 @@ abstract interface class DayPlanRepository {
     DayExceptionId id, {
     required Revision expected,
   });
+
+  /// Every leave record of the employment, voided ones included.
+  Future<List<LeaveRecord>> leaveFor(EmploymentId id);
+
+  Future<LeaveRecord?> leaveById(LeaveRecordId id);
+
+  Stream<List<LeaveRecord>> watchLeave(EmploymentId id);
+
+  /// Records confirmed leave; a date already confirmed is Stale.
+  Future<MutationOutcome<LeaveRecord>> insertLeave(LeaveRecord value);
+
+  /// Voids [id] and records [replacement] on its date, like payslips.
+  Future<MutationOutcome<LeaveRecord>> correctLeave(
+    LeaveRecordId id, {
+    required Revision expected,
+    required LeaveRecord replacement,
+    required String reason,
+  });
 }
 
 /// Plans days from stored schedules and records owner changes to single
@@ -54,12 +94,16 @@ abstract interface class DayPlanRepository {
 final class DayPlanService {
   const DayPlanService({
     required this.repository,
+    required this.shifts,
     required this.ids,
     required this.clock,
     required this.zoneClocks,
   });
 
   final DayPlanRepository repository;
+
+  /// Confirmed worked days are finalized like manual shifts.
+  final ManualShiftRepository shifts;
   final ScheduleIdFactory ids;
   final AppClock clock;
   final ZoneClocks zoneClocks;
@@ -217,6 +261,245 @@ final class DayPlanService {
     DayExceptionId id, {
     required Revision expected,
   }) => _guard(() => repository.removeException(id, expected: expected));
+
+  /// Confirms one past or present planned day: a planned shift becomes a
+  /// finalized shift linked to its plan, planned leave a leave record
+  /// (schedules spec 3.6). A date already confirmed is Stale.
+  Future<MutationOutcome<ConfirmedDay>> confirm(
+    EmploymentId id,
+    LocalDate date,
+  ) async {
+    try {
+      final inputs = await repository.planInputs(id);
+      if (inputs.confirmedDates.contains(date)) {
+        return const Stale<ConfirmedDay>();
+      }
+      final day = _plan(inputs, date, date).firstOrNull;
+      if (day is! PlannedShift && day is! PlannedLeave) {
+        return const Invalid<ConfirmedDay>({
+          'date': [FieldIssue(FieldIssueCode.invalid)],
+        });
+      }
+      final resolution = resolveAgreement(
+        employmentId: id,
+        localStartDate: date,
+        agreements: inputs.agreements,
+      );
+      if (resolution is! ResolvedAgreement) {
+        return const Invalid<ConfirmedDay>({
+          'agreement': [FieldIssue(FieldIssueCode.unavailable)],
+        });
+      }
+      final now = clock.nowUtc();
+      return await switch (day) {
+        PlannedShift() => _confirmShift(id, day, now),
+        PlannedLeave() => _confirmLeave(
+          id,
+          day,
+          inputs,
+          resolution.agreement.id,
+          now,
+        ),
+        _ => throw StateError('unreachable'),
+      };
+    } on DatabaseOpenFailure {
+      return const Unavailable<ConfirmedDay>(
+        SafeFailureCode.storageUnavailable,
+      );
+    } on DatabaseValidationFailure {
+      return const Unavailable<ConfirmedDay>(
+        SafeFailureCode.storageUnavailable,
+      );
+    }
+  }
+
+  /// Voids confirmed leave and records its replacement on the same date.
+  Future<MutationOutcome<LeaveRecord>> correctLeave(
+    LeaveRecordId id, {
+    required Revision expected,
+    required LeaveType leaveType,
+    required LocalDate? illnessStartedOn,
+    required String reason,
+  }) async {
+    final why = reason.trim();
+    if (why.isEmpty) {
+      return const Invalid<LeaveRecord>({
+        'reason': [FieldIssue(FieldIssueCode.required)],
+      });
+    }
+    try {
+      final original = await repository.leaveById(id);
+      if (original == null) return const Missing<LeaveRecord>();
+      if (illnessStartedOn != null &&
+          (leaveType != LeaveType.sick ||
+              illnessStartedOn.compareTo(original.date) > 0)) {
+        return const Invalid<LeaveRecord>({
+          'illnessStartedOn': [FieldIssue(FieldIssueCode.invalid)],
+        });
+      }
+      final now = clock.nowUtc();
+      final replacement = LeaveRecord(
+        id: ids.leaveRecordId(),
+        employmentId: original.employmentId,
+        date: original.date,
+        leaveType: leaveType,
+        illnessStartedOn: leaveType == LeaveType.sick
+            ? illnessStartedOn ?? original.illnessStartedOn ?? original.date
+            : null,
+        paidMinutes: original.paidMinutes,
+        agreementId: original.agreementId,
+        scheduleId: original.scheduleId,
+        scheduleVersion: original.scheduleVersion,
+        state: LeaveState.confirmed,
+        voidReason: null,
+        replacementId: null,
+        replacedId: original.id,
+        createdAtUtc: now,
+        updatedAtUtc: now,
+        revision: const Revision(0),
+      );
+      return await repository.correctLeave(
+        id,
+        expected: expected,
+        replacement: replacement,
+        reason: why,
+      );
+    } on DatabaseOpenFailure {
+      return const Unavailable<LeaveRecord>(SafeFailureCode.storageUnavailable);
+    } on DatabaseValidationFailure {
+      return const Unavailable<LeaveRecord>(SafeFailureCode.storageUnavailable);
+    }
+  }
+
+  Future<MutationOutcome<ConfirmedDay>> _confirmShift(
+    EmploymentId id,
+    PlannedShift day,
+    DateTime now,
+  ) async {
+    final shiftId = ids.shiftId();
+    final window = day.overtimeWindow;
+    final draft = WorkShift(
+      id: shiftId,
+      employmentId: id,
+      agreementId: null,
+      state: ShiftState.draft,
+      startUtc: day.startUtc,
+      endUtc: day.endUtc,
+      timezoneId: day.timezoneId,
+      localStartDate: day.date,
+      note: null,
+      voidReason: null,
+      replacementShiftId: null,
+      replacedShiftId: null,
+      createdAtUtc: now,
+      updatedAtUtc: now,
+      revision: const Revision(0),
+      schedule: ScheduleLink(
+        scheduleId: day.scheduleId,
+        scheduleVersion: day.scheduleVersion,
+        plannedDate: day.date,
+        plannedStartUtc: window?.start ?? day.startUtc,
+        plannedEndUtc: window?.end ?? day.endUtc,
+        isExtra: day.isExtra,
+        extraCountsAsOvertime: day.countsAsOvertime,
+      ),
+    );
+    final breaks = [
+      for (final item in day.breaks)
+        ShiftBreak(
+          id: ids.shiftBreakId(),
+          shiftId: shiftId,
+          startUtc: item.start,
+          endUtc: item.end,
+          createdAtUtc: now,
+          updatedAtUtc: now,
+          revision: const Revision(0),
+        ),
+    ];
+    final MutationOutcome<WorkShift> outcome;
+    try {
+      outcome = await shifts.createAndFinalizeManual(draft, breaks);
+    } on SqliteException catch (error) {
+      // one_confirmed_shift_per_planned_day: another confirm won the date.
+      if (error.extendedResultCode == 2067 || error.resultCode == 19) {
+        return const Stale<ConfirmedDay>();
+      }
+      rethrow;
+    }
+    return switch (outcome) {
+      Committed<WorkShift>(:final value) => Committed<ConfirmedDay>(
+        ConfirmedShift(value),
+      ),
+      Invalid<WorkShift>(:final fields) => Invalid<ConfirmedDay>(fields),
+      Stale<WorkShift>() => const Stale<ConfirmedDay>(),
+      Missing<WorkShift>() => const Missing<ConfirmedDay>(),
+      Unavailable<WorkShift>(:final code) => Unavailable<ConfirmedDay>(code),
+      Uncertain<WorkShift>(:final code) => Uncertain<ConfirmedDay>(code),
+    };
+  }
+
+  Future<MutationOutcome<ConfirmedDay>> _confirmLeave(
+    EmploymentId id,
+    PlannedLeave day,
+    PlanInputs inputs,
+    AgreementId agreementId,
+    DateTime now,
+  ) async {
+    LocalDate? illnessStartedOn = day.illnessStartedOn;
+    if (day.leaveType == LeaveType.sick && illnessStartedOn == null) {
+      final leave = await repository.leaveFor(id);
+      final sick = {
+        for (final item in inputs.exceptions)
+          if (item is LeaveDay && item.leaveType == LeaveType.sick) item.date,
+        for (final item in leave)
+          if (item.isEffective && item.leaveType == LeaveType.sick) item.date,
+      };
+      // A year back is the longest run the default follows.
+      final before = {
+        for (final planned in _plan(
+          inputs,
+          day.date.addDays(-366),
+          day.date.addDays(-1),
+        ))
+          planned.date: planned,
+      };
+      illnessStartedOn = defaultIllnessStart(
+        day.date,
+        isSick: sick.contains,
+        isOff: (date) => before[date] is OffDay,
+      );
+    }
+    final outcome = await repository.insertLeave(
+      LeaveRecord(
+        id: ids.leaveRecordId(),
+        employmentId: id,
+        date: day.date,
+        leaveType: day.leaveType,
+        illnessStartedOn: illnessStartedOn,
+        paidMinutes: day.paidMinutes,
+        agreementId: agreementId,
+        scheduleId: day.scheduleId,
+        scheduleVersion: day.scheduleVersion,
+        state: LeaveState.confirmed,
+        voidReason: null,
+        replacementId: null,
+        replacedId: null,
+        createdAtUtc: now,
+        updatedAtUtc: now,
+        revision: const Revision(0),
+      ),
+    );
+    return switch (outcome) {
+      Committed<LeaveRecord>(:final value) => Committed<ConfirmedDay>(
+        ConfirmedLeave(value),
+      ),
+      Invalid<LeaveRecord>(:final fields) => Invalid<ConfirmedDay>(fields),
+      Stale<LeaveRecord>() => const Stale<ConfirmedDay>(),
+      Missing<LeaveRecord>() => const Missing<ConfirmedDay>(),
+      Unavailable<LeaveRecord>(:final code) => Unavailable<ConfirmedDay>(code),
+      Uncertain<LeaveRecord>(:final code) => Uncertain<ConfirmedDay>(code),
+    };
+  }
 
   List<PlannedDay> _plan(PlanInputs inputs, LocalDate from, LocalDate to) =>
       planDays(

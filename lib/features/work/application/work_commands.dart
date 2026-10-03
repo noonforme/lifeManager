@@ -218,7 +218,9 @@ final class CorrectPayslipCommand {
   final String voidReason;
 }
 
-abstract interface class ScheduleIdFactory {
+/// Ids for schedules and what they produce; confirming a day also needs
+/// shift and break ids.
+abstract interface class ScheduleIdFactory implements ShiftIdFactory {
   ScheduleId scheduleId();
 
   ShiftTypeId shiftTypeId();

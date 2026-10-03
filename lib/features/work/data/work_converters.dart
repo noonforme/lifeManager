@@ -8,6 +8,7 @@ import '../domain/day_exception.dart';
 import '../domain/employment.dart' as domain;
 import '../domain/facts.dart';
 import '../domain/ids.dart';
+import '../domain/leave.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart' as domain;
 import '../domain/payslip.dart' as domain;
@@ -791,3 +792,90 @@ DayException dayExceptionFromRow(
     ),
   };
 });
+
+db.WorkLeaveRecordsCompanion leaveToCompanion(LeaveRecord value) =>
+    db.WorkLeaveRecordsCompanion.insert(
+      id: value.id.value,
+      employmentId: value.employmentId.value,
+      date: value.date.toString(),
+      leaveType: value.leaveType.name,
+      illnessStartedOn: Value(value.illnessStartedOn?.toString()),
+      paidMinutes: value.paidMinutes,
+      agreementId: value.agreementId.value,
+      scheduleId: value.scheduleId.value,
+      scheduleVersion: value.scheduleVersion,
+      state: value.state.name,
+      voidReason: Value(value.voidReason),
+      replacementLeaveId: Value(value.replacementId?.value),
+      replacedLeaveId: Value(value.replacedId?.value),
+      createdAtUtcMicros: value.createdAtUtc.microsecondsSinceEpoch,
+      updatedAtUtcMicros: value.updatedAtUtc.microsecondsSinceEpoch,
+      revision: value.revision.value,
+    );
+
+LeaveRecord leaveFromRow(db.WorkLeaveRecord row) => _decode(
+  'leave',
+  () => LeaveRecord(
+    id: _requiredId('leave', 'id', row.id, LeaveRecordId.tryParse),
+    employmentId: _requiredId(
+      'leave',
+      'employmentId',
+      row.employmentId,
+      EmploymentId.tryParse,
+    ),
+    date: _date('leave', 'date', row.date),
+    leaveType: switch (row.leaveType) {
+      'vacation' => LeaveType.vacation,
+      'sick' => LeaveType.sick,
+      final value => throw WorkDataCorruption(
+        recordType: 'leave',
+        field: 'leaveType',
+        value: value,
+      ),
+    },
+    illnessStartedOn: _nullableDate(
+      'leave',
+      'illnessStartedOn',
+      row.illnessStartedOn,
+    ),
+    paidMinutes: row.paidMinutes,
+    agreementId: _requiredId(
+      'leave',
+      'agreementId',
+      row.agreementId,
+      AgreementId.tryParse,
+    ),
+    scheduleId: _requiredId(
+      'leave',
+      'scheduleId',
+      row.scheduleId,
+      ScheduleId.tryParse,
+    ),
+    scheduleVersion: row.scheduleVersion,
+    state: switch (row.state) {
+      'confirmed' => LeaveState.confirmed,
+      'voided' => LeaveState.voided,
+      final value => throw WorkDataCorruption(
+        recordType: 'leave',
+        field: 'state',
+        value: value,
+      ),
+    },
+    voidReason: row.voidReason,
+    replacementId: _nullableId(
+      'leave',
+      'replacementLeaveId',
+      row.replacementLeaveId,
+      LeaveRecordId.tryParse,
+    ),
+    replacedId: _nullableId(
+      'leave',
+      'replacedLeaveId',
+      row.replacedLeaveId,
+      LeaveRecordId.tryParse,
+    ),
+    createdAtUtc: _utc(row.createdAtUtcMicros),
+    updatedAtUtc: _utc(row.updatedAtUtcMicros),
+    revision: Revision.checked(row.revision),
+  ),
+);

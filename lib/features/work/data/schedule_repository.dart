@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:sqlite3/sqlite3.dart' show SqliteException;
 
 import '../../../core/database/app_database.dart' show AppDatabase;
 import '../../../core/history/record_events.dart';
@@ -10,9 +11,11 @@ import '../application/schedule_service.dart';
 import '../domain/day_exception.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
+import '../domain/leave.dart';
 import '../domain/schedule.dart';
 import 'daos/agreement_dao.dart';
 import 'daos/day_exception_dao.dart';
+import 'daos/leave_dao.dart';
 import 'daos/schedule_dao.dart';
 import 'work_history.dart';
 
@@ -24,13 +27,15 @@ final class DriftScheduleRepository
     : _history = WorkHistoryWriter(_database, clock ?? SystemAppClock()),
       _schedules = ScheduleDao(_database),
       _exceptions = DayExceptionDao(_database),
-      _agreements = AgreementDao(_database);
+      _agreements = AgreementDao(_database),
+      _leave = LeaveDao(_database);
 
   final AppDatabase _database;
   final WorkHistoryWriter _history;
   final ScheduleDao _schedules;
   final DayExceptionDao _exceptions;
   final AgreementDao _agreements;
+  final LeaveDao _leave;
 
   @override
   Future<List<WorkSchedule>> schedulesFor(EmploymentId id) =>
@@ -205,6 +210,88 @@ final class DriftScheduleRepository
     return Committed<DayException>(value);
   });
 
+  @override
+  Future<List<LeaveRecord>> leaveFor(EmploymentId id) =>
+      _leave.forEmployment(id);
+
+  @override
+  Future<LeaveRecord?> leaveById(LeaveRecordId id) => _leave.byId(id);
+
+  @override
+  Stream<List<LeaveRecord>> watchLeave(EmploymentId id) async* {
+    yield await _leave.forEmployment(id);
+    await for (final _ in _database.tableUpdates(
+      TableUpdateQuery.onAllTables([_database.workLeaveRecords]),
+    )) {
+      yield await _leave.forEmployment(id);
+    }
+  }
+
+  @override
+  Future<MutationOutcome<LeaveRecord>> insertLeave(LeaveRecord value) async {
+    try {
+      return await _database.transaction(() async {
+        if ((await _confirmedDates(value.employmentId)).contains(value.date)) {
+          return const Stale<LeaveRecord>();
+        }
+        await _leave.insert(value);
+        await _history.record(
+          WorkRecordKinds.leave,
+          value.id.value,
+          kind: RecordEventKind.created,
+          after: leaveFacts(value),
+          revisionAfter: value.revision,
+        );
+        return Committed<LeaveRecord>(value);
+      });
+    } on SqliteException catch (error) {
+      // one_confirmed_leave_per_day: another confirm won the date.
+      if (_isUniqueViolation(error)) return const Stale<LeaveRecord>();
+      rethrow;
+    }
+  }
+
+  @override
+  Future<MutationOutcome<LeaveRecord>> correctLeave(
+    LeaveRecordId id, {
+    required Revision expected,
+    required LeaveRecord replacement,
+    required String reason,
+  }) => _database.transaction(() async {
+    final original = await _leave.byId(id);
+    if (original == null) return const Missing<LeaveRecord>();
+    if (!original.isEffective || original.revision != expected) {
+      return const Stale<LeaveRecord>();
+    }
+    final voided = await _leave.voidConfirmed(
+      id,
+      expected: expected,
+      reason: reason,
+      nowUtc: replacement.createdAtUtc,
+    );
+    if (voided == 0) return const Stale<LeaveRecord>();
+    await _leave.insert(replacement);
+    await _leave.linkReplacement(id, replacement.id);
+    final after = (await _leave.byId(id))!;
+    await _history.record(
+      WorkRecordKinds.leave,
+      id.value,
+      kind: RecordEventKind.voided,
+      before: leaveFacts(original),
+      after: leaveFacts(after),
+      revisionAfter: after.revision,
+      reason: reason,
+    );
+    await _history.record(
+      WorkRecordKinds.leave,
+      replacement.id.value,
+      kind: RecordEventKind.replaced,
+      after: leaveFacts(replacement),
+      revisionAfter: replacement.revision,
+    );
+    return Committed<LeaveRecord>(replacement);
+  });
+
   /// Planned dates of non-voided linked shifts, and confirmed leave dates.
   Future<Set<LocalDate>> _confirmedDates(EmploymentId id) async {
     final rows = await _database
@@ -219,3 +306,6 @@ final class DriftScheduleRepository
     return {for (final row in rows) LocalDate.parse(row.read<String>('date'))};
   }
 }
+
+bool _isUniqueViolation(SqliteException error) =>
+    error.extendedResultCode == 2067 || error.resultCode == 19;

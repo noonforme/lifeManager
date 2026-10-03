@@ -5,6 +5,7 @@ import '../../../core/time/app_clock.dart';
 import '../domain/agreement.dart';
 import '../domain/employment.dart';
 import '../domain/facts.dart';
+import '../domain/leave.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart';
 import '../domain/payslip.dart';
@@ -115,6 +116,15 @@ Map<String, String?> scheduleFacts(WorkSchedule value) => {
     for (final block in value.blocks)
       '${block.count} ${block.shiftTypeId == null ? 'Off' : value.typeById(block.shiftTypeId!)?.name ?? '?'}',
   ].join(', '),
+};
+
+Map<String, String?> leaveFacts(LeaveRecord value) => {
+  'Date': value.date.toString(),
+  'Type': value.leaveType.name,
+  'Illness started on': value.illnessStartedOn?.toString(),
+  'Paid time': _clock(value.paidMinutes),
+  'State': value.state.name,
+  'Void reason': value.voidReason,
 };
 
 Map<String, String?> periodFacts(PayPeriod value) => {

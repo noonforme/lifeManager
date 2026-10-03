@@ -88,15 +88,16 @@ final class ScheduleFixture {
       ),
     );
     final repository = DriftScheduleRepository(database, clock: clock);
+    final shifts = DriftShiftRepository(
+      database,
+      createBreakId: ids.shiftBreakId,
+      clock: clock,
+    );
     return ScheduleFixture._(
       database: database,
       clock: clock,
       ids: ids,
-      shifts: DriftShiftRepository(
-        database,
-        createBreakId: ids.shiftBreakId,
-        clock: clock,
-      ),
+      shifts: shifts,
       repository: repository,
       schedules: ScheduleService(
         repository: repository,
@@ -105,6 +106,7 @@ final class ScheduleFixture {
       ),
       plans: DayPlanService(
         repository: repository,
+        shifts: shifts,
         ids: ids,
         clock: clock,
         zoneClocks: zoneClocksOf(IanaTimezoneService()),
