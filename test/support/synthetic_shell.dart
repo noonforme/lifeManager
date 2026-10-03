@@ -24,6 +24,7 @@ final syntheticScreens = <String, String Function(String, String)>{
       '/work?employment=$employment&record=payPeriod:$period',
   'form': (employment, _) => '/work?employment=$employment&mode=edit',
   'today': (_, _) => '/today',
+  'agreement': (employment, _) => '/work?employment=$employment&add=agreement',
 };
 
 /// Seeds synthetic Work records (one employment, its agreement, a pay

@@ -21,4 +21,18 @@ void main() {
       });
     }
   }
+
+  for (final size in sizes) {
+    final file = 'calendar_${size.width.round()}x${size.height.round()}';
+    testWidgets(file, (tester) async {
+      await pumpSyntheticShell(
+        tester,
+        size: size,
+        screen: syntheticScreens['agreement']!,
+      );
+      await tester.tap(find.byKey(const ValueKey('agreement-effective-start')));
+      await tester.pumpAndSettle();
+      await expectLater(find.byType(LifeOsApp), matchesGoldenFile('$file.png'));
+    });
+  }
 }
