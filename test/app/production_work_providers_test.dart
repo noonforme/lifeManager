@@ -49,6 +49,8 @@ void main() {
     expect(container.read(recordPayslipProvider), isNotNull);
     expect(container.read(correctPayslipProvider), isNotNull);
     expect(container.read(correctShiftProvider), isNotNull);
+    expect(container.read(scheduleServiceProvider), isNotNull);
+    expect(container.read(dayPlanServiceProvider), isNotNull);
     expect(container.read(currentTimezoneIdProvider)(), 'Europe/Amsterdam');
   });
 

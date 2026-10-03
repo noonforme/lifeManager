@@ -120,7 +120,7 @@ The shipped shell, at 1280 × 800:
 - **Task pane** (200 px, left): the surface's tasks (Work tasks, Desk tasks), Books, and Details.
 - **Content** (centre): a filter toolbar row of era dropdowns over a sunken details list, or a desk of tile windows.
 - **Property sheet** (300 px, right): **General | History** for the open record, with the **Working** group box on top when a calculated cell is selected. Surfaces with nothing to inspect leave it out.
-- **Status bar** (22 px): sunken panels for the running shift, counts and the save state.
+- **Status bar** (22 px): sunken panels for counts and the save state; the first, stretching panel is empty until there is something to confirm.
 
 Below 1280 px the property sheet alternates with the content (**Back to list**). Below 1024 px the task pane folds into a **Tasks** toolbar key that opens it over the content. Every layout holds at 200 % text.
 
@@ -144,7 +144,7 @@ Widgets take colours from `LifeOSTokens.millennium` and the named constants in `
 - **Field line** `#7f9db9` and **Key line** `#003c74`: field and list borders; push-button outlines.
 - **Task pane:** gradient `#7ba2e7` → `#6375d6`, group bodies `#d6dff7`, links `#1c50b0`.
 - **Accents:** tab top edge `#ffc83c`, sorted-column edge `#f9b119`.
-- **Signal** `#d9500b` and **Run ink** `#b83d0b`: the running dot and "Running" text.
+- **Signal** `#d9500b` and **Run ink** `#b83d0b`: progress indicators and an active live value in Books.
 - **Negative** `#cc0000` and **Positive** `#2a752d`, always beside the words "under" and "over".
 - **Area keys:** Work `#3a6ea5`, Finance `#d9a400`, Tracking `#3f7a2e`, Knowledge `#7b5ea7`, each with its letter.
 
@@ -152,7 +152,7 @@ Two era colours stay below 3:1 by choice: the field outline, because fields are 
 
 ### Named rules
 
-**The Words-First Rule.** Draft, Void, Running, Open, Reviewed, over and under are always written. Colour only supports the word.
+**The Words-First Rule.** Draft, Void, Open, Reviewed, over and under are always written. Colour only supports the word.
 
 **The No-Vendor Rule.** No vendor names, logos, icons, wallpapers or sounds. Orbs, arrows, ticks and glyphs are painted.
 

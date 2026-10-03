@@ -42,7 +42,7 @@ LifeOS looks like a 2001 office PC, shaped like that era's file browser: an orb 
 
 What the shell holds:
 
-- **Work:** employments and agreements with night, holiday and overtime premiums; live and manual shifts; pay periods, payslips and reconciliation; and correction. Shifts, Pay periods, Payslips and Agreements are chosen with the **View:** dropdown; Work tasks sit in the task pane.
+- **Work:** employments and agreements with night, holiday and overtime premiums and leave pay; rotating schedules with planned days you confirm, day changes and paid leave; manual shifts; pay periods, payslips and reconciliation; and correction. Shifts, Pay periods, Payslips and Agreements are chosen with the **View:** dropdown; Work tasks sit in the task pane.
 - **Working:** select any derived figure; the record's property sheet shows how it was worked out.
 - **History:** every record keeps its own History tab beside General.
 - **Add and "from last time":** create records from anywhere.

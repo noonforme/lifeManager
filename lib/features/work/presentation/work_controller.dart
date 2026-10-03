@@ -6,6 +6,8 @@ import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
+import '../application/day_plan_service.dart';
+import '../application/schedule_service.dart';
 import '../application/work_commands.dart';
 import '../application/work_query_service.dart';
 import '../application/work_templates.dart';
@@ -16,6 +18,7 @@ import '../domain/employment.dart';
 import '../domain/ids.dart';
 import '../domain/pay_period.dart';
 import '../domain/payslip.dart';
+import '../domain/planner.dart';
 import '../domain/shift.dart';
 import 'employment_agreement_forms.dart';
 import 'period_payslip_forms.dart';
@@ -236,6 +239,33 @@ final workRegisterProjectionProvider =
 final workRecordProjectionProvider = StreamProvider.autoDispose
     .family<WorkRecordProjection?, WorkRecordId>(
       (ref, id) => ref.watch(workQueryRepositoryProvider).watchRecord(id),
+    );
+
+final scheduleServiceProvider = Provider<ScheduleService>(
+  (ref) => throw StateError('ScheduleService has not been provided.'),
+);
+
+final dayPlanServiceProvider = Provider<DayPlanService>(
+  (ref) => throw StateError('DayPlanService has not been provided.'),
+);
+
+/// The planned days of one employment over a date range, live.
+final workPlanProvider = StreamProvider.autoDispose
+    .family<
+      List<PlannedDay>,
+      ({EmploymentId employment, LocalDate from, LocalDate to})
+    >(
+      (ref, args) => ref
+          .watch(dayPlanServiceProvider)
+          .watchPlan(args.employment, args.from, args.to),
+    );
+
+/// Past planned days of one employment not yet confirmed.
+final daysToConfirmProvider = FutureProvider.autoDispose
+    .family<List<PlannedDay>, EmploymentId>(
+      (ref, id) => ref
+          .watch(dayPlanServiceProvider)
+          .daysToConfirm(id, today: ref.watch(todayProvider)()),
     );
 
 final workControllerProvider =

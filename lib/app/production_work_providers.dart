@@ -10,15 +10,20 @@ import '../core/history/record_event_dao.dart';
 import '../core/history/record_events.dart';
 import '../core/time/app_clock.dart';
 import '../core/time/timezone_service.dart';
+import '../core/time/wall_clock.dart';
 import '../features/journal/journal_controller.dart';
 import '../features/journal/journal_source.dart';
 import '../features/work/application/agreement_service.dart';
+import '../features/work/application/day_plan_service.dart';
 import '../features/work/application/employment_service.dart';
 import '../features/work/application/manual_shift_service.dart';
 import '../features/work/application/pay_period_service.dart';
 import '../features/work/application/payslip_service.dart';
+import '../features/work/application/schedule_service.dart';
 import '../features/work/application/shift_lifecycle_service.dart';
+import '../features/work/application/uuid_v7_work_id_factory.dart';
 import '../features/work/application/work_commands.dart';
+import '../features/work/data/schedule_repository.dart';
 import '../features/work/data/shift_repository.dart';
 import '../features/work/data/work_repository.dart';
 import '../features/work/presentation/work_controller.dart';
@@ -32,7 +37,9 @@ ProductionWorkProviders buildWorkProviders({
   required WorkIdFactory workIds,
   required ShiftIdFactory shiftIds,
   required WorkEvidenceIdFactory evidenceIds,
+  ScheduleIdFactory? scheduleIds,
 }) {
+  final scheduleIdFactory = scheduleIds ?? UuidV7WorkIdFactory();
   final workRepository = DriftWorkRepository(
     database,
     timezones: timezones,
@@ -80,6 +87,19 @@ ProductionWorkProviders buildWorkProviders({
     idFactory: evidenceIds,
     clock: clock,
   );
+  final scheduleRepository = DriftScheduleRepository(database, clock: clock);
+  final schedules = ScheduleService(
+    repository: scheduleRepository,
+    ids: scheduleIdFactory,
+    clock: clock,
+  );
+  final plans = DayPlanService(
+    repository: scheduleRepository,
+    shifts: shiftRepository,
+    ids: scheduleIdFactory,
+    clock: clock,
+    zoneClocks: zoneClocksOf(timezones),
+  );
 
   return ProductionWorkProviders._(
     workRepository: workRepository,
@@ -91,6 +111,8 @@ ProductionWorkProviders buildWorkProviders({
     timezones: timezones,
     periods: periods,
     payslips: payslips,
+    schedules: schedules,
+    plans: plans,
     currentTimezoneId: currentTimezoneId,
     shiftIds: shiftIds,
     evidenceIds: evidenceIds,
@@ -117,6 +139,8 @@ final class ProductionWorkProviders {
     required this.timezones,
     required this.periods,
     required this.payslips,
+    required this.schedules,
+    required this.plans,
     required this.currentTimezoneId,
     required this.shiftIds,
     required this.evidenceIds,
@@ -136,6 +160,8 @@ final class ProductionWorkProviders {
   final TimezoneService timezones;
   final PayPeriodService periods;
   final PayslipService payslips;
+  final ScheduleService schedules;
+  final DayPlanService plans;
   final CurrentTimezoneId currentTimezoneId;
   final ShiftIdFactory shiftIds;
   final WorkEvidenceIdFactory evidenceIds;
@@ -162,6 +188,8 @@ final class ProductionWorkProviders {
     reviseShiftDraftProvider.overrideWithValue(
       draftRevisions.reviseAndFinalize,
     ),
+    scheduleServiceProvider.overrideWithValue(schedules),
+    dayPlanServiceProvider.overrideWithValue(plans),
     timezoneServiceProvider.overrideWithValue(timezones),
     recordHistoryProvider.overrideWithValue(history),
     journalSourceProvider.overrideWithValue(journal),

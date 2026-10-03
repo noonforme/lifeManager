@@ -42,7 +42,7 @@ Desktop use is the primary interaction context. The dashboard is a working entry
 ## Capabilities and Constraints
 
 - The stack is a native Flutter desktop application with a local SQLite database through Drift, Riverpod state, and GoRouter structural routes.
-- Work is the shipped domain: employment, versioned pay agreements, live and manual shifts, pay periods, payslip evidence, reconciliation, and void-and-replace correction. Finance, Tracking, and Knowledge are planned areas (Money and Habits were renamed Finance and Tracking); until each ships it is an honest unavailable destination.
+- Work is the shipped domain: employment, versioned pay agreements, rotating schedules, confirmed days, leave and manual shifts, pay periods, payslip evidence, reconciliation, and void-and-replace correction. Finance, Tracking, and Knowledge are planned areas (Money and Habits were renamed Finance and Tracking); until each ships it is an honest unavailable destination.
 - The approved shell is recorded in docs/superpowers/specs/2026-10-02-lifeos-millennium-shell-design.md: a 2001 office-PC file explorer with a task pane, Address bar, details lists, property sheets with a Working group box, desks, a journal of every record by time, and per-record history. Every design choice mimics that era.
 - SQLite is the single source of truth. Derived views do not become a second source of truth or competing persisted totals.
 - Mutations report explicit outcomes (committed, invalid, stale, missing, unavailable, uncertain); nothing is retried or overwritten silently.
