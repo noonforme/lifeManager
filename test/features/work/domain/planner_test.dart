@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/core/time/local_time.dart';
+import 'package:lifeos/features/work/domain/agreement.dart';
 import 'package:lifeos/features/work/domain/day_exception.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
@@ -286,6 +287,23 @@ void main() {
     expect((days[1] as PlannedShift).scheduleVersion, 2);
     expect((days[1] as PlannedShift).type?.name, 'Night');
   });
+  test('planned pay prices night time but never overtime', () {
+    final night =
+        plan(
+              const LocalDate(2026, 10, 11),
+              const LocalDate(2026, 10, 11),
+            ).single
+            as PlannedShift;
+    final pay = plannedPay(
+      night,
+      agreements: [agreementForPlan()],
+      employmentId: employment,
+      zoneClocks: testZoneClocks,
+    )!;
+    expect(pay.overtimePaidSeconds, 0);
+    // 22:00–06:00 minus the 00:00 break: 7:30 of night time.
+    expect(pay.nightPaidSeconds, (7 * 60 + 30) * 60);
+  });
 }
 
 WorkSchedule rotation({
@@ -335,4 +353,21 @@ WorkSchedule rotation({
       ],
   createdAtUtc: DateTime.utc(2026, 10),
   revision: const Revision(0),
+);
+
+PayAgreement agreementForPlan() => PayAgreement(
+  id: const AgreementId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21'),
+  employmentId: const EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11'),
+  version: 1,
+  effectiveStart: const LocalDate(2026, 1, 1),
+  effectiveEnd: null,
+  hourlyRateMicroEur: 18400000,
+  basis: const GrossBasis(),
+  overtimeThresholdMinutes: 480,
+  overtimeMultiplier: const RationalMultiplier(numerator: 3, denominator: 2),
+  label: null,
+  note: null,
+  createdAtUtc: DateTime.utc(2026),
+  revision: const Revision(0),
+  usedByFinalizedShift: false,
 );

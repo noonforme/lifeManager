@@ -179,6 +179,9 @@ PayAgreement? _build({
       holidayCalendar: terms.holidayCalendar,
       holidayMultiplier: terms.holidayMultiplier,
       premiumStacking: terms.premiumStacking,
+      vacationPay: terms.vacationPay,
+      sickPay: terms.sickPay,
+      sickEmployerDays: terms.sickEmployerDays,
     );
   } on ArgumentError {
     return null;

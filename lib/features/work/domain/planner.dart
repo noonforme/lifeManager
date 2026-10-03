@@ -1,6 +1,9 @@
 import '../../../core/time/local_date.dart';
+import 'agreement.dart';
 import 'day_exception.dart';
+import 'facts.dart';
 import 'ids.dart';
+import 'pay.dart';
 import 'pay_premiums.dart';
 import 'schedule.dart';
 
@@ -248,4 +251,41 @@ List<PlannedDay> planDays({
     });
   }
   return List.unmodifiable(days);
+}
+
+/// A planned shift's pay: night and holiday premiums, never overtime
+/// (spec 4.1). Null when no single agreement is in effect on its date.
+ExpectedPay? plannedPay(
+  PlannedShift shift, {
+  required Iterable<PayAgreement> agreements,
+  required EmploymentId employmentId,
+  required ZoneClocks zoneClocks,
+}) {
+  final resolution = resolveAgreement(
+    employmentId: employmentId,
+    localStartDate: shift.date,
+    agreements: agreements,
+  );
+  if (resolution is! ResolvedAgreement) return null;
+  final agreement = resolution.agreement;
+  final clock = zoneClocks(shift.timezoneId);
+  final paid = <Span>[];
+  var from = shift.startUtc;
+  for (final item in shift.breaks) {
+    if (item.start.isAfter(from)) paid.add((start: from, end: item.start));
+    from = item.end;
+  }
+  if (shift.endUtc.isAfter(from)) paid.add((start: from, end: shift.endUtc));
+  return calculateExpectedPay(
+    segments: segmentPaidTime(
+      paidIntervals: paid,
+      agreement: agreement,
+      toLocal: clock.toLocal,
+      toInstants: clock.toInstants,
+      overtime: const NoOvertime(),
+    ),
+    hourlyRateMicroEur: agreement.hourlyRateMicroEur,
+    agreement: agreement,
+    currency: const CurrencyCode.eur(),
+  );
 }

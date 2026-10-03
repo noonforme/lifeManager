@@ -62,6 +62,13 @@ abstract final class AgreementDefaults {
     denominator: 1,
   );
   static const premiumStacking = PremiumStacking.highest;
+
+  /// Vacation pays the full average (schedules spec 4.3).
+  static const vacationPay = RationalMultiplier(numerator: 1, denominator: 1);
+
+  /// The employer pays 62.06 % of the average for the first sick days.
+  static const sickPay = RationalMultiplier(numerator: 3103, denominator: 5000);
+  static const sickEmployerDays = 2;
 }
 
 final class PayAgreement {
@@ -87,6 +94,9 @@ final class PayAgreement {
     this.holidayCalendar = AgreementDefaults.holidayCalendar,
     this.holidayMultiplier = AgreementDefaults.holidayMultiplier,
     this.premiumStacking = AgreementDefaults.premiumStacking,
+    this.vacationPay = AgreementDefaults.vacationPay,
+    this.sickPay = AgreementDefaults.sickPay,
+    this.sickEmployerDays = AgreementDefaults.sickEmployerDays,
   }) {
     if (version <= 0) throw ArgumentError.value(version, 'version');
     if (hourlyRateMicroEur <= 0) {
@@ -114,6 +124,17 @@ final class PayAgreement {
       ('nightEndMinute', nightEndMinute),
     ]) {
       if (minute < 0 || minute > 1439) throw ArgumentError.value(minute, name);
+    }
+    for (final (name, fraction) in [
+      ('vacationPay', vacationPay),
+      ('sickPay', sickPay),
+    ]) {
+      if (fraction.numerator <= 0 || fraction.denominator <= 0) {
+        throw ArgumentError.value(fraction, name);
+      }
+    }
+    if (sickEmployerDays < 0 || sickEmployerDays > 30) {
+      throw ArgumentError.value(sickEmployerDays, 'sickEmployerDays');
     }
     // The window is kept even when night pay is off, so it must stay valid.
     if (nightStartMinute == nightEndMinute) {
@@ -154,6 +175,16 @@ final class PayAgreement {
   final RationalMultiplier holidayMultiplier;
   final PremiumStacking premiumStacking;
 
+  /// The share of the average paid for a vacation day.
+  final RationalMultiplier vacationPay;
+
+  /// The share of the average the employer pays for an early sick day.
+  final RationalMultiplier sickPay;
+
+  /// How many calendar days of an illness the employer pays, its first day
+  /// counting as day 1.
+  final int sickEmployerDays;
+
   bool isEffectiveOn(LocalDate date) =>
       effectiveStart.compareTo(date) <= 0 &&
       (effectiveEnd == null || effectiveEnd!.compareTo(date) >= 0);
@@ -184,6 +215,9 @@ final class PayAgreement {
       holidayCalendar: holidayCalendar,
       holidayMultiplier: holidayMultiplier,
       premiumStacking: premiumStacking,
+      vacationPay: vacationPay,
+      sickPay: sickPay,
+      sickEmployerDays: sickEmployerDays,
     );
   }
 }

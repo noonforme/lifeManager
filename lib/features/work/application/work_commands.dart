@@ -79,6 +79,9 @@ final class AgreementTerms {
     this.holidayCalendar = AgreementDefaults.holidayCalendar,
     this.holidayMultiplier = AgreementDefaults.holidayMultiplier,
     this.premiumStacking = AgreementDefaults.premiumStacking,
+    this.vacationPay = AgreementDefaults.vacationPay,
+    this.sickPay = AgreementDefaults.sickPay,
+    this.sickEmployerDays = AgreementDefaults.sickEmployerDays,
   });
 
   final LocalDate effectiveStart;
@@ -96,6 +99,9 @@ final class AgreementTerms {
   final HolidayCalendar holidayCalendar;
   final RationalMultiplier holidayMultiplier;
   final PremiumStacking premiumStacking;
+  final RationalMultiplier vacationPay;
+  final RationalMultiplier sickPay;
+  final int sickEmployerDays;
 }
 
 final class CreateAgreementCommand {
