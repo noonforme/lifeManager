@@ -47,11 +47,7 @@ final class EraDateField extends StatefulWidget {
 
 final class _EraDateFieldState extends State<EraDateField> {
   final _box = FocusNode(debugLabel: 'EraDateField');
-  final _calendarNode = FocusNode(
-    debugLabel: 'EraDateFieldCalendar',
-    canRequestFocus: false,
-    skipTraversal: true,
-  );
+  final _calendarNode = FocusNode(debugLabel: 'EraDateFieldCalendar');
   final _portal = OverlayPortalController();
   final _anchor = GlobalKey();
   LocalDate? _lastShown;
@@ -97,7 +93,7 @@ final class _EraDateFieldState extends State<EraDateField> {
     // ignored; hand focus over once it is built.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_portal.isShowing) return;
-      _calendarNode.descendants.firstOrNull?.requestFocus();
+      _calendarNode.requestFocus();
     });
   }
 
@@ -161,15 +157,13 @@ final class _EraDateFieldState extends State<EraDateField> {
         child: TapRegion(
           groupId: this,
           onTapOutside: (_) => _close(),
-          child: Focus(
+          child: EraMonthCalendar(
             focusNode: _calendarNode,
-            child: EraMonthCalendar(
-              selected: widget.value,
-              today: widget.today,
-              onPicked: _pick,
-              onCancel: _close,
-              autofocus: true,
-            ),
+            selected: widget.value,
+            today: widget.today,
+            onPicked: _pick,
+            onCancel: _close,
+            autofocus: true,
           ),
         ),
       ),

@@ -149,6 +149,30 @@ void main() {
     );
   });
 
+  testWidgets('a keyboard-opened calendar takes focus: arrows, Enter, Esc', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(
+      tester.binding.focusManager.primaryFocus?.debugLabel,
+      'EraDateFieldCalendar',
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(_calendar, findsNothing);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(_calendar, findsNothing);
+    expect(_value(tester), const LocalDate(2026, 10, 6));
+  });
+
   testWidgets('Esc and a click outside close without a change', (tester) async {
     await _pump(tester);
     await tester.tap(find.byKey(_box));

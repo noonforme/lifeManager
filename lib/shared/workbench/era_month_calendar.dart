@@ -17,6 +17,7 @@ final class EraMonthCalendar extends StatefulWidget {
     this.selected,
     this.onCancel,
     this.autofocus = false,
+    this.focusNode,
     super.key,
   });
 
@@ -29,6 +30,9 @@ final class EraMonthCalendar extends StatefulWidget {
   /// Esc. When set, the calendar is a drop-down and keeps Tab inside it.
   final VoidCallback? onCancel;
   final bool autofocus;
+
+  /// The root's focus node, for a host that moves focus in itself.
+  final FocusNode? focusNode;
 
   @override
   State<EraMonthCalendar> createState() => _EraMonthCalendarState();
@@ -88,6 +92,7 @@ final class _EraMonthCalendarState extends State<EraMonthCalendar> {
     final month = _cursor.firstOfMonth;
     final days = monthGridDays(month);
     return Focus(
+      focusNode: widget.focusNode,
       autofocus: widget.autofocus,
       debugLabel: 'EraMonthCalendar',
       onKeyEvent: _onKey,
