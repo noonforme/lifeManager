@@ -269,6 +269,35 @@ void main() {
     expect(calendar.bottom, lessThanOrEqualTo(600));
   });
 
+  testWidgets('the calendar stays on its box when the window resizes', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLifeOSTheme(),
+        home: const LifeOSSkinScope(
+          child: Scaffold(
+            body: Center(child: _Host(initial: _today, optional: false)),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(_box));
+    await tester.pumpAndSettle();
+    expect(_calendar, findsOneWidget);
+
+    tester.view.physicalSize = const Size(900, 700);
+    await tester.pumpAndSettle();
+    expect(_calendar, findsOneWidget);
+    final box = tester.getRect(find.byKey(_box));
+    final calendar = tester.getRect(_calendar);
+    expect(calendar.left, moreOrLessEquals(box.left, epsilon: 0.5));
+    expect(calendar.top, moreOrLessEquals(box.bottom, epsilon: 0.5));
+  });
+
   test('the drop layout prefers below, then above, and stays inside', () {
     const window = Size(960, 760);
     const calendar = Size(220, 250);

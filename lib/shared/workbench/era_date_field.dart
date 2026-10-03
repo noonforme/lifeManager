@@ -49,7 +49,6 @@ final class _EraDateFieldState extends State<EraDateField> {
   final _box = FocusNode(debugLabel: 'EraDateField');
   final _calendarNode = FocusNode(debugLabel: 'EraDateFieldCalendar');
   final _portal = OverlayPortalController();
-  final _anchor = GlobalKey();
   LocalDate? _lastShown;
   ScrollPosition? _scroll;
   bool _focused = false;
@@ -145,12 +144,13 @@ final class _EraDateFieldState extends State<EraDateField> {
     return KeyEventResult.handled;
   }
 
-  Widget _calendar(BuildContext context) {
-    final anchor = _anchor.currentContext!.findRenderObject()! as RenderBox;
-    final overlay =
-        Overlay.of(context).context.findRenderObject()! as RenderBox;
-    final rect =
-        anchor.localToGlobal(Offset.zero, ancestor: overlay) & anchor.size;
+  /// Built at layout time, so the calendar follows the box when the window
+  /// resizes or the box moves for any other reason.
+  Widget _calendar(BuildContext context, OverlayChildLayoutInfo info) {
+    final rect = MatrixUtils.transformRect(
+      info.childPaintTransform,
+      Offset.zero & info.childSize,
+    );
     return Positioned.fill(
       child: CustomSingleChildLayout(
         delegate: EraDropLayout(rect),
@@ -192,96 +192,90 @@ final class _EraDateFieldState extends State<EraDateField> {
         const SizedBox(height: 2),
         TapRegion(
           groupId: this,
-          child: OverlayPortal(
+          child: OverlayPortal.overlayChildLayoutBuilder(
             controller: _portal,
             overlayChildBuilder: _calendar,
-            child: KeyedSubtree(
-              key: _anchor,
-              child: Semantics(
-                container: true,
-                button: true,
-                enabled: _enabled,
-                label: widget.error == null ? name : '$name, ${widget.error}',
-                onTap: _enabled ? _open : null,
-                child: Container(
-                  key: widget.fieldKey,
-                  constraints: const BoxConstraints(minHeight: 24),
-                  decoration: BoxDecoration(
-                    color: t.paper,
-                    border: Border.all(
-                      color: widget.error == null
-                          ? MillenniumColors.fieldLine
-                          : t.negative,
-                    ),
+            child: Semantics(
+              container: true,
+              button: true,
+              enabled: _enabled,
+              label: widget.error == null ? name : '$name, ${widget.error}',
+              onTap: _enabled ? _open : null,
+              child: Container(
+                key: widget.fieldKey,
+                constraints: const BoxConstraints(minHeight: 24),
+                decoration: BoxDecoration(
+                  color: t.paper,
+                  border: Border.all(
+                    color: widget.error == null
+                        ? MillenniumColors.fieldLine
+                        : t.negative,
                   ),
-                  child: IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (widget.optional)
-                          _EraCheck(
-                            key: const ValueKey('era-date-check'),
-                            label: widget.label,
-                            checked: value != null,
-                            onToggle: _toggle,
-                          ),
-                        Expanded(
-                          child: ExcludeSemantics(
-                            child: Focus(
-                              focusNode: _box,
-                              canRequestFocus: _enabled,
-                              onKeyEvent: _onKey,
-                              onFocusChange: (focused) =>
-                                  setState(() => _focused = focused),
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: _enabled ? _tapBox : null,
-                                child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Expanded(
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Padding(
+                ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (widget.optional)
+                        _EraCheck(
+                          key: const ValueKey('era-date-check'),
+                          label: widget.label,
+                          checked: value != null,
+                          onToggle: _toggle,
+                        ),
+                      Expanded(
+                        child: ExcludeSemantics(
+                          child: Focus(
+                            focusNode: _box,
+                            canRequestFocus: _enabled,
+                            onKeyEvent: _onKey,
+                            onFocusChange: (focused) =>
+                                setState(() => _focused = focused),
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _enabled ? _tapBox : null,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 3,
+                                          vertical: 2,
+                                        ),
+                                        child: Container(
+                                          color: highlighted ? t.selWash : null,
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 3,
-                                            vertical: 2,
+                                            horizontal: 2,
                                           ),
-                                          child: Container(
-                                            color: highlighted
-                                                ? t.selWash
-                                                : null,
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 2,
-                                            ),
-                                            child: Text(
-                                              eraBoxDate(shown),
-                                              style: skin.typography.figure
-                                                  .copyWith(
-                                                    color: !_enabled
-                                                        ? t.muted
-                                                        : highlighted
-                                                        ? t.selInk
-                                                        : t.ink,
-                                                  ),
-                                            ),
+                                          child: Text(
+                                            eraBoxDate(shown),
+                                            style: skin.typography.figure
+                                                .copyWith(
+                                                  color: !_enabled
+                                                      ? t.muted
+                                                      : highlighted
+                                                      ? t.selInk
+                                                      : t.ink,
+                                                ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                    _DropButton(
-                                      key: const ValueKey('era-date-drop'),
-                                      enabled: _enabled,
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                  _DropButton(
+                                    key: const ValueKey('era-date-drop'),
+                                    enabled: _enabled,
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
