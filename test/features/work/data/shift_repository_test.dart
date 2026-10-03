@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/database/app_database.dart' show AppDatabase;
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/features/work/data/daos/shift_dao.dart';
 import 'package:lifeos/features/work/data/shift_repository.dart';
 import 'package:lifeos/features/work/data/work_repository.dart';
 import 'package:lifeos/features/work/domain/agreement.dart';
@@ -12,8 +11,6 @@ import 'package:lifeos/features/work/domain/employment.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
-
-import '../../../support/owned_test_root.dart';
 
 void main() {
   late AppDatabase database;
@@ -31,17 +28,12 @@ void main() {
   tearDown(() => database.close());
 
   test('failed finalization rolls back agreement and state writes', () async {
-    await repository.start(_runningShift(_shiftA));
-    await repository.endShift(
-      _shiftA,
-      endUtc: DateTime.utc(2026, 9, 29, 16),
-      expected: const Revision(0),
-    );
+    await _insertEndedDraft(database);
 
     await expectLater(
       repository.finalizeShift(
         _shiftA,
-        expected: const Revision(1),
+        expected: const Revision(0),
         failAfterAgreementLinkForTest: true,
       ),
       throwsStateError,
@@ -53,91 +45,12 @@ void main() {
   });
 
   test(
-    'active shift and open break recover after reopening database',
-    () async {
-      await database.close();
-      final root = await OwnedTestRoot.create();
-      addTearDown(root.dispose);
-      final file = File.fromUri(root.uri.resolve('synthetic-shifts.sqlite'));
-      database = AppDatabase(NativeDatabase(file));
-      repository = DriftShiftRepository(
-        database,
-        createBreakId: () => _replacementBreakId,
-      );
-      await _seedEmploymentAndAgreement(database);
-      await repository.start(_runningShift(_shiftA));
-      await repository.startBreak(
-        _openBreak(),
-        expectedShift: const Revision(0),
-      );
-      await database.close();
-
-      database = AppDatabase(NativeDatabase(file));
-      repository = DriftShiftRepository(
-        database,
-        createBreakId: () => _replacementBreakId,
-      );
-
-      expect((await repository.activeShift())!.state, ShiftState.onBreak);
-      expect((await repository.breaksFor(_shiftA)).single.endUtc, isNull);
-    },
-  );
-
-  test('closing a break atomically restores the running shift', () async {
-    await repository.start(_runningShift(_shiftA));
-    await repository.startBreak(_openBreak(), expectedShift: const Revision(0));
-
-    expect(
-      await repository.endBreak(
-        _breakId,
-        shiftId: _shiftA,
-        endUtc: DateTime.utc(2026, 9, 29, 12, 30),
-        expectedBreak: const Revision(0),
-        expectedShift: const Revision(1),
-      ),
-      1,
-    );
-
-    expect((await repository.activeShift())!.state, ShiftState.running);
-    final persistedBreak = (await repository.breaksFor(_shiftA)).single;
-    expect(persistedBreak.endUtc, DateTime.utc(2026, 9, 29, 12, 30));
-  });
-
-  test('stale lifecycle write preserves the newer active shift', () async {
-    await repository.start(_runningShift(_shiftA));
-    await repository.startBreak(_openBreak(), expectedShift: const Revision(0));
-
-    expect(
-      await repository.endShift(
-        _shiftA,
-        endUtc: DateTime.utc(2026, 9, 29, 16),
-        expected: const Revision(0),
-      ),
-      0,
-    );
-    expect((await repository.activeShift())!.state, ShiftState.onBreak);
-  });
-
-  test(
     'correction atomically preserves original and copies break facts',
     () async {
-      await repository.start(_runningShift(_shiftA));
-      await repository.startBreak(
-        _closedBreak(),
-        expectedShift: const Revision(0),
-      );
-      await database.customStatement(
-        "UPDATE work_shifts SET state = 'running', revision = 2 WHERE id = ?",
-        [_shiftA.value],
-      );
-      await repository.endShift(
-        _shiftA,
-        endUtc: DateTime.utc(2026, 9, 29, 16),
-        expected: const Revision(2),
-      );
+      await _insertEndedDraft(database, withBreak: true);
       final finalized = await repository.finalizeShift(
         _shiftA,
-        expected: const Revision(3),
+        expected: const Revision(0),
       );
       final original = (finalized as Committed<WorkShift>).value;
       final replacement = original.replacementDraft(
@@ -170,7 +83,7 @@ void main() {
   );
 
   test('replacement draft is revised and finalized atomically', () async {
-    final draft = await _replacementDraftWithCopiedBreak(repository);
+    final draft = await _replacementDraftWithCopiedBreak(repository, database);
     final revised = draft.revisedFacts(
       startUtc: DateTime.utc(2026, 9, 29, 9),
       endUtc: DateTime.utc(2026, 9, 29, 17),
@@ -205,7 +118,7 @@ void main() {
   });
 
   test('stale draft revision leaves the draft and breaks unchanged', () async {
-    final draft = await _replacementDraftWithCopiedBreak(repository);
+    final draft = await _replacementDraftWithCopiedBreak(repository, database);
     final revised = draft.revisedFacts(
       startUtc: DateTime.utc(2026, 9, 29, 9),
       endUtc: DateTime.utc(2026, 9, 29, 17),
@@ -228,7 +141,7 @@ void main() {
   });
 
   test('finalized shifts are never revised as drafts', () async {
-    final draft = await _replacementDraftWithCopiedBreak(repository);
+    final draft = await _replacementDraftWithCopiedBreak(repository, database);
     final original = (await repository.shiftById(_shiftA))!;
 
     final result = await repository.reviseAndFinalizeDraft(
@@ -251,15 +164,10 @@ void main() {
   test(
     'stale correction creates no replacement and leaves original finalized',
     () async {
-      await repository.start(_runningShift(_shiftA));
-      await repository.endShift(
-        _shiftA,
-        endUtc: DateTime.utc(2026, 9, 29, 16),
-        expected: const Revision(0),
-      );
+      await _insertEndedDraft(database);
       final finalized = await repository.finalizeShift(
         _shiftA,
-        expected: const Revision(1),
+        expected: const Revision(0),
       );
       expect(finalized, isA<Committed<WorkShift>>());
       final original = (finalized as Committed<WorkShift>).value;
@@ -270,7 +178,7 @@ void main() {
 
       final result = await repository.correctShift(
         original.id,
-        expected: const Revision(1),
+        expected: const Revision(0),
         replacement: replacement,
         voidReason: 'Synthetic correction',
         nowUtc: DateTime.utc(2026, 9, 30),
@@ -299,27 +207,12 @@ const _revisedBreakId = ShiftBreakId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c3b');
 
 Future<WorkShift> _replacementDraftWithCopiedBreak(
   DriftShiftRepository repository,
+  AppDatabase database,
 ) async {
-  await repository.start(_runningShift(_shiftA));
-  await repository.startBreak(_openBreak(), expectedShift: const Revision(0));
-  final onBreak = (await repository.shiftById(_shiftA))!;
-  await repository.endBreak(
-    _breakId,
-    shiftId: _shiftA,
-    endUtc: DateTime.utc(2026, 9, 29, 12, 30),
-    expectedBreak: const Revision(0),
-    expectedShift: onBreak.revision,
-  );
-  final running = (await repository.shiftById(_shiftA))!;
-  await repository.endShift(
-    _shiftA,
-    endUtc: DateTime.utc(2026, 9, 29, 16),
-    expected: running.revision,
-  );
-  final ended = (await repository.shiftById(_shiftA))!;
+  await _insertEndedDraft(database, withBreak: true);
   final finalized = await repository.finalizeShift(
     _shiftA,
-    expected: ended.revision,
+    expected: const Revision(0),
   );
   final original = (finalized as Committed<WorkShift>).value;
   final corrected = await repository.correctShift(
@@ -368,13 +261,14 @@ Future<void> _seedEmploymentAndAgreement(AppDatabase database) async {
   );
 }
 
-WorkShift _runningShift(ShiftId id) => WorkShift(
+/// A finished draft, 08:00–16:00 UTC, at revision 0.
+WorkShift _endedDraft(ShiftId id) => WorkShift(
   id: id,
   employmentId: _employmentId,
   agreementId: null,
-  state: ShiftState.running,
+  state: ShiftState.draft,
   startUtc: DateTime.utc(2026, 9, 29, 8),
-  endUtc: null,
+  endUtc: DateTime.utc(2026, 9, 29, 16),
   timezoneId: 'Europe/Berlin',
   localStartDate: const LocalDate(2026, 9, 29),
   note: null,
@@ -382,9 +276,18 @@ WorkShift _runningShift(ShiftId id) => WorkShift(
   replacementShiftId: null,
   replacedShiftId: null,
   createdAtUtc: DateTime.utc(2026, 9, 29, 8),
-  updatedAtUtc: DateTime.utc(2026, 9, 29, 8),
+  updatedAtUtc: DateTime.utc(2026, 9, 29, 16),
   revision: const Revision(0),
 );
+
+Future<void> _insertEndedDraft(
+  AppDatabase database, {
+  bool withBreak = false,
+}) async {
+  final dao = ShiftDao(database);
+  await dao.insert(_endedDraft(_shiftA));
+  if (withBreak) await dao.insertBreak(_closedBreak());
+}
 
 ShiftBreak _closedBreak() => ShiftBreak(
   id: _breakId,
@@ -394,14 +297,4 @@ ShiftBreak _closedBreak() => ShiftBreak(
   createdAtUtc: DateTime.utc(2026, 9, 29, 12),
   updatedAtUtc: DateTime.utc(2026, 9, 29, 12, 30),
   revision: const Revision(1),
-);
-
-ShiftBreak _openBreak() => ShiftBreak(
-  id: _breakId,
-  shiftId: _shiftA,
-  startUtc: DateTime.utc(2026, 9, 29, 12),
-  endUtc: null,
-  createdAtUtc: DateTime.utc(2026, 9, 29, 12),
-  updatedAtUtc: DateTime.utc(2026, 9, 29, 12),
-  revision: const Revision(0),
 );

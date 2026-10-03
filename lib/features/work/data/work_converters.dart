@@ -158,13 +158,19 @@ db.WorkShiftsCompanion shiftToCompanion(domain.WorkShift value) =>
       createdAtUtcMicros: value.createdAtUtc.microsecondsSinceEpoch,
       updatedAtUtcMicros: value.updatedAtUtc.microsecondsSinceEpoch,
       revision: value.revision.value,
-      scheduleId: const Value(null),
-      scheduleVersion: const Value(null),
-      plannedDate: const Value(null),
-      plannedStartUtcMicros: const Value(null),
-      plannedEndUtcMicros: const Value(null),
-      isExtra: const Value(false),
-      extraCountsAsOvertime: const Value(false),
+      scheduleId: Value(value.schedule?.scheduleId.value),
+      scheduleVersion: Value(value.schedule?.scheduleVersion),
+      plannedDate: Value(value.schedule?.plannedDate.toString()),
+      plannedStartUtcMicros: Value(
+        value.schedule?.plannedStartUtc.microsecondsSinceEpoch,
+      ),
+      plannedEndUtcMicros: Value(
+        value.schedule?.plannedEndUtc.microsecondsSinceEpoch,
+      ),
+      isExtra: Value(value.schedule?.isExtra ?? false),
+      extraCountsAsOvertime: Value(
+        value.schedule?.extraCountsAsOvertime ?? false,
+      ),
     );
 
 domain.WorkShift shiftFromRow(db.WorkShift row) => _decode(
@@ -205,6 +211,7 @@ domain.WorkShift shiftFromRow(db.WorkShift row) => _decode(
     createdAtUtc: _utc(row.createdAtUtcMicros),
     updatedAtUtc: _utc(row.updatedAtUtcMicros),
     revision: Revision.checked(row.revision),
+    schedule: _scheduleLink(row),
   ),
 );
 
@@ -439,8 +446,6 @@ domain.PremiumStacking _premiumStacking(String value) => switch (value) {
 
 domain.ShiftState _shiftState(String value) => switch (value) {
   'draft' => domain.ShiftState.draft,
-  'running' => domain.ShiftState.running,
-  'onBreak' => domain.ShiftState.onBreak,
   'finalized' => domain.ShiftState.finalized,
   'voided' => domain.ShiftState.voided,
   _ => throw WorkDataCorruption(
@@ -530,5 +535,31 @@ FixedBreak _decodeBreak(String part) {
     start: LocalTime(minute ~/ 60, minute % 60),
     dayOffset: offset,
     minutes: minutes,
+  );
+}
+
+/// The link a confirmed scheduled shift keeps; null for a manual shift.
+domain.ScheduleLink? _scheduleLink(db.WorkShift row) {
+  final id = row.scheduleId;
+  if (id == null) return null;
+  final version = row.scheduleVersion;
+  final start = row.plannedStartUtcMicros;
+  final end = row.plannedEndUtcMicros;
+  final date = row.plannedDate;
+  if (version == null || start == null || end == null || date == null) {
+    throw WorkDataCorruption(
+      recordType: 'workShift',
+      field: 'schedule',
+      value: id,
+    );
+  }
+  return domain.ScheduleLink(
+    scheduleId: _requiredId('workShift', 'scheduleId', id, ScheduleId.tryParse),
+    scheduleVersion: version,
+    plannedDate: _date('workShift', 'plannedDate', date),
+    plannedStartUtc: _utc(start),
+    plannedEndUtc: _utc(end),
+    isExtra: row.isExtra,
+    extraCountsAsOvertime: row.extraCountsAsOvertime,
   );
 }

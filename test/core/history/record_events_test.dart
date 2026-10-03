@@ -136,72 +136,6 @@ void main() {
     ]);
   });
 
-  test('the live shift lifecycle appends one event per command', () async {
-    final owner = await employment();
-    await agreement(owner);
-
-    final started = committed(
-      await work.shifts.startShift(
-        StartShiftCommand(
-          employmentId: owner.id,
-          timezoneId: 'Europe/Vilnius',
-          note: null,
-        ),
-      ),
-    );
-    clock.now = clock.now.add(const Duration(hours: 4));
-    final onBreak = committed(
-      await work.shifts.startBreak(
-        StartBreakCommand(
-          shiftId: started.id,
-          expectedShiftRevision: started.revision,
-        ),
-      ),
-    );
-    final openBreak = (await DriftShiftRepository(
-      database,
-    ).breaksFor(started.id)).single;
-    clock.now = clock.now.add(const Duration(minutes: 30));
-    final running = committed(
-      await work.shifts.endBreak(
-        EndBreakCommand(
-          shiftId: started.id,
-          breakId: openBreak.id,
-          expectedShiftRevision: onBreak.revision,
-          expectedBreakRevision: openBreak.revision,
-        ),
-      ),
-    );
-    clock.now = clock.now.add(const Duration(hours: 4));
-    final ended = committed(
-      await work.shifts.endShift(
-        EndShiftCommand(id: started.id, expectedRevision: running.revision),
-      ),
-    );
-    final finalized = committed(
-      await work.shifts.finalizeShift(
-        FinalizeShiftCommand(id: started.id, expectedRevision: ended.revision),
-      ),
-    );
-
-    final events = await history.forRecord('shift', started.id.value);
-    expect(events.map((e) => e.kind), [
-      RecordEventKind.created,
-      RecordEventKind.changed,
-      RecordEventKind.changed,
-      RecordEventKind.changed,
-      RecordEventKind.finalized,
-    ]);
-    expect(
-      events[1].changes.map((c) => c.field),
-      containsAll(['State', 'Breaks']),
-    );
-    expect(events.last.changes, [
-      const FieldChange('State', 'draft', 'finalized'),
-    ]);
-    expect(events.last.revisionAfter, finalized.revision.value);
-  });
-
   test('manual shifts, corrections and revisions', () async {
     final owner = await employment();
     await agreement(owner);
@@ -364,51 +298,55 @@ void main() {
       ),
       isA<Missing<WorkShift>>(),
     );
-    expect(
-      await work.shifts.startShift(
-        StartShiftCommand(
-          employmentId: owner.id,
-          timezoneId: 'Europe/Vilnius',
-          note: null,
-        ),
-      ),
-      isA<Invalid<WorkShift>>(), // no agreement covers today
-    );
     expect(await total(), before);
   });
 
   test('a failed commit leaves no orphan event', () async {
     final owner = await employment();
     await agreement(owner);
-    final started = committed(
-      await work.shifts.startShift(
-        StartShiftCommand(
+    final manual = committed(
+      await work.manualShifts.createAndFinalize(
+        CreateManualShiftCommand(
           employmentId: owner.id,
+          localStartDate: const LocalDate(2026, 9, 10),
+          localStartTime: const LocalTime(9, 0),
+          localEndDate: const LocalDate(2026, 9, 10),
+          localEndTime: const LocalTime(17, 0),
           timezoneId: 'Europe/Vilnius',
+          startFold: null,
+          endFold: null,
           note: null,
         ),
       ),
     );
-    clock.now = clock.now.add(const Duration(hours: 8));
-    final ended = committed(
-      await work.shifts.endShift(
-        EndShiftCommand(id: started.id, expectedRevision: started.revision),
+    // Correction leaves a replacement draft, the one way drafts now arise.
+    final replacementId = ids.shiftId();
+    committed(
+      await work.shifts.correctShift(
+        CorrectShiftCommand(
+          originalId: manual.id,
+          replacementId: replacementId,
+          expectedRevision: manual.revision,
+          voidReason: 'Synthetic end time',
+        ),
       ),
     );
-    final before = await kinds('shift', started.id.value);
+    final draft = (await DriftShiftRepository(database)
+        .shiftById(replacementId))!;
+    final before = await kinds('shift', replacementId.value);
 
     await expectLater(
       DriftShiftRepository(database, clock: clock).finalizeShift(
-        started.id,
-        expected: ended.revision,
+        replacementId,
+        expected: draft.revision,
         failAfterAgreementLinkForTest: true,
       ),
       throwsStateError,
     );
 
-    expect(await kinds('shift', started.id.value), before);
+    expect(await kinds('shift', replacementId.value), before);
     expect(
-      (await DriftShiftRepository(database).shiftById(started.id))!.state,
+      (await DriftShiftRepository(database).shiftById(replacementId))!.state,
       ShiftState.draft,
     );
   });

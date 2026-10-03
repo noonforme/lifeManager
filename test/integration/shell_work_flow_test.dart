@@ -9,7 +9,6 @@ import 'package:lifeos/core/time/app_clock.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/shared/shell/working_group_box.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
 
 /// The shell spec's section 10 flow on the production composition: a
 /// fresh install from Today to a finalized shift, then the formula bar,
@@ -77,13 +76,18 @@ void main() {
     await tester.tap(save);
     await tester.pumpAndSettle();
 
-    // Start at 09:00, end at 17:00, finalize.
-    await tester.tap(_inInspector(find.text('Start shift')));
+    // A shift from 09:00 to 17:00, entered by hand and finalized on save.
+    await tester.tap(_inInspector(find.text('Add manual shift')));
     await tester.pumpAndSettle();
-    clock.now = DateTime.utc(2026, 10, 1, 14);
-    await tester.tap(find.text('End shift'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(KeyButton, 'Finalize shift'));
+    for (final (key, value) in [
+      ('shift-start-date', '2026-10-01'),
+      ('shift-start-time', '09:00'),
+      ('shift-end-date', '2026-10-01'),
+      ('shift-end-time', '17:00'),
+    ]) {
+      await tester.enterText(find.byKey(ValueKey(key)), value);
+    }
+    await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
     await tester.pumpAndSettle();
     expect(find.text('Shift finalized'), findsOneWidget);
 
@@ -105,8 +109,7 @@ void main() {
       findsWidgets,
     );
 
-    // History lists one event per command: start, end and finalize. (Spec
-    // section 10 says four, which its one-event-per-command rule rules out.)
+    // History lists one event per command: the manual save.
     await tester.tap(_inInspector(find.text('History')));
     await tester.pumpAndSettle();
     const kinds = {'Created', 'Changed', 'Finalized'};
@@ -119,7 +122,7 @@ void main() {
         .map((element) => (element.widget as Text).data)
         .where(kinds.contains)
         .toList();
-    expect(headings, ['Finalized', 'Changed', 'Created']);
+    expect(headings, ['Created']);
 
     // The Journal on Today shows the shift.
     router.go('/today');

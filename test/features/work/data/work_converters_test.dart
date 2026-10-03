@@ -48,6 +48,54 @@ void main() {
     expect(restored.revision, fact.revision);
   });
 
+  test('a confirmed scheduled shift round trips its schedule link', () {
+    final link = domain.ScheduleLink(
+      scheduleId: const ScheduleId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4d01'),
+      scheduleVersion: 2,
+      plannedDate: const LocalDate(2026, 9, 29),
+      plannedStartUtc: DateTime.utc(2026, 9, 29, 5),
+      plannedEndUtc: DateTime.utc(2026, 9, 29, 17),
+      isExtra: true,
+      extraCountsAsOvertime: true,
+    );
+    final fact = domain.WorkShift(
+      id: const ShiftId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c31'),
+      employmentId: const EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11'),
+      agreementId: const AgreementId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21'),
+      state: domain.ShiftState.finalized,
+      startUtc: DateTime.utc(2026, 9, 29, 5),
+      endUtc: DateTime.utc(2026, 9, 29, 17),
+      timezoneId: 'Europe/Vilnius',
+      localStartDate: const LocalDate(2026, 9, 29),
+      note: null,
+      voidReason: null,
+      replacementShiftId: null,
+      replacedShiftId: null,
+      createdAtUtc: DateTime.utc(2026, 9, 29, 18),
+      updatedAtUtc: DateTime.utc(2026, 9, 29, 18),
+      revision: const Revision(1),
+      schedule: link,
+    );
+
+    final restored = shiftFromRow(_shiftRow(shiftToCompanion(fact)));
+
+    expect(restored.schedule, link);
+    expect(
+      shiftFromRow(_validShiftRow()).schedule,
+      isNull,
+      reason: 'a manual shift has no link',
+    );
+  });
+
+  test('running and on-break states no longer decode', () {
+    for (final state in ['running', 'onBreak']) {
+      expect(
+        () => shiftFromRow(_validShiftRow(state: state)),
+        throwsA(isA<WorkDataCorruption>()),
+      );
+    }
+  });
+
   test('unknown stored enum text throws bounded corruption error', () {
     final row = _validShiftRow(state: 'unexpected');
 

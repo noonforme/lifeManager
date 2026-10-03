@@ -9,7 +9,6 @@ import 'package:lifeos/core/time/app_clock.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/shared/workbench/inspector_parts.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
 
 /// Drives the Work core flow through the real router, controller, services
 /// and Drift repositories on an in-memory database with synthetic facts.
@@ -279,63 +278,6 @@ void main() {
       findsOneWidget,
     );
     expect(find.bySemanticsLabel('Create agreement'), findsOneWidget);
-  });
-
-  testWidgets('live shift recovers after restart and finalizes', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(1280, 1600);
-    addTearDown(tester.view.reset);
-    final database = AppDatabase(NativeDatabase.memory());
-    addTearDown(database.close);
-    final clock = _FixedClock()..now = DateTime.utc(2026, 9, 29, 7);
-    final ids = UuidV7WorkIdFactory();
-    final composition = buildWorkProviders(
-      database: database,
-      clock: clock,
-      timezones: IanaTimezoneService(),
-      currentTimezoneId: () => 'Europe/Amsterdam',
-      workIds: ids,
-      shiftIds: ids,
-      evidenceIds: ids,
-    );
-    var router = createAppRouter();
-    String location() => router.routeInformationProvider.value.uri.toString();
-
-    await tester.pumpWidget(composition.scope(LifeOsApp(router: router)));
-    await tester.pumpAndSettle();
-    await _setUpEmployment(tester);
-
-    await tester.tap(_inInspector(find.text('Start shift')));
-    await tester.pumpAndSettle();
-    expect(location(), contains('record=shift:'));
-    final shiftLocation = location();
-    clock.now = DateTime.utc(2026, 9, 29, 11);
-    await tester.tap(find.text('Start break'));
-    await tester.pumpAndSettle();
-    expect(find.text('End break'), findsOneWidget);
-
-    // Restart: a fresh router on plain /work restores the on-break shift.
-    await tester.pumpWidget(const SizedBox.shrink());
-    router.dispose();
-    router = createAppRouter();
-    addTearDown(router.dispose);
-    await tester.pumpWidget(composition.scope(LifeOsApp(router: router)));
-    await tester.pumpAndSettle();
-    expect(location(), shiftLocation);
-    expect(find.text('End break'), findsOneWidget);
-
-    clock.now = DateTime.utc(2026, 9, 29, 11, 30);
-    await tester.tap(find.text('End break'));
-    await tester.pumpAndSettle();
-    clock.now = DateTime.utc(2026, 9, 29, 16, 30);
-    await tester.tap(find.text('End shift'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(KeyButton, 'Finalize shift'));
-    await tester.pumpAndSettle();
-    expect(find.text('Shift finalized'), findsOneWidget);
-    expect(location(), shiftLocation);
   });
 }
 

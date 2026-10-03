@@ -61,18 +61,6 @@ final updateAgreementProvider = Provider<UpdateAgreement>(
   (ref) => throw StateError('UpdateAgreement has not been provided.'),
 );
 
-typedef StartShift = Future<MutationOutcome<WorkShift>> Function(
-  StartShiftCommand command,
-);
-typedef StartBreak = Future<MutationOutcome<WorkShift>> Function(
-  StartBreakCommand command,
-);
-typedef EndBreak = Future<MutationOutcome<WorkShift>> Function(
-  EndBreakCommand command,
-);
-typedef EndShift = Future<MutationOutcome<WorkShift>> Function(
-  EndShiftCommand command,
-);
 typedef FinalizeShift = Future<MutationOutcome<WorkShift>> Function(
   FinalizeShiftCommand command,
 );
@@ -208,18 +196,6 @@ final timezoneServiceProvider = Provider<TimezoneService>(
   (ref) => IanaTimezoneService(),
 );
 
-final startShiftProvider = Provider<StartShift>(
-  (ref) => throw StateError('StartShift has not been provided.'),
-);
-final startBreakProvider = Provider<StartBreak>(
-  (ref) => throw StateError('StartBreak has not been provided.'),
-);
-final endBreakProvider = Provider<EndBreak>(
-  (ref) => throw StateError('EndBreak has not been provided.'),
-);
-final endShiftProvider = Provider<EndShift>(
-  (ref) => throw StateError('EndShift has not been provided.'),
-);
 final finalizeShiftProvider = Provider<FinalizeShift>(
   (ref) => throw StateError('FinalizeShift has not been provided.'),
 );
@@ -260,11 +236,6 @@ final workRegisterProjectionProvider =
 final workRecordProjectionProvider = StreamProvider.autoDispose
     .family<WorkRecordProjection?, WorkRecordId>(
       (ref, id) => ref.watch(workQueryRepositoryProvider).watchRecord(id),
-    );
-
-final workActiveShiftProvider =
-    StreamProvider.autoDispose<ShiftRecordProjection?>(
-      (ref) => ref.watch(workQueryRepositoryProvider).watchActiveShift(),
     );
 
 final workControllerProvider =
@@ -448,63 +419,6 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       mode: WorkInspectorMode.inspect,
     ),
   );
-
-  Future<MutationOutcome<WorkShift>> startShift({
-    required EmploymentId employmentId,
-    required String timezoneId,
-    String? note,
-  }) => _replaceRouteOnCommit(
-    ref.read(startShiftProvider)(
-      StartShiftCommand(
-        employmentId: employmentId,
-        timezoneId: timezoneId.trim(),
-        note: _trimOptional(note),
-      ),
-    ),
-  );
-
-  Future<MutationOutcome<WorkShift>> startShiftInSystemZone(
-    EmploymentId employmentId,
-  ) async {
-    final zone = ref.read(currentTimezoneIdProvider)();
-    if (zone == null) {
-      return const Invalid<WorkShift>({
-        'timezoneId': [FieldIssue(FieldIssueCode.unavailable)],
-      });
-    }
-    return startShift(employmentId: employmentId, timezoneId: zone);
-  }
-
-  Future<MutationOutcome<WorkShift>> startBreak(WorkShift shift) =>
-      _replaceRouteOnCommit(
-        ref.read(startBreakProvider)(
-          StartBreakCommand(
-            shiftId: shift.id,
-            expectedShiftRevision: shift.revision,
-          ),
-        ),
-      );
-
-  Future<MutationOutcome<WorkShift>> endBreak(
-    WorkShift shift,
-    ShiftBreak value,
-  ) => _replaceRouteOnCommit(
-    ref.read(endBreakProvider)(
-      EndBreakCommand(
-        shiftId: shift.id,
-        breakId: value.id,
-        expectedShiftRevision: shift.revision,
-        expectedBreakRevision: value.revision,
-      ),
-    ),
-  );
-
-  Future<MutationOutcome<WorkShift>> endShift(WorkShift shift) =>
-      _replaceRouteOnCommit(
-        ref.read(endShiftProvider)(
-          EndShiftCommand(id: shift.id, expectedRevision: shift.revision),
-        ),
-      );
 
   Future<MutationOutcome<WorkShift>> finalizeShift(WorkShift shift) =>
       _replaceRouteOnCommit(
@@ -727,32 +641,12 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
         route.scope == null &&
         route.mode == WorkInspectorMode.inspect &&
         route.adding == null;
-    var restoring = false;
-    if (unselected) {
-      final active = await _valueOf(
-        ref.watch(workActiveShiftProvider),
-        ref.watch(workActiveShiftProvider.future),
-      );
-      if (active != null &&
-          (route.employmentId == null ||
-              route.employmentId == active.shift.employmentId)) {
-        restoring = true;
-        final restored = routeForCommittedShift(active.shift);
-        final replace = ref.read(replaceWorkRouteProvider);
-        unawaited(
-          Future.microtask(() {
-            if (ref.mounted) replace(restored);
-          }),
-        );
-      }
-    }
     final register = await _valueOf(
       ref.watch(workRegisterProjectionProvider),
       ref.watch(workRegisterProjectionProvider.future),
     );
     // Reopen the only employment instead of restarting setup.
     if (unselected &&
-        !restoring &&
         route.employmentId == null &&
         register.availableEmployments.length == 1) {
       final reopened = WorkRouteState(

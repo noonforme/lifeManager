@@ -18,48 +18,24 @@ import 'work_formats.dart';
 typedef MutateShift = Future<MutationOutcome<WorkShift>> Function(
   WorkShift shift,
 );
-typedef MutateBreak = Future<MutationOutcome<WorkShift>> Function(
-  ShiftBreak value,
-);
 
 final class WorkInspector extends StatefulWidget {
-  const WorkInspector.fromProjection({
-    required this.projection,
-    required this.onStartBreak,
-    required this.onEndBreak,
-    required this.onEndShift,
-    required this.onFinalize,
-    this.durationLabel,
-    this.timezones,
-    super.key,
-  }) : onCorrect = null,
-       onSetPeriodState = null,
-       onRecordPayslip = null,
-       reconciliation = const [];
-
   const WorkInspector.fromRecord({
     required this.projection,
     this.onSetPeriodState,
     this.onRecordPayslip,
     this.reconciliation = const [],
-    this.onStartBreak,
-    this.onEndBreak,
-    this.onEndShift,
     this.onFinalize,
     this.onCorrect,
     this.timezones,
     super.key,
-  }) : durationLabel = null;
+  });
 
   final WorkRecordProjection projection;
   final SetPayPeriodState? onSetPeriodState;
   final VoidCallback? onRecordPayslip;
   final List<ReconciliationGroup> reconciliation;
-  final MutateShift? onStartBreak;
-  final MutateBreak? onEndBreak;
-  final MutateShift? onEndShift;
   final MutateShift? onFinalize;
-  final String? durationLabel;
 
   /// Reads a shift's facts on its own wall clock.
   final TimezoneService? timezones;
@@ -88,19 +64,6 @@ final class _WorkInspectorState extends State<WorkInspector> {
     }
   }
 
-  Future<MutationOutcome<WorkShift>> _runLifecycle(
-    Future<MutationOutcome<WorkShift>> Function()? action,
-  ) async {
-    if (action == null) return const Missing<WorkShift>();
-    final outcome = await action();
-    if (mounted) {
-      setState(() {
-        _lifecycleFailure = outcome is Committed<WorkShift> ? null : outcome;
-      });
-    }
-    return outcome;
-  }
-
   @override
   Widget build(BuildContext context) {
     final projection = widget.projection;
@@ -127,33 +90,8 @@ final class _WorkInspectorState extends State<WorkInspector> {
       return _lifecycleOutcome(failure);
     }
     final shift = projection.shift;
-    final onStartBreak = widget.onStartBreak;
-    final onEndBreak = widget.onEndBreak;
-    final onEndShift = widget.onEndShift;
     final onFinalize = widget.onFinalize;
     return switch (shift.state) {
-      ShiftState.running => RunningShiftInspector(
-        shift: shift,
-        durationLabel: widget.durationLabel,
-        onStartBreak: () => _runLifecycle(
-          onStartBreak == null ? null : () => onStartBreak(shift),
-        ),
-        onEndShift: () =>
-            _runLifecycle(onEndShift == null ? null : () => onEndShift(shift)),
-      ),
-      ShiftState.onBreak => OnBreakShiftInspector(
-        shift: shift,
-        durationLabel: widget.durationLabel,
-        onEndBreak: () => _runLifecycle(
-          onEndBreak == null
-              ? null
-              : () => onEndBreak(
-                  projection.breaks.singleWhere(
-                    (value) => value.endUtc == null,
-                  ),
-                ),
-        ),
-      ),
       ShiftState.draft when shift.endUtc != null && onFinalize != null =>
         FinalizeShiftInspector(
           shift: shift,

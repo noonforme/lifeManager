@@ -22,10 +22,8 @@ import 'work_route_state.dart';
 String workRowId(WorkRecordRef record) =>
     '${record.kind.name}:${record.id.value}';
 
-/// "Running", "On break", "Draft", "Finalized" or "Void".
+/// "Draft", "Finalized" or "Void".
 String shiftStateLabel(ShiftState state) => switch (state) {
-  ShiftState.running => 'Running',
-  ShiftState.onBreak => 'On break',
   ShiftState.draft => 'Draft',
   ShiftState.finalized => 'Finalized',
   ShiftState.voided => 'Void',
@@ -94,7 +92,6 @@ final class ShiftsSheet extends StatelessWidget {
         RowLine(
           row,
           state: switch (row.shift.state) {
-            ShiftState.running || ShiftState.onBreak => RowState.running,
             ShiftState.draft => RowState.draft,
             ShiftState.voided => RowState.voided,
             ShiftState.finalized => RowState.normal,

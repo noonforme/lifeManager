@@ -179,33 +179,6 @@ void main() {
     expect(detail.breaks.single.id, _breakId);
   });
 
-  test('active shift projection follows the single running shift', () async {
-    final running = WorkShift(
-      id: _insideShiftId,
-      employmentId: _employmentId,
-      agreementId: null,
-      state: ShiftState.running,
-      startUtc: DateTime.utc(2026, 9, 10, 8),
-      endUtc: null,
-      timezoneId: 'Europe/Berlin',
-      localStartDate: const LocalDate(2026, 9, 10),
-      note: null,
-      voidReason: null,
-      replacementShiftId: null,
-      replacedShiftId: null,
-      createdAtUtc: DateTime.utc(2026, 9, 10, 8),
-      updatedAtUtc: DateTime.utc(2026, 9, 10, 8),
-      revision: const Revision(0),
-    );
-
-    expect(await repository.watchActiveShift().first, isNull);
-    await database.into(database.workShifts).insert(shiftToCompanion(running));
-
-    final active = await repository.watchActiveShift().first;
-    expect(active?.shift.id, _insideShiftId);
-    expect(active?.breaks, isEmpty);
-  });
-
   test(
     'selected period record refreshes after a committed state change',
     () async {

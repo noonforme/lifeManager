@@ -60,10 +60,6 @@ final class ShellChromeHost extends ConsumerWidget {
       AsyncData(:final value) => value,
       _ => const <Employment>[],
     };
-    final active = switch (ref.watch(workActiveShiftProvider)) {
-      AsyncData(:final value) => value,
-      _ => null,
-    };
     final views = switch (ref.watch(savedViewsProvider)) {
       AsyncData(:final value) => value,
       _ => const <SavedView>[],
@@ -110,10 +106,6 @@ final class ShellChromeHost extends ConsumerWidget {
             TreeSheet(
               label: employment.name,
               route: employmentRoute(employment),
-              liveValue: active?.shift.employmentId == employment.id
-                  ? 'running'
-                  : null,
-              liveValueIsActive: active?.shift.employmentId == employment.id,
             ),
         ],
       ),
@@ -141,32 +133,6 @@ final class ShellChromeHost extends ConsumerWidget {
       final path => path,
     };
 
-    RunningShiftStatus? running;
-    if (active != null) {
-      final zones = ref.read(timezoneServiceProvider);
-      final start = zones.localTimeAt(
-        active.shift.startUtc,
-        active.shift.timezoneId,
-      );
-      final hhmm = start.toString().substring(0, 5);
-      running = RunningShiftStatus(
-        label: 'Shift running since $hhmm',
-        onOpen: () => context.go(
-          workRouteUri(
-            WorkRouteState(
-              employmentId: active.shift.employmentId,
-              scope: null,
-              record: WorkRecordRef(
-                kind: WorkRecordKind.shift,
-                id: active.shift.id,
-              ),
-              mode: WorkInspectorMode.inspect,
-            ),
-          ).toString(),
-        ),
-      );
-    }
-
     final employmentName = employmentId == null
         ? null
         : employments
@@ -187,7 +153,7 @@ final class ShellChromeHost extends ConsumerWidget {
           context.go(route);
         },
       ),
-      status: StatusLine(snapshot: StatusSnapshot(runningShift: running)),
+      status: const StatusLine(snapshot: StatusSnapshot()),
       crumbs: _crumbs(location, employmentName),
       onNavigate: context.go,
       quickAdd: _quickAdd(context, employments, employmentId),
@@ -280,11 +246,6 @@ final class ShellChromeHost extends ConsumerWidget {
     }
 
     return [
-      QuickAddEntry(
-        area: LifeOSArea.work,
-        label: 'Start shift',
-        open: go(WorkInspectorMode.create),
-      ),
       QuickAddEntry(
         area: LifeOSArea.work,
         label: 'Manual shift',

@@ -130,13 +130,8 @@ typedef SubmitManualShift = Future<MutationOutcome<WorkShift>> Function(
 typedef FinalizeAction = Future<MutationOutcome<WorkShift>> Function();
 
 final class ShiftCreateInspector extends StatelessWidget {
-  const ShiftCreateInspector({
-    required this.onStartShift,
-    required this.onAddManualShift,
-    super.key,
-  });
+  const ShiftCreateInspector({required this.onAddManualShift, super.key});
 
-  final VoidCallback? onStartShift;
   final VoidCallback? onAddManualShift;
 
   @override
@@ -146,70 +141,13 @@ final class ShiftCreateInspector extends StatelessWidget {
       InspectorActions(
         children: [
           KeyButton(
-            label: 'Start shift',
+            label: 'Add manual shift',
             kind: KeyKind.primary,
-            onPressed: onStartShift,
+            onPressed: onAddManualShift,
           ),
-          KeyButton(label: 'Add manual shift', onPressed: onAddManualShift),
         ],
       ),
     ],
-  );
-}
-
-final class RunningShiftInspector extends StatelessWidget {
-  const RunningShiftInspector({
-    required this.shift,
-    required this.onStartBreak,
-    required this.onEndShift,
-    this.durationLabel,
-    super.key,
-  });
-
-  final WorkShift shift;
-  final VoidCallback onStartBreak;
-  final VoidCallback onEndShift;
-  final String? durationLabel;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    container: true,
-    explicitChildNodes: true,
-    label: 'Running shift',
-    child: _LifecyclePane(
-      title: 'Shift running',
-      durationLabel: durationLabel,
-      primaryLabel: 'Start break',
-      onPrimary: onStartBreak,
-      secondaryLabel: 'End shift',
-      onSecondary: onEndShift,
-    ),
-  );
-}
-
-final class OnBreakShiftInspector extends StatelessWidget {
-  const OnBreakShiftInspector({
-    required this.shift,
-    required this.onEndBreak,
-    this.durationLabel,
-    super.key,
-  });
-
-  final WorkShift shift;
-  final VoidCallback onEndBreak;
-  final String? durationLabel;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    container: true,
-    explicitChildNodes: true,
-    label: 'Shift on break',
-    child: _LifecyclePane(
-      title: 'Break in progress',
-      durationLabel: durationLabel,
-      primaryLabel: 'End break',
-      onPrimary: onEndBreak,
-    ),
   );
 }
 
@@ -540,42 +478,6 @@ final class ValidationFailureInspector extends StatelessWidget {
     container: true,
     label: message,
     child: child,
-  );
-}
-
-final class _LifecyclePane extends StatelessWidget {
-  const _LifecyclePane({
-    required this.title,
-    required this.primaryLabel,
-    required this.onPrimary,
-    this.durationLabel,
-    this.secondaryLabel,
-    this.onSecondary,
-  });
-
-  final String title;
-  final String? durationLabel;
-  final String primaryLabel;
-  final VoidCallback onPrimary;
-  final String? secondaryLabel;
-  final VoidCallback? onSecondary;
-
-  @override
-  Widget build(BuildContext context) => InspectorPane(
-    children: [
-      InspectorTitle(title, meta: durationLabel),
-      InspectorActions(
-        children: [
-          KeyButton(
-            label: primaryLabel,
-            kind: KeyKind.primary,
-            onPressed: onPrimary,
-          ),
-          if (secondaryLabel case final label?)
-            KeyButton(label: label, onPressed: onSecondary),
-        ],
-      ),
-    ],
   );
 }
 

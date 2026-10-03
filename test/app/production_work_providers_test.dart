@@ -42,10 +42,6 @@ void main() {
     expect(container.read(workQueryRepositoryProvider), isNotNull);
     expect(container.read(createEmploymentProvider), isNotNull);
     expect(container.read(createAgreementProvider), isNotNull);
-    expect(container.read(startShiftProvider), isNotNull);
-    expect(container.read(startBreakProvider), isNotNull);
-    expect(container.read(endBreakProvider), isNotNull);
-    expect(container.read(endShiftProvider), isNotNull);
     expect(container.read(finalizeShiftProvider), isNotNull);
     expect(container.read(saveManualShiftProvider), isNotNull);
     expect(container.read(createPayPeriodProvider), isNotNull);
@@ -83,7 +79,7 @@ final class _ProviderProbe extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(workQueryRepositoryProvider);
     ref.watch(createEmploymentProvider);
-    ref.watch(startShiftProvider);
+    ref.watch(finalizeShiftProvider);
     ref.watch(recordPayslipProvider);
     return const Text('ready', textDirection: TextDirection.ltr);
   }

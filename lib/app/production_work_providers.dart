@@ -57,7 +57,6 @@ ProductionWorkProviders buildWorkProviders({
     shiftRepository,
     idFactory: shiftIds,
     clock: clock,
-    timezones: timezones,
   );
   final manualShifts = ManualShiftService(
     shiftRepository,
@@ -153,10 +152,6 @@ final class ProductionWorkProviders {
     updateEmploymentProvider.overrideWithValue(employment.updateEmployment),
     deleteEmploymentProvider.overrideWithValue(employment.deleteEmployment),
     updateAgreementProvider.overrideWithValue(agreement.updateAgreement),
-    startShiftProvider.overrideWithValue(shifts.startShift),
-    startBreakProvider.overrideWithValue(shifts.startBreak),
-    endBreakProvider.overrideWithValue(shifts.endBreak),
-    endShiftProvider.overrideWithValue(shifts.endShift),
     finalizeShiftProvider.overrideWithValue(shifts.finalizeShift),
     saveManualShiftProvider.overrideWithValue(manualShifts.createAndFinalize),
     createPayPeriodProvider.overrideWithValue(periods.createPeriod),

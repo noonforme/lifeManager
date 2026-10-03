@@ -144,7 +144,7 @@ void main() {
     expect(location(), startsWith('/today?desk='));
     expect(find.text('Month close checklist'), findsOneWidget);
     expect(find.text('Every shift this month is finalized'), findsOneWidget);
-    expect(find.text('No drafts or running shifts'), findsOneWidget);
+    expect(find.text('No drafts'), findsOneWidget);
     expect(find.text('1 period without one'), findsOneWidget);
   });
 

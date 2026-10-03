@@ -290,18 +290,7 @@ final class DeskHost extends ConsumerWidget {
           ),
         );
       case DeskSheets.needsYou:
-        final active = switch (ref.watch(workActiveShiftProvider)) {
-          AsyncData(:final value) => value,
-          _ => null,
-        };
-        final zones = ref.read(timezoneServiceProvider);
-        final items = needsYou(
-          active: active,
-          activeLabel: (active) =>
-              'Shift running since '
-              '${zones.localTimeAt(active.shift.startUtc, active.shift.timezoneId).toString().substring(0, 5)}',
-          registers: registers,
-        );
+        final items = needsYou(registers: registers);
         return (
           title: title,
           area: null,

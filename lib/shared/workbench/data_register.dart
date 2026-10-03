@@ -61,7 +61,6 @@ final class RegisterColumn<T> {
 enum RowState {
   normal(null),
   draft('Draft'),
-  running('Running'),
   voided('Void');
 
   const RowState(this.announcement);
@@ -762,15 +761,7 @@ final class _DataRow<T> extends StatelessWidget {
                               ? tokens.selInk
                               : voided
                               ? tokens.muted
-                              : column.kind == ColumnKind.state &&
-                                    line.state == RowState.running
-                              ? tokens.runInk
                               : tokens.ink,
-                          fontWeight:
-                              column.kind == ColumnKind.state &&
-                                  line.state == RowState.running
-                              ? FontWeight.w700
-                              : null,
                           decoration: voided
                               ? TextDecoration.lineThrough
                               : null,

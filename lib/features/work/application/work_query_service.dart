@@ -6,8 +6,6 @@ abstract interface class WorkQueryRepository {
   Stream<WorkRegisterProjection> watchRegister(WorkScope scope);
 
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id);
-
-  Stream<ShiftRecordProjection?> watchActiveShift();
 }
 
 final class WorkQueryService {
@@ -20,7 +18,4 @@ final class WorkQueryService {
 
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) =>
       _repository.watchRecord(id);
-
-  Stream<ShiftRecordProjection?> watchActiveShift() =>
-      _repository.watchActiveShift();
 }

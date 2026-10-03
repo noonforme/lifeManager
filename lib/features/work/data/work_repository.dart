@@ -550,13 +550,6 @@ final class DriftWorkRepository
     return null;
   }
 
-  @override
-  Stream<ShiftRecordProjection?> watchActiveShift() async* {
-    await for (final shift in _shifts.watchActive()) {
-      yield shift == null ? null : await _shiftRecord(shift);
-    }
-  }
-
   Future<ShiftRecordProjection> _shiftRecord(WorkShift shift) async {
     final breaks = await _shifts.breaksFor(shift.id);
     final agreementId = shift.agreementId;

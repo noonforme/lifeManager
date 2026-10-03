@@ -48,7 +48,7 @@ final class ShiftSheetRow {
   final List<ShiftBreak> breaks;
   final int breakSeconds;
 
-  /// Null while the shift is still running.
+  /// Null while the shift has no end yet.
   final int? paidSeconds;
 
   /// The pay period whose dates contain the shift, if any.

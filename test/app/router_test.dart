@@ -206,117 +206,6 @@ void main() {
     );
   });
 
-  testWidgets('selected on-break shift ends its break through the controller', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(1280, 760);
-    addTearDown(tester.view.reset);
-    final repository = _LiveShiftQueryRepository(
-      ShiftRecordProjection(_onBreakShift, breaks: [_openBreak]),
-    );
-    addTearDown(repository.close);
-    EndBreakCommand? issued;
-    final initialLocation =
-        '/work?employment=${_employmentId.value}'
-        '&record=shift:${_shiftId.value}&mode=inspect';
-    final router = createAppRouter(initialLocation: initialLocation);
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          workQueryRepositoryProvider.overrideWithValue(repository),
-          endBreakProvider.overrideWithValue((command) async {
-            issued = command;
-            final running = _liveShift(ShiftState.running, const Revision(2));
-            repository.emit(
-              ShiftRecordProjection(running, breaks: [_closedBreak]),
-            );
-            return Committed(running);
-          }),
-        ],
-        child: LifeOsApp(router: router),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Break in progress'), findsOneWidget);
-    await tester.tap(find.text('End break'));
-    await tester.pumpAndSettle();
-
-    expect(issued?.shiftId, _shiftId);
-    expect(issued?.breakId, _breakId);
-    expect(issued?.expectedShiftRevision, const Revision(1));
-    expect(issued?.expectedBreakRevision, const Revision(0));
-    expect(
-      router.routeInformationProvider.value.uri.toString(),
-      '/work?employment=${_employmentId.value}'
-      '&from=2026-09-29&to=2026-09-29'
-      '&record=shift:${_shiftId.value}&mode=inspect',
-    );
-    expect(find.text('Shift running'), findsOneWidget);
-    expect(find.text('End shift'), findsOneWidget);
-  });
-
-  testWidgets('plain Work restores the stored active shift by safe route', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(1280, 760);
-    addTearDown(tester.view.reset);
-    final active = ShiftRecordProjection(
-      _liveShift(ShiftState.running, const Revision(0)),
-      breaks: const [],
-    );
-    final repository = _LiveShiftQueryRepository(active, active: active);
-    addTearDown(repository.close);
-    final router = createAppRouter(initialLocation: '/work');
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [workQueryRepositoryProvider.overrideWithValue(repository)],
-        child: LifeOsApp(router: router),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      router.routeInformationProvider.value.uri.toString(),
-      '/work?employment=${_employmentId.value}'
-      '&from=2026-09-29&to=2026-09-29'
-      '&record=shift:${_shiftId.value}&mode=inspect',
-    );
-    expect(find.text('Shift running'), findsOneWidget);
-  });
-
-  testWidgets('create mode is not replaced by active shift restoration', (
-    tester,
-  ) async {
-    final active = ShiftRecordProjection(
-      _liveShift(ShiftState.running, const Revision(0)),
-      breaks: const [],
-    );
-    final repository = _LiveShiftQueryRepository(active, active: active);
-    addTearDown(repository.close);
-    final router = createAppRouter(initialLocation: '/work?mode=create');
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [workQueryRepositoryProvider.overrideWithValue(repository)],
-        child: LifeOsApp(router: router),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      router.routeInformationProvider.value.uri.toString(),
-      '/work?mode=create',
-    );
-  });
-
   testWidgets('stale lifecycle outcome stays on route and explains reload', (
     tester,
   ) async {
@@ -325,7 +214,11 @@ void main() {
     addTearDown(tester.view.reset);
     final repository = _LiveShiftQueryRepository(
       ShiftRecordProjection(
-        _liveShift(ShiftState.running, const Revision(0)),
+        _liveShift(
+          ShiftState.draft,
+          const Revision(0),
+          endUtc: DateTime.utc(2026, 9, 29, 16),
+        ),
         breaks: const [],
       ),
     );
@@ -340,7 +233,7 @@ void main() {
       ProviderScope(
         overrides: [
           workQueryRepositoryProvider.overrideWithValue(repository),
-          startBreakProvider.overrideWithValue(
+          finalizeShiftProvider.overrideWithValue(
             (_) async => const Stale<WorkShift>(),
           ),
         ],
@@ -349,7 +242,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Start break'));
+    await tester.tap(find.widgetWithText(KeyButton, 'Finalize shift'));
     await tester.pumpAndSettle();
 
     expect(
@@ -411,90 +304,6 @@ void main() {
 
     expect(issued?.id, _shiftId);
     expect(issued?.expectedRevision, const Revision(3));
-  });
-
-  testWidgets('create mode starts a shift in the system timezone', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(1280, 760);
-    addTearDown(tester.view.reset);
-    StartShiftCommand? issued;
-    final router = createAppRouter(
-      initialLocation: '/work?employment=${_employmentId.value}&mode=create',
-    );
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          workQueryRepositoryProvider.overrideWithValue(
-            _EmptyWorkQueryRepository(),
-          ),
-          currentTimezoneIdProvider.overrideWithValue(() => 'Europe/Amsterdam'),
-          startShiftProvider.overrideWithValue((command) async {
-            issued = command;
-            return Committed(_liveShift(ShiftState.running, const Revision(0)));
-          }),
-        ],
-        child: LifeOsApp(router: router),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Record work'), findsOneWidget);
-    await tester.tap(find.text('Start shift'));
-    await tester.pumpAndSettle();
-
-    expect(issued?.employmentId, _employmentId);
-    expect(issued?.timezoneId, 'Europe/Amsterdam');
-    expect(
-      router.routeInformationProvider.value.uri.toString(),
-      '/work?employment=${_employmentId.value}'
-      '&from=2026-09-29&to=2026-09-29'
-      '&record=shift:${_shiftId.value}&mode=inspect',
-    );
-  });
-
-  testWidgets('unknown system timezone blocks start without navigating', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(1280, 760);
-    addTearDown(tester.view.reset);
-    var called = false;
-    final location = '/work?employment=${_employmentId.value}&mode=create';
-    final router = createAppRouter(initialLocation: location);
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          workQueryRepositoryProvider.overrideWithValue(
-            _EmptyWorkQueryRepository(),
-          ),
-          currentTimezoneIdProvider.overrideWithValue(() => null),
-          startShiftProvider.overrideWithValue((command) async {
-            called = true;
-            return Committed(_liveShift(ShiftState.running, const Revision(0)));
-          }),
-        ],
-        child: LifeOsApp(router: router),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Start shift'));
-    await tester.pumpAndSettle();
-
-    expect(called, isFalse);
-    expect(router.routeInformationProvider.value.uri.toString(), location);
-    expect(
-      find.text(
-        'The system timezone is unavailable. Set a known IANA timezone and try again.',
-      ),
-      findsOneWidget,
-    );
   });
 
   testWidgets('manual shift opens through edit route and saves', (
@@ -1176,9 +985,6 @@ final class _EmptyWorkQueryRepository implements WorkQueryRepository {
   @override
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) =>
       Stream.value(null);
-
-  @override
-  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
 }
 
 final class _ShiftWorkQueryRepository implements WorkQueryRepository {
@@ -1222,9 +1028,6 @@ final class _ShiftWorkQueryRepository implements WorkQueryRepository {
   @override
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) =>
       Stream.value(null);
-
-  @override
-  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
 }
 
 const _employmentId = EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11');
@@ -1240,10 +1043,9 @@ final _employment = Employment(
 );
 
 final class _LiveShiftQueryRepository implements WorkQueryRepository {
-  _LiveShiftQueryRepository(this._current, {this.active});
+  _LiveShiftQueryRepository(this._current);
 
   WorkRecordProjection? _current;
-  final ShiftRecordProjection? active;
   final _changes = StreamController<WorkRecordProjection?>.broadcast();
 
   void emit(WorkRecordProjection value) {
@@ -1262,9 +1064,6 @@ final class _LiveShiftQueryRepository implements WorkQueryRepository {
     yield id == _shiftId ? _current : null;
     yield* _changes.stream.where((value) => value?.id == id);
   }
-
-  @override
-  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(active);
 }
 
 const _agreementId = AgreementId('00000000-0000-7000-8000-000000000003');
@@ -1289,16 +1088,6 @@ WorkShift _liveShift(ShiftState state, Revision revision, {DateTime? endUtc}) =>
       revision: revision,
     );
 
-final _onBreakShift = _liveShift(ShiftState.onBreak, const Revision(1));
-final _openBreak = ShiftBreak(
-  id: _breakId,
-  shiftId: _shiftId,
-  startUtc: DateTime.utc(2026, 9, 29, 12),
-  endUtc: null,
-  createdAtUtc: DateTime.utc(2026, 9, 29, 12),
-  updatedAtUtc: DateTime.utc(2026, 9, 29, 12),
-  revision: const Revision(0),
-);
 final _closedBreak = ShiftBreak(
   id: _breakId,
   shiftId: _shiftId,
@@ -1400,9 +1189,6 @@ final class _PeriodQueryRepository implements WorkQueryRepository {
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) => Stream.value(
     id == _periodId ? PayPeriodRecordProjection(_openPeriod) : null,
   );
-
-  @override
-  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
 }
 
 const _replacementShiftId = ShiftId('00000000-0000-7000-8000-000000000009');
@@ -1429,9 +1215,6 @@ final class _PayslipQueryRepository implements WorkQueryRepository {
   @override
   Stream<WorkRecordProjection?> watchRecord(WorkRecordId id) =>
       Stream.value(id == _payslipId ? PayslipRecordProjection(_payslip) : null);
-
-  @override
-  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
 }
 
 final _replacementEditLocation =
@@ -1467,7 +1250,4 @@ final class _DraftQueryRepository implements WorkQueryRepository {
         ? ShiftRecordProjection(_replacementDraft, breaks: const [])
         : null,
   );
-
-  @override
-  Stream<ShiftRecordProjection?> watchActiveShift() => Stream.value(null);
 }

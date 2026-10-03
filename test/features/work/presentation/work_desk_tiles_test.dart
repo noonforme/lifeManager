@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_date.dart';
-import 'package:lifeos/features/work/data/projections/work_record_projection.dart';
 import 'package:lifeos/features/work/data/projections/work_register_projection.dart';
 import 'package:lifeos/features/work/domain/employment.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
@@ -13,15 +12,11 @@ import 'package:lifeos/features/work/presentation/work_desk_tiles.dart';
 
 void main() {
   group('Needs you', () {
-    test('lists the running shift, drafts and open periods that differ', () {
-      final running = _row(_id(1), ShiftState.running, _day(2));
+    test('lists drafts and open periods that differ', () {
       final items = needsYou(
-        active: ShiftRecordProjection(running.shift, breaks: const []),
-        activeLabel: (_) => 'Shift running since 08:00',
         registers: [
           _register(
             shifts: [
-              running,
               _row(_id(2), ShiftState.draft, _day(1)),
               _row(_id(3), ShiftState.finalized, _day(1)),
             ],
@@ -35,21 +30,17 @@ void main() {
       );
 
       expect(items.map((item) => item.text), [
-        'Shift running since 08:00',
         'Shift on 2026-10-01 is a draft and needs finalizing',
         'Pay period P1 differs from expected by EUR -12.00',
       ]);
       expect(items.first.route, contains('record=shift'));
-      expect(items.first.route, contains(_id(1).value));
-      expect(items[1].route, contains(_id(2).value));
+      expect(items.first.route, contains(_id(2).value));
       expect(items.last.route, contains('record=payPeriod'));
     });
 
     test('is empty when nothing waits', () {
       expect(
         needsYou(
-          active: null,
-          activeLabel: (_) => '',
           registers: [
             _register(shifts: [_row(_id(1), ShiftState.finalized, _day(1))]),
           ],
@@ -110,7 +101,7 @@ void main() {
 
       expect([for (final check in checks) check.done], [true, true, true]);
       expect(checks.map((check) => check.detail), [
-        'No drafts or running shifts',
+        'No drafts',
         'All recorded',
         'Nothing left to review',
       ]);
@@ -121,7 +112,7 @@ void main() {
         _register(
           shifts: [
             _row(_id(1), ShiftState.draft, _day(1)),
-            _row(_id(2), ShiftState.running, _day(2)),
+            _row(_id(2), ShiftState.draft, _day(2)),
             _row(_id(3), ShiftState.draft, const LocalDate(2026, 9, 30)),
           ],
           periods: [
@@ -178,7 +169,6 @@ WorkRegisterProjection _register({
 );
 
 ShiftSheetRow _row(ShiftId id, ShiftState state, LocalDate date, {int? pay}) {
-  final finished = state != ShiftState.running && state != ShiftState.onBreak;
   return ShiftSheetRow(
     shift: WorkShift(
       id: id,
@@ -188,9 +178,7 @@ ShiftSheetRow _row(ShiftId id, ShiftState state, LocalDate date, {int? pay}) {
           : const AgreementId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21'),
       state: state,
       startUtc: DateTime.utc(date.year, date.month, date.day, 6),
-      endUtc: finished
-          ? DateTime.utc(date.year, date.month, date.day, 14)
-          : null,
+      endUtc: DateTime.utc(date.year, date.month, date.day, 14),
       timezoneId: 'Europe/Vilnius',
       localStartDate: date,
       note: null,
@@ -202,7 +190,7 @@ ShiftSheetRow _row(ShiftId id, ShiftState state, LocalDate date, {int? pay}) {
       revision: const Revision(1),
     ),
     breakSeconds: 0,
-    paidSeconds: finished ? 8 * 3600 : null,
+    paidSeconds: 8 * 3600,
     period: null,
     pay: pay == null
         ? null

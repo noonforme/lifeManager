@@ -99,37 +99,15 @@ void main() {
 
   test('Work events appear newest first with their own words', () async {
     final employment = await setUpWork();
-    clock.now = DateTime.utc(2026, 9, 10, 8);
-    final started = committed(
-      await work.shifts.startShift(
-        StartShiftCommand(
-          employmentId: employment.id,
-          timezoneId: 'Europe/Vilnius',
-          note: null,
-        ),
-      ),
-    );
-    clock.now = DateTime.utc(2026, 9, 10, 16);
-    final ended = committed(
-      await work.shifts.endShift(
-        EndShiftCommand(id: started.id, expectedRevision: started.revision),
-      ),
-    );
     clock.now = DateTime.utc(2026, 9, 10, 16, 5);
-    committed(
-      await work.shifts.finalizeShift(
-        FinalizeShiftCommand(id: started.id, expectedRevision: ended.revision),
-      ),
-    );
+    await manual(employment, const LocalDate(2026, 9, 10), 8, 16);
 
     final entries = await read(
       const LocalDate(2026, 9, 1),
       const LocalDate(2026, 9, 30),
     );
     expect(entries.map((entry) => entry.kind), [
-      JournalKind.shiftFinalized,
-      JournalKind.shiftEnded,
-      JournalKind.shiftStarted,
+      JournalKind.manualShift,
       JournalKind.agreementCreated,
       JournalKind.employmentCreated,
     ]);
@@ -251,23 +229,15 @@ void main() {
 
   test("a shift's day is read on its own timezone", () async {
     final employment = await setUpWork();
-    // 23:30 UTC is 02:30 the next day in Vilnius.
+    // Recorded at 23:30 UTC, which is 02:30 the next day in Vilnius.
     clock.now = DateTime.utc(2026, 9, 20, 23, 30);
-    committed(
-      await work.shifts.startShift(
-        StartShiftCommand(
-          employmentId: employment.id,
-          timezoneId: 'Europe/Vilnius',
-          note: null,
-        ),
-      ),
-    );
+    await manual(employment, const LocalDate(2026, 9, 21), 2, 10);
 
     final entries = await read(
       const LocalDate(2026, 9, 21),
       const LocalDate(2026, 9, 21),
     );
-    expect(entries.single.kind, JournalKind.shiftStarted);
+    expect(entries.single.kind, JournalKind.manualShift);
     expect(entries.single.localDate, const LocalDate(2026, 9, 21));
     expect(
       await read(const LocalDate(2026, 9, 20), const LocalDate(2026, 9, 20)),

@@ -226,8 +226,9 @@ void main() {
         _sheetRow(_otherShiftId, ShiftState.voided, period: _period),
         _sheetRow(
           const ShiftId('00000000-0000-7000-8000-000000000003'),
-          ShiftState.running,
+          ShiftState.draft,
           date: const LocalDate(2026, 10, 2),
+          withoutEnd: true,
         ),
       ],
       periodSheet: [
@@ -262,7 +263,8 @@ void main() {
         expect(find.text(column), findsOneWidget, reason: column);
       }
       expect(find.text('Finalized'), findsOneWidget);
-      expect(find.text('Running'), findsOneWidget);
+      // A draft without an end, as a migrated running shift is.
+      expect(find.text('Draft'), findsOneWidget);
       // Vilnius is UTC+3 in September: 06:00Z is 09:00.
       expect(find.text('09:00'), findsWidgets);
       expect(find.text('0:30'), findsOneWidget);
@@ -573,6 +575,7 @@ ShiftSheetRow _sheetRow(
   LocalDate date = const LocalDate(2026, 9, 29),
   PayPeriod? period,
   int? payMinorUnits,
+  bool withoutEnd = false,
 }) => ShiftSheetRow(
   shift: WorkShift(
     id: id,
@@ -580,7 +583,7 @@ ShiftSheetRow _sheetRow(
     agreementId: state == ShiftState.draft ? null : _agreementId,
     state: state,
     startUtc: DateTime.utc(date.year, date.month, date.day, 6),
-    endUtc: state == ShiftState.running
+    endUtc: withoutEnd
         ? null
         : DateTime.utc(date.year, date.month, date.day, 14, 30),
     timezoneId: 'Europe/Vilnius',
@@ -593,8 +596,8 @@ ShiftSheetRow _sheetRow(
     updatedAtUtc: DateTime.utc(2026, 9),
     revision: const Revision(1),
   ),
-  breakSeconds: state == ShiftState.running ? 0 : 1800,
-  paidSeconds: state == ShiftState.running ? null : 8 * 3600,
+  breakSeconds: withoutEnd ? 0 : 1800,
+  paidSeconds: withoutEnd ? null : 8 * 3600,
   period: period,
   pay: payMinorUnits == null
       ? null

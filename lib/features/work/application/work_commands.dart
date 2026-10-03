@@ -223,49 +223,6 @@ abstract interface class ShiftIdFactory {
   ShiftBreakId shiftBreakId();
 }
 
-final class StartShiftCommand {
-  const StartShiftCommand({
-    required this.employmentId,
-    required this.timezoneId,
-    this.note,
-  });
-
-  final EmploymentId employmentId;
-  final String timezoneId;
-  final String? note;
-}
-
-final class StartBreakCommand {
-  const StartBreakCommand({
-    required this.shiftId,
-    required this.expectedShiftRevision,
-  });
-
-  final ShiftId shiftId;
-  final Revision expectedShiftRevision;
-}
-
-final class EndBreakCommand {
-  const EndBreakCommand({
-    required this.shiftId,
-    required this.breakId,
-    required this.expectedShiftRevision,
-    required this.expectedBreakRevision,
-  });
-
-  final ShiftId shiftId;
-  final ShiftBreakId breakId;
-  final Revision expectedShiftRevision;
-  final Revision expectedBreakRevision;
-}
-
-final class EndShiftCommand {
-  const EndShiftCommand({required this.id, required this.expectedRevision});
-
-  final ShiftId id;
-  final Revision expectedRevision;
-}
-
 final class FinalizeShiftCommand {
   const FinalizeShiftCommand({
     required this.id,

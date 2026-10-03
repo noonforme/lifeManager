@@ -14,27 +14,12 @@ Future<void> _pump(WidgetTester tester, StatusSnapshot snapshot) =>
     );
 
 void main() {
-  testWidgets('shows only the local database when nothing is running', (
+  testWidgets('shows only the local database when nothing is waiting', (
     tester,
   ) async {
     await _pump(tester, const StatusSnapshot());
     expect(find.text('Local database'), findsOneWidget);
-    expect(find.textContaining('Shift running'), findsNothing);
-  });
-
-  testWidgets('a running shift opens from its segment', (tester) async {
-    var opened = 0;
-    await _pump(
-      tester,
-      StatusSnapshot(
-        runningShift: RunningShiftStatus(
-          label: 'Shift running since 07:02',
-          onOpen: () => opened++,
-        ),
-      ),
-    );
-    await tester.tap(find.text('Shift running since 07:02'));
-    expect(opened, 1);
+    expect(find.byKey(const ValueKey('status-panel')), findsOneWidget);
   });
 
   testWidgets('reports the last save and an uncertain save', (tester) async {
@@ -61,18 +46,9 @@ void main() {
   testWidgets('every fact sits in its own sunken panel at 22 px', (
     tester,
   ) async {
-    await _pump(
-      tester,
-      StatusSnapshot(
-        runningShift: RunningShiftStatus(
-          label: 'Shift running since 07:02',
-          onOpen: () {},
-        ),
-        openDrafts: 2,
-      ),
-    );
+    await _pump(tester, const StatusSnapshot(needsYou: 1, openDrafts: 2));
     expect(tester.getSize(find.byType(StatusLine)).height, 22);
-    expect(find.text('Shift running since 07:02'), findsOneWidget);
+    expect(find.text('Needs you: 1'), findsOneWidget);
     expect(find.text('2 drafts'), findsOneWidget);
     expect(find.text('Local database'), findsOneWidget);
     expect(find.byKey(const ValueKey('status-panel')), findsNWidgets(3));

@@ -5,7 +5,6 @@ import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/millennium_style.dart';
 import '../../../shared/workbench/office_controls.dart';
-import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart';
@@ -26,12 +25,8 @@ final class NeedsYouItem {
   final String route;
 }
 
-/// The running shift, drafts and open periods with a difference.
-List<NeedsYouItem> needsYou({
-  required ShiftRecordProjection? active,
-  required String Function(ShiftRecordProjection active) activeLabel,
-  required List<WorkRegisterProjection> registers,
-}) {
+/// Drafts and open periods with a difference.
+List<NeedsYouItem> needsYou({required List<WorkRegisterProjection> registers}) {
   String open(WorkRegisterProjection register, WorkRecordRef record) =>
       workRouteUri(
         WorkRouteState(
@@ -42,21 +37,6 @@ List<NeedsYouItem> needsYou({
         ),
       ).toString();
   return [
-    if (active case final active?)
-      NeedsYouItem(
-        text: activeLabel(active),
-        route: workRouteUri(
-          WorkRouteState(
-            employmentId: active.shift.employmentId,
-            scope: null,
-            record: WorkRecordRef(
-              kind: WorkRecordKind.shift,
-              id: active.shift.id,
-            ),
-            mode: WorkInspectorMode.inspect,
-          ),
-        ).toString(),
-      ),
     for (final register in registers) ...[
       for (final row in register.shiftSheet)
         if (row.shift.state == ShiftState.draft)
@@ -159,12 +139,7 @@ List<ChecklistItem> monthChecklist(
     for (final register in registers)
       for (final row in register.shiftSheet)
         if (inMonth(row.shift.localStartDate) &&
-            switch (row.shift.state) {
-              ShiftState.draft ||
-              ShiftState.running ||
-              ShiftState.onBreak => true,
-              ShiftState.finalized || ShiftState.voided => false,
-            })
+            row.shift.state == ShiftState.draft)
           row,
   ];
   final periods = [
@@ -187,7 +162,7 @@ List<ChecklistItem> monthChecklist(
       label: 'Every shift this month is finalized',
       done: open.isEmpty,
       detail: open.isEmpty
-          ? 'No drafts or running shifts'
+          ? 'No drafts'
           : '${count(open.length, 'shift', 'shifts')} still open',
     ),
     ChecklistItem(

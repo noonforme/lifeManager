@@ -158,13 +158,7 @@ final class _WorkRouteHost extends ConsumerWidget {
             .read(workControllerProvider.notifier)
             .submitAgreement,
         onNavigate: context.go,
-        onStartBreak: ref.read(workControllerProvider.notifier).startBreak,
-        onEndBreak: ref.read(workControllerProvider.notifier).endBreak,
-        onEndShift: ref.read(workControllerProvider.notifier).endShift,
         onFinalize: ref.read(workControllerProvider.notifier).finalizeShift,
-        onStartShift: ref
-            .read(workControllerProvider.notifier)
-            .startShiftInSystemZone,
         onOpenManualShift: (employment) {
           final parsed = ref.read(workRouteProvider);
           if (parsed case ValidWorkRoute(:final state)) {

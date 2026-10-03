@@ -36,11 +36,7 @@ final class WorkScreen extends StatefulWidget {
     required this.onCreateEmployment,
     required this.onCreateAgreement,
     required this.onNavigate,
-    this.onStartBreak,
-    this.onEndBreak,
-    this.onEndShift,
     this.onFinalize,
-    this.onStartShift,
     this.onOpenManualShift,
     this.onSaveManualShift,
     this.systemTimezoneId,
@@ -68,16 +64,7 @@ final class WorkScreen extends StatefulWidget {
   final SubmitEmployment onCreateEmployment;
   final SubmitAgreement onCreateAgreement;
   final ValueChanged<String> onNavigate;
-  final MutateShift? onStartBreak;
-  final Future<MutationOutcome<WorkShift>> Function(
-    WorkShift shift,
-    ShiftBreak value,
-  )?
-  onEndBreak;
-  final MutateShift? onEndShift;
   final MutateShift? onFinalize;
-  final Future<MutationOutcome<WorkShift>> Function(EmploymentId employment)?
-  onStartShift;
   final ValueChanged<EmploymentId>? onOpenManualShift;
   final SubmitManualShift? onSaveManualShift;
   final String? systemTimezoneId;
@@ -129,13 +116,10 @@ final class WorkScreen extends StatefulWidget {
 
 final class _WorkScreenState extends State<WorkScreen> {
   bool _showRegister = false;
-  MutationOutcome<WorkShift>? _startFailure;
   MutationOutcome<PayPeriod>? _periodFailure;
   bool _creatingPeriod = false;
   PayPeriodId? _payslipPeriod;
   MutationOutcome<WorkShift>? _reviseFailure;
-
-  void _clearStartFailure() => setState(() => _startFailure = null);
 
   void _clearReviseFailure() => setState(() => _reviseFailure = null);
 
@@ -179,16 +163,6 @@ final class _WorkScreenState extends State<WorkScreen> {
     return outcome;
   }
 
-  Future<void> _startShift(EmploymentId employment) async {
-    final start = widget.onStartShift;
-    if (start == null) return;
-    final outcome = await start(employment);
-    if (!mounted) return;
-    setState(() {
-      _startFailure = outcome is Committed<WorkShift> ? null : outcome;
-    });
-  }
-
   @override
   void didUpdateWidget(covariant WorkScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -201,7 +175,6 @@ final class _WorkScreenState extends State<WorkScreen> {
       _payslipPeriod = null;
     }
     if (_routeMode(oldWidget.state) != _routeMode(widget.state)) {
-      _startFailure = null;
       _reviseFailure = null;
       _creatingPeriod = false;
     }
@@ -398,14 +371,10 @@ final class _WorkScreenState extends State<WorkScreen> {
       );
     }
     if (route.mode == WorkInspectorMode.create && route.record == null) {
-      if (_startFailure case final failure?) {
-        return _startOutcome(failure);
-      }
       final employment = route.employmentId;
       if (employment != null) {
         final open = widget.onOpenManualShift;
         return ShiftCreateInspector(
-          onStartShift: () => _startShift(employment),
           onAddManualShift: open == null ? null : () => open(employment),
         );
       }
@@ -618,20 +587,13 @@ extension on _WorkScreenState {
     );
   }
 
-  Widget _startOutcome(
+  Widget _reviseOutcome(
     MutationOutcome<WorkShift> outcome, {
-    VoidCallback? dismiss,
+    required VoidCallback dismiss,
   }) {
-    dismiss ??= _clearStartFailure;
     return switch (outcome) {
-      Invalid<WorkShift>(:final fields) when fields.containsKey('timezoneId') =>
-        _rejected(
-          'The system timezone is unavailable. '
-          'Set a known IANA timezone and try again.',
-          dismiss,
-        ),
       Invalid<WorkShift>() => _rejected(
-        'The shift could not start. Review the employment and agreement.',
+        'The shift was rejected. Review the shift and try again.',
         dismiss,
       ),
       Stale<WorkShift>() => StaleConflictInspector(
@@ -666,7 +628,7 @@ extension on _WorkScreenState {
 
   Widget _revision(ShiftRecordProjection record) {
     if (_reviseFailure case final failure?) {
-      return _startOutcome(failure, dismiss: _clearReviseFailure);
+      return _reviseOutcome(failure, dismiss: _clearReviseFailure);
     }
     final shift = record.shift;
     return ShiftEditInspector(
@@ -739,8 +701,6 @@ extension on _WorkScreenState {
         ),
       );
     }
-    final onEndBreak = widget.onEndBreak;
-    final shift = record is ShiftRecordProjection ? record.shift : null;
     return _tabs(
       record is PayslipRecordProjection
           ? WorkRecordKind.payslip
@@ -750,11 +710,6 @@ extension on _WorkScreenState {
         key: ValueKey(record.id),
         projection: record,
         timezones: widget.timezones,
-        onStartBreak: widget.onStartBreak,
-        onEndBreak: onEndBreak == null || shift == null
-            ? null
-            : (value) => onEndBreak(shift, value),
-        onEndShift: widget.onEndShift,
         onFinalize: widget.onFinalize,
         onCorrect: widget.onOpenCorrection,
       ),

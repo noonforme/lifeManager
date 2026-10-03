@@ -5,7 +5,60 @@ import 'ids.dart';
 import 'pay.dart';
 import 'pay_premiums.dart';
 
-enum ShiftState { draft, running, onBreak, finalized, voided }
+enum ShiftState { draft, finalized, voided }
+
+/// The planned day a confirmed shift came from (schedules spec 3.6). Its
+/// window decides overtime (spec 4.2).
+final class ScheduleLink {
+  ScheduleLink({
+    required this.scheduleId,
+    required this.scheduleVersion,
+    required this.plannedDate,
+    required this.plannedStartUtc,
+    required this.plannedEndUtc,
+    this.isExtra = false,
+    this.extraCountsAsOvertime = false,
+  }) {
+    _requireUtc(plannedStartUtc, 'plannedStartUtc');
+    _requireUtc(plannedEndUtc, 'plannedEndUtc');
+    if (!plannedEndUtc.isAfter(plannedStartUtc)) {
+      throw ArgumentError.value(plannedEndUtc, 'plannedEndUtc');
+    }
+    if (scheduleVersion <= 0) {
+      throw ArgumentError.value(scheduleVersion, 'scheduleVersion');
+    }
+  }
+
+  final ScheduleId scheduleId;
+  final int scheduleVersion;
+  final LocalDate plannedDate;
+  final DateTime plannedStartUtc;
+  final DateTime plannedEndUtc;
+  final bool isExtra;
+  final bool extraCountsAsOvertime;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ScheduleLink &&
+      other.scheduleId == scheduleId &&
+      other.scheduleVersion == scheduleVersion &&
+      other.plannedDate == plannedDate &&
+      other.plannedStartUtc == plannedStartUtc &&
+      other.plannedEndUtc == plannedEndUtc &&
+      other.isExtra == isExtra &&
+      other.extraCountsAsOvertime == extraCountsAsOvertime;
+
+  @override
+  int get hashCode => Object.hash(
+    scheduleId,
+    scheduleVersion,
+    plannedDate,
+    plannedStartUtc,
+    plannedEndUtc,
+    isExtra,
+    extraCountsAsOvertime,
+  );
+}
 
 final class WorkShift {
   WorkShift({
@@ -24,6 +77,7 @@ final class WorkShift {
     required this.createdAtUtc,
     required this.updatedAtUtc,
     required this.revision,
+    this.schedule,
   }) {
     _requireUtc(startUtc, 'startUtc');
     _requireUtc(createdAtUtc, 'createdAtUtc');
@@ -38,8 +92,6 @@ final class WorkShift {
       throw ArgumentError.value(timezoneId, 'timezoneId');
     }
     switch (state) {
-      case ShiftState.running || ShiftState.onBreak:
-        if (endUtc != null) throw ArgumentError.value(endUtc, 'endUtc');
       case ShiftState.finalized:
         if (endUtc == null || agreementId == null) {
           throw ArgumentError('Finalized shifts require end and agreement.');
@@ -69,6 +121,9 @@ final class WorkShift {
   final DateTime updatedAtUtc;
   final Revision revision;
 
+  /// Null for a shift entered by hand rather than confirmed from a plan.
+  final ScheduleLink? schedule;
+
   int get elapsedSeconds => endUtc!.difference(startUtc).inSeconds;
 
   WorkShift finalizedWith(PayAgreement agreement) {
@@ -88,6 +143,7 @@ final class WorkShift {
       createdAtUtc: createdAtUtc,
       updatedAtUtc: updatedAtUtc,
       revision: revision.next(),
+      schedule: schedule,
     );
   }
 
@@ -112,6 +168,7 @@ final class WorkShift {
       createdAtUtc: createdAtUtc,
       updatedAtUtc: nowUtc,
       revision: revision.next(),
+      schedule: schedule,
     );
   }
 
@@ -141,6 +198,7 @@ final class WorkShift {
       createdAtUtc: createdAtUtc,
       updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
       revision: revision,
+      schedule: schedule,
     );
   }
 
@@ -164,6 +222,7 @@ final class WorkShift {
       createdAtUtc: nowUtc,
       updatedAtUtc: nowUtc,
       revision: const Revision(0),
+      schedule: schedule,
     );
   }
 }
@@ -237,6 +296,18 @@ final class FinalizationFacts {
     return List.unmodifiable(intervals);
   }
 
+  /// Which paid time is overtime (schedules spec 4.2): outside the planned
+  /// window for a scheduled shift, all or none for an extra, and the
+  /// agreement threshold for a shift without a schedule.
+  OvertimeRule get overtimeRule => switch (shift.schedule) {
+    null => ThresholdOvertime(agreement.overtimeThresholdMinutes * 60),
+    ScheduleLink(isExtra: true, extraCountsAsOvertime: true) =>
+      const AllOvertime(),
+    ScheduleLink(isExtra: true) => const NoOvertime(),
+    ScheduleLink(:final plannedStartUtc, :final plannedEndUtc) =>
+      WindowOvertime(start: plannedStartUtc, end: plannedEndUtc),
+  };
+
   /// Expected pay with night, holiday and derived overtime premiums, read on
   /// the shift's own wall clock.
   ExpectedPay expectedPay({
@@ -248,6 +319,7 @@ final class FinalizationFacts {
       agreement: agreement,
       toLocal: toLocal,
       toInstants: toInstants,
+      overtime: overtimeRule,
     ),
     hourlyRateMicroEur: agreement.hourlyRateMicroEur,
     agreement: agreement,
