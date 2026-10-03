@@ -27,6 +27,8 @@ import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
 
+import '../support/era_pickers.dart';
+
 void main() {
   test(
     'invalid record UUID remains unavailable instead of selecting a row',
@@ -441,14 +443,8 @@ void main() {
 
     await tester.tap(find.text('New pay period'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('period-start')),
-      '2026-09-01',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('period-end')),
-      '2026-09-30',
-    );
+    await pickDate(tester, 'period-start', const LocalDate(2026, 9, 1));
+    await pickDate(tester, 'period-end', const LocalDate(2026, 9, 30));
     await tester.tap(find.text('Create period'));
     await tester.pumpAndSettle();
 
@@ -565,10 +561,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('payslip-issued-date')),
-      '2026-09-30',
-    );
+    await pickDate(tester, 'payslip-issued-date', const LocalDate(2026, 9, 30));
     await tester.enterText(
       find.byKey(const ValueKey('payslip-amount')),
       '950.00',

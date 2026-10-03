@@ -14,6 +14,8 @@ import 'package:lifeos/features/work/presentation/work_inspector.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
+import '../../../support/era_pickers.dart';
+
 void main() {
   testWidgets(
     'mixed gross and net evidence remains separate and has no combined difference',
@@ -119,6 +121,7 @@ void main() {
         _TestApp(
           child: PeriodInspector.create(
             employmentId: employmentId,
+            today: const LocalDate(2026, 10, 5),
             onSubmit: (draft) async {
               submitted = draft;
               return const Invalid<PayPeriod>({
@@ -129,14 +132,6 @@ void main() {
         ),
       );
 
-      await tester.enterText(
-        find.byKey(const ValueKey('period-start')),
-        '2026-10-01',
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('period-end')),
-        '2026-10-31',
-      );
       await tester.enterText(
         find.byKey(const ValueKey('period-label')),
         'October',
@@ -221,6 +216,63 @@ void main() {
     },
   );
 
+  testWidgets('a new period spans today\'s month', (tester) async {
+    PayPeriodDraft? submitted;
+    await tester.pumpWidget(
+      _TestApp(
+        child: PeriodInspector.create(
+          employmentId: employmentId,
+          today: const LocalDate(2026, 2, 14),
+          onSubmit: (draft) async {
+            submitted = draft;
+            return Committed(openPeriod);
+          },
+        ),
+      ),
+    );
+    expect(dateIn(tester, 'period-start'), const LocalDate(2026, 2, 1));
+    expect(dateIn(tester, 'period-end'), const LocalDate(2026, 2, 28));
+    await tester.tap(find.text('Create period'));
+    await tester.pumpAndSettle();
+    expect(submitted!.start, const LocalDate(2026, 2, 1));
+    expect(submitted!.end, const LocalDate(2026, 2, 28));
+  });
+
+  testWidgets('a payslip is issued today and paid only when ticked', (
+    tester,
+  ) async {
+    PayslipDraft? submitted;
+    await tester.pumpWidget(
+      _TestApp(
+        child: PayslipInspector.create(
+          periodId: periodId,
+          today: const LocalDate(2026, 10, 31),
+          onSubmit: (draft) async {
+            submitted = draft;
+            return Committed(recordedPayslip);
+          },
+        ),
+      ),
+    );
+    expect(
+      dateIn(tester, 'payslip-issued-date'),
+      const LocalDate(2026, 10, 31),
+    );
+    expect(dateIn(tester, 'payslip-paid-date'), isNull);
+    await tester.enterText(find.byKey(const ValueKey('payslip-amount')), '100');
+    await pickDate(tester, 'payslip-paid-date', const LocalDate(2026, 11, 3));
+    final save = find.text('Save payslip');
+    await tester.scrollUntilVisible(
+      save,
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(submitted!.issuedDate, const LocalDate(2026, 10, 31));
+    expect(submitted!.paidDate, const LocalDate(2026, 11, 3));
+  });
+
   testWidgets('invalid payslip save preserves entered evidence and errors', (
     tester,
   ) async {
@@ -228,6 +280,7 @@ void main() {
       _TestApp(
         child: PayslipInspector.create(
           periodId: periodId,
+          today: const LocalDate(2026, 10, 31),
           onSubmit: (_) async => const Invalid<Payslip>({
             'amount': [FieldIssue(FieldIssueCode.invalid)],
           }),
@@ -235,10 +288,6 @@ void main() {
       ),
     );
 
-    await tester.enterText(
-      find.byKey(const ValueKey('payslip-issued-date')),
-      '2026-10-31',
-    );
     await tester.enterText(
       find.byKey(const ValueKey('payslip-amount')),
       '1234.56',

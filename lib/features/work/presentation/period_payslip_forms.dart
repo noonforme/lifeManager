@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_field.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
@@ -73,11 +74,13 @@ final class PeriodInspector extends StatefulWidget {
     this.reconciliation = const [],
     super.key,
   }) : employmentId = null,
-       onSubmit = null;
+       onSubmit = null,
+       today = null;
 
   const PeriodInspector.create({
     required this.employmentId,
     required this.onSubmit,
+    required LocalDate this.today,
     super.key,
   }) : period = null,
        onSetState = null,
@@ -87,6 +90,9 @@ final class PeriodInspector extends StatefulWidget {
   final PayPeriod? period;
   final EmploymentId? employmentId;
   final SubmitPayPeriod? onSubmit;
+
+  /// Seeds the default dates; null for the record view.
+  final LocalDate? today;
   final SetPayPeriodState? onSetState;
   final VoidCallback? onRecordPayslip;
   final List<ReconciliationGroup> reconciliation;
@@ -96,30 +102,19 @@ final class PeriodInspector extends StatefulWidget {
 }
 
 final class _PeriodInspectorState extends State<PeriodInspector> {
-  final _start = TextEditingController();
-  final _end = TextEditingController();
+  late LocalDate _start = widget.today!.firstOfMonth;
+  late LocalDate _end = widget.today!.lastOfMonth;
   final _label = TextEditingController();
   Map<String, String> _errors = const {};
   bool _submitting = false;
 
   @override
   void dispose() {
-    _start.dispose();
-    _end.dispose();
     _label.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final start = LocalDate.tryParse(_start.text.trim());
-    final end = LocalDate.tryParse(_end.text.trim());
-    final localErrors = <String, String>{};
-    if (start == null) localErrors['start'] = 'Enter a valid ISO date.';
-    if (end == null) localErrors['end'] = 'Enter a valid ISO date.';
-    if (localErrors.isNotEmpty) {
-      setState(() => _errors = localErrors);
-      return;
-    }
     setState(() {
       _submitting = true;
       _errors = const {};
@@ -127,8 +122,8 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
     final outcome = await widget.onSubmit!(
       PayPeriodDraft(
         employmentId: widget.employmentId!,
-        start: start!,
-        end: end!,
+        start: _start,
+        end: _end,
         label: _optional(_label.text),
       ),
     );
@@ -209,19 +204,21 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
           _FormGroup(
             legend: 'Dates',
             children: [
-              _Field(
-                controller: _start,
+              EraDateField(
                 label: 'Start date',
                 fieldKey: const ValueKey('period-start'),
+                value: _start,
+                today: widget.today!,
                 error: _errors['start'],
-                hint: 'YYYY-MM-DD',
+                onChanged: (value) => setState(() => _start = value!),
               ),
-              _Field(
-                controller: _end,
+              EraDateField(
                 label: 'End date',
                 fieldKey: const ValueKey('period-end'),
+                value: _end,
+                today: widget.today!,
                 error: _errors['end'],
-                hint: 'YYYY-MM-DD',
+                onChanged: (value) => setState(() => _end = value!),
               ),
               _Field(
                 controller: _label,
@@ -248,19 +245,21 @@ final class PayslipInspector extends StatefulWidget {
   const PayslipInspector.create({
     required this.periodId,
     required this.onSubmit,
+    required this.today,
     super.key,
   });
 
   final PayPeriodId periodId;
   final SubmitPayslip onSubmit;
+  final LocalDate today;
 
   @override
   State<PayslipInspector> createState() => _PayslipInspectorState();
 }
 
 final class _PayslipInspectorState extends State<PayslipInspector> {
-  final _issuedDate = TextEditingController();
-  final _paidDate = TextEditingController();
+  late LocalDate _issuedDate = widget.today;
+  LocalDate? _paidDate;
   final _amount = TextEditingController();
   final _gross = TextEditingController();
   final _net = TextEditingController();
@@ -274,8 +273,6 @@ final class _PayslipInspectorState extends State<PayslipInspector> {
   @override
   void dispose() {
     for (final controller in [
-      _issuedDate,
-      _paidDate,
       _amount,
       _gross,
       _net,
@@ -289,19 +286,8 @@ final class _PayslipInspectorState extends State<PayslipInspector> {
   }
 
   Future<void> _submit() async {
-    final issuedDate = LocalDate.tryParse(_issuedDate.text.trim());
-    final paidDateText = _paidDate.text.trim();
-    final paidDate = paidDateText.isEmpty
-        ? null
-        : LocalDate.tryParse(paidDateText);
     final amount = _parseMoney(_amount.text);
     final localErrors = <String, String>{};
-    if (issuedDate == null) {
-      localErrors['issuedDate'] = 'Enter a valid ISO date.';
-    }
-    if (paidDateText.isNotEmpty && paidDate == null) {
-      localErrors['paidDate'] = 'Enter a valid ISO date.';
-    }
     if (amount == null || amount <= 0) {
       localErrors['amount'] = 'Enter a valid amount.';
     }
@@ -317,8 +303,8 @@ final class _PayslipInspectorState extends State<PayslipInspector> {
     final outcome = await widget.onSubmit(
       PayslipDraft(
         periodId: widget.periodId,
-        issuedDate: issuedDate!,
-        paidDate: paidDate,
+        issuedDate: _issuedDate,
+        paidDate: _paidDate,
         amountMinorUnits: amount!,
         basis: _basis,
         grossMinorUnits: _parseOptionalMoney(_gross.text),
@@ -353,18 +339,22 @@ final class _PayslipInspectorState extends State<PayslipInspector> {
           _FormGroup(
             legend: 'Payslip',
             children: [
-              _Field(
-                controller: _issuedDate,
+              EraDateField(
                 label: 'Issued date',
                 fieldKey: const ValueKey('payslip-issued-date'),
+                value: _issuedDate,
+                today: widget.today,
                 error: _errors['issuedDate'],
-                hint: 'YYYY-MM-DD',
+                onChanged: (value) => setState(() => _issuedDate = value!),
               ),
-              _Field(
-                controller: _paidDate,
+              EraDateField(
                 label: 'Paid date',
+                optional: true,
+                fieldKey: const ValueKey('payslip-paid-date'),
+                value: _paidDate,
+                today: widget.today,
                 error: _errors['paidDate'],
-                hint: 'Optional YYYY-MM-DD',
+                onChanged: (value) => setState(() => _paidDate = value),
               ),
               _Field(
                 controller: _amount,
@@ -524,7 +514,6 @@ final class _Field extends StatelessWidget {
     required this.label,
     this.fieldKey,
     this.error,
-    this.hint,
     this.keyboardType,
     this.maxLines = 1,
   });
@@ -533,7 +522,6 @@ final class _Field extends StatelessWidget {
   final String label;
   final Key? fieldKey;
   final String? error;
-  final String? hint;
   final TextInputType? keyboardType;
   final int maxLines;
 
@@ -543,7 +531,6 @@ final class _Field extends StatelessWidget {
     label: label,
     fieldKey: fieldKey,
     error: error,
-    hint: hint,
     keyboardType: keyboardType,
     maxLines: maxLines,
   );

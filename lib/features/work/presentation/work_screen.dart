@@ -115,6 +115,8 @@ final class WorkScreen extends StatefulWidget {
 }
 
 final class _WorkScreenState extends State<WorkScreen> {
+  LocalDate get _today => widget.today ?? _deviceToday();
+
   bool _showRegister = false;
   MutationOutcome<PayPeriod>? _periodFailure;
   bool _creatingPeriod = false;
@@ -361,6 +363,7 @@ final class _WorkScreenState extends State<WorkScreen> {
       return PeriodInspector.create(
         employmentId: employmentId,
         onSubmit: _createPeriod,
+        today: _today,
       );
     }
     final recordPayslip = widget.onRecordPayslip;
@@ -368,6 +371,7 @@ final class _WorkScreenState extends State<WorkScreen> {
       return PayslipInspector.create(
         periodId: periodId,
         onSubmit: recordPayslip,
+        today: _today,
       );
     }
     if (route.mode == WorkInspectorMode.create && route.record == null) {
@@ -401,10 +405,7 @@ final class _WorkScreenState extends State<WorkScreen> {
             : 'Manual shift from last time',
         prefill: template == null
             ? null
-            : ShiftFormPrefill.fromTemplate(
-                template,
-                widget.today ?? _deviceToday(),
-              ),
+            : ShiftFormPrefill.fromTemplate(template, _today),
         onSubmit: save,
       );
     }
@@ -461,6 +462,7 @@ extension on _WorkScreenState {
         return PeriodInspector.create(
           employmentId: employmentId,
           onSubmit: _createPeriod,
+          today: _today,
         );
       case WorkAddKind.payslip when widget.onRecordPayslip != null:
         final period =
@@ -477,6 +479,7 @@ extension on _WorkScreenState {
           key: ValueKey(('add-payslip', period.id)),
           periodId: period.id,
           onSubmit: widget.onRecordPayslip!,
+          today: _today,
         );
       case WorkAddKind.agreement:
         return AgreementForm(
