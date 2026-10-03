@@ -100,6 +100,55 @@ final class PayslipId extends WorkRecordId {
   int get hashCode => Object.hash(PayslipId, value);
 }
 
+final class ScheduleId extends WorkRecordId {
+  const ScheduleId(this.value);
+
+  @override
+  final String value;
+
+  static ScheduleId? tryParse(String? value) => _parse(value, ScheduleId.new);
+
+  @override
+  bool operator ==(Object other) => other is ScheduleId && value == other.value;
+
+  @override
+  int get hashCode => Object.hash(ScheduleId, value);
+}
+
+final class LeaveRecordId extends WorkRecordId {
+  const LeaveRecordId(this.value);
+
+  @override
+  final String value;
+
+  static LeaveRecordId? tryParse(String? value) =>
+      _parse(value, LeaveRecordId.new);
+
+  @override
+  bool operator ==(Object other) =>
+      other is LeaveRecordId && value == other.value;
+
+  @override
+  int get hashCode => Object.hash(LeaveRecordId, value);
+}
+
+final class DayExceptionId extends WorkRecordId {
+  const DayExceptionId(this.value);
+
+  @override
+  final String value;
+
+  static DayExceptionId? tryParse(String? value) =>
+      _parse(value, DayExceptionId.new);
+
+  @override
+  bool operator ==(Object other) =>
+      other is DayExceptionId && value == other.value;
+
+  @override
+  int get hashCode => Object.hash(DayExceptionId, value);
+}
+
 T? _parse<T>(String? value, T Function(String value) create) {
   if (value == null || !_uuidV7.hasMatch(value)) return null;
   return create(value);
