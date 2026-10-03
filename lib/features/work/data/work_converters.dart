@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../core/database/app_database.dart' as db;
 import '../../../core/time/local_date.dart';
+import '../../../core/time/local_time.dart';
 import '../domain/agreement.dart' as domain;
 import '../domain/employment.dart' as domain;
 import '../domain/facts.dart';
@@ -9,6 +10,7 @@ import '../domain/ids.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart' as domain;
 import '../domain/payslip.dart' as domain;
+import '../domain/schedule.dart';
 import '../domain/shift.dart' as domain;
 
 final class WorkDataCorruption implements Exception {
@@ -71,6 +73,11 @@ db.PayAgreementsCompanion agreementToCompanion(domain.PayAgreement value) =>
       holidayMultiplierNumerator: value.holidayMultiplier.numerator,
       holidayMultiplierDenominator: value.holidayMultiplier.denominator,
       premiumStacking: premiumStackingText(value.premiumStacking),
+      vacationPayNumerator: Value(value.vacationPay.numerator),
+      vacationPayDenominator: Value(value.vacationPay.denominator),
+      sickPayNumerator: Value(value.sickPay.numerator),
+      sickPayDenominator: Value(value.sickPay.denominator),
+      sickEmployerDays: Value(value.sickEmployerDays),
       label: Value(value.label),
       note: Value(value.note),
       createdAtUtcMicros: value.createdAtUtc.microsecondsSinceEpoch,
@@ -117,6 +124,15 @@ domain.PayAgreement agreementFromRow(
       denominator: row.holidayMultiplierDenominator,
     ),
     premiumStacking: _premiumStacking(row.premiumStacking),
+    vacationPay: domain.RationalMultiplier(
+      numerator: row.vacationPayNumerator,
+      denominator: row.vacationPayDenominator,
+    ),
+    sickPay: domain.RationalMultiplier(
+      numerator: row.sickPayNumerator,
+      denominator: row.sickPayDenominator,
+    ),
+    sickEmployerDays: row.sickEmployerDays,
     label: row.label,
     note: row.note,
     createdAtUtc: _utc(row.createdAtUtcMicros),
@@ -142,6 +158,13 @@ db.WorkShiftsCompanion shiftToCompanion(domain.WorkShift value) =>
       createdAtUtcMicros: value.createdAtUtc.microsecondsSinceEpoch,
       updatedAtUtcMicros: value.updatedAtUtc.microsecondsSinceEpoch,
       revision: value.revision.value,
+      scheduleId: const Value(null),
+      scheduleVersion: const Value(null),
+      plannedDate: const Value(null),
+      plannedStartUtcMicros: const Value(null),
+      plannedEndUtcMicros: const Value(null),
+      isExtra: const Value(false),
+      extraCountsAsOvertime: const Value(false),
     );
 
 domain.WorkShift shiftFromRow(db.WorkShift row) => _decode(
@@ -470,3 +493,42 @@ CurrencyCode _currency(String value) => switch (value) {
     value: value,
   ),
 };
+
+/// "dayOffset:minuteOfDay:minutes" per break, joined by ";".
+String encodeBreaks(List<FixedBreak> breaks) => breaks
+    .map(
+      (item) =>
+          '${item.dayOffset}:${item.start.hour * 60 + item.start.minute}:'
+          '${item.minutes}',
+    )
+    .join(';');
+
+/// The breaks [encodeBreaks] wrote; malformed text is stored corruption.
+List<FixedBreak> decodeBreaks(String text) => [
+  for (final part in text.split(';'))
+    if (part.isNotEmpty) _decodeBreak(part),
+];
+
+FixedBreak _decodeBreak(String part) {
+  final fields = part.split(':').map(int.tryParse).toList();
+  if (fields.length != 3 || fields.contains(null)) {
+    throw WorkDataCorruption(
+      recordType: 'schedule',
+      field: 'breaks',
+      value: part,
+    );
+  }
+  final [offset!, minute!, minutes!] = fields;
+  if (minute < 0 || minute > 1439) {
+    throw WorkDataCorruption(
+      recordType: 'schedule',
+      field: 'breaks',
+      value: part,
+    );
+  }
+  return FixedBreak(
+    start: LocalTime(minute ~/ 60, minute % 60),
+    dayOffset: offset,
+    minutes: minutes,
+  );
+}

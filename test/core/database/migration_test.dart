@@ -14,9 +14,9 @@ import 'package:sqlite3/sqlite3.dart' as sqlite;
 import '../../support/owned_test_root.dart';
 
 void main() {
-  test('the reset schema has one released snapshot, version one', () async {
+  test('released snapshots are versions one and three', () async {
     final observed = <int, String>{};
-    for (var version = 1; version <= currentSchemaVersion; version++) {
+    for (final version in releasedMigrationFingerprints.keys) {
       final snapshot = File('drift_schemas/schema_v$version.json');
       expect(await snapshot.exists(), isTrue, reason: snapshot.path);
       final document = jsonDecode(await snapshot.readAsString());
@@ -31,12 +31,13 @@ void main() {
           .first;
     }
 
-    expect(currentSchemaVersion, 1);
+    expect(currentSchemaVersion, 3);
+    expect(releasedMigrationFingerprints.keys, {1, 3});
     expect(releasedMigrationFingerprints, observed);
   });
 
   test(
-    'a fresh database is created at version one without manual overtime',
+    'a fresh database is created at version three without manual overtime',
     () async {
       final raw = sqlite.sqlite3.openInMemory();
       final database = AppDatabase(NativeDatabase.opened(raw));
@@ -44,7 +45,7 @@ void main() {
 
       await database.customSelect('SELECT 1').getSingle();
 
-      expect(raw.userVersion, 1);
+      expect(raw.userVersion, 3);
       final shiftColumns = raw
           .select('PRAGMA table_info(work_shifts)')
           .map((row) => row['name']);
@@ -66,14 +67,13 @@ void main() {
           'premium_stacking',
         ]),
       );
+      // The live tracker is gone, and with it the one-active-shift rule.
       expect(
-        raw
-            .select(
-              "SELECT name FROM sqlite_master WHERE type = 'index' "
-              "AND name = 'one_active_shift'",
-            )
-            .single['name'],
-        'one_active_shift',
+        raw.select(
+          "SELECT name FROM sqlite_master WHERE type = 'index' "
+          "AND name = 'one_active_shift'",
+        ),
+        isEmpty,
       );
     },
   );

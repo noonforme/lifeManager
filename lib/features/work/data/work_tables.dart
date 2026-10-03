@@ -68,6 +68,16 @@ class PayAgreements extends Table {
   IntColumn get revision =>
       integer().check(const CustomExpression<bool>('revision >= 0'))();
 
+  IntColumn get vacationPayNumerator =>
+      integer().withDefault(const Constant(1))();
+  IntColumn get vacationPayDenominator =>
+      integer().withDefault(const Constant(1))();
+  IntColumn get sickPayNumerator =>
+      integer().withDefault(const Constant(3103))();
+  IntColumn get sickPayDenominator =>
+      integer().withDefault(const Constant(5000))();
+  IntColumn get sickEmployerDays => integer().withDefault(const Constant(2))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 
@@ -112,6 +122,16 @@ class WorkShifts extends Table {
   IntColumn get updatedAtUtcMicros => integer()();
   IntColumn get revision =>
       integer().check(const CustomExpression<bool>('revision >= 0'))();
+
+  /// The schedule a confirmed day was planned from (spec 3.6).
+  TextColumn get scheduleId => text().nullable()();
+  IntColumn get scheduleVersion => integer().nullable()();
+  TextColumn get plannedDate => text().nullable()();
+  IntColumn get plannedStartUtcMicros => integer().nullable()();
+  IntColumn get plannedEndUtcMicros => integer().nullable()();
+  BoolColumn get isExtra => boolean().withDefault(const Constant(false))();
+  BoolColumn get extraCountsAsOvertime =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -188,6 +208,150 @@ class Payslips extends Table {
   )();
   TextColumn get replacedPayslipId => text().nullable().references(
     Payslips,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
+  IntColumn get createdAtUtcMicros => integer()();
+  IntColumn get updatedAtUtcMicros => integer()();
+  IntColumn get revision =>
+      integer().check(const CustomExpression<bool>('revision >= 0'))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class WorkSchedules extends Table {
+  TextColumn get id => text()();
+  IntColumn get version =>
+      integer().check(const CustomExpression<bool>('version > 0'))();
+  TextColumn get employmentId =>
+      text().references(Employments, #id, onDelete: KeyAction.restrict)();
+  TextColumn get name => text()();
+  TextColumn get timezoneId => text()();
+  TextColumn get cycleStart => text()();
+  TextColumn get inUseFrom => text()();
+  TextColumn get inUseUntil => text().nullable()();
+  IntColumn get createdAtUtcMicros => integer()();
+  IntColumn get revision =>
+      integer().check(const CustomExpression<bool>('revision >= 0'))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id, version};
+
+  @override
+  List<String> get customConstraints => [
+    'CHECK (in_use_until IS NULL OR in_use_until >= in_use_from)',
+  ];
+}
+
+class WorkScheduleShiftTypes extends Table {
+  TextColumn get scheduleId => text()();
+  IntColumn get scheduleVersion => integer()();
+  TextColumn get id => text()();
+  IntColumn get position => integer()();
+  TextColumn get name => text()();
+  IntColumn get startMinute => integer().check(
+    const CustomExpression<bool>('start_minute BETWEEN 0 AND 1439'),
+  )();
+  IntColumn get endMinute => integer().check(
+    const CustomExpression<bool>('end_minute BETWEEN 0 AND 1439'),
+  )();
+  IntColumn get endDayOffset => integer().check(
+    const CustomExpression<bool>('end_day_offset IN (0, 1)'),
+  )();
+
+  /// "dayOffset:minuteOfDay:minutes" per break, joined by ";".
+  TextColumn get breaks => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {scheduleId, scheduleVersion, id};
+
+  @override
+  List<String> get customConstraints => [
+    'FOREIGN KEY (schedule_id, schedule_version) '
+        'REFERENCES work_schedules (id, version) ON DELETE CASCADE',
+  ];
+}
+
+class WorkScheduleBlocks extends Table {
+  TextColumn get scheduleId => text()();
+  IntColumn get scheduleVersion => integer()();
+  IntColumn get position => integer()();
+  IntColumn get count =>
+      integer().check(const CustomExpression<bool>('count BETWEEN 1 AND 99'))();
+
+  /// Null for Off.
+  TextColumn get shiftTypeId => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {scheduleId, scheduleVersion, position};
+
+  @override
+  List<String> get customConstraints => [
+    'FOREIGN KEY (schedule_id, schedule_version) '
+        'REFERENCES work_schedules (id, version) ON DELETE CASCADE',
+  ];
+}
+
+class WorkDayExceptions extends Table {
+  TextColumn get id => text()();
+  TextColumn get employmentId =>
+      text().references(Employments, #id, onDelete: KeyAction.restrict)();
+  TextColumn get date => text()();
+  TextColumn get kind => text().check(
+    const CustomExpression<bool>(
+      "kind IN ('changed', 'cancelled', 'leave', 'extra')",
+    ),
+  )();
+  IntColumn get startMinute => integer().nullable()();
+  IntColumn get endMinute => integer().nullable()();
+  IntColumn get endDayOffset => integer().nullable()();
+  TextColumn get breaks => text().nullable()();
+  TextColumn get shiftTypeId => text().nullable()();
+  TextColumn get reason => text().nullable()();
+  TextColumn get note => text().nullable()();
+  TextColumn get leaveType => text().nullable()();
+  TextColumn get illnessStartedOn => text().nullable()();
+  BoolColumn get countsAsOvertime =>
+      boolean().withDefault(const Constant(false))();
+  IntColumn get createdAtUtcMicros => integer()();
+  IntColumn get updatedAtUtcMicros => integer()();
+  IntColumn get revision =>
+      integer().check(const CustomExpression<bool>('revision >= 0'))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<String> get customConstraints => ['UNIQUE (employment_id, date)'];
+}
+
+class WorkLeaveRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get employmentId =>
+      text().references(Employments, #id, onDelete: KeyAction.restrict)();
+  TextColumn get date => text()();
+  TextColumn get leaveType => text().check(
+    const CustomExpression<bool>("leave_type IN ('vacation', 'sick')"),
+  )();
+  TextColumn get illnessStartedOn => text().nullable()();
+  IntColumn get paidMinutes =>
+      integer().check(const CustomExpression<bool>('paid_minutes > 0'))();
+  TextColumn get agreementId =>
+      text().references(PayAgreements, #id, onDelete: KeyAction.restrict)();
+  TextColumn get scheduleId => text()();
+  IntColumn get scheduleVersion => integer()();
+  TextColumn get state => text().check(
+    const CustomExpression<bool>("state IN ('confirmed', 'voided')"),
+  )();
+  TextColumn get voidReason => text().nullable()();
+  TextColumn get replacementLeaveId => text().nullable().references(
+    WorkLeaveRecords,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
+  TextColumn get replacedLeaveId => text().nullable().references(
+    WorkLeaveRecords,
     #id,
     onDelete: KeyAction.restrict,
   )();

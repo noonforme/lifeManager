@@ -45,7 +45,9 @@ final class DriftDatabaseService implements DatabaseService {
     final wasEmpty = !existed || await file.length() == 0;
 
     if (!wasEmpty) {
+      // Throws DatabaseFromEarlierBuild for anything that is not migrated.
       _validateExistingIdentity(file);
+      await _backUpBeforeUpgrade(file);
     }
 
     final executor = NativeDatabase.createInBackground(
@@ -87,13 +89,13 @@ final class DriftDatabaseService implements DatabaseService {
     }
   }
 
-  /// Before the reset, development builds wrote schema versions 1 and 2,
-  /// and version 1 itself grew while unreleased. A version 1 database is
-  /// current only if it has every table and column the schema now has.
+  /// Version 1 is the released schema and is migrated; version 2 was only
+  /// written by development builds before the reset and is refused, as is
+  /// a version-1 file missing anything the released schema had.
   static bool _isFromEarlierBuild(sqlite.Database raw) {
     final version = raw.userVersion;
-    if (version == 0) return false;
-    if (version != currentSchemaVersion) return true;
+    if (version == 0 || version == currentSchemaVersion) return false;
+    if (version != 1) return true;
     final tables = raw
         .select("SELECT name FROM sqlite_master WHERE type = 'table'")
         .map((row) => row['name'])
@@ -112,6 +114,35 @@ final class DriftDatabaseService implements DatabaseService {
         .map((row) => row['name'])
         .toSet();
     return !columns.contains('premium_stacking');
+  }
+
+  /// Copies a database written by an older released schema next to itself
+  /// before it is migrated, so an upgrade can always be undone by hand.
+  static Future<void> _backUpBeforeUpgrade(File file) async {
+    final source = sqlite.sqlite3.open(
+      file.path,
+      mode: sqlite.OpenMode.readOnly,
+    );
+    try {
+      final version = source.userVersion;
+      if (version == 0 || version >= currentSchemaVersion) return;
+      final stamp = DateTime.now()
+          .toUtc()
+          .toIso8601String()
+          .replaceAll(RegExp(r'[-:]'), '')
+          .split('.')
+          .first;
+      final target = sqlite.sqlite3.open(
+        '${file.path}.v$version-backup-${stamp}Z.sqlite',
+      );
+      try {
+        await source.backup(target).drain<void>();
+      } finally {
+        target.close();
+      }
+    } finally {
+      source.close();
+    }
   }
 
   static void _configureFreshConnection(sqlite.Database database) {

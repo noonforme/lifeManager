@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/database/app_database.dart' as db;
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/core/time/local_time.dart';
 import 'package:lifeos/features/work/data/work_converters.dart';
 import 'package:lifeos/features/work/domain/agreement.dart' as domain_agreement;
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
+import 'package:lifeos/features/work/domain/schedule.dart';
 import 'package:lifeos/features/work/domain/shift.dart' as domain;
 
 void main() {
@@ -121,6 +123,15 @@ void main() {
             denominator: 1,
           ),
           premiumStacking: stacking,
+          vacationPay: const domain_agreement.RationalMultiplier(
+            numerator: 9,
+            denominator: 10,
+          ),
+          sickPay: const domain_agreement.RationalMultiplier(
+            numerator: 7,
+            denominator: 10,
+          ),
+          sickEmployerDays: 3,
         );
 
         final restored = agreementFromRow(
@@ -137,6 +148,9 @@ void main() {
         expect(restored.premiumStacking, stacking);
         expect(restored.overtimeThresholdMinutes, 600);
         expect(restored.overtimeMultiplier, fact.overtimeMultiplier);
+        expect(restored.vacationPay, fact.vacationPay);
+        expect(restored.sickPay, fact.sickPay);
+        expect(restored.sickEmployerDays, 3);
       }
     }
     expect(
@@ -188,6 +202,16 @@ void main() {
       throwsA(isA<WorkDataCorruption>()),
     );
   });
+
+  test('breaks round-trip through their text form', () {
+    const breaks = [
+      FixedBreak(start: LocalTime(12, 0), dayOffset: 0, minutes: 30),
+      FixedBreak(start: LocalTime(0, 15), dayOffset: 1, minutes: 20),
+    ];
+    expect(encodeBreaks(breaks), '0:720:30;1:15:20');
+    expect(decodeBreaks(encodeBreaks(breaks)), breaks);
+    expect(decodeBreaks(''), isEmpty);
+  });
 }
 
 db.WorkShift _shiftRow(db.WorkShiftsCompanion value) => db.WorkShift(
@@ -206,6 +230,13 @@ db.WorkShift _shiftRow(db.WorkShiftsCompanion value) => db.WorkShift(
   createdAtUtcMicros: value.createdAtUtcMicros.value,
   updatedAtUtcMicros: value.updatedAtUtcMicros.value,
   revision: value.revision.value,
+  scheduleId: value.scheduleId.value,
+  scheduleVersion: value.scheduleVersion.value,
+  plannedDate: value.plannedDate.value,
+  plannedStartUtcMicros: value.plannedStartUtcMicros.value,
+  plannedEndUtcMicros: value.plannedEndUtcMicros.value,
+  isExtra: value.isExtra.value,
+  extraCountsAsOvertime: value.extraCountsAsOvertime.value,
 );
 
 db.WorkShift _validShiftRow({String state = 'finalized'}) => db.WorkShift(
@@ -224,6 +255,8 @@ db.WorkShift _validShiftRow({String state = 'finalized'}) => db.WorkShift(
   createdAtUtcMicros: DateTime.utc(2026, 9, 29).microsecondsSinceEpoch,
   updatedAtUtcMicros: DateTime.utc(2026, 9, 29, 15).microsecondsSinceEpoch,
   revision: 1,
+  isExtra: false,
+  extraCountsAsOvertime: false,
 );
 
 db.Employment _validEmploymentRow({
@@ -263,6 +296,11 @@ db.PayAgreement _agreementRow(db.PayAgreementsCompanion value) =>
       note: value.note.value,
       createdAtUtcMicros: value.createdAtUtcMicros.value,
       revision: value.revision.value,
+      vacationPayNumerator: value.vacationPayNumerator.value,
+      vacationPayDenominator: value.vacationPayDenominator.value,
+      sickPayNumerator: value.sickPayNumerator.value,
+      sickPayDenominator: value.sickPayDenominator.value,
+      sickEmployerDays: value.sickEmployerDays.value,
     );
 
 db.PayAgreement _validAgreementRow({
@@ -293,6 +331,11 @@ db.PayAgreement _validAgreementRow({
   note: null,
   createdAtUtcMicros: 1,
   revision: 0,
+  vacationPayNumerator: 1,
+  vacationPayDenominator: 1,
+  sickPayNumerator: 3103,
+  sickPayDenominator: 5000,
+  sickEmployerDays: 2,
 );
 
 db.PayPeriod _validPeriodRow({String start = '2026-09-01'}) => db.PayPeriod(

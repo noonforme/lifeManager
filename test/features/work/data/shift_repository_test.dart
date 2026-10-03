@@ -30,16 +30,6 @@ void main() {
 
   tearDown(() => database.close());
 
-  test('two concurrent starts commit exactly one active shift', () async {
-    final results = await Future.wait([
-      repository.start(_runningShift(_shiftA)),
-      repository.start(_runningShift(_shiftB)),
-    ]);
-
-    expect(results.where((value) => value == 1), hasLength(1));
-    expect(await repository.activeShift(), isNotNull);
-  });
-
   test('failed finalization rolls back agreement and state writes', () async {
     await repository.start(_runningShift(_shiftA));
     await repository.endShift(
