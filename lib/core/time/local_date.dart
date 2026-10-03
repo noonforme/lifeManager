@@ -58,6 +58,21 @@ final class LocalDate implements Comparable<LocalDate> {
     return LocalDate(value.year, value.month, 1);
   }
 
+  /// The number of days in this date's month.
+  int get daysInMonth => DateTime.utc(year, month + 1, 0).day;
+
+  /// The last day of this date's month.
+  LocalDate get lastOfMonth => LocalDate(year, month, daysInMonth);
+
+  /// The same day [months] later, or earlier when negative, clamped to the
+  /// target month's last day: 31 January plus one month is 28 or 29
+  /// February.
+  LocalDate addMonthsClamped(int months) {
+    final target = addMonths(months);
+    final last = target.daysInMonth;
+    return LocalDate(target.year, target.month, day < last ? day : last);
+  }
+
   @override
   int compareTo(LocalDate other) {
     final yearComparison = year.compareTo(other.year);

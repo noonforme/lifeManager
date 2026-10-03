@@ -75,4 +75,35 @@ void main() {
       const LocalDate(2027, 1, 1),
     );
   });
+
+  test('months clamp to the last day of a shorter month', () {
+    expect(
+      const LocalDate(2027, 1, 31).addMonthsClamped(1),
+      const LocalDate(2027, 2, 28),
+    );
+    expect(
+      const LocalDate(2028, 1, 31).addMonthsClamped(1),
+      const LocalDate(2028, 2, 29),
+    );
+    expect(
+      const LocalDate(2026, 10, 5).addMonthsClamped(-12),
+      const LocalDate(2025, 10, 5),
+    );
+    expect(
+      const LocalDate(2026, 12, 15).addMonthsClamped(1),
+      const LocalDate(2027, 1, 15),
+    );
+  });
+
+  test('a month knows its length and last day', () {
+    expect(const LocalDate(2028, 2, 10).daysInMonth, 29);
+    expect(
+      const LocalDate(2027, 2, 10).lastOfMonth,
+      const LocalDate(2027, 2, 28),
+    );
+    expect(
+      const LocalDate(2026, 10, 5).lastOfMonth,
+      const LocalDate(2026, 10, 31),
+    );
+  });
 }
