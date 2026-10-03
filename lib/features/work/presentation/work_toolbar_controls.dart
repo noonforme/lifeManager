@@ -165,6 +165,9 @@ final class PeriodPicker extends StatelessWidget {
   Future<void> _askRange(BuildContext context) async {
     final range = await showDialog<DateRangeScope>(
       context: context,
+      // A click beside the dialog would discard the picks, often while
+      // only meaning to close a calendar; Cancel is the way out.
+      barrierDismissible: false,
       builder: (context) =>
           _RangeDialog(initial: scope, today: today ?? _deviceToday()),
     );

@@ -15,6 +15,7 @@ import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/presentation/employment_agreement_forms.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
+import 'package:lifeos/shared/workbench/era_time_field.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
@@ -60,9 +61,11 @@ void main() {
     PayAgreement? initial,
     MutationOutcome<PayAgreement>? outcome,
     void Function(AgreementDraft draft)? onSubmit,
+    double textScale = 1,
   }) async {
     await tester.pumpWidget(
       _TestApp(
+        textScale: textScale,
         child: AgreementForm(
           employmentId: _employmentId,
           initial: initial,
@@ -293,6 +296,42 @@ void main() {
         ),
         isSemantics(label: 'Night pay starts, 22:00', isEnabled: false),
       );
+    });
+
+    testWidgets('the night times stay on one row at 200 % text', (
+      tester,
+    ) async {
+      await pumpAgreementForm(tester, textScale: 2);
+      for (final key in ['agreement-night-start', 'agreement-night-end']) {
+        await tester.scrollUntilVisible(
+          find.byKey(ValueKey(key)),
+          120,
+          scrollable: find.byType(Scrollable).first,
+        );
+        final box = find.ancestor(
+          of: find.byKey(ValueKey(key)),
+          matching: find.byType(EraTimeField),
+        );
+        await tester.ensureVisible(box);
+        await tester.pumpAndSettle();
+        Rect part(String name) => tester.getRect(
+          find.descendant(
+            of: box,
+            matching: find.byKey(ValueKey('era-time-$name')),
+          ),
+        );
+        expect(
+          part('minute').top,
+          moreOrLessEquals(part('hour').top, epsilon: 0.5),
+          reason: '$key splits its hours and minutes',
+        );
+        expect(part('minute').left, greaterThan(part('hour').right));
+        expect(
+          tester.getRect(find.byKey(ValueKey(key))).right,
+          greaterThanOrEqualTo(part('minute').right),
+        );
+      }
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('night start equal to its end is refused', (tester) async {
@@ -595,14 +634,20 @@ RationalMultiplier _r(int numerator, int denominator) =>
     RationalMultiplier(numerator: numerator, denominator: denominator);
 
 final class _TestApp extends StatelessWidget {
-  const _TestApp({required this.child});
+  const _TestApp({required this.child, this.textScale = 1});
 
   final Widget child;
+  final double textScale;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: buildLifeOSTheme(),
+      builder: (context, app) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(textScale)),
+        child: app!,
+      ),
       home: LifeOSSkinScope(
         child: Scaffold(body: SizedBox(width: 520, child: child)),
       ),

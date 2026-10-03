@@ -14,6 +14,7 @@ import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_register.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/features/work/presentation/work_toolbar_controls.dart';
+import 'package:lifeos/shared/workbench/era_month_calendar.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
@@ -394,6 +395,50 @@ void main() {
         expect(range.end, const LocalDate(2026, 9, 15));
       },
     );
+
+    testWidgets('a click beside the range dialog keeps it and its picks', (
+      tester,
+    ) async {
+      final scopes = <WorkTemporalScope?>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLifeOSTheme(),
+          home: LifeOSSkinScope(
+            child: Scaffold(
+              body: PeriodPicker(
+                scope: null,
+                periods: const [],
+                today: const LocalDate(2026, 9, 15),
+                onScope: scopes.add,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Period:'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Date range…'));
+      await tester.pumpAndSettle();
+      await pickDate(tester, 'range-from', const LocalDate(2026, 9, 3));
+      await tester.tap(find.byKey(const ValueKey('range-to')));
+      await tester.pumpAndSettle();
+      expect(find.byType(EraMonthCalendar), findsOneWidget);
+
+      // The barrier, away from both the dialog and the open calendar.
+      await tester.tapAt(const Offset(5, 590));
+      await tester.pumpAndSettle();
+      expect(find.byType(EraMonthCalendar), findsNothing);
+      expect(dateIn(tester, 'range-from'), const LocalDate(2026, 9, 3));
+
+      await tester.tapAt(const Offset(5, 590));
+      await tester.pumpAndSettle();
+      expect(dateIn(tester, 'range-from'), const LocalDate(2026, 9, 3));
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('range-from')), findsNothing);
+      expect(scopes, isEmpty);
+    });
 
     testWidgets('an explicit date range is entered from the period menu', (
       tester,

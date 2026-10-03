@@ -397,7 +397,21 @@ final class _EraCheck extends StatefulWidget {
 }
 
 final class _EraCheckState extends State<_EraCheck> {
+  final _node = FocusNode(debugLabel: 'EraDateFieldCheck');
   bool _focused = false;
+
+  @override
+  void dispose() {
+    _node.dispose();
+    super.dispose();
+  }
+
+  /// A click focuses the check box, as in the era, so unticking with the
+  /// calendar open leaves focus on a control.
+  void _tap() {
+    _node.requestFocus();
+    widget.onToggle();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -408,6 +422,7 @@ final class _EraCheckState extends State<_EraCheck> {
         checked: widget.checked,
         label: widget.label,
         child: FocusableActionDetector(
+          focusNode: _node,
           mouseCursor: SystemMouseCursors.click,
           onShowFocusHighlight: (value) => setState(() => _focused = value),
           actions: {
@@ -420,7 +435,7 @@ final class _EraCheckState extends State<_EraCheck> {
           },
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: widget.onToggle,
+            onTap: _tap,
             child: ExcludeSemantics(
               child: DecoratedBox(
                 position: DecorationPosition.foreground,

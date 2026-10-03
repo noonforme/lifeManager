@@ -270,8 +270,10 @@ final class _EraTimeFieldState extends State<EraTimeField> {
                           padding: const EdgeInsets.symmetric(horizontal: 3),
                           child: Align(
                             alignment: Alignment.centerLeft,
-                            child: Wrap(
-                              crossAxisAlignment: WrapCrossAlignment.center,
+                            // One unbreakable run: "22:00" never splits
+                            // into "22:" and "00"; the box grows instead.
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 part(TimePart.hour),
                                 colon,

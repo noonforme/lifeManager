@@ -474,7 +474,6 @@ final class _AgreementFormState extends State<AgreementForm> {
                       semanticLabel: 'Night pay starts',
                       value: _nightStart,
                       enabled: _nightEnabled,
-                      error: _errors['nightStart'],
                       onChanged: (value) => setState(() => _nightStart = value),
                     ),
                     const Text('to'),
@@ -871,16 +870,26 @@ final class _ClockBox extends StatelessWidget {
   final ValueChanged<LocalTime> onChanged;
   final String? error;
 
+  /// The era width of the box; it grows past this with its text, so the
+  /// time never splits, and widens to fit an error as `_Short` does.
+  static const _width = 88.0;
+
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: error == null ? 88 : 240,
-    child: EraTimeField(
-      fieldKey: fieldKey,
-      semanticLabel: semanticLabel,
-      value: value,
-      enabled: enabled,
-      error: error,
-      onChanged: onChanged,
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: error == null
+        ? BoxConstraints(
+            minWidth: MediaQuery.textScalerOf(context).scale(_width),
+          )
+        : const BoxConstraints.tightFor(width: 240),
+    child: IntrinsicWidth(
+      child: EraTimeField(
+        fieldKey: fieldKey,
+        semanticLabel: semanticLabel,
+        value: value,
+        enabled: enabled,
+        error: error,
+        onChanged: onChanged,
+      ),
     ),
   );
 }

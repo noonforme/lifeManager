@@ -336,6 +336,33 @@ void main() {
     expect(_value(tester), const LocalDate(2026, 12, 31));
   });
 
+  testWidgets('a click on the check box focuses it, open calendar or not', (
+    tester,
+  ) async {
+    await _pump(tester, optional: true);
+    await tester.tap(find.byKey(_box));
+    await tester.pumpAndSettle();
+    expect(_calendar, findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('era-date-check')));
+    await tester.pumpAndSettle();
+    expect(_calendar, findsNothing);
+    expect(_value(tester), isNull);
+    expect(
+      tester.binding.focusManager.primaryFocus?.debugLabel,
+      'EraDateFieldCheck',
+    );
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('era-date-check')));
+    await tester.pumpAndSettle();
+    expect(_value(tester), _today);
+    expect(
+      tester.binding.focusManager.primaryFocus?.debugLabel,
+      'EraDateFieldCheck',
+    );
+  });
+
   testWidgets('scrolling the form closes the calendar', (tester) async {
     await _pump(
       tester,
