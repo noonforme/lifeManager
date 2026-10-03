@@ -25,4 +25,54 @@ void main() {
   test('system clock returns a UTC instant', () {
     expect(SystemAppClock().nowUtc().isUtc, isTrue);
   });
+  test('days move across months, years and leap days', () {
+    expect(
+      const LocalDate(2026, 1, 31).addDays(1),
+      const LocalDate(2026, 2, 1),
+    );
+    expect(
+      const LocalDate(2028, 2, 28).addDays(1),
+      const LocalDate(2028, 2, 29),
+    );
+    expect(
+      const LocalDate(2026, 1, 1).addDays(-1),
+      const LocalDate(2025, 12, 31),
+    );
+  });
+
+  test('days since counts whole days in either direction', () {
+    expect(
+      const LocalDate(2026, 10, 5).daysSince(const LocalDate(2026, 10, 1)),
+      4,
+    );
+    expect(
+      const LocalDate(2026, 9, 28).daysSince(const LocalDate(2026, 10, 1)),
+      -3,
+    );
+    // Across the October daylight-saving change: still whole days.
+    expect(
+      const LocalDate(2026, 10, 26).daysSince(const LocalDate(2026, 10, 24)),
+      2,
+    );
+  });
+
+  test('weekday is 1 for Monday and 7 for Sunday', () {
+    expect(const LocalDate(2026, 10, 5).weekday, 1);
+    expect(const LocalDate(2026, 10, 4).weekday, 7);
+  });
+
+  test('months step from the first of a month', () {
+    expect(
+      const LocalDate(2026, 10, 17).firstOfMonth,
+      const LocalDate(2026, 10, 1),
+    );
+    expect(
+      const LocalDate(2026, 1, 1).addMonths(-3),
+      const LocalDate(2025, 10, 1),
+    );
+    expect(
+      const LocalDate(2026, 11, 1).addMonths(2),
+      const LocalDate(2027, 1, 1),
+    );
+  });
 }

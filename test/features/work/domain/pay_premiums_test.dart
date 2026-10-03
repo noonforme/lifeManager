@@ -355,6 +355,64 @@ void main() {
       );
     });
   });
+  group('overtime rules', () {
+    List<PaySegment> segment(_Interval interval, OvertimeRule rule) =>
+        segmentPaidTime(
+          paidIntervals: [interval],
+          agreement: _agreement(nightEnabled: false),
+          toLocal: _toLocal,
+          toInstants: _toInstants,
+          overtime: rule,
+        );
+
+    test('a planned window makes only time outside it overtime', () {
+      final segments = segment(
+        _local('2026-09-15 06:30', '2026-09-15 19:45'),
+        WindowOvertime(
+          start: _utc('2026-09-15 07:00'),
+          end: _utc('2026-09-15 19:00'),
+        ),
+      );
+      expect(segments.map(_describe), [
+        '06:30 0:30 --O',
+        '07:00 12:00 ---',
+        '19:00 0:45 --O',
+      ]);
+    });
+
+    test('a 12-hour planned shift worked as planned has no overtime', () {
+      final segments = segment(
+        _local('2026-09-15 07:00', '2026-09-15 19:00'),
+        WindowOvertime(
+          start: _utc('2026-09-15 07:00'),
+          end: _utc('2026-09-15 19:00'),
+        ),
+      );
+      expect(segments.every((item) => !item.overtime), isTrue);
+    });
+
+    test('all and no overtime flag every second the same way', () {
+      final interval = _local('2026-09-15 08:00', '2026-09-15 20:00');
+      expect(
+        segment(interval, const AllOvertime()).every((s) => s.overtime),
+        isTrue,
+      );
+      expect(
+        segment(interval, const NoOvertime()).every((s) => !s.overtime),
+        isTrue,
+      );
+    });
+
+    test('no rule keeps the agreement threshold', () {
+      final segments = segmentPaidTime(
+        paidIntervals: [_local('2026-09-15 08:00', '2026-09-15 18:00')],
+        agreement: _agreement(nightEnabled: false),
+        toLocal: _toLocal,
+        toInstants: _toInstants,
+      );
+      expect(segments.map(_describe), ['08:00 8:00 ---', '16:00 2:00 --O']);
+    });
+  });
 }
 
 /// Fixed UTC+2, enough for cases without a daylight-saving change.

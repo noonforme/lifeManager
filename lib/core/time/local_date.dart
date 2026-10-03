@@ -33,6 +33,31 @@ final class LocalDate implements Comparable<LocalDate> {
   final int month;
   final int day;
 
+  /// The date [days] later, or earlier when negative.
+  LocalDate addDays(int days) {
+    final value = DateTime.utc(year, month, day + days);
+    return LocalDate(value.year, value.month, value.day);
+  }
+
+  /// Whole days from [other] to this date; negative when this is earlier.
+  int daysSince(LocalDate other) => DateTime.utc(
+    year,
+    month,
+    day,
+  ).difference(DateTime.utc(other.year, other.month, other.day)).inDays;
+
+  /// 1 for Monday through 7 for Sunday.
+  int get weekday => DateTime.utc(year, month, day).weekday;
+
+  /// The first day of this date's month.
+  LocalDate get firstOfMonth => LocalDate(year, month, 1);
+
+  /// The first of the month [months] later, or earlier when negative.
+  LocalDate addMonths(int months) {
+    final value = DateTime.utc(year, month + months, 1);
+    return LocalDate(value.year, value.month, 1);
+  }
+
   @override
   int compareTo(LocalDate other) {
     final yearComparison = year.compareTo(other.year);

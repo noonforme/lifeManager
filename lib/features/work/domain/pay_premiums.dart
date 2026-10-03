@@ -34,15 +34,50 @@ final class PaySegment {
   bool get hasPremium => night || holiday || overtime;
 }
 
+/// Which paid time is overtime (schedules spec 4.2).
+sealed class OvertimeRule {
+  const OvertimeRule();
+}
+
+/// Paid time after [seconds] of paid time in the shift: the agreement's
+/// threshold, for shifts without a schedule.
+final class ThresholdOvertime extends OvertimeRule {
+  const ThresholdOvertime(this.seconds);
+
+  final int seconds;
+}
+
+/// Paid time before [start] or from [end] on: a confirmed scheduled shift's
+/// planned window.
+final class WindowOvertime extends OvertimeRule {
+  const WindowOvertime({required this.start, required this.end});
+
+  final DateTime start;
+  final DateTime end;
+}
+
+/// Every paid second: an extra shift marked as overtime.
+final class AllOvertime extends OvertimeRule {
+  const AllOvertime();
+}
+
+/// No paid second: an extra shift that is not overtime, and planned pay.
+final class NoOvertime extends OvertimeRule {
+  const NoOvertime();
+}
+
 /// Splits [paidIntervals] (the shift minus its breaks, in UTC, ordered and
 /// not overlapping) at local midnights, the night window's start and end,
-/// the overtime start and any change of UTC offset. Each segment's flags are
-/// read at its start instant. Instants are truncated to whole seconds.
+/// the overtime start or the planned window's edges, and any change of UTC
+/// offset. Each segment's flags are read at its start instant. Instants are
+/// truncated to whole seconds. Without [overtime] the agreement's threshold
+/// applies.
 List<PaySegment> segmentPaidTime({
   required List<({DateTime start, DateTime end})> paidIntervals,
   required PayAgreement agreement,
   required ToLocal toLocal,
   required ToInstants toInstants,
+  OvertimeRule? overtime,
 }) {
   final intervals = [
     for (final interval in paidIntervals)
@@ -59,10 +94,27 @@ List<PaySegment> segmentPaidTime({
     }
   }
 
-  final overtimeStart = _overtimeStart(
-    intervals,
-    agreement.overtimeThresholdMinutes * 60,
-  );
+  final rule =
+      overtime ?? ThresholdOvertime(agreement.overtimeThresholdMinutes * 60);
+  final overtimeStart = switch (rule) {
+    ThresholdOvertime(:final seconds) => _overtimeStart(intervals, seconds),
+    _ => null,
+  };
+  final window = switch (rule) {
+    WindowOvertime(:final start, :final end) => (
+      start: _wholeSecond(start),
+      end: _wholeSecond(end),
+    ),
+    _ => null,
+  };
+  bool isOvertime(DateTime from) => switch (rule) {
+    ThresholdOvertime() =>
+      overtimeStart != null && !from.isBefore(overtimeStart),
+    WindowOvertime() =>
+      from.isBefore(window!.start) || !from.isBefore(window.end),
+    AllOvertime() => true,
+    NoOvertime() => false,
+  };
   final localMinutes = [
     0,
     if (agreement.nightEnabled) ...[
@@ -78,6 +130,8 @@ List<PaySegment> segmentPaidTime({
 
     final cuts = <DateTime>{
       if (overtimeStart != null && inside(overtimeStart)) overtimeStart,
+      if (window != null && inside(window.start)) window.start,
+      if (window != null && inside(window.end)) window.end,
       ..._offsetChanges(start, end, toLocal),
     };
     final last = toLocal(end).date;
@@ -108,7 +162,7 @@ List<PaySegment> segmentPaidTime({
                 agreement.nightEndMinute,
               ),
           holiday: isPublicHoliday(agreement.holidayCalendar, local.date),
-          overtime: overtimeStart != null && !from.isBefore(overtimeStart),
+          overtime: isOvertime(from),
         ),
       );
     }
