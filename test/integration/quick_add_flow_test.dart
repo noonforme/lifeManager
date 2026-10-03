@@ -113,14 +113,17 @@ void main() {
     expect(location(), contains('template=last'));
     String field(String key) =>
         tester.widget<TextField>(find.byKey(ValueKey(key))).controller!.text;
-    expect(field('shift-start-date'), '2026-10-03');
-    expect(field('shift-start-time'), '22:00');
-    expect(field('shift-end-date'), '2026-10-04');
-    expect(field('shift-end-time'), '06:00');
+    expect(dateIn(tester, 'shift-start-date'), const LocalDate(2026, 10, 3));
+    expect(timeIn(tester, 'shift-start-time'), const LocalTime(22, 0));
+    expect(dateIn(tester, 'shift-end-date'), const LocalDate(2026, 10, 4));
+    expect(timeIn(tester, 'shift-end-time'), const LocalTime(6, 0));
     expect(field('shift-timezone'), 'Europe/Vilnius');
-    expect(field('shift-break-start-date-0'), '2026-10-04');
-    expect(field('shift-break-start-0'), '01:00');
-    expect(field('shift-break-end-0'), '01:30');
+    expect(
+      dateIn(tester, 'shift-break-start-date-0'),
+      const LocalDate(2026, 10, 4),
+    );
+    expect(timeIn(tester, 'shift-break-start-0'), const LocalTime(1, 0));
+    expect(timeIn(tester, 'shift-break-end-0'), const LocalTime(1, 30));
     expect(field('shift-note'), isEmpty);
   });
 

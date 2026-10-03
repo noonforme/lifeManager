@@ -7,6 +7,7 @@ import 'package:lifeos/app/production_work_providers.dart';
 import 'package:lifeos/core/database/app_database.dart';
 import 'package:lifeos/core/time/app_clock.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/core/time/local_time.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/shared/workbench/inspector_parts.dart';
@@ -47,7 +48,11 @@ void main() {
     await tester.tap(_inInspector(find.text('Add manual shift')));
     await tester.pumpAndSettle();
     expect(location(), contains('mode=edit'));
-    await _enterShift(tester, start: '10:00', end: '18:00');
+    await _enterShift(
+      tester,
+      start: const LocalTime(10, 0),
+      end: const LocalTime(18, 0),
+    );
     await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
     await tester.pumpAndSettle();
     expect(location(), contains('record=shift:'));
@@ -105,10 +110,7 @@ void main() {
     expect(location(), endsWith('mode=edit'));
     expect(location(), isNot(shiftLocation.replaceFirst('inspect', 'edit')));
     expect(find.text('Revise replacement shift'), findsOneWidget);
-    await tester.enterText(
-      find.byKey(const ValueKey('shift-end-time')),
-      '17:00',
-    );
+    await setTime(tester, 'shift-end-time', const LocalTime(17, 0));
     await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
     await tester.pumpAndSettle();
     expect(location(), endsWith('mode=inspect'));
@@ -186,14 +188,10 @@ void main() {
     // A night shift, 22:00 to 06:00 local, finalized on save.
     await tester.tap(_inInspector(find.text('Add manual shift')));
     await tester.pumpAndSettle();
-    for (final (key, value) in [
-      ('shift-start-date', '2026-10-01'),
-      ('shift-start-time', '22:00'),
-      ('shift-end-date', '2026-10-02'),
-      ('shift-end-time', '06:00'),
-    ]) {
-      await tester.enterText(find.byKey(ValueKey(key)), value);
-    }
+    await pickDate(tester, 'shift-start-date', const LocalDate(2026, 10, 1));
+    await setTime(tester, 'shift-start-time', const LocalTime(22, 0));
+    await pickDate(tester, 'shift-end-date', const LocalDate(2026, 10, 2));
+    await setTime(tester, 'shift-end-time', const LocalTime(6, 0));
     await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
     await tester.pumpAndSettle();
 
@@ -354,17 +352,13 @@ Finder _inInspector(Finder finder) => find.descendant(
 
 Future<void> _enterShift(
   WidgetTester tester, {
-  required String start,
-  required String end,
+  required LocalTime start,
+  required LocalTime end,
 }) async {
-  for (final (key, value) in [
-    ('shift-start-date', '2026-09-29'),
-    ('shift-start-time', start),
-    ('shift-end-date', '2026-09-29'),
-    ('shift-end-time', end),
-  ]) {
-    await tester.enterText(find.byKey(ValueKey(key)), value);
-  }
+  await pickDate(tester, 'shift-start-date', const LocalDate(2026, 9, 29));
+  await setTime(tester, 'shift-start-time', start);
+  await pickDate(tester, 'shift-end-date', const LocalDate(2026, 9, 29));
+  await setTime(tester, 'shift-end-time', end);
 }
 
 final class _FixedClock implements AppClock {

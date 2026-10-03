@@ -5,7 +5,9 @@ import '../../../core/time/local_date.dart';
 import '../../../core/time/local_time.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/era_time_field.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
@@ -129,6 +131,13 @@ typedef SubmitManualShift = Future<MutationOutcome<WorkShift>> Function(
 );
 typedef FinalizeAction = Future<MutationOutcome<WorkShift>> Function();
 
+const shiftStartTimeMessage = 'Set a start time.';
+const shiftEndTimeMessage = 'Set an end time.';
+const breakTimesMessage = 'Set both break times, or neither.';
+
+/// The first step of an empty shift start time.
+const _firstShiftStep = LocalTime(9, 0);
+
 final class ShiftCreateInspector extends StatelessWidget {
   const ShiftCreateInspector({required this.onAddManualShift, super.key});
 
@@ -214,6 +223,7 @@ final class ShiftEditInspector extends StatefulWidget {
   const ShiftEditInspector({
     required this.employmentId,
     required this.onSubmit,
+    required this.today,
     this.initialTimezoneId,
     this.prefill,
     this.title = 'Manual shift',
@@ -222,6 +232,9 @@ final class ShiftEditInspector extends StatefulWidget {
 
   final EmploymentId employmentId;
   final SubmitManualShift onSubmit;
+
+  /// The date a new shift starts on, and the day circled in its calendars.
+  final LocalDate today;
   final String? initialTimezoneId;
   final ShiftFormPrefill? prefill;
   final String title;
@@ -231,86 +244,75 @@ final class ShiftEditInspector extends StatefulWidget {
 }
 
 final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
-  late final _startDate = TextEditingController(
-    text: widget.prefill?.startDate.toString() ?? '',
-  );
-  late final _startTime = TextEditingController(
-    text: _formatTime(widget.prefill?.startTime),
-  );
-  late final _endDate = TextEditingController(
-    text: widget.prefill?.endDate?.toString() ?? '',
-  );
-  late final _endTime = TextEditingController(
-    text: _formatTime(widget.prefill?.endTime),
-  );
+  late LocalDate _startDate = widget.prefill?.startDate ?? widget.today;
+  late LocalTime? _startTime = widget.prefill?.startTime;
+  late LocalDate _endDate = widget.prefill?.endDate ?? _startDate;
+  late LocalTime? _endTime = widget.prefill?.endTime;
+
+  /// Days from the start date to the end date. The end date keeps this
+  /// distance as the start date moves, until the end date is picked itself.
+  late final int _endOffset;
+  bool _endDatePicked = false;
   late final _timezone = TextEditingController(
     text: widget.prefill?.timezoneId ?? widget.initialTimezoneId ?? '',
   );
   late final _note = TextEditingController(text: widget.prefill?.note ?? '');
-  late final _breaks = <_BreakControllers>[
+  late final _breaks = <_BreakValues>[
     for (final value in widget.prefill?.breaks ?? const <ManualBreakDraft>[])
-      _BreakControllers()
-        ..startDate.text = value.startDate.toString()
-        ..start.text = _formatTime(value.start)
-        ..endDate.text = value.endDate.toString()
-        ..end.text = _formatTime(value.end),
+      _BreakValues(
+        startDate: value.startDate,
+        start: value.start,
+        endDate: value.endDate,
+        end: value.end,
+      ),
   ];
   final _errors = <String, String>{};
 
   @override
+  void initState() {
+    super.initState();
+    _endOffset = _endDate.daysSince(_startDate);
+  }
+
+  @override
   void dispose() {
-    _startDate.dispose();
-    _startTime.dispose();
-    _endDate.dispose();
-    _endTime.dispose();
     _timezone.dispose();
     _note.dispose();
-    for (final value in _breaks) {
-      value.dispose();
-    }
     super.dispose();
   }
 
-  void _addBreak() => setState(() => _breaks.add(_BreakControllers()));
+  void _addBreak() => setState(
+    () => _breaks.add(_BreakValues(startDate: _startDate, endDate: _startDate)),
+  );
+
+  void _setStartDate(LocalDate value) => setState(() {
+    _startDate = value;
+    if (!_endDatePicked) _endDate = value.addDays(_endOffset);
+  });
 
   Future<void> _submit() async {
-    final startDate = LocalDate.tryParse(_startDate.text.trim());
-    final startTime = _parseTime(_startTime.text.trim());
-    final endDate = LocalDate.tryParse(_endDate.text.trim());
-    final endTime = _parseTime(_endTime.text.trim());
     final timezone = _timezone.text.trim();
     final breaks = <ManualBreakDraft>[];
-    final errors = <String, String>{};
-
-    if (startDate == null) errors['startDate'] = 'Enter a valid ISO date.';
-    if (startTime == null) errors['startTime'] = 'Enter a valid local time.';
-    if (endDate == null) errors['endDate'] = 'Enter a valid ISO date.';
-    if (endTime == null) errors['endTime'] = 'Enter a valid local time.';
-    if (timezone.isEmpty) errors['timezone'] = 'Enter an IANA timezone.';
-    for (var index = 0; index < _breaks.length; index++) {
-      final breakStartDate = LocalDate.tryParse(
-        _breaks[index].startDate.text.trim(),
-      );
-      final start = _parseTime(_breaks[index].start.text.trim());
-      final breakEndDate = LocalDate.tryParse(
-        _breaks[index].endDate.text.trim(),
-      );
-      final end = _parseTime(_breaks[index].end.text.trim());
-      if (breakStartDate == null ||
-          start == null ||
-          breakEndDate == null ||
-          end == null) {
-        errors['break-$index'] = 'Enter valid break dates and times.';
-      } else {
-        breaks.add(
-          ManualBreakDraft(
-            startDate: breakStartDate,
-            start: start,
-            endDate: breakEndDate,
-            end: end,
-          ),
-        );
+    final errors = <String, String>{
+      if (_startTime == null) 'startTime': shiftStartTimeMessage,
+      if (_endTime == null) 'endTime': shiftEndTimeMessage,
+      if (timezone.isEmpty) 'timezone': 'Enter an IANA timezone.',
+    };
+    for (final (index, value) in _breaks.indexed) {
+      final (start, end) = (value.start, value.end);
+      if (start == null && end == null) continue;
+      if (start == null || end == null) {
+        errors['break-$index'] = breakTimesMessage;
+        continue;
       }
+      breaks.add(
+        ManualBreakDraft(
+          startDate: value.startDate,
+          start: start,
+          endDate: value.endDate,
+          end: end,
+        ),
+      );
     }
     if (errors.isNotEmpty) {
       setState(() {
@@ -324,10 +326,10 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     final outcome = await widget.onSubmit(
       ManualShiftDraft(
         employmentId: widget.employmentId,
-        localStartDate: startDate!,
-        localStartTime: startTime!,
-        localEndDate: endDate!,
-        localEndTime: endTime!,
+        localStartDate: _startDate,
+        localStartTime: _startTime!,
+        localEndDate: _endDate,
+        localEndTime: _endTime!,
         timezoneId: timezone,
         startFold: null,
         endFold: null,
@@ -348,6 +350,41 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     }
   }
 
+  Widget _date(
+    String key,
+    String label,
+    LocalDate value,
+    ValueChanged<LocalDate> onChanged,
+  ) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: EraDateField(
+      fieldKey: ValueKey(key),
+      label: label,
+      value: value,
+      today: widget.today,
+      onChanged: (picked) => onChanged(picked!),
+    ),
+  );
+
+  Widget _time(
+    String key,
+    String label,
+    LocalTime? value, {
+    required LocalTime emptyStart,
+    required ValueChanged<LocalTime> onChanged,
+    String? error,
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: EraTimeField(
+      fieldKey: ValueKey(key),
+      label: label,
+      value: value,
+      emptyStart: emptyStart,
+      error: error,
+      onChanged: onChanged,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) => Semantics(
     container: true,
@@ -358,29 +395,31 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
       children: [
         InspectorTitle(widget.title),
         _group(context, 'Times', [
-          _field(
-            key: const ValueKey('shift-start-date'),
-            label: 'Start date',
-            controller: _startDate,
-            error: _errors['startDate'],
-          ),
-          _field(
-            key: const ValueKey('shift-start-time'),
-            label: 'Start time',
-            controller: _startTime,
+          _date('shift-start-date', 'Start date', _startDate, _setStartDate),
+          _time(
+            'shift-start-time',
+            'Start time',
+            _startTime,
+            emptyStart: _firstShiftStep,
             error: _errors['startTime'],
+            onChanged: (value) => setState(() => _startTime = value),
           ),
-          _field(
-            key: const ValueKey('shift-end-date'),
-            label: 'End date',
-            controller: _endDate,
-            error: _errors['endDate'],
+          _date(
+            'shift-end-date',
+            'End date',
+            _endDate,
+            (value) => setState(() {
+              _endDate = value;
+              _endDatePicked = true;
+            }),
           ),
-          _field(
-            key: const ValueKey('shift-end-time'),
-            label: 'End time',
-            controller: _endTime,
+          _time(
+            'shift-end-time',
+            'End time',
+            _endTime,
+            emptyStart: _startTime ?? _firstShiftStep,
             error: _errors['endTime'],
+            onChanged: (value) => setState(() => _endTime = value),
           ),
           _field(
             key: const ValueKey('shift-timezone'),
@@ -390,27 +429,33 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
           ),
         ]),
         _group(context, 'Breaks', [
-          for (var index = 0; index < _breaks.length; index++) ...[
-            _field(
-              key: ValueKey('shift-break-start-date-$index'),
-              label: 'Break ${index + 1} start date',
-              controller: _breaks[index].startDate,
+          for (final (index, value) in _breaks.indexed) ...[
+            _date(
+              'shift-break-start-date-$index',
+              'Break ${index + 1} start date',
+              value.startDate,
+              (picked) => setState(() => value.startDate = picked),
+            ),
+            _time(
+              'shift-break-start-$index',
+              'Break ${index + 1} start time',
+              value.start,
+              emptyStart: _startTime ?? _firstShiftStep,
               error: _errors['break-$index'],
+              onChanged: (picked) => setState(() => value.start = picked),
             ),
-            _field(
-              key: ValueKey('shift-break-start-$index'),
-              label: 'Break ${index + 1} start time',
-              controller: _breaks[index].start,
+            _date(
+              'shift-break-end-date-$index',
+              'Break ${index + 1} end date',
+              value.endDate,
+              (picked) => setState(() => value.endDate = picked),
             ),
-            _field(
-              key: ValueKey('shift-break-end-date-$index'),
-              label: 'Break ${index + 1} end date',
-              controller: _breaks[index].endDate,
-            ),
-            _field(
-              key: ValueKey('shift-break-end-$index'),
-              label: 'Break ${index + 1} end time',
-              controller: _breaks[index].end,
+            _time(
+              'shift-break-end-$index',
+              'Break ${index + 1} end time',
+              value.end,
+              emptyStart: value.start ?? _startTime ?? _firstShiftStep,
+              onChanged: (picked) => setState(() => value.end = picked),
             ),
           ],
           Align(
@@ -498,38 +543,22 @@ Widget _field({
   ),
 );
 
-/// Formats as HH:MM, adding seconds only when they are set.
-String _formatTime(LocalTime? value) {
-  if (value == null) return '';
-  final text = value.toString();
-  return value.second == 0 ? text.substring(0, 5) : text;
-}
-
-LocalTime? _parseTime(String value) {
-  final match = RegExp(r'^(\d{2}):(\d{2})(?::(\d{2}))?$').firstMatch(value);
-  if (match == null) return null;
-  final hour = int.parse(match.group(1)!);
-  final minute = int.parse(match.group(2)!);
-  final second = int.parse(match.group(3) ?? '0');
-  if (hour > 23 || minute > 59 || second > 59) return null;
-  return LocalTime(hour, minute, second);
-}
-
 String? _trimOptional(String value) {
   final trimmed = value.trim();
   return trimmed.isEmpty ? null : trimmed;
 }
 
-final class _BreakControllers {
-  final startDate = TextEditingController();
-  final start = TextEditingController();
-  final endDate = TextEditingController();
-  final end = TextEditingController();
+/// One break's picked values; times stay null until set.
+final class _BreakValues {
+  _BreakValues({
+    required this.startDate,
+    required this.endDate,
+    this.start,
+    this.end,
+  });
 
-  void dispose() {
-    startDate.dispose();
-    start.dispose();
-    endDate.dispose();
-    end.dispose();
-  }
+  LocalDate startDate;
+  LocalTime? start;
+  LocalDate endDate;
+  LocalTime? end;
 }

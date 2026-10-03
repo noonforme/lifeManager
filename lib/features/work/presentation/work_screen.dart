@@ -400,6 +400,7 @@ final class _WorkScreenState extends State<WorkScreen> {
       return ShiftEditInspector(
         key: ValueKey(('manual-shift', template != null)),
         employmentId: route.employmentId!,
+        today: _today,
         initialTimezoneId: widget.systemTimezoneId,
         title: template == null
             ? 'Manual shift'
@@ -638,6 +639,7 @@ extension on _WorkScreenState {
     return ShiftEditInspector(
       key: ValueKey(('revise', record.id, shift.revision)),
       employmentId: shift.employmentId,
+      today: _today,
       title: 'Revise replacement shift',
       prefill: ShiftFormPrefill.fromShift(
         shift,

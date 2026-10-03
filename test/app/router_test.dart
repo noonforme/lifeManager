@@ -351,22 +351,10 @@ void main() {
     );
     expect(find.text('Europe/Amsterdam'), findsOneWidget);
 
-    await tester.enterText(
-      find.byKey(const ValueKey('shift-start-date')),
-      '2026-09-29',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('shift-start-time')),
-      '10:00',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('shift-end-date')),
-      '2026-09-29',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('shift-end-time')),
-      '18:00',
-    );
+    await pickDate(tester, 'shift-start-date', const LocalDate(2026, 9, 29));
+    await setTime(tester, 'shift-start-time', const LocalTime(10, 0));
+    await pickDate(tester, 'shift-end-date', const LocalDate(2026, 9, 29));
+    await setTime(tester, 'shift-end-time', const LocalTime(18, 0));
     await tester.tap(find.text('Save manual shift'));
     await tester.pumpAndSettle();
 
@@ -903,24 +891,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Revise replacement shift'), findsOneWidget);
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const ValueKey('shift-start-time')))
-          .controller!
-          .text,
-      '10:00',
-    );
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const ValueKey('shift-end-time')))
-          .controller!
-          .text,
-      '18:00',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('shift-end-time')),
-      '17:00',
-    );
+    expect(timeIn(tester, 'shift-start-time'), const LocalTime(10, 0));
+    expect(timeIn(tester, 'shift-end-time'), const LocalTime(18, 0));
+    await setTime(tester, 'shift-end-time', const LocalTime(17, 0));
     await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
     await tester.pumpAndSettle();
 

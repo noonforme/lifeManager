@@ -6,9 +6,13 @@ import 'package:lifeos/app/lifeos_app.dart';
 import 'package:lifeos/app/production_work_providers.dart';
 import 'package:lifeos/core/database/app_database.dart' show AppDatabase;
 import 'package:lifeos/core/time/app_clock.dart';
+import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/core/time/local_time.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/shared/shell/working_group_box.dart';
+
+import '../support/era_pickers.dart';
 
 /// The shell spec's section 10 flow on the production composition: a
 /// fresh install from Today to a finalized shift, then the formula bar,
@@ -79,14 +83,10 @@ void main() {
     // A shift from 09:00 to 17:00, entered by hand and finalized on save.
     await tester.tap(_inInspector(find.text('Add manual shift')));
     await tester.pumpAndSettle();
-    for (final (key, value) in [
-      ('shift-start-date', '2026-10-01'),
-      ('shift-start-time', '09:00'),
-      ('shift-end-date', '2026-10-01'),
-      ('shift-end-time', '17:00'),
-    ]) {
-      await tester.enterText(find.byKey(ValueKey(key)), value);
-    }
+    await pickDate(tester, 'shift-start-date', const LocalDate(2026, 10, 1));
+    await setTime(tester, 'shift-start-time', const LocalTime(9, 0));
+    await pickDate(tester, 'shift-end-date', const LocalDate(2026, 10, 1));
+    await setTime(tester, 'shift-end-time', const LocalTime(17, 0));
     await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
     await tester.pumpAndSettle();
     expect(find.text('Shift finalized'), findsOneWidget);
