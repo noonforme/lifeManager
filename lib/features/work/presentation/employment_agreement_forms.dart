@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
+import '../../../core/time/local_time.dart';
 import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/era_time_field.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
@@ -49,6 +52,9 @@ const multiplierMessage = 'Enter a multiplier of 1 or more, e.g. 1.5';
 const percentMessage = 'Enter a percent above zero, e.g. 62.06';
 const sickDaysMessage = 'Enter whole days from 0 to 30.';
 const nightWindowMessage = 'Night pay start and end must differ';
+
+/// Shown when the picked end date falls before the start date.
+const agreementRangeMessage = 'The agreement must end on or after its start.';
 
 /// Creates an employment, or edits [initial] with the same fields.
 final class EmploymentForm extends StatefulWidget {
@@ -178,13 +184,9 @@ final class AgreementForm extends StatefulWidget {
 
 final class _AgreementFormState extends State<AgreementForm> {
   late final PayAgreement? _initial = widget.initial;
-  late final _effectiveStart = TextEditingController(
-    text: (_initial?.effectiveStart ?? widget.today ?? _localToday())
-        .toString(),
-  );
-  late final _effectiveEnd = TextEditingController(
-    text: _initial?.effectiveEnd?.toString() ?? '',
-  );
+  late final LocalDate _today = widget.today ?? _localToday();
+  late LocalDate _effectiveStart = _initial?.effectiveStart ?? _today;
+  late LocalDate? _effectiveEnd = _initial?.effectiveEnd;
   late final _hourlyRate = TextEditingController(
     text: _initial == null ? '' : _eurText(_initial.hourlyRateMicroEur),
   );
@@ -199,15 +201,11 @@ final class _AgreementFormState extends State<AgreementForm> {
       _initial?.overtimeMultiplier ?? AgreementDefaults.overtimeMultiplier,
     ),
   );
-  late final _nightStart = TextEditingController(
-    text: formatClock(
-      _initial?.nightStartMinute ?? AgreementDefaults.nightStartMinute,
-    ),
+  late LocalTime _nightStart = _clockTime(
+    _initial?.nightStartMinute ?? AgreementDefaults.nightStartMinute,
   );
-  late final _nightEnd = TextEditingController(
-    text: formatClock(
-      _initial?.nightEndMinute ?? AgreementDefaults.nightEndMinute,
-    ),
+  late LocalTime _nightEnd = _clockTime(
+    _initial?.nightEndMinute ?? AgreementDefaults.nightEndMinute,
   );
   late final _nightMultiplier = TextEditingController(
     text: formatMultiplier(
@@ -245,13 +243,9 @@ final class _AgreementFormState extends State<AgreementForm> {
   @override
   void dispose() {
     for (final controller in [
-      _effectiveStart,
-      _effectiveEnd,
       _hourlyRate,
       _overtimeHours,
       _overtimeMultiplier,
-      _nightStart,
-      _nightEnd,
       _nightMultiplier,
       _holidayMultiplier,
       _vacationPercent,
@@ -266,30 +260,25 @@ final class _AgreementFormState extends State<AgreementForm> {
   }
 
   Future<void> _submit() async {
-    final start = LocalDate.tryParse(_effectiveStart.text.trim());
-    final endText = _effectiveEnd.text.trim();
-    final end = endText.isEmpty ? null : LocalDate.tryParse(endText);
+    final start = _effectiveStart;
+    final end = _effectiveEnd;
     final rate = _parseEurMicros(_hourlyRate.text.trim());
     final threshold = parseHoursAsMinutes(_overtimeHours.text);
     final overtime = parseMultiplier(_overtimeMultiplier.text);
-    final nightStart = parseClock(_nightStart.text);
-    final nightEnd = parseClock(_nightEnd.text);
+    final nightStart = _minuteOfDay(_nightStart);
+    final nightEnd = _minuteOfDay(_nightEnd);
     final night = parseMultiplier(_nightMultiplier.text);
     final holiday = parseMultiplier(_holidayMultiplier.text);
     final vacationPay = parsePercent(_vacationPercent.text);
     final sickPay = parsePercent(_sickPercent.text);
     final sickDays = int.tryParse(_sickDays.text.trim());
     final errors = <String, String>{
-      if (start == null) 'effectiveStart': 'Enter a date as YYYY-MM-DD.',
-      if (endText.isNotEmpty && end == null)
-        'effectiveEnd': 'Enter a date as YYYY-MM-DD.',
+      if (end != null && end.compareTo(start) < 0)
+        'effectiveEnd': agreementRangeMessage,
       if (rate == null || rate <= 0) 'hourlyRate': 'Enter a rate above zero.',
       if (threshold == null) 'overtimeHours': 'Enter hours above zero.',
       if (overtime == null) 'overtimeMultiplier': multiplierMessage,
-      if (nightStart == null) 'nightStart': 'Enter a time as HH:MM.',
-      if (nightEnd == null) 'nightEnd': 'Enter a time as HH:MM.',
-      if (nightStart != null && nightStart == nightEnd)
-        'nightEnd': nightWindowMessage,
+      if (nightStart == nightEnd) 'nightEnd': nightWindowMessage,
       if (night == null) 'nightMultiplier': multiplierMessage,
       if (holiday == null) 'holidayMultiplier': multiplierMessage,
       if (vacationPay == null) 'vacationPercent': percentMessage,
@@ -314,7 +303,7 @@ final class _AgreementFormState extends State<AgreementForm> {
       AgreementDraft(
         employmentId: widget.employmentId,
         terms: AgreementTerms(
-          effectiveStart: start!,
+          effectiveStart: start,
           effectiveEnd: end,
           hourlyRateMicroEur: rate!,
           basis: _basis,
@@ -323,8 +312,8 @@ final class _AgreementFormState extends State<AgreementForm> {
           overtimeThresholdMinutes: threshold!,
           overtimeMultiplier: overtime!,
           nightEnabled: _nightEnabled,
-          nightStartMinute: nightStart!,
-          nightEndMinute: nightEnd!,
+          nightStartMinute: nightStart,
+          nightEndMinute: nightEnd,
           nightMultiplier: night!,
           holidayCalendar: _holidays
               ? HolidayCalendar.lithuania
@@ -385,20 +374,23 @@ final class _AgreementFormState extends State<AgreementForm> {
               ),
               const SizedBox(height: 4),
               _group(context, 'Rate', [
-                _Field(
-                  controller: _effectiveStart,
+                EraDateField(
                   label: 'Starts on',
                   fieldKey: const ValueKey('agreement-effective-start'),
-                  error: _errors['effectiveStart'],
-                  hint: 'YYYY-MM-DD',
+                  value: _effectiveStart,
+                  today: _today,
+                  onChanged: (value) =>
+                      setState(() => _effectiveStart = value!),
                 ),
                 const SizedBox(height: 12),
-                _Field(
-                  controller: _effectiveEnd,
-                  label: 'Ends on (optional)',
+                EraDateField(
+                  label: 'Ends on',
+                  optional: true,
                   fieldKey: const ValueKey('agreement-effective-end'),
+                  value: _effectiveEnd,
+                  today: _today,
                   error: _errors['effectiveEnd'],
-                  hint: 'YYYY-MM-DD',
+                  onChanged: (value) => setState(() => _effectiveEnd = value),
                 ),
                 const SizedBox(height: 12),
                 _Field(
@@ -477,22 +469,22 @@ final class _AgreementFormState extends State<AgreementForm> {
                 _Sentence(
                   enabled: _nightEnabled,
                   children: [
-                    _Short(
-                      controller: _nightStart,
+                    _ClockBox(
                       fieldKey: const ValueKey('agreement-night-start'),
-                      width: 88,
                       semanticLabel: 'Night pay starts',
-                      error: _errors['nightStart'],
+                      value: _nightStart,
                       enabled: _nightEnabled,
+                      error: _errors['nightStart'],
+                      onChanged: (value) => setState(() => _nightStart = value),
                     ),
                     const Text('to'),
-                    _Short(
-                      controller: _nightEnd,
+                    _ClockBox(
                       fieldKey: const ValueKey('agreement-night-end'),
-                      width: 88,
                       semanticLabel: 'Night pay ends',
-                      error: _errors['nightEnd'],
+                      value: _nightEnd,
                       enabled: _nightEnabled,
+                      error: _errors['nightEnd'],
+                      onChanged: (value) => setState(() => _nightEnd = value),
                     ),
                     _Short(
                       prefix: '×',
@@ -860,6 +852,39 @@ final class _Sentence extends StatelessWidget {
   );
 }
 
+/// A time box set in a sentence, widening to fit its error as `_Short`
+/// does.
+final class _ClockBox extends StatelessWidget {
+  const _ClockBox({
+    required this.fieldKey,
+    required this.semanticLabel,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+    this.error,
+  });
+
+  final Key fieldKey;
+  final String semanticLabel;
+  final LocalTime value;
+  final bool enabled;
+  final ValueChanged<LocalTime> onChanged;
+  final String? error;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: error == null ? 88 : 240,
+    child: EraTimeField(
+      fieldKey: fieldKey,
+      semanticLabel: semanticLabel,
+      value: value,
+      enabled: enabled,
+      error: error,
+      onChanged: onChanged,
+    ),
+  );
+}
+
 final class _Short extends StatelessWidget {
   const _Short({
     required this.controller,
@@ -868,7 +893,6 @@ final class _Short extends StatelessWidget {
     this.error,
     this.enabled = true,
     this.prefix,
-    this.width = 72,
   });
 
   final TextEditingController controller;
@@ -877,11 +901,10 @@ final class _Short extends StatelessWidget {
   final String? error;
   final bool enabled;
   final String? prefix;
-  final double width;
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: error == null ? width : 240,
+    width: error == null ? 72 : 240,
     child: Semantics(
       label: error == null ? semanticLabel : '$semanticLabel, $error',
       textField: true,
@@ -1011,19 +1034,14 @@ String formatPercent(RationalMultiplier value) {
   return '$whole.${text.endsWith('0') ? text[0] : text}';
 }
 
-/// "HH:MM" as the minute of the day.
-int? parseClock(String text) {
-  final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(text.trim());
-  if (match == null) return null;
-  final hour = int.parse(match.group(1)!);
-  final minute = int.parse(match.group(2)!);
-  if (hour > 23 || minute > 59) return null;
-  return hour * 60 + minute;
-}
-
 String formatClock(int minuteOfDay) =>
     '${(minuteOfDay ~/ 60).toString().padLeft(2, '0')}:'
     '${(minuteOfDay % 60).toString().padLeft(2, '0')}';
+
+LocalTime _clockTime(int minuteOfDay) =>
+    LocalTime(minuteOfDay ~/ 60, minuteOfDay % 60);
+
+int _minuteOfDay(LocalTime time) => time.hour * 60 + time.minute;
 
 /// Minutes as decimal hours: 480 is "8", 450 is "7.5".
 String formatHours(int minutes) {

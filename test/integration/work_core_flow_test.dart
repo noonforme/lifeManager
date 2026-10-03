@@ -6,9 +6,12 @@ import 'package:lifeos/app/lifeos_app.dart';
 import 'package:lifeos/app/production_work_providers.dart';
 import 'package:lifeos/core/database/app_database.dart';
 import 'package:lifeos/core/time/app_clock.dart';
+import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/shared/workbench/inspector_parts.dart';
+
+import '../support/era_pickers.dart';
 
 /// Drives the Work core flow through the real router, controller, services
 /// and Drift repositories on an in-memory database with synthetic facts.
@@ -163,7 +166,13 @@ void main() {
     await tester.pumpAndSettle();
 
     // The agreement needs only a rate; it starts today, 2026-10-01.
-    expect(find.text('2026-10-01'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('agreement-effective-start')),
+        matching: find.text('Thu 2026-10-01'),
+      ),
+      findsOneWidget,
+    );
     await tester.enterText(
       find.byKey(const ValueKey('agreement-hourly-rate')),
       '20.00',
@@ -309,9 +318,10 @@ Future<void> _setUpEmployment(WidgetTester tester) async {
   );
   await tester.tap(find.text('Save employment'));
   await tester.pumpAndSettle();
-  await tester.enterText(
-    find.byKey(const ValueKey('agreement-effective-start')),
-    '2026-09-01',
+  await pickDate(
+    tester,
+    'agreement-effective-start',
+    LocalDate.parse('2026-09-01'),
   );
   await tester.enterText(
     find.byKey(const ValueKey('agreement-hourly-rate')),

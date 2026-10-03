@@ -15,6 +15,8 @@ import 'package:lifeos/features/work/application/work_commands.dart';
 import 'package:lifeos/features/work/domain/employment.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
 
+import '../support/era_pickers.dart';
+
 /// + Add and "from last time" on the production composition, with a fixed
 /// clock so today is 2026-10-03 in Vilnius.
 void main() {
@@ -152,9 +154,10 @@ void main() {
     await tester.tap(find.text('Agreement').last);
     await tester.pumpAndSettle();
     expect(location(), contains('add=agreement'));
-    await tester.enterText(
-      find.byKey(const ValueKey('agreement-effective-start')),
-      '2026-11-01',
+    await pickDate(
+      tester,
+      'agreement-effective-start',
+      LocalDate.parse('2026-11-01'),
     );
     await tester.enterText(
       find.byKey(const ValueKey('agreement-hourly-rate')),

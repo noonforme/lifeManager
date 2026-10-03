@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/core/time/local_time.dart';
 import 'package:lifeos/features/work/application/work_commands.dart';
 import 'package:lifeos/features/work/application/work_query_service.dart';
 import 'package:lifeos/features/work/data/projections/work_record_projection.dart';
@@ -16,6 +17,8 @@ import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+
+import '../../../support/era_pickers.dart';
 
 void main() {
   Future<void> submitAgreement(WidgetTester tester) async {
@@ -141,7 +144,10 @@ void main() {
       AgreementDraft? submitted;
       await pumpAgreementForm(tester, onSubmit: (draft) => submitted = draft);
 
-      expect(find.text('2026-10-01'), findsOneWidget);
+      expect(
+        dateIn(tester, 'agreement-effective-start'),
+        const LocalDate(2026, 10, 1),
+      );
       await enter(tester, 'agreement-hourly-rate', '18.40');
       await submitAgreement(tester);
 
@@ -225,11 +231,75 @@ void main() {
       expect(find.text(multiplierMessage), findsNWidgets(2));
     });
 
+    testWidgets('dates and the night window are picked with defaults', (
+      tester,
+    ) async {
+      AgreementDraft? submitted;
+      await pumpAgreementForm(tester, onSubmit: (draft) => submitted = draft);
+
+      expect(
+        dateIn(tester, 'agreement-effective-start'),
+        const LocalDate(2026, 10, 1),
+      );
+      expect(dateIn(tester, 'agreement-effective-end'), isNull);
+      expect(timeIn(tester, 'agreement-night-start'), const LocalTime(22, 0));
+      expect(timeIn(tester, 'agreement-night-end'), const LocalTime(6, 0));
+
+      await enter(tester, 'agreement-hourly-rate', '18.40');
+      await pickDate(
+        tester,
+        'agreement-effective-end',
+        const LocalDate(2026, 12, 31),
+      );
+      await setTime(tester, 'agreement-night-start', const LocalTime(21, 30));
+      await submitAgreement(tester);
+
+      expect(submitted!.terms.effectiveStart, const LocalDate(2026, 10, 1));
+      expect(submitted!.terms.effectiveEnd, const LocalDate(2026, 12, 31));
+      expect(submitted!.terms.nightStartMinute, 21 * 60 + 30);
+      expect(submitted!.terms.nightEndMinute, 6 * 60);
+    });
+
+    testWidgets('an end before the start is refused', (tester) async {
+      var submitted = false;
+      await pumpAgreementForm(tester, onSubmit: (_) => submitted = true);
+
+      await enter(tester, 'agreement-hourly-rate', '18.40');
+      await pickDate(
+        tester,
+        'agreement-effective-end',
+        const LocalDate(2026, 9, 30),
+      );
+      await submitAgreement(tester);
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 800));
+      await tester.pumpAndSettle();
+
+      expect(submitted, isFalse);
+      expect(find.text(agreementRangeMessage), findsOneWidget);
+    });
+
+    testWidgets('the night boxes are disabled with night pay off', (
+      tester,
+    ) async {
+      await pumpAgreementForm(tester);
+      final night = find.byKey(const ValueKey('agreement-night-enabled'));
+      await tester.ensureVisible(night);
+      await tester.pumpAndSettle();
+      await tester.tap(night);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSemantics(
+          find.byKey(const ValueKey('agreement-night-start')),
+        ),
+        isSemantics(label: 'Night pay starts, 22:00', isEnabled: false),
+      );
+    });
+
     testWidgets('night start equal to its end is refused', (tester) async {
       await pumpAgreementForm(tester);
 
       await enter(tester, 'agreement-hourly-rate', '18.40');
-      await enter(tester, 'agreement-night-start', '06:00');
+      await setTime(tester, 'agreement-night-start', const LocalTime(6, 0));
       await submitAgreement(tester);
       await tester.drag(find.byType(Scrollable).first, const Offset(0, 400));
       await tester.pumpAndSettle();
