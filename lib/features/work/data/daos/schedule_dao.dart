@@ -74,6 +74,23 @@ final class ScheduleDao {
     return {for (final row in rows) LocalDate.parse(row.read<String>('date'))};
   }
 
+  /// The last planned date confirmed from one version, as a non-voided
+  /// shift or confirmed leave.
+  Future<LocalDate?> lastConfirmedDate(ScheduleId id, int version) async {
+    final row = await database
+        .customSelect(
+          'SELECT MAX(date) AS last FROM ('
+          'SELECT planned_date AS date FROM work_shifts WHERE schedule_id = ?1 '
+          "AND schedule_version = ?2 AND state <> 'voided' "
+          'UNION ALL SELECT date FROM work_leave_records WHERE '
+          "schedule_id = ?1 AND schedule_version = ?2 AND state = 'confirmed')",
+          variables: [Variable(id.value), Variable(version)],
+        )
+        .getSingle();
+    final last = row.read<String?>('last');
+    return last == null ? null : LocalDate.parse(last);
+  }
+
   Future<void> insertVersion(WorkSchedule value) async {
     await database
         .into(database.workSchedules)

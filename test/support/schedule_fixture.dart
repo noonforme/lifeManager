@@ -127,14 +127,14 @@ final class ScheduleFixture {
 
   /// Confirms a Day shift on [date] from [version] directly, so the
   /// version counts as used (Task 9 adds the real confirm command).
-  Future<void> markUsed(
+  Future<MutationOutcome<WorkShift>> markUsed(
     WorkSchedule version, {
     LocalDate date = const LocalDate(2026, 10, 5),
   }) async {
     // 07:00–19:00 in Europe/Vilnius, summer time (UTC+3).
     final start = DateTime.utc(date.year, date.month, date.day, 4);
     final end = DateTime.utc(date.year, date.month, date.day, 16);
-    await shifts.createAndFinalizeManual(
+    return shifts.createAndFinalizeManual(
       WorkShift(
         id: ids.shiftId(),
         employmentId: fixtureEmployment,
@@ -171,6 +171,7 @@ ScheduleDraft depotDraft({
   int firstCount = 3,
   bool onlyOff = false,
   LocalDate from = const LocalDate(2026, 10, 5),
+  LocalDate? until,
   List<CycleBlock>? blocks,
 }) => ScheduleDraft(
   employmentId: fixtureEmployment,
@@ -178,7 +179,7 @@ ScheduleDraft depotDraft({
   timezoneId: 'Europe/Vilnius',
   cycleStart: from,
   inUseFrom: from,
-  inUseUntil: null,
+  inUseUntil: until,
   shiftTypes: const [
     ShiftType(
       id: ShiftTypeId('day'),

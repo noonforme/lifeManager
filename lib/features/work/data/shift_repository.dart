@@ -1,5 +1,3 @@
-import 'package:drift/drift.dart' show Variable;
-
 import '../../../core/database/app_database.dart' show AppDatabase;
 import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
@@ -13,6 +11,7 @@ import '../domain/ids.dart';
 import '../domain/shift.dart';
 import 'daos/agreement_dao.dart';
 import 'daos/employment_dao.dart';
+import 'daos/schedule_dao.dart';
 import 'daos/shift_dao.dart';
 import 'work_history.dart';
 
@@ -108,19 +107,14 @@ final class DriftShiftRepository
     List<ShiftBreak> breaks,
   ) {
     return _database.transaction(() async {
-      // A planned day is confirmed once (schedules spec 3.6).
+      // A planned day is confirmed once, as a shift or as leave (schedules
+      // spec 3.6).
       if (draft.schedule case final link?) {
-        final taken = await _database
-            .customSelect(
-              'SELECT 1 FROM work_shifts WHERE employment_id = ? '
-              "AND planned_date = ? AND state <> 'voided'",
-              variables: [
-                Variable(draft.employmentId.value),
-                Variable(link.plannedDate.toString()),
-              ],
-            )
-            .get();
-        if (taken.isNotEmpty) return const Stale<WorkShift>();
+        final taken = await ScheduleDao(_database)
+            .confirmedDates(draft.employmentId);
+        if (taken.contains(link.plannedDate)) {
+          return const Stale<WorkShift>();
+        }
       }
       final employment = await _employments.byId(draft.employmentId);
       if (employment == null || employment.status != EmploymentStatus.active) {

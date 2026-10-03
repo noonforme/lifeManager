@@ -61,6 +61,22 @@ File releasedV1(OwnedTestRoot root) {
     "('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c52', '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c32', "
     '1788865200000000, NULL, 0, 0, 0)',
   );
+  raw.execute(
+    "INSERT INTO pay_periods VALUES ('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c61', "
+    "'018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11', '2026-09-01', '2026-09-30', NULL, "
+    "'open', 0, 0, 0)",
+  );
+  raw.execute(
+    "INSERT INTO payslips VALUES ('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c71', "
+    "'018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c61', '2026-10-05', NULL, 14720, 'EUR', "
+    "'gross', 14720, NULL, NULL, NULL, NULL, 'effective', NULL, NULL, NULL, "
+    '0, 0, 0)',
+  );
+  raw.execute(
+    'INSERT INTO record_events (record_kind, record_id, at_utc_micros, kind, '
+    "changes_json, reason, revision_after) VALUES ('shift', "
+    "'018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c31', 0, 'finalized', '[]', NULL, 2)",
+  );
   raw.userVersion = 1;
   raw.close();
   return file;
@@ -157,6 +173,14 @@ void main() {
     // The Shifts sheet lists drafts too: the finalized shift and the
     // former on-break shift, now a draft.
     expect(register.shiftSheet, hasLength(2));
+    expect(register.periodSheet, hasLength(1));
+    expect(register.payslipSheet.single.amount.minorUnits, 14720);
+    final history = await raw
+        .customSelect(
+          "SELECT COUNT(*) AS n FROM record_events WHERE record_kind = 'shift'",
+        )
+        .getSingle();
+    expect(history.data['n'], 1);
   });
 
   test('a migration that fails part-way leaves schema 1 intact', () async {
@@ -196,6 +220,69 @@ void main() {
           .single['state'],
       'onBreak',
     );
+  });
+
+  test('a migrated database has exactly the schema of a fresh one', () async {
+    Future<Map<String, Object>> shape(DriftDatabaseService service) async {
+      final db = service.database;
+      final objects = await db
+          .customSelect(
+            'SELECT type, name, tbl_name FROM sqlite_master '
+            "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name",
+          )
+          .get();
+      final result = <String, Object>{};
+      for (final row in objects) {
+        final type = row.read<String>('type');
+        final name = row.read<String>('name');
+        if (type == 'table') {
+          final columns = await db
+              .customSelect('PRAGMA table_info("$name")')
+              .get();
+          final keys = await db
+              .customSelect('PRAGMA foreign_key_list("$name")')
+              .get();
+          result['table $name'] = [
+            for (final column in columns)
+              '${column.data['name']} ${column.data['type']} '
+                  'notnull=${column.data['notnull']} '
+                  'default=${column.data['dflt_value']} pk=${column.data['pk']}',
+            for (final key in keys)
+              'fk ${key.data['from']}->${key.data['table']}.${key.data['to']} '
+                  '${key.data['on_delete']}',
+          ]..sort();
+        } else {
+          final columns = await db
+              .customSelect('PRAGMA index_info("$name")')
+              .get();
+          result['$type $name'] =
+              '${row.read<String>('tbl_name')}: '
+              '${columns.map((column) => column.data['name']).join(',')}';
+        }
+      }
+      return result;
+    }
+
+    final migratedRoot = await OwnedTestRoot.create();
+    addTearDown(migratedRoot.dispose);
+    releasedV1(migratedRoot);
+    final migrated = await DriftDatabaseService.open(
+      DatabaseConfig.test(
+        root: migratedRoot.uri,
+        markerToken: migratedRoot.token,
+      ),
+      location: _locationFor(migratedRoot),
+    );
+    addTearDown(migrated.close);
+    final freshRoot = await OwnedTestRoot.create();
+    addTearDown(freshRoot.dispose);
+    final fresh = await DriftDatabaseService.open(
+      DatabaseConfig.test(root: freshRoot.uri, markerToken: freshRoot.token),
+      location: _locationFor(freshRoot),
+    );
+    addTearDown(fresh.close);
+
+    expect(await shape(migrated), await shape(fresh));
   });
 
   test('a fresh database starts at 3 with no active-shift index', () async {

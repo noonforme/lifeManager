@@ -1,6 +1,5 @@
-import 'package:sqlite3/sqlite3.dart' show SqliteException;
-
 import '../../../core/database/database_identity.dart';
+import '../../../core/database/sqlite_errors.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/app_clock.dart';
 import '../../../core/time/local_date.dart';
@@ -154,6 +153,7 @@ final class DayPlanService {
     expected: expected,
     needsShift: true,
     times: (start: start, end: end, endDayOffset: endDayOffset, breaks: breaks),
+    shiftTypeId: shiftTypeId,
     build: (key, created, now, revision, plannedTypeId) => ChangedDay(
       id: key,
       employmentId: id,
@@ -243,6 +243,7 @@ final class DayPlanService {
     expected: expected,
     needsShift: false,
     times: (start: start, end: end, endDayOffset: endDayOffset, breaks: breaks),
+    shiftTypeId: shiftTypeId,
     build: (key, created, now, revision, _) => ExtraDay(
       id: key,
       employmentId: id,
@@ -318,6 +319,12 @@ final class DayPlanService {
         ),
         _ => throw StateError('unreachable'),
       };
+    } on ArgumentError {
+      // The plan resolves to no real shift on this date, for example one
+      // that falls wholly inside a daylight-saving gap.
+      return const Invalid<ConfirmedDay>({
+        'date': [FieldIssue(FieldIssueCode.invalid)],
+      });
     } on DatabaseOpenFailure {
       return const Unavailable<ConfirmedDay>(
         SafeFailureCode.storageUnavailable,
@@ -360,7 +367,13 @@ final class DayPlanService {
         date: original.date,
         leaveType: leaveType,
         illnessStartedOn: leaveType == LeaveType.sick
-            ? illnessStartedOn ?? original.illnessStartedOn ?? original.date
+            ? illnessStartedOn ??
+                  original.illnessStartedOn ??
+                  await _illnessStart(
+                    original.employmentId,
+                    original.date,
+                    await repository.planInputs(original.employmentId),
+                  )
             : null,
         paidMinutes: original.paidMinutes,
         agreementId: original.agreementId,
@@ -435,11 +448,9 @@ final class DayPlanService {
     final MutationOutcome<WorkShift> outcome;
     try {
       outcome = await shifts.createAndFinalizeManual(draft, breaks);
-    } on SqliteException catch (error) {
+    } on Object catch (error) {
       // one_confirmed_shift_per_planned_day: another confirm won the date.
-      if (error.extendedResultCode == 2067 || error.resultCode == 19) {
-        return const Stale<ConfirmedDay>();
-      }
+      if (isUniqueViolation(error)) return const Stale<ConfirmedDay>();
       rethrow;
     }
     return switch (outcome) {
@@ -461,30 +472,9 @@ final class DayPlanService {
     AgreementId agreementId,
     DateTime now,
   ) async {
-    LocalDate? illnessStartedOn = day.illnessStartedOn;
-    if (day.leaveType == LeaveType.sick && illnessStartedOn == null) {
-      final leave = await repository.leaveFor(id);
-      final sick = {
-        for (final item in inputs.exceptions)
-          if (item is LeaveDay && item.leaveType == LeaveType.sick) item.date,
-        for (final item in leave)
-          if (item.isEffective && item.leaveType == LeaveType.sick) item.date,
-      };
-      // A year back is the longest run the default follows.
-      final before = {
-        for (final planned in _plan(
-          inputs,
-          day.date.addDays(-366),
-          day.date.addDays(-1),
-        ))
-          planned.date: planned,
-      };
-      illnessStartedOn = defaultIllnessStart(
-        day.date,
-        isSick: sick.contains,
-        isOff: (date) => before[date] is OffDay,
-      );
-    }
+    final illnessStartedOn = day.leaveType == LeaveType.sick
+        ? day.illnessStartedOn ?? await _illnessStart(id, day.date, inputs)
+        : null;
     final outcome = await repository.insertLeave(
       LeaveRecord(
         id: ids.leaveRecordId(),
@@ -517,6 +507,32 @@ final class DayPlanService {
     };
   }
 
+  /// The default start of the illness [date] belongs to (spec 4.3): back
+  /// across sick days, marked or confirmed, that only Off days separate.
+  Future<LocalDate> _illnessStart(
+    EmploymentId id,
+    LocalDate date,
+    PlanInputs inputs,
+  ) async {
+    final leave = await repository.leaveFor(id);
+    final sick = {
+      for (final item in inputs.exceptions)
+        if (item is LeaveDay && item.leaveType == LeaveType.sick) item.date,
+      for (final item in leave)
+        if (item.isEffective && item.leaveType == LeaveType.sick) item.date,
+    };
+    // A year back is the longest run the default follows.
+    final before = {
+      for (final planned in _plan(inputs, date.addDays(-366), date.addDays(-1)))
+        planned.date: planned,
+    };
+    return defaultIllnessStart(
+      date,
+      isSick: sick.contains,
+      isOff: (day) => before[day] is OffDay,
+    );
+  }
+
   List<PlannedDay> _plan(PlanInputs inputs, LocalDate from, LocalDate to) =>
       planDays(
         from: from,
@@ -547,6 +563,7 @@ final class DayPlanService {
       List<FixedBreak> breaks,
     })?
     times,
+    ShiftTypeId? shiftTypeId,
   }) => _guard(() async {
     if (times != null) {
       final check = checkShiftTimes(
@@ -580,6 +597,16 @@ final class DayPlanService {
     ).firstOrNull;
     final fits = needsShift ? cycle is PlannedShift : cycle is OffDay;
     if (!fits) return _dateIssue(conflict: false);
+    if (shiftTypeId != null &&
+        inputs.schedules
+                .where((value) => value.isInUseOn(date))
+                .firstOrNull
+                ?.typeById(shiftTypeId) ==
+            null) {
+      return const Invalid<DayException>({
+        'shiftTypeId': [FieldIssue(FieldIssueCode.invalid)],
+      });
+    }
     final existing = inputs.exceptions
         .where((value) => value.date == date)
         .firstOrNull;

@@ -385,7 +385,6 @@ final class DriftWorkRepository
     final payslips = await _payslips.forEmployment(employmentId);
     final agreementsById = {for (final a in agreements) a.id: a};
     final leave = await _leave.forEmployment(employmentId);
-    final pricedLeave = _priceLeave(leave, shifts, breaks, agreementsById);
 
     PayPeriod? periodOf(WorkShift shift) => periods
         .where((period) => period.contains(shift.localStartDate))
@@ -407,17 +406,27 @@ final class DriftWorkRepository
       PayPeriodScope(:final periodId) => periodOf(shift)?.id == periodId,
     };
 
-    final shiftSheet = [
+    // Each shift is priced once; the sheet shows those in scope and leave
+    // averages read all of them.
+    final breaksByShift = <ShiftId, List<ShiftBreak>>{};
+    for (final item in breaks) {
+      breaksByShift.putIfAbsent(item.shiftId, () => []).add(item);
+    }
+    final rows = [
       for (final shift in shifts)
-        if (inScope(shift))
-          shiftSheetRow(
-            shift,
-            breaks.where((item) => item.shiftId == shift.id).toList(),
-            agreementsById,
-            periodOf(shift),
-            _zoneClocks,
-          ),
+        shiftSheetRow(
+          shift,
+          breaksByShift[shift.id] ?? const [],
+          agreementsById,
+          periodOf(shift),
+          _zoneClocks,
+        ),
     ];
+    final shiftSheet = [
+      for (final row in rows)
+        if (inScope(row.shift)) row,
+    ];
+    final pricedLeave = _priceLeave(leave, rows, agreementsById);
     final periodSheet = [
       for (final period in periods)
         PeriodSheetRow(
@@ -555,30 +564,19 @@ final class DriftWorkRepository
   /// earlier leave of the 3 months before it (schedules spec 4.3).
   Map<LeaveRecordId, PricedLeave> _priceLeave(
     List<LeaveRecord> leave,
-    List<WorkShift> shifts,
-    List<ShiftBreak> breaks,
+    List<ShiftSheetRow> rows,
     Map<AgreementId, PayAgreement> agreements,
   ) {
-    final worked = <WorkedPay>[];
-    for (final shift in shifts) {
-      if (shift.state != ShiftState.finalized) continue;
-      final row = shiftSheetRow(
-        shift,
-        breaks.where((item) => item.shiftId == shift.id).toList(),
-        agreements,
-        null,
-        _zoneClocks,
-      );
-      final pay = row.pay;
-      if (pay == null) continue;
-      worked.add(
-        WorkedPay(
-          date: shift.localStartDate,
-          paidSeconds: pay.totalPaidSeconds,
-          pay: pay.amount,
-        ),
-      );
-    }
+    final worked = [
+      for (final row in rows)
+        if (row.shift.state == ShiftState.finalized)
+          if (row.pay case final pay?)
+            WorkedPay(
+              date: row.shift.localStartDate,
+              paidSeconds: pay.totalPaidSeconds,
+              pay: pay.amount,
+            ),
+    ];
     final prices = priceLeave(
       leave: leave,
       worked: worked,

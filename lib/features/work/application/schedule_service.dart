@@ -36,6 +36,9 @@ abstract interface class ScheduleRepository {
 
   Stream<List<WorkSchedule>> watchSchedules(EmploymentId id);
 
+  /// The last date confirmed from one version, as a shift or as leave.
+  Future<LocalDate?> lastConfirmedDate(ScheduleId id, int version);
+
   /// Inserts [value]; with [closing], first ends that version on its
   /// `inUseUntil`, provided it is still at [closingExpected].
   Future<MutationOutcome<WorkSchedule>> insertVersion(
@@ -131,6 +134,23 @@ final class ScheduleService {
         'newVersionFrom': [FieldIssue(FieldIssueCode.invalid)],
       });
     }
+    // Confirmed days keep the version they were planned from, so the new
+    // version starts after the last of them.
+    final lastConfirmed = await repository.lastConfirmedDate(
+      id,
+      current.version,
+    );
+    if (lastConfirmed != null && newVersionFrom.compareTo(lastConfirmed) <= 0) {
+      return const Invalid<WorkSchedule>({
+        'newVersionFrom': [FieldIssue(FieldIssueCode.conflict)],
+      });
+    }
+    // Ending the current version never moves an earlier end later.
+    final dayBefore = newVersionFrom.addDays(-1);
+    final currentEnd = current.inUseUntil;
+    final until = currentEnd != null && currentEnd.compareTo(dayBefore) < 0
+        ? currentEnd
+        : dayBefore;
     final closing = WorkSchedule(
       id: current.id,
       employmentId: current.employmentId,
@@ -139,7 +159,7 @@ final class ScheduleService {
       version: current.version,
       cycleStart: current.cycleStart,
       inUseFrom: current.inUseFrom,
-      inUseUntil: newVersionFrom.addDays(-1),
+      inUseUntil: until,
       shiftTypes: current.shiftTypes,
       blocks: current.blocks,
       createdAtUtc: current.createdAtUtc,

@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
-import 'package:sqlite3/sqlite3.dart' show SqliteException;
 
 import '../../../core/database/app_database.dart' show AppDatabase;
+import '../../../core/database/sqlite_errors.dart';
 import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/app_clock.dart';
@@ -56,6 +56,10 @@ final class DriftScheduleRepository
       yield await _schedules.forEmployment(id);
     }
   }
+
+  @override
+  Future<LocalDate?> lastConfirmedDate(ScheduleId id, int version) =>
+      _schedules.lastConfirmedDate(id, version);
 
   @override
   Future<MutationOutcome<WorkSchedule>> insertVersion(
@@ -244,9 +248,9 @@ final class DriftScheduleRepository
         );
         return Committed<LeaveRecord>(value);
       });
-    } on SqliteException catch (error) {
+    } on Object catch (error) {
       // one_confirmed_leave_per_day: another confirm won the date.
-      if (_isUniqueViolation(error)) return const Stale<LeaveRecord>();
+      if (isUniqueViolation(error)) return const Stale<LeaveRecord>();
       rethrow;
     }
   }
@@ -295,6 +299,3 @@ final class DriftScheduleRepository
   Future<Set<LocalDate>> _confirmedDates(EmploymentId id) =>
       _schedules.confirmedDates(id);
 }
-
-bool _isUniqueViolation(SqliteException error) =>
-    error.extendedResultCode == 2067 || error.resultCode == 19;
