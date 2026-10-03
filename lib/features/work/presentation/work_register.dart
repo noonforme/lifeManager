@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/shell/task_pane.dart';
 import '../../../shared/workbench/inspector_parts.dart';
@@ -24,6 +25,7 @@ final class WorkRegister extends StatelessWidget {
     required this.onPrimaryAction,
     this.onOpenEmployment,
     this.onNewPeriod,
+    this.today,
     this.onAllEmployments,
     this.onCreateEmployment,
     this.route,
@@ -40,6 +42,9 @@ final class WorkRegister extends StatelessWidget {
   final VoidCallback onPrimaryAction;
   final ValueChanged<EmploymentId>? onOpenEmployment;
   final VoidCallback? onNewPeriod;
+
+  /// The date a new range ends on; the device date when null.
+  final LocalDate? today;
 
   /// Clears the employment from the route.
   final VoidCallback? onAllEmployments;
@@ -185,6 +190,7 @@ final class WorkRegister extends StatelessWidget {
               PeriodPicker(
                 scope: route.scope,
                 periods: [for (final row in value.periodSheet) row.period],
+                today: today,
                 onScope: (scope) => change(
                   route.copyWith(scope: () => scope, record: () => null),
                 ),

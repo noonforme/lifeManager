@@ -13,9 +13,11 @@ import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_register.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
+import 'package:lifeos/features/work/presentation/work_toolbar_controls.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
+import '../../../support/era_pickers.dart';
 import '../../../support/work_sheets.dart';
 
 void main() {
@@ -360,6 +362,39 @@ void main() {
       expect(next.end, const LocalDate(2026, 9, 14));
     });
 
+    testWidgets(
+      'a new range starts on the first of this month and ends today',
+      (tester) async {
+        final scopes = <WorkTemporalScope?>[];
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: buildLifeOSTheme(),
+            home: LifeOSSkinScope(
+              child: Scaffold(
+                body: PeriodPicker(
+                  scope: null,
+                  periods: const [],
+                  today: const LocalDate(2026, 9, 15),
+                  onScope: scopes.add,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('Period:'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Date range…'));
+        await tester.pumpAndSettle();
+        expect(dateIn(tester, 'range-from'), const LocalDate(2026, 9, 1));
+        expect(dateIn(tester, 'range-to'), const LocalDate(2026, 9, 15));
+        await tester.tap(find.byKey(const ValueKey('range-apply')));
+        await tester.pumpAndSettle();
+        final range = scopes.single! as DateRangeScope;
+        expect(range.start, const LocalDate(2026, 9, 1));
+        expect(range.end, const LocalDate(2026, 9, 15));
+      },
+    );
+
     testWidgets('an explicit date range is entered from the period menu', (
       tester,
     ) async {
@@ -375,24 +410,15 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Date range…'));
       await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const ValueKey('range-from')),
-        '2026-09-10',
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('range-to')),
-        '2026-09-05',
-      );
+      await pickDate(tester, 'range-from', const LocalDate(2026, 9, 10));
+      await pickDate(tester, 'range-to', const LocalDate(2026, 9, 5));
       await tester.tap(find.byKey(const ValueKey('range-apply')));
       await tester.pumpAndSettle();
       expect(
         find.text('The range must end on or after its start.'),
         findsOneWidget,
       );
-      await tester.enterText(
-        find.byKey(const ValueKey('range-to')),
-        '2026-09-20',
-      );
+      await pickDate(tester, 'range-to', const LocalDate(2026, 9, 20));
       await tester.tap(find.byKey(const ValueKey('range-apply')));
       await tester.pumpAndSettle();
 

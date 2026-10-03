@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/time/local_date.dart';
 import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_dialog.dart';
-import '../../../shared/workbench/era_field.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../data/projections/work_register_projection.dart';
@@ -117,10 +117,14 @@ final class PeriodPicker extends StatelessWidget {
     required this.scope,
     required this.periods,
     required this.onScope,
+    this.today,
     super.key,
   });
 
   final WorkTemporalScope? scope;
+
+  /// The date a new range ends on; the device date when null.
+  final LocalDate? today;
 
   /// The employment's pay periods in start order.
   final List<PayPeriod> periods;
@@ -161,7 +165,8 @@ final class PeriodPicker extends StatelessWidget {
   Future<void> _askRange(BuildContext context) async {
     final range = await showDialog<DateRangeScope>(
       context: context,
-      builder: (context) => _RangeDialog(initial: scope),
+      builder: (context) =>
+          _RangeDialog(initial: scope, today: today ?? _deviceToday()),
     );
     if (range != null) onScope(range);
   }
@@ -224,48 +229,32 @@ final class PeriodPicker extends StatelessWidget {
 }
 
 final class _RangeDialog extends StatefulWidget {
-  const _RangeDialog({required this.initial});
+  const _RangeDialog({required this.initial, required this.today});
 
   final WorkTemporalScope? initial;
+  final LocalDate today;
 
   @override
   State<_RangeDialog> createState() => _RangeDialogState();
 }
 
 final class _RangeDialogState extends State<_RangeDialog> {
-  late final _from = TextEditingController(
-    text: switch (widget.initial) {
-      DateRangeScope(:final start) => start.toString(),
-      _ => '',
-    },
-  );
-  late final _to = TextEditingController(
-    text: switch (widget.initial) {
-      DateRangeScope(:final end) => end.toString(),
-      _ => '',
-    },
-  );
+  late LocalDate _from = switch (widget.initial) {
+    DateRangeScope(:final start) => start,
+    _ => widget.today.firstOfMonth,
+  };
+  late LocalDate _to = switch (widget.initial) {
+    DateRangeScope(:final end) => end,
+    _ => widget.today,
+  };
   String? _error;
 
-  @override
-  void dispose() {
-    _from.dispose();
-    _to.dispose();
-    super.dispose();
-  }
-
   void _apply() {
-    final from = LocalDate.tryParse(_from.text.trim());
-    final to = LocalDate.tryParse(_to.text.trim());
-    if (from == null || to == null) {
-      setState(() => _error = 'Enter both dates as YYYY-MM-DD.');
-      return;
-    }
-    if (to.compareTo(from) < 0) {
+    if (_to.compareTo(_from) < 0) {
       setState(() => _error = 'The range must end on or after its start.');
       return;
     }
-    Navigator.of(context).pop(DateRangeScope(start: from, end: to));
+    Navigator.of(context).pop(DateRangeScope(start: _from, end: _to));
   }
 
   @override
@@ -274,19 +263,21 @@ final class _RangeDialogState extends State<_RangeDialog> {
     body: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        EraField(
-          fieldKey: const ValueKey('range-from'),
-          controller: _from,
+        EraDateField(
           label: 'From',
-          hint: 'YYYY-MM-DD',
+          fieldKey: const ValueKey('range-from'),
+          value: _from,
+          today: widget.today,
+          onChanged: (value) => setState(() => _from = value!),
         ),
         const SizedBox(height: 10),
-        EraField(
-          fieldKey: const ValueKey('range-to'),
-          controller: _to,
+        EraDateField(
           label: 'To',
-          hint: 'YYYY-MM-DD',
+          fieldKey: const ValueKey('range-to'),
+          value: _to,
+          today: widget.today,
           error: _error,
+          onChanged: (value) => setState(() => _to = value!),
         ),
       ],
     ),
@@ -367,6 +358,11 @@ int _days(LocalDate start, LocalDate end) => DateTime.utc(
   end.month,
   end.day,
 ).difference(DateTime.utc(start.year, start.month, start.day)).inDays;
+
+LocalDate _deviceToday() {
+  final now = DateTime.now();
+  return LocalDate(now.year, now.month, now.day);
+}
 
 LocalDate _addDays(LocalDate date, int days) {
   final value = DateTime.utc(date.year, date.month, date.day + days);

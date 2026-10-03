@@ -275,6 +275,7 @@ final class _WorkScreenState extends State<WorkScreen> {
         message: 'Choose a valid period or explicit date range.',
       ),
       WorkReady(:final register, :final route) => WorkRegister(
+        today: _today,
         projection: register,
         selectedRecord: route.record,
         onSelect: widget.onSelect,
