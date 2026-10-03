@@ -2,6 +2,7 @@ import '../../../../core/time/local_date.dart';
 import '../../domain/agreement.dart';
 import '../../domain/employment.dart';
 import '../../domain/ids.dart';
+import '../../domain/leave.dart';
 import '../../domain/pay.dart';
 import '../../domain/pay_period.dart';
 import '../../domain/payslip.dart';
@@ -57,6 +58,15 @@ final class ShiftSheetRow {
   final ExpectedPay? pay;
 }
 
+/// A leave record with its price; null when its agreement is missing or the
+/// record is void.
+final class LeaveSheetRow {
+  const LeaveSheetRow({required this.record, required this.pay});
+
+  final LeaveRecord record;
+  final LeavePay? pay;
+}
+
 /// A pay period with its finalized shifts reconciled against payslips.
 final class PeriodSheetRow {
   const PeriodSheetRow({
@@ -108,6 +118,8 @@ final class WorkRegisterProjection {
     this.periodSheet = const [],
     this.payslipSheet = const [],
     this.agreementSheet = const [],
+    this.leaveSheet = const [],
+    this.plannedNotConfirmed = 0,
   });
 
   final WorkScope scope;
@@ -148,6 +160,13 @@ final class WorkRegisterProjection {
   final List<PeriodSheetRow> periodSheet;
   final List<Payslip> payslipSheet;
   final List<AgreementSheetRow> agreementSheet;
+
+  /// Leave records in the temporal scope, priced (schedules spec 4.3).
+  final List<LeaveSheetRow> leaveSheet;
+
+  /// Planned days in the temporal scope that are past and not confirmed
+  /// (spec 4.4).
+  final int plannedNotConfirmed;
 
   factory WorkRegisterProjection.empty(
     WorkScope scope, {

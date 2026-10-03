@@ -4,6 +4,7 @@ import '../../../core/database/app_database.dart' show AppDatabase;
 import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/app_clock.dart';
+import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../core/time/wall_clock.dart';
 import '../application/pay_period_service.dart';
@@ -15,16 +16,21 @@ import '../domain/correction.dart';
 import '../domain/employment.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
+import '../domain/leave.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart';
 import '../domain/pay_premiums.dart';
 import '../domain/payslip.dart';
+import '../domain/planner.dart';
 import '../domain/reconciliation.dart';
 import '../domain/shift.dart';
 import 'daos/agreement_dao.dart';
+import 'daos/day_exception_dao.dart';
 import 'daos/employment_dao.dart';
+import 'daos/leave_dao.dart';
 import 'daos/pay_period_dao.dart';
 import 'daos/payslip_dao.dart';
+import 'daos/schedule_dao.dart';
 import 'daos/shift_dao.dart';
 import 'projections/reconciliation_projection.dart';
 import 'projections/work_record_projection.dart';
@@ -46,8 +52,13 @@ final class DriftWorkRepository
     this._database, {
     TimezoneService? timezones,
     AppClock? clock,
-  }) : _zoneClocks = zoneClocksOf(timezones ?? IanaTimezoneService()),
+  }) : _timezones = timezones ?? IanaTimezoneService(),
+       _clock = clock ?? SystemAppClock(),
+       _zoneClocks = zoneClocksOf(timezones ?? IanaTimezoneService()),
        _history = WorkHistoryWriter(_database, clock ?? SystemAppClock()),
+       _schedules = ScheduleDao(_database),
+       _exceptions = DayExceptionDao(_database),
+       _leave = LeaveDao(_database),
        _employments = EmploymentDao(_database),
        _agreements = AgreementDao(_database),
        _periods = PayPeriodDao(_database),
@@ -55,6 +66,11 @@ final class DriftWorkRepository
        _shifts = ShiftDao(_database);
 
   final AppDatabase _database;
+  final TimezoneService _timezones;
+  final AppClock _clock;
+  final ScheduleDao _schedules;
+  final DayExceptionDao _exceptions;
+  final LeaveDao _leave;
   final ZoneClocks _zoneClocks;
   final WorkHistoryWriter _history;
   final EmploymentDao _employments;
@@ -346,6 +362,9 @@ final class DriftWorkRepository
         _database.payPeriods,
         _database.workShifts,
         _database.shiftBreaks,
+        _database.workLeaveRecords,
+        _database.workDayExceptions,
+        _database.workSchedules,
         _database.payslips,
       ]),
     )) {
@@ -365,10 +384,21 @@ final class DriftWorkRepository
     final breaks = await _shifts.breaksForShifts(shifts.map((s) => s.id));
     final payslips = await _payslips.forEmployment(employmentId);
     final agreementsById = {for (final a in agreements) a.id: a};
+    final leave = await _leave.forEmployment(employmentId);
+    final pricedLeave = _priceLeave(leave, shifts, breaks, agreementsById);
 
     PayPeriod? periodOf(WorkShift shift) => periods
         .where((period) => period.contains(shift.localStartDate))
         .firstOrNull;
+    bool inScopeDate(LocalDate date) => switch (temporal) {
+      null => true,
+      DateRangeScope(:final start, :final end) =>
+        date.compareTo(start) >= 0 && date.compareTo(end) <= 0,
+      PayPeriodScope(:final periodId) =>
+        periods
+            .where((period) => period.id == periodId)
+            .any((period) => period.contains(date)),
+    };
     bool inScope(WorkShift shift) => switch (temporal) {
       null => true,
       DateRangeScope(:final start, :final end) =>
@@ -407,6 +437,7 @@ final class DriftWorkRepository
             agreements: agreements,
             payslips: payslips,
             zoneClocks: _zoneClocks,
+            leave: pricedLeave.values,
           ),
         ),
     ];
@@ -482,6 +513,7 @@ final class DriftWorkRepository
                 (value) => value.periodId == selectedPeriod.id,
               ),
               zoneClocks: _zoneClocks,
+              leave: pricedLeave.values,
             ),
       periodRows: temporal == null ? periods : const [],
       employment: employment,
@@ -499,7 +531,101 @@ final class DriftWorkRepository
       periodSheet: periodSheet,
       payslipSheet: payslips,
       agreementSheet: agreementSheet,
+      leaveSheet: [
+        for (final record in leave)
+          if (inScopeDate(record.date))
+            LeaveSheetRow(record: record, pay: pricedLeave[record.id]?.pay),
+      ],
+      plannedNotConfirmed: await _plannedNotConfirmed(
+        employmentId,
+        switch (temporal) {
+          null => null,
+          DateRangeScope(:final start, :final end) => (start: start, end: end),
+          PayPeriodScope() when selectedPeriod != null => (
+            start: selectedPeriod.start,
+            end: selectedPeriod.end,
+          ),
+          PayPeriodScope() => null,
+        },
+      ),
     );
+  }
+
+  /// Every effective leave record priced against the confirmed shifts and
+  /// earlier leave of the 3 months before it (schedules spec 4.3).
+  Map<LeaveRecordId, PricedLeave> _priceLeave(
+    List<LeaveRecord> leave,
+    List<WorkShift> shifts,
+    List<ShiftBreak> breaks,
+    Map<AgreementId, PayAgreement> agreements,
+  ) {
+    final worked = <WorkedPay>[];
+    for (final shift in shifts) {
+      if (shift.state != ShiftState.finalized) continue;
+      final row = shiftSheetRow(
+        shift,
+        breaks.where((item) => item.shiftId == shift.id).toList(),
+        agreements,
+        null,
+        _zoneClocks,
+      );
+      final pay = row.pay;
+      if (pay == null) continue;
+      worked.add(
+        WorkedPay(
+          date: shift.localStartDate,
+          paidSeconds: pay.totalPaidSeconds,
+          pay: pay.amount,
+        ),
+      );
+    }
+    final prices = priceLeave(
+      leave: leave,
+      worked: worked,
+      agreements: agreements.values,
+    );
+    return {
+      for (final record in leave)
+        if (prices[record.id] case final pay?)
+          if (agreements[record.agreementId] case final agreement?)
+            record.id: PricedLeave(
+              id: record.id,
+              date: record.date,
+              basis: agreement.basis,
+              pay: pay,
+            ),
+    };
+  }
+
+  /// Planned days in [range] before today, on each schedule's own clock,
+  /// that no confirmed day covers yet.
+  Future<int> _plannedNotConfirmed(
+    EmploymentId employmentId,
+    ({LocalDate start, LocalDate end})? range,
+  ) async {
+    if (range == null) return 0;
+    final schedules = await _schedules.forEmployment(employmentId);
+    if (schedules.isEmpty) return 0;
+    final days = planDays(
+      from: range.start,
+      to: range.end,
+      schedules: schedules,
+      exceptions: await _exceptions.forEmployment(employmentId),
+      confirmedDates: await _schedules.confirmedDates(employmentId),
+      zoneClocks: _zoneClocks,
+    );
+    final now = _clock.nowUtc();
+    var count = 0;
+    for (final day in days) {
+      final zone = switch (day) {
+        PlannedShift(:final timezoneId) => timezoneId,
+        PlannedLeave(:final replaced) => replaced.timezoneId,
+        _ => null,
+      };
+      if (zone == null) continue;
+      if (day.date.compareTo(_timezones.localDateAt(now, zone)) < 0) count++;
+    }
+    return count;
   }
 
   @override
@@ -515,6 +641,9 @@ final class DriftWorkRepository
         _database.payslips,
         _database.workShifts,
         _database.shiftBreaks,
+        _database.workLeaveRecords,
+        _database.workDayExceptions,
+        _database.workSchedules,
       ]),
     )) {
       yield await _loadRecord(id);

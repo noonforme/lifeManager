@@ -1,6 +1,8 @@
+import '../../../core/time/local_date.dart';
 import 'agreement.dart';
 import 'facts.dart';
 import 'ids.dart';
+import 'leave.dart';
 import 'pay.dart';
 import 'pay_period.dart';
 import 'pay_premiums.dart';
@@ -69,6 +71,23 @@ final class ReconciliationGroup {
   final ReconciliationStatus status;
 }
 
+/// A confirmed leave day with its price, as reconciliation counts it.
+final class PricedLeave {
+  const PricedLeave({
+    required this.id,
+    required this.date,
+    required this.basis,
+    required this.pay,
+  });
+
+  final LeaveRecordId id;
+  final LocalDate date;
+
+  /// The basis of the agreement in effect on [date].
+  final RateBasis basis;
+  final LeavePay pay;
+}
+
 List<ReconciliationGroup> reconcilePeriod({
   required EmploymentId employmentId,
   required PayPeriod period,
@@ -77,6 +96,7 @@ List<ReconciliationGroup> reconcilePeriod({
   required Iterable<PayAgreement> agreements,
   required Iterable<Payslip> payslips,
   required ZoneClocks zoneClocks,
+  Iterable<PricedLeave> leave = const [],
 }) {
   final evidence = <_Evidence>[];
   var unavailable = false;
@@ -122,6 +142,22 @@ List<ReconciliationGroup> reconcilePeriod({
           regularPaidSeconds: expectedPay.regularPaidSeconds,
           overtimePaidSeconds: expectedPay.overtimePaidSeconds,
           shiftId: shift.id,
+        ),
+      );
+    }
+  }
+
+  // Employer-paid leave in the period is expected pay (schedules spec 4.4).
+  if (period.employmentId == employmentId) {
+    for (final item in leave) {
+      if (!item.pay.employerPaid || !period.contains(item.date)) continue;
+      evidence.add(
+        _Evidence.expected(
+          basis: item.basis,
+          money: item.pay.amount,
+          regularPaidSeconds: item.pay.paidSeconds,
+          overtimePaidSeconds: 0,
+          shiftId: null,
         ),
       );
     }
@@ -280,7 +316,7 @@ final class _Evidence {
     required Money money,
     required int regularPaidSeconds,
     required int overtimePaidSeconds,
-    required ShiftId shiftId,
+    required ShiftId? shiftId,
   }) : this._(
          basis: basis,
          money: money,

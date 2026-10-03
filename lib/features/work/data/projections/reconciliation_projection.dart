@@ -36,6 +36,7 @@ ReconciliationProjection projectReconciliation({
   required Iterable<PayAgreement> agreements,
   required Iterable<Payslip> payslips,
   required ZoneClocks zoneClocks,
+  Iterable<PricedLeave> leave = const [],
 }) {
   final shiftFacts = shifts.toList(growable: false);
   final evidence = payslips
@@ -53,6 +54,7 @@ ReconciliationProjection projectReconciliation({
       agreements: agreements,
       payslips: evidence,
       zoneClocks: zoneClocks,
+      leave: leave,
     ),
   );
 }

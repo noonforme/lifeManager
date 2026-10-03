@@ -292,19 +292,8 @@ final class DriftScheduleRepository
     return Committed<LeaveRecord>(replacement);
   });
 
-  /// Planned dates of non-voided linked shifts, and confirmed leave dates.
-  Future<Set<LocalDate>> _confirmedDates(EmploymentId id) async {
-    final rows = await _database
-        .customSelect(
-          'SELECT planned_date AS date FROM work_shifts WHERE employment_id = ?1 '
-          "AND planned_date IS NOT NULL AND state <> 'voided' "
-          'UNION SELECT date FROM work_leave_records WHERE employment_id = ?1 '
-          "AND state = 'confirmed'",
-          variables: [Variable(id.value)],
-        )
-        .get();
-    return {for (final row in rows) LocalDate.parse(row.read<String>('date'))};
-  }
+  Future<Set<LocalDate>> _confirmedDates(EmploymentId id) =>
+      _schedules.confirmedDates(id);
 }
 
 bool _isUniqueViolation(SqliteException error) =>

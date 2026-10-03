@@ -3,6 +3,7 @@ import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/domain/agreement.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
+import 'package:lifeos/features/work/domain/leave.dart';
 import 'package:lifeos/features/work/domain/pay.dart';
 import 'package:lifeos/features/work/domain/pay_period.dart';
 import 'package:lifeos/features/work/domain/payslip.dart';
@@ -40,6 +41,63 @@ void main() {
       zoneClocks: testZoneClocks,
     );
     expect(groups.single.status, isA<EmptyReconciliation>());
+  });
+
+  test('confirmed leave counts as expected pay in its period', () {
+    final groups = reconcilePeriod(
+      employmentId: employmentId,
+      period: period(),
+      shifts: const [],
+      breaks: const [],
+      agreements: [agreement()],
+      payslips: const [],
+      zoneClocks: testZoneClocks,
+      leave: [
+        const PricedLeave(
+          id: LeaveRecordId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4f01'),
+          date: LocalDate(2026, 9, 10),
+          basis: GrossBasis(),
+          pay: LeavePay(
+            amount: Money(minorUnits: 28750),
+            paidSeconds: 41400,
+            factor: AgreementDefaults.vacationPay,
+            employerPaid: true,
+            usedFallback: false,
+            average: (minorUnits: 250000, paidSeconds: 360000),
+          ),
+        ),
+        // Outside the period, and a sick day the insurer pays: neither
+        // counts.
+        const PricedLeave(
+          id: LeaveRecordId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4f02'),
+          date: LocalDate(2026, 10, 2),
+          basis: GrossBasis(),
+          pay: LeavePay(
+            amount: Money(minorUnits: 9999),
+            paidSeconds: 41400,
+            factor: AgreementDefaults.vacationPay,
+            employerPaid: true,
+            usedFallback: true,
+            average: null,
+          ),
+        ),
+        const PricedLeave(
+          id: LeaveRecordId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4f03'),
+          date: LocalDate(2026, 9, 12),
+          basis: GrossBasis(),
+          pay: LeavePay(
+            amount: Money(minorUnits: 0),
+            paidSeconds: 41400,
+            factor: null,
+            employerPaid: false,
+            usedFallback: false,
+            average: (minorUnits: 250000, paidSeconds: 360000),
+          ),
+        ),
+      ],
+    );
+    expect(groups.single.expected, const Money(minorUnits: 28750));
+    expect(groups.single.regularPaidSeconds, 41400);
   });
 
   test('keeps gross and net evidence in separate subtotals', () {

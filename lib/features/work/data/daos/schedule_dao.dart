@@ -60,6 +60,20 @@ final class ScheduleDao {
     return row.read<bool>('used');
   }
 
+  /// Planned dates of non-voided linked shifts, and confirmed leave dates.
+  Future<Set<LocalDate>> confirmedDates(EmploymentId id) async {
+    final rows = await database
+        .customSelect(
+          'SELECT planned_date AS date FROM work_shifts WHERE employment_id = ?1 '
+          "AND planned_date IS NOT NULL AND state <> 'voided' "
+          'UNION SELECT date FROM work_leave_records WHERE employment_id = ?1 '
+          "AND state = 'confirmed'",
+          variables: [Variable(id.value)],
+        )
+        .get();
+    return {for (final row in rows) LocalDate.parse(row.read<String>('date'))};
+  }
+
   Future<void> insertVersion(WorkSchedule value) async {
     await database
         .into(database.workSchedules)

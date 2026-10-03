@@ -74,6 +74,8 @@ Map<String, String?> agreementFacts(PayAgreement value) => {
       ? 'off'
       : '${value.holidayCalendar.name} ×${value.holidayMultiplier}',
   'When several apply': value.premiumStacking.name,
+  'Vacation pay': '${_percent(value.vacationPay)} %',
+  'Sick pay': '${_percent(value.sickPay)} % for ${value.sickEmployerDays} days',
   'Label': value.label,
   'Note': value.note,
 };
@@ -155,6 +157,16 @@ String _basis(RateBasis basis) => switch (basis) {
 
 String _instant(DateTime utc) =>
     '${utc.toIso8601String().substring(0, 16).replaceFirst('T', ' ')} UTC';
+
+/// A fraction of 1 as a percent, rounded half-up to two decimals.
+String _percent(RationalMultiplier value) {
+  final hundredths =
+      (value.numerator * 10000 + value.denominator ~/ 2) ~/ value.denominator;
+  final fraction = hundredths % 100;
+  return fraction == 0
+      ? '${hundredths ~/ 100}'
+      : '${hundredths ~/ 100}.${fraction.toString().padLeft(2, '0')}';
+}
 
 String _clock(int minuteOfDay) =>
     '${(minuteOfDay ~/ 60).toString().padLeft(2, '0')}:'

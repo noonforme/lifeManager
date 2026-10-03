@@ -160,6 +160,36 @@ void main() {
       expect(terms.premiumStacking, PremiumStacking.highest);
     });
 
+    testWidgets('leave pay has its own group box and exact fractions', (
+      tester,
+    ) async {
+      AgreementDraft? submitted;
+      await pumpAgreementForm(tester, onSubmit: (draft) => submitted = draft);
+
+      await enter(tester, 'agreement-hourly-rate', '18.40');
+      await enter(tester, 'agreement-sick-percent', '70');
+      // The form scrolls lazily; the box is built once its field is shown.
+      expect(find.text('Leave pay'), findsOneWidget);
+      await submitAgreement(tester);
+
+      final terms = submitted!.terms;
+      expect(terms.vacationPay, _r(1, 1));
+      expect(terms.sickPay, _r(7, 10));
+      expect(terms.sickEmployerDays, 2);
+    });
+
+    testWidgets('leave pay defaults are 100 %, 62.06 % and 2 days', (
+      tester,
+    ) async {
+      AgreementDraft? submitted;
+      await pumpAgreementForm(tester, onSubmit: (draft) => submitted = draft);
+
+      await enter(tester, 'agreement-hourly-rate', '18.40');
+      await submitAgreement(tester);
+
+      expect(submitted!.terms.sickPay, _r(3103, 5000));
+    });
+
     testWidgets('decimals become exact fractions and minutes', (tester) async {
       AgreementDraft? submitted;
       await pumpAgreementForm(tester, onSubmit: (draft) => submitted = draft);

@@ -46,6 +46,8 @@ const agreementInUseMessage =
 const employmentHistoryMessage =
     "This employment has work history and can't be deleted.";
 const multiplierMessage = 'Enter a multiplier of 1 or more, e.g. 1.5';
+const percentMessage = 'Enter a percent above zero, e.g. 62.06';
+const sickDaysMessage = 'Enter whole days from 0 to 30.';
 const nightWindowMessage = 'Night pay start and end must differ';
 
 /// Creates an employment, or edits [initial] with the same fields.
@@ -217,6 +219,15 @@ final class _AgreementFormState extends State<AgreementForm> {
       _initial?.holidayMultiplier ?? AgreementDefaults.holidayMultiplier,
     ),
   );
+  late final _vacationPercent = TextEditingController(
+    text: formatPercent(_initial?.vacationPay ?? AgreementDefaults.vacationPay),
+  );
+  late final _sickPercent = TextEditingController(
+    text: formatPercent(_initial?.sickPay ?? AgreementDefaults.sickPay),
+  );
+  late final _sickDays = TextEditingController(
+    text: '${_initial?.sickEmployerDays ?? AgreementDefaults.sickEmployerDays}',
+  );
   late final _label = TextEditingController(text: _initial?.label);
   late final _note = TextEditingController(text: _initial?.note);
   late RateBasis _basis = _initial?.basis ?? const GrossBasis();
@@ -243,6 +254,9 @@ final class _AgreementFormState extends State<AgreementForm> {
       _nightEnd,
       _nightMultiplier,
       _holidayMultiplier,
+      _vacationPercent,
+      _sickPercent,
+      _sickDays,
       _label,
       _note,
     ]) {
@@ -262,6 +276,9 @@ final class _AgreementFormState extends State<AgreementForm> {
     final nightEnd = parseClock(_nightEnd.text);
     final night = parseMultiplier(_nightMultiplier.text);
     final holiday = parseMultiplier(_holidayMultiplier.text);
+    final vacationPay = parsePercent(_vacationPercent.text);
+    final sickPay = parsePercent(_sickPercent.text);
+    final sickDays = int.tryParse(_sickDays.text.trim());
     final errors = <String, String>{
       if (start == null) 'effectiveStart': 'Enter a date as YYYY-MM-DD.',
       if (endText.isNotEmpty && end == null)
@@ -275,6 +292,10 @@ final class _AgreementFormState extends State<AgreementForm> {
         'nightEnd': nightWindowMessage,
       if (night == null) 'nightMultiplier': multiplierMessage,
       if (holiday == null) 'holidayMultiplier': multiplierMessage,
+      if (vacationPay == null) 'vacationPercent': percentMessage,
+      if (sickPay == null) 'sickPercent': percentMessage,
+      if (sickDays == null || sickDays < 0 || sickDays > 30)
+        'sickDays': sickDaysMessage,
     };
     if (errors.isNotEmpty) {
       setState(() {
@@ -310,6 +331,9 @@ final class _AgreementFormState extends State<AgreementForm> {
               : HolidayCalendar.none,
           holidayMultiplier: holiday!,
           premiumStacking: _stacking,
+          vacationPay: vacationPay!,
+          sickPay: sickPay!,
+          sickEmployerDays: sickDays!,
         ),
       ),
     );
@@ -531,6 +555,42 @@ final class _AgreementFormState extends State<AgreementForm> {
                       ),
                     ],
                   ),
+                ),
+              ]),
+              _group(context, 'Leave pay', [
+                _Field(
+                  controller: _vacationPercent,
+                  label: 'Vacation %',
+                  fieldKey: const ValueKey('agreement-vacation-percent'),
+                  semanticLabel: 'Vacation percent',
+                  error: _errors['vacationPercent'],
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _Field(
+                  controller: _sickPercent,
+                  label: 'Sick, first days %',
+                  fieldKey: const ValueKey('agreement-sick-percent'),
+                  semanticLabel: 'Sick pay percent for the first days',
+                  error: _errors['sickPercent'],
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _Field(
+                  controller: _sickDays,
+                  label: 'Sick days the employer pays',
+                  fieldKey: const ValueKey('agreement-sick-days'),
+                  error: _errors['sickDays'],
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 4),
+                const InspectorNote(
+                  'Paid from the average of the 3 months before. Defaults, '
+                  'not legal advice.',
                 ),
               ]),
               ExpansionTile(
@@ -918,6 +978,37 @@ int? parseHoursAsMinutes(String text) {
       int.parse((match.group(2) ?? '').padRight(2, '0'));
   final minutes = (hundredths * 60 + 50) ~/ 100;
   return minutes > 0 ? minutes : null;
+}
+
+/// A percent with up to two decimals, such as "62.06", as an exact
+/// fraction of 1; null unless above zero.
+RationalMultiplier? parsePercent(String text) {
+  final match = RegExp(r'^(\d+)(?:[.,](\d{1,2}))?$').firstMatch(text.trim());
+  if (match == null) return null;
+  final decimals = match.group(2) ?? '';
+  final numerator = int.parse('${match.group(1)}$decimals');
+  if (numerator <= 0) return null;
+  var denominator = 100;
+  for (var i = 0; i < decimals.length; i++) {
+    denominator *= 10;
+  }
+  final divisor = numerator.gcd(denominator);
+  return RationalMultiplier(
+    numerator: numerator ~/ divisor,
+    denominator: denominator ~/ divisor,
+  );
+}
+
+/// A fraction of 1 as a percent with up to two decimals: 3103/5000 is
+/// "62.06".
+String formatPercent(RationalMultiplier value) {
+  final hundredths =
+      (value.numerator * 10000 + value.denominator ~/ 2) ~/ value.denominator;
+  final whole = hundredths ~/ 100;
+  final fraction = hundredths % 100;
+  if (fraction == 0) return '$whole';
+  final text = fraction.toString().padLeft(2, '0');
+  return '$whole.${text.endsWith('0') ? text[0] : text}';
 }
 
 /// "HH:MM" as the minute of the day.
