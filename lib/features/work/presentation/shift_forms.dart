@@ -134,6 +134,8 @@ typedef FinalizeAction = Future<MutationOutcome<WorkShift>> Function();
 const shiftStartTimeMessage = 'Set a start time.';
 const shiftEndTimeMessage = 'Set an end time.';
 const breakTimesMessage = 'Set both break times, or neither.';
+const shiftEndAfterStartMessage = 'The shift must end after it starts.';
+const breakInsideShiftMessage = 'Keep the break inside the shift.';
 
 /// The first step of an empty shift start time.
 const _firstShiftStep = LocalTime(9, 0);
@@ -257,21 +259,27 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     text: widget.prefill?.timezoneId ?? widget.initialTimezoneId ?? '',
   );
   late final _note = TextEditingController(text: widget.prefill?.note ?? '');
-  late final _breaks = <_BreakValues>[
-    for (final value in widget.prefill?.breaks ?? const <ManualBreakDraft>[])
-      _BreakValues(
-        startDate: value.startDate,
-        start: value.start,
-        endDate: value.endDate,
-        end: value.end,
-      ),
-  ];
+  final _breaks = <_BreakValues>[];
   final _errors = <String, String>{};
 
   @override
   void initState() {
     super.initState();
     _endOffset = _endDate.daysSince(_startDate);
+    // Offsets are taken now, from the prefilled dates, so an untouched
+    // draft saves exactly as given.
+    for (final value in widget.prefill?.breaks ?? const <ManualBreakDraft>[]) {
+      _breaks.add(
+        _BreakValues(
+          startOffset: value.startDate.daysSince(_startDate),
+          startDate: value.startDate,
+          start: value.start,
+          endOffset: value.endDate.daysSince(value.startDate),
+          endDate: value.endDate,
+          end: value.end,
+        ),
+      );
+    }
   }
 
   @override
@@ -282,12 +290,36 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
   }
 
   void _addBreak() => setState(
-    () => _breaks.add(_BreakValues(startDate: _startDate, endDate: _startDate)),
+    () => _breaks.add(
+      _BreakValues(
+        startOffset: 0,
+        startDate: _startDate,
+        endOffset: 0,
+        endDate: _startDate,
+      ),
+    ),
   );
 
   void _setStartDate(LocalDate value) => setState(() {
     _startDate = value;
     if (!_endDatePicked) _endDate = value.addDays(_endOffset);
+    for (final pause in _breaks) {
+      if (!pause.startDatePicked) {
+        pause.moveStartDate(value.addDays(pause.startOffset));
+      }
+    }
+  });
+
+  void _pickBreakStartDate(_BreakValues pause, LocalDate value) => setState(() {
+    pause
+      ..startDatePicked = true
+      ..moveStartDate(value);
+  });
+
+  void _pickBreakEndDate(_BreakValues pause, LocalDate value) => setState(() {
+    pause
+      ..endDate = value
+      ..endDatePicked = true;
   });
 
   Future<void> _submit() async {
@@ -298,11 +330,28 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
       if (_endTime == null) 'endTime': shiftEndTimeMessage,
       if (timezone.isEmpty) 'timezone': 'Enter an IANA timezone.',
     };
+    final shiftStart = _startTime == null ? null : (_startDate, _startTime!);
+    final shiftEnd = _endTime == null ? null : (_endDate, _endTime!);
+    if (shiftStart != null &&
+        shiftEnd != null &&
+        _compareWall(shiftEnd, shiftStart) <= 0) {
+      errors['endTime'] = shiftEndAfterStartMessage;
+    }
     for (final (index, value) in _breaks.indexed) {
       final (start, end) = (value.start, value.end);
       if (start == null && end == null) continue;
       if (start == null || end == null) {
         errors['break-$index'] = breakTimesMessage;
+        continue;
+      }
+      // Wall-clock checks only; the domain still decides daylight-saving
+      // edge cases once the times are placed in their zone.
+      final breakStart = (value.startDate, start);
+      final breakEnd = (value.endDate, end);
+      if (_compareWall(breakEnd, breakStart) <= 0 ||
+          (shiftStart != null && _compareWall(breakStart, shiftStart) < 0) ||
+          (shiftEnd != null && _compareWall(breakEnd, shiftEnd) > 0)) {
+        errors['break-$index'] = breakInsideShiftMessage;
         continue;
       }
       breaks.add(
@@ -434,7 +483,7 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
               'shift-break-start-date-$index',
               'Break ${index + 1} start date',
               value.startDate,
-              (picked) => setState(() => value.startDate = picked),
+              (picked) => _pickBreakStartDate(value, picked),
             ),
             _time(
               'shift-break-start-$index',
@@ -448,7 +497,7 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
               'shift-break-end-date-$index',
               'Break ${index + 1} end date',
               value.endDate,
-              (picked) => setState(() => value.endDate = picked),
+              (picked) => _pickBreakEndDate(value, picked),
             ),
             _time(
               'shift-break-end-$index',
@@ -548,17 +597,42 @@ String? _trimOptional(String value) {
   return trimmed.isEmpty ? null : trimmed;
 }
 
+/// Orders two wall-clock (date, time) values.
+int _compareWall((LocalDate, LocalTime) a, (LocalDate, LocalTime) b) {
+  final byDate = a.$1.compareTo(b.$1);
+  if (byDate != 0) return byDate;
+  int seconds(LocalTime time) =>
+      time.hour * 3600 + time.minute * 60 + time.second;
+  return seconds(a.$2).compareTo(seconds(b.$2));
+}
+
 /// One break's picked values; times stay null until set.
+///
+/// Its start date keeps [startOffset] days from the shift start date until
+/// picked itself, and its end date keeps [endOffset] days from its start
+/// date until picked itself, like the shift's own end date.
 final class _BreakValues {
   _BreakValues({
+    required this.startOffset,
     required this.startDate,
+    required this.endOffset,
     required this.endDate,
     this.start,
     this.end,
   });
 
+  final int startOffset;
   LocalDate startDate;
+  bool startDatePicked = false;
   LocalTime? start;
+  final int endOffset;
   LocalDate endDate;
+  bool endDatePicked = false;
   LocalTime? end;
+
+  /// Sets the start date; the end date follows unless it was picked.
+  void moveStartDate(LocalDate value) {
+    startDate = value;
+    if (!endDatePicked) endDate = value.addDays(endOffset);
+  }
 }

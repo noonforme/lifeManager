@@ -206,6 +206,181 @@ void main() {
     expect(find.text(breakTimesMessage), findsOneWidget);
   });
 
+  testWidgets('a night shift with a break after midnight saves', (
+    tester,
+  ) async {
+    final submitted = await _pumpShift(tester);
+    await setTime(tester, 'shift-start-time', const LocalTime(22, 0));
+    await pickDate(tester, 'shift-end-date', const LocalDate(2026, 10, 2));
+    await setTime(tester, 'shift-end-time', const LocalTime(6, 0));
+    await tester.tap(find.text('Add break'));
+    await tester.pump();
+    await setTime(tester, 'shift-break-start-0', const LocalTime(2, 0));
+    await setTime(tester, 'shift-break-end-0', const LocalTime(2, 30));
+    await pickDate(
+      tester,
+      'shift-break-start-date-0',
+      const LocalDate(2026, 10, 2),
+    );
+    expect(
+      dateIn(tester, 'shift-break-end-date-0'),
+      const LocalDate(2026, 10, 2),
+      reason: 'the break end date follows its start date',
+    );
+    await pickDate(
+      tester,
+      'shift-break-end-date-0',
+      const LocalDate(2026, 10, 2),
+    );
+    await _save(tester);
+
+    final draft = submitted.single;
+    expect(draft.localStartDate, _today);
+    expect(draft.localEndDate, const LocalDate(2026, 10, 2));
+    final pause = draft.breaks.single;
+    expect(pause.startDate, const LocalDate(2026, 10, 2));
+    expect(pause.start, const LocalTime(2, 0));
+    expect(pause.endDate, const LocalDate(2026, 10, 2));
+    expect(pause.end, const LocalTime(2, 30));
+  });
+
+  testWidgets('an end at or before the start is refused on the end time', (
+    tester,
+  ) async {
+    final submitted = await _pumpShift(tester);
+    await setTime(tester, 'shift-start-time', const LocalTime(22, 0));
+    await setTime(tester, 'shift-end-time', const LocalTime(6, 0));
+    await _save(tester);
+    expect(submitted, isEmpty);
+    expect(find.text(shiftEndAfterStartMessage), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('shift-end-time'))),
+      isSemantics(label: 'End time, 06:00, $shiftEndAfterStartMessage'),
+    );
+
+    await setTime(tester, 'shift-end-time', const LocalTime(22, 0));
+    await _save(tester);
+    expect(submitted, isEmpty);
+    expect(find.text(shiftEndAfterStartMessage), findsOneWidget);
+  });
+
+  testWidgets('a break outside the shift is refused on its start time', (
+    tester,
+  ) async {
+    final submitted = await _pumpShift(tester);
+    await setTime(tester, 'shift-start-time', const LocalTime(22, 0));
+    await pickDate(tester, 'shift-end-date', const LocalDate(2026, 10, 2));
+    await setTime(tester, 'shift-end-time', const LocalTime(6, 0));
+    await tester.tap(find.text('Add break'));
+    await tester.pump();
+    // Times after midnight on the shift's first date lie before its start.
+    await setTime(tester, 'shift-break-start-0', const LocalTime(2, 0));
+    await setTime(tester, 'shift-break-end-0', const LocalTime(2, 30));
+    await _save(tester);
+    expect(submitted, isEmpty);
+    expect(find.text(breakInsideShiftMessage), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('shift-break-start-0'))),
+      isSemantics(label: 'Break 1 start time, 02:00, $breakInsideShiftMessage'),
+    );
+
+    // A break that ends before it starts is outside the shift too.
+    await pickDate(
+      tester,
+      'shift-break-start-date-0',
+      const LocalDate(2026, 10, 2),
+    );
+    await setTime(tester, 'shift-break-end-0', const LocalTime(1, 30));
+    await _save(tester);
+    expect(submitted, isEmpty);
+    expect(find.text(breakInsideShiftMessage), findsOneWidget);
+
+    // Ending after the shift ends is refused as well.
+    await setTime(tester, 'shift-break-end-0', const LocalTime(6, 30));
+    await _save(tester);
+    expect(submitted, isEmpty);
+    expect(find.text(breakInsideShiftMessage), findsOneWidget);
+  });
+
+  testWidgets('break dates follow the shift start date until picked', (
+    tester,
+  ) async {
+    await _pumpShift(
+      tester,
+      prefill: const ShiftFormPrefill(
+        startDate: LocalDate(2026, 10, 3),
+        startTime: LocalTime(22, 0),
+        endDate: LocalDate(2026, 10, 4),
+        endTime: LocalTime(6, 0),
+        timezoneId: 'Europe/Vilnius',
+        breaks: [
+          ManualBreakDraft(
+            startDate: LocalDate(2026, 10, 3),
+            start: LocalTime(23, 45),
+            endDate: LocalDate(2026, 10, 4),
+            end: LocalTime(0, 15),
+          ),
+        ],
+        note: null,
+      ),
+    );
+    await tester.tap(find.text('Add break'));
+    await tester.pump();
+    await _pickStartDate(tester, const LocalDate(2026, 10, 10));
+    expect(
+      dateIn(tester, 'shift-break-start-date-0'),
+      const LocalDate(2026, 10, 10),
+    );
+    expect(
+      dateIn(tester, 'shift-break-end-date-0'),
+      const LocalDate(2026, 10, 11),
+    );
+    expect(
+      dateIn(tester, 'shift-break-start-date-1'),
+      const LocalDate(2026, 10, 10),
+    );
+    expect(
+      dateIn(tester, 'shift-break-end-date-1'),
+      const LocalDate(2026, 10, 10),
+    );
+
+    // A picked break start date stays; its end date still follows it.
+    await pickDate(
+      tester,
+      'shift-break-start-date-1',
+      const LocalDate(2026, 10, 11),
+    );
+    expect(
+      dateIn(tester, 'shift-break-end-date-1'),
+      const LocalDate(2026, 10, 11),
+    );
+    await _pickStartDate(tester, const LocalDate(2026, 10, 12));
+    expect(
+      dateIn(tester, 'shift-break-start-date-1'),
+      const LocalDate(2026, 10, 11),
+    );
+    expect(
+      dateIn(tester, 'shift-break-start-date-0'),
+      const LocalDate(2026, 10, 12),
+    );
+
+    // A picked break end date stays as its start date moves.
+    await pickDate(
+      tester,
+      'shift-break-end-date-0',
+      const LocalDate(2026, 10, 12),
+    );
+    await _pickStartDate(tester, const LocalDate(2026, 10, 14));
+    expect(
+      dateIn(tester, 'shift-break-start-date-0'),
+      const LocalDate(2026, 10, 14),
+    );
+    expect(
+      dateIn(tester, 'shift-break-end-date-0'),
+      const LocalDate(2026, 10, 12),
+    );
+  });
+
   testWidgets('a revised draft saves untouched exactly as prefilled', (
     tester,
   ) async {
@@ -242,8 +417,23 @@ void main() {
     expect(draft.localStartTime, const LocalTime(22, 0, 13));
     expect(draft.localEndDate, prefill.endDate);
     expect(draft.localEndTime, prefill.endTime);
-    expect(draft.breaks.single.end, const LocalTime(1, 30));
+    final pause = draft.breaks.single;
+    expect(pause.startDate, const LocalDate(2026, 10, 4));
+    expect(pause.start, const LocalTime(1, 0));
+    expect(pause.endDate, const LocalDate(2026, 10, 4));
+    expect(pause.end, const LocalTime(1, 30));
   });
+}
+
+/// Scrolls the form back to the top, where the start date box is, and
+/// picks [date] there.
+Future<void> _pickStartDate(WidgetTester tester, LocalDate date) async {
+  tester
+      .state<ScrollableState>(find.byType(Scrollable).first)
+      .position
+      .jumpTo(0);
+  await tester.pumpAndSettle();
+  await pickDate(tester, 'shift-start-date', date);
 }
 
 Future<void> _save(WidgetTester tester) async {
