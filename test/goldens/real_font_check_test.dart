@@ -4,6 +4,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/app/lifeos_app.dart';
 
@@ -41,4 +42,19 @@ void main() {
       );
     });
   }
+
+  // The open month calendar (era pickers spec 5).
+  testWidgets('real_font/calendar', (tester) async {
+    await pumpSyntheticShell(
+      tester,
+      size: const Size(1280, 800),
+      screen: syntheticScreens['agreement']!,
+    );
+    await tester.tap(find.byKey(const ValueKey('agreement-effective-start')));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(LifeOsApp),
+      matchesGoldenFile('real_font/calendar.png'),
+    );
+  });
 }
