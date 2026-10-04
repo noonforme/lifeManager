@@ -1,44 +1,94 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/shell/address_bar.dart';
+import 'package:lifeos/shared/shell/book_tree.dart';
+import 'package:lifeos/shared/workbench/era_icons.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
+
+Widget _host(Widget child) => MaterialApp(
+  home: LifeOSSkinScope(
+    child: Scaffold(
+      body: Align(
+        alignment: Alignment.topLeft,
+        child: SizedBox(width: 800, child: child),
+      ),
+    ),
+  ),
+);
 
 void main() {
-  testWidgets('crumbs open their level and Go reloads', (tester) async {
-    final opened = <String>[];
-    var reloaded = 0;
+  testWidgets('the location reads as a path, without crumbs', (tester) async {
     await tester.pumpWidget(
-      Directionality(
-        textDirection: TextDirection.ltr,
-        child: LifeOSSkinScope(
-          child: SizedBox(
-            width: 800,
-            child: AddressBar(
-              crumbs: const [
-                AddressCrumb('Work', '/work'),
-                AddressCrumb('Synthetic depot', '/work?employment=e1'),
-                AddressCrumb('Shifts'),
-              ],
-              onNavigate: opened.add,
-              onGo: () => reloaded++,
-            ),
-          ),
+      _host(
+        AddressBar(
+          crumbs: const [
+            AddressCrumb('Work', '/work'),
+            AddressCrumb('Synthetic depot', '/work?employment=e'),
+            AddressCrumb('Shifts', '/work?employment=e&sheet=shifts'),
+          ],
+          tree: const [],
+          icon: EraIconKind.work,
+          onNavigate: (_) {},
+          onGo: () {},
         ),
       ),
     );
-    await tester.tap(find.text('Work'));
-    expect(opened, ['/work']);
+    expect(find.text(r'Work\Synthetic depot\Shifts'), findsOneWidget);
+    expect(find.textContaining('›'), findsNothing);
+    expect(find.byType(EraIcon), findsOneWidget);
+  });
+
+  testWidgets('the drop arrow lists the locations and opens one', (
+    tester,
+  ) async {
+    final opened = <String>[];
+    var reloaded = 0;
+    await tester.pumpWidget(
+      _host(
+        AddressBar(
+          crumbs: const [AddressCrumb('Today', '/today')],
+          tree: const [
+            AddressLocation('Today', '/today'),
+            AddressLocation('Journal', '/journal'),
+            AddressLocation('Work', '/work', icon: EraIconKind.work),
+            AddressLocation('Synthetic depot', '/work?employment=e', depth: 1),
+          ],
+          onNavigate: opened.add,
+          onGo: () => reloaded++,
+        ),
+      ),
+    );
+    await tester.tap(find.bySemanticsLabel('Address, Today'));
+    await tester.pumpAndSettle();
+    expect(find.text('Synthetic depot'), findsOneWidget);
+    await tester.tap(find.text('Synthetic depot'));
+    await tester.pumpAndSettle();
+    expect(opened, ['/work?employment=e']);
     await tester.tap(find.text('Go'));
     expect(reloaded, 1);
-    expect(find.bySemanticsLabel('Address'), findsOneWidget);
-    expect(
-      tester.getSemantics(find.bySemanticsLabel('Work')),
-      isSemantics(
-        isLink: true,
-        hasTapAction: true,
-        isFocusable: true,
-        hasFocusAction: true,
+  });
+
+  test('the tree follows the book nodes', () {
+    final tree = addressTreeFrom(const [
+      TreeSheet(label: 'Today', route: '/today'),
+      TreeGroup(
+        label: 'Views',
+        children: [TreeSheet(label: 'Night shifts', route: '/work?view=1')],
       ),
+      TreeArea(
+        area: LifeOSArea.work,
+        route: '/work',
+        built: true,
+        children: [
+          TreeSheet(label: 'Synthetic depot', route: '/work?employment=e'),
+        ],
+      ),
+      TreeArea(area: LifeOSArea.finance, route: '/finance', built: false),
+    ]);
+    expect(
+      [for (final entry in tree) '${entry.depth}:${entry.label}'],
+      ['0:Today', '0:Night shifts', '0:Work', '1:Synthetic depot', '0:Finance'],
     );
   });
 }

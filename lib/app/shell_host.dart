@@ -18,6 +18,7 @@ import '../shared/shell/name_dialog.dart';
 import '../shared/shell/quick_add.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/shell/status_line.dart';
+import '../shared/workbench/era_icons.dart';
 import '../shared/workbench/lifeos_tokens.dart';
 import 'desk_providers.dart';
 
@@ -155,6 +156,16 @@ final class ShellChromeHost extends ConsumerWidget {
       ),
       status: const StatusLine(snapshot: StatusSnapshot()),
       crumbs: _crumbs(location, employmentName),
+      addressTree: addressTreeFrom(nodes),
+      addressIcon: switch (location.path) {
+        '/work' => EraIconKind.work,
+        '/finance' => EraIconKind.finance,
+        '/tracking' => EraIconKind.tracking,
+        '/knowledge' => EraIconKind.knowledge,
+        '/today' => EraIconKind.payPeriod,
+        '/journal' => EraIconKind.properties,
+        _ => null,
+      },
       onNavigate: context.go,
       quickAdd: _quickAdd(context, employments, employmentId),
       fromLastTime: _fromLastTime(context, ref, employments, employmentId),

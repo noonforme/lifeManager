@@ -137,25 +137,33 @@ final class EraComboFace extends StatelessWidget {
               ),
             ),
           ),
-          Container(
-            width: 17,
-            constraints: const BoxConstraints(minHeight: 22),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  MillenniumColors.comboArrowTop,
-                  MillenniumColors.comboArrowBottom,
-                ],
-              ),
-            ),
-            child: const CustomPaint(painter: _DownArrow()),
-          ),
+          const ComboArrow(),
         ],
       ),
     );
   }
+}
+
+/// The blue drop-arrow button at the right of a combo box.
+final class ComboArrow extends StatelessWidget {
+  const ComboArrow({super.key});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 17,
+    constraints: const BoxConstraints(minHeight: 22),
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          MillenniumColors.comboArrowTop,
+          MillenniumColors.comboArrowBottom,
+        ],
+      ),
+    ),
+    child: const CustomPaint(painter: _DownArrow()),
+  );
 }
 
 final class _DownArrow extends CustomPainter {

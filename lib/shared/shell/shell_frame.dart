@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../workbench/era_controls.dart';
+import '../workbench/era_icons.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/office_controls.dart';
 import 'address_bar.dart';
@@ -70,10 +71,18 @@ final class ShellChrome extends InheritedWidget {
     required super.child,
     this.quickAdd = const [],
     this.fromLastTime = const [],
+    this.addressTree = const [],
+    this.addressIcon,
     super.key,
   });
 
   final Widget menuBar;
+
+  /// Every location, for the Address drop-down.
+  final List<AddressLocation> addressTree;
+
+  /// The current area's icon in the Address field.
+  final EraIconKind? addressIcon;
 
   /// The toolbar's **+ Add** entries.
   final List<QuickAddEntry> quickAdd;
@@ -103,7 +112,9 @@ final class ShellChrome extends InheritedWidget {
       !listEquals(crumbs, oldWidget.crumbs) ||
       onNavigate != oldWidget.onNavigate ||
       quickAdd != oldWidget.quickAdd ||
-      fromLastTime != oldWidget.fromLastTime;
+      fromLastTime != oldWidget.fromLastTime ||
+      !listEquals(addressTree, oldWidget.addressTree) ||
+      addressIcon != oldWidget.addressIcon;
 }
 
 /// The shell (XP-authentic shell spec 3): menu bar, toolbar, Address bar,
@@ -239,6 +250,8 @@ final class _ShellFrameState extends State<ShellFrame> {
                   ),
                   AddressBar(
                     crumbs: chrome?.crumbs ?? const [],
+                    tree: chrome?.addressTree ?? const [],
+                    icon: chrome?.addressIcon,
                     onNavigate: (route) => chrome?.onNavigate(route),
                     // Go reopens the current location (its last crumb).
                     onGo: () {
