@@ -441,12 +441,7 @@ void main() {
         ),
       );
 
-      expect(
-        find.text(
-          'Used by 3 finished shifts. New versions arrive in a later update.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Used by 3 finished shifts.'), findsOneWidget);
       expect(find.text('Edit agreement'), findsNothing);
       expect(find.text('22:00 to 06:00, ×1.5'), findsOneWidget);
     });
@@ -491,10 +486,7 @@ void main() {
       expect(find.text('Delete'), findsNothing);
       expect(find.text('Edit agreement'), findsNothing);
       expect(find.text('View agreement'), findsOneWidget);
-      expect(
-        find.text('Has work history — archiving arrives in a later update.'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('later update'), findsNothing);
     });
 
     testWidgets('delete confirms inline before it runs', (tester) async {

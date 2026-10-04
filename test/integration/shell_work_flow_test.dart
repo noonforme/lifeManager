@@ -94,24 +94,6 @@ void main() {
     await openRowProperties(tester, '2026-10-01');
     expect(find.text('Shift finalized'), findsOneWidget);
 
-    // The Working group box explains the expected pay cell.
-    await tester.tap(
-      find.descendant(
-        of: find.bySemanticsLabel('Work register'),
-        matching: find.text('EUR 147.20'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    final bar = find.byType(WorkingGroupBox);
-    expect(
-      find.descendant(of: bar, matching: find.textContaining('18.40')),
-      findsWidgets,
-    );
-    expect(
-      find.descendant(of: bar, matching: find.textContaining('147.20')),
-      findsWidgets,
-    );
-
     // History lists one event per command: the manual save.
     await tester.tap(_inInspector(find.text('History')));
     await tester.pumpAndSettle();
@@ -126,6 +108,26 @@ void main() {
         .where(kinds.contains)
         .toList();
     expect(headings, ['Created']);
+    await tester.tap(_inInspector(find.text('OK')));
+    await tester.pumpAndSettle();
+
+    // Details explains the expected pay cell.
+    await tester.tap(
+      find.descendant(
+        of: find.bySemanticsLabel('Work register'),
+        matching: find.text('EUR 147.20'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final working = find.byType(WorkingDetails);
+    expect(
+      find.descendant(of: working, matching: find.textContaining('18.40')),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(of: working, matching: find.textContaining('147.20')),
+      findsWidgets,
+    );
 
     // The Journal on Today shows the shift.
     router.go('/today');

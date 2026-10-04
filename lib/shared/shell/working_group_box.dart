@@ -3,24 +3,31 @@ import 'package:flutter/widgets.dart';
 
 import '../../core/explain/explanation.dart';
 import '../workbench/cell_selection.dart';
-import '../workbench/era_controls.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/millennium_style.dart';
 
-/// The **Working** group box (Millennium shell spec 5.5): the selected
-/// cell's reference and, for a derived value, how it was worked out.
-/// Operands link to their source. With nothing selected it shows nothing.
-final class WorkingGroupBox extends StatefulWidget {
-  const WorkingGroupBox({required this.onNavigate, super.key});
+/// **Working** in the task pane's Details group (XP-authentic shell spec
+/// 4.2): for a derived figure under the cursor, its reference and how it
+/// was worked out, with operands linking to their source. Otherwise it
+/// shows [fallback], the selected record or the scope's summary.
+final class WorkingDetails extends StatefulWidget {
+  const WorkingDetails({
+    required this.onNavigate,
+    required this.fallback,
+    super.key,
+  });
 
   /// Opens the record or rule an operand came from.
   final ValueChanged<Uri> onNavigate;
 
+  /// Shown when no derived figure is selected.
+  final Widget fallback;
+
   @override
-  State<WorkingGroupBox> createState() => _WorkingGroupBoxState();
+  State<WorkingDetails> createState() => _WorkingDetailsState();
 }
 
-final class _WorkingGroupBoxState extends State<WorkingGroupBox> {
+final class _WorkingDetailsState extends State<WorkingDetails> {
   final List<TapGestureRecognizer> _recognizers = [];
 
   void _disposeRecognizers() {
@@ -48,37 +55,13 @@ final class _WorkingGroupBoxState extends State<WorkingGroupBox> {
     _disposeRecognizers();
     final onNavigate = widget.onNavigate;
     final selection = CellSelectionScope.maybeOf(context)?.value;
-    if (selection == null) return const SizedBox.shrink();
+    if (selection == null) return widget.fallback;
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
     final figure = skin.typography.figure.copyWith(color: tokens.ink);
     final explanation = selection.explanation;
 
-    if (explanation == null) {
-      return Semantics(
-        liveRegion: true,
-        label:
-            '${selection.reference}, ${selection.columnLabel}, '
-            'recorded fact, ${selection.display}',
-        excludeSemantics: true,
-        child: GroupBox(
-          legend: 'Working: ${selection.columnLabel}',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${selection.reference} = ${selection.display}',
-                style: figure,
-              ),
-              Text(
-                'Recorded fact',
-                style: skin.typography.small.copyWith(color: tokens.muted),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    if (explanation == null) return widget.fallback;
 
     final spans = <InlineSpan>[
       TextSpan(text: '${selection.reference}: ${explanation.label} = '),
@@ -107,30 +90,35 @@ final class _WorkingGroupBoxState extends State<WorkingGroupBox> {
       liveRegion: true,
       label: '${selection.reference}, ${explanation.plainText}',
       excludeSemantics: true,
-      child: GroupBox(
-        legend: 'Working: ${selection.columnLabel}',
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text.rich(TextSpan(style: figure, children: spans)),
-            if (source != null && sourceLabel != null) ...[
-              const SizedBox(height: 4),
-              GestureDetector(
-                onTap: () => onNavigate(source.route),
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: Text(
-                    sourceLabel,
-                    style: skin.typography.small.copyWith(
-                      color: MillenniumColors.link,
-                      decoration: TextDecoration.underline,
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Working: ${selection.columnLabel}',
+            style: skin.typography.body.copyWith(
+              color: tokens.ink,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text.rich(TextSpan(style: figure, children: spans)),
+          if (source != null && sourceLabel != null) ...[
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => onNavigate(source.route),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: Text(
+                  sourceLabel,
+                  style: skin.typography.small.copyWith(
+                    color: MillenniumColors.link,
+                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

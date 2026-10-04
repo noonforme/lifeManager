@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/synthetic_shell.dart';
 
-/// The Working group box explains a figure on the first click, even when
-/// that click also opens the figure's record (Millennium shell spec 5.5).
+/// Details explains a figure on the first click, even when that click also
+/// selects the figure's record (XP-authentic shell spec 4.2).
 void main() {
   testWidgets('one click on a figure of an unopened record explains it', (
     tester,

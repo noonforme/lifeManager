@@ -110,4 +110,17 @@ void main() {
     expect(find.text('Shift saved.'), findsNothing);
     expect(timeIn(tester, 'shift-start-time'), const LocalTime(8, 0));
   });
+
+  testWidgets('right-click › Properties opens the sheet', (tester) async {
+    await pumpSyntheticShell(
+      tester,
+      size: const Size(1280, 800),
+      screen: syntheticScreens['shell']!,
+    );
+    await tester.tap(find.text('2026-09-08'), buttons: kSecondaryButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Properties').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Shift 2026-09-08 Properties'), findsOneWidget);
+  });
 }

@@ -8,6 +8,7 @@ import '../../../shared/shell/shell_dialog.dart';
 import '../../../shared/shell/shell_frame.dart';
 import '../../../shared/shell/status_line.dart';
 import '../../../shared/shell/task_pane.dart';
+import '../../../shared/shell/working_group_box.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/operational_state.dart';
@@ -30,6 +31,7 @@ import 'work_inspector.dart';
 import 'work_record_names.dart';
 import 'work_register.dart';
 import 'work_route_state.dart';
+import 'work_tasks.dart';
 
 final class WorkScreen extends StatefulWidget {
   const WorkScreen({
@@ -247,53 +249,84 @@ final class _WorkScreenState extends State<WorkScreen> {
   List<Widget> _taskGroups(WorkViewState? state) {
     if (state is! WorkReady) return const [];
     final route = state.route;
-    final register = state.register;
     if (route.employmentId == null) return const [];
-    return [
-      TaskGroup(
-        title: 'Work tasks',
-        special: true,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TaskLink(label: 'Add a shift', onPressed: widget.onPrimaryAction),
-            TaskLink(
-              label: 'New pay period',
-              onPressed: widget.onCreatePayPeriod == null
-                  ? null
-                  : () => setState(() => _creatingPeriod = true),
-            ),
-            TaskLink(
-              label: 'Record payslip',
-              onPressed:
-                  widget.onRecordPayslip == null || register.period == null
-                  ? null
-                  : () => setState(() => _payslipPeriod = register.period!.id),
-            ),
-            if (register.employment != null && !register.hasAgreement)
-              TaskLink(
-                label: 'Set up pay agreement…',
-                onPressed: () =>
-                    _go(route.copyWith(adding: () => WorkAddKind.agreement)),
+    final register = state.register;
+    final employment = register.employment;
+    final selected = _selected(state);
+    final ref = route.record;
+    final open = widget.onOpenProperties;
+    final period = selected is PayPeriodRecordProjection
+        ? selected.period
+        : null;
+    return workTaskGroups(
+      WorkTaskContext(
+        selected: selected,
+        onAddShift: widget.onPrimaryAction,
+        onNewPeriod: widget.onCreatePayPeriod == null
+            ? null
+            : () => setState(() => _creatingPeriod = true),
+        onRecordPayslip:
+            widget.onRecordPayslip == null || register.period == null
+            ? null
+            : () => setState(() => _payslipPeriod = register.period!.id),
+        onSaveView: widget.onSaveView == null
+            ? null
+            : () => widget.onSaveView!(route),
+        onProperties: ref == null || open == null ? null : () => open(ref),
+        onEmploymentProperties: employment == null || open == null
+            ? null
+            : () => open(
+                WorkRecordRef(
+                  kind: WorkRecordKind.employment,
+                  id: employment.id,
+                ),
               ),
-            TaskLink(
-              label: 'Save this view…',
-              onPressed: widget.onSaveView == null
-                  ? null
-                  : () => widget.onSaveView!(route),
-            ),
-          ],
-        ),
+        onSetUpAgreement: employment == null || register.hasAgreement
+            ? null
+            : () => _go(route.copyWith(adding: () => WorkAddKind.agreement)),
+        // Finalizing happens on the shift's Properties sheet.
+        onFinalize: ref == null || open == null ? null : () => open(ref),
+        onCorrect: widget.onOpenCorrection,
+        onMarkReviewed: period == null || widget.onSetPeriodState == null
+            ? null
+            : () => _setPeriodState(period, PayPeriodState.reviewed),
+        onReopen: period == null || widget.onSetPeriodState == null
+            ? null
+            : () => _setPeriodState(period, PayPeriodState.open),
+        onRecordPayslipForPeriod:
+            period == null || widget.onRecordPayslip == null
+            ? null
+            : () => setState(() => _payslipPeriod = period.id),
       ),
-    ];
+    );
   }
 
   Widget? _details(WorkViewState? state) {
     if (state is! WorkReady) return null;
+    final chrome = ShellChrome.maybeOf(context);
+    final selected = _selected(state);
     final register = state.register;
-    return register.employment == null
-        ? null
-        : WorkDetails(projection: register);
+    final Widget scope = register.employment == null
+        ? const SizedBox.shrink()
+        : register.hasAgreement
+        ? WorkDetails(projection: register)
+        : const TaskDetails(lines: [Text('No pay agreement yet.')]);
+    // The selected record leads; the scope's totals stay under it, so a
+    // period's expected and paid figures never leave the pane.
+    final Widget fallback = selected == null
+        ? scope
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              RecordSummary(record: selected, timezones: widget.timezones),
+              const SizedBox(height: 8),
+              scope,
+            ],
+          );
+    return WorkingDetails(
+      onNavigate: (route) => chrome?.onNavigate(route.toString()),
+      fallback: fallback,
+    );
   }
 
   Widget _register(WorkViewState? state) {

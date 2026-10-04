@@ -680,8 +680,7 @@ final class AgreementView extends StatelessWidget {
           if (finishedShifts > 0)
             InspectorNote(
               'Used by $finishedShifts finished '
-              '${finishedShifts == 1 ? 'shift' : 'shifts'}. '
-              'New versions arrive in a later update.',
+              '${finishedShifts == 1 ? 'shift' : 'shifts'}.',
             )
           else if (onEdit != null)
             InspectorActions(
@@ -804,10 +803,6 @@ final class _EmploymentHeaderState extends State<EmploymentHeader> {
                 ),
             ],
           ),
-          if (!widget.canDelete)
-            const InspectorNote(
-              'Has work history — archiving arrives in a later update.',
-            ),
           if (_error case final error?) _ErrorText(error),
         ],
       ),

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/history/record_events.dart';
-import '../../../shared/shell/shell_frame.dart';
-import '../../../shared/shell/working_group_box.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/millennium_style.dart';
@@ -33,7 +31,6 @@ final class _RecordTabsState extends State<RecordTabs> {
 
   @override
   Widget build(BuildContext context) {
-    final chrome = ShellChrome.maybeOf(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -54,19 +51,7 @@ final class _RecordTabsState extends State<RecordTabs> {
             ),
             child: _history
                 ? RecordHistoryPanel(record: widget.record)
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                        child: WorkingGroupBox(
-                          onNavigate: (route) =>
-                              chrome?.onNavigate(route.toString()),
-                        ),
-                      ),
-                      Expanded(child: widget.details),
-                    ],
-                  ),
+                : widget.details,
           ),
         ),
       ],

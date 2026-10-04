@@ -40,6 +40,7 @@ void main() {
     WorkInspectorState inspector = const WorkInspectorEmpty(),
     bool canDelete = true,
     bool used = false,
+    bool hasAgreement = true,
   }) => WorkReady(
     register: WorkRegisterProjection(
       scope: const WorkScope(employmentId: _employmentId, temporal: null),
@@ -49,7 +50,7 @@ void main() {
       paid: const Money(minorUnits: 0),
       reconciliation: null,
       employment: _employment,
-      hasAgreement: true,
+      hasAgreement: hasAgreement,
       currentAgreement: _agreement(used: used),
       canDeleteEmployment: canDelete,
       availableEmployments: [_employment],
@@ -69,15 +70,20 @@ void main() {
     final opened = <String>[];
     await pumpScreen(tester, AsyncData(setupState()), onNavigate: opened.add);
     final pane = find.bySemanticsLabel('Task pane');
+    expect(
+      find.descendant(of: pane, matching: find.text('Add a shift')),
+      findsOneWidget,
+    );
+    // This screen has no pay-period, payslip or saved-view actions, so
+    // their links are left out rather than greyed (XP-authentic spec 4.1).
     for (final task in [
-      'Add a shift',
       'New pay period',
       'Record payslip',
       'Save this view…',
     ]) {
       expect(
         find.descendant(of: pane, matching: find.text(task)),
-        findsOneWidget,
+        findsNothing,
         reason: task,
       );
     }
@@ -87,6 +93,20 @@ void main() {
     );
     await chooseSheet(tester, 'Pay periods');
     expect(opened.single, contains('sheet=periods'));
+  });
+
+  testWidgets('an employment without an agreement offers to set one up', (
+    tester,
+  ) async {
+    final opened = <String>[];
+    await pumpScreen(
+      tester,
+      AsyncData(setupState(hasAgreement: false)),
+      onNavigate: opened.add,
+    );
+    expect(find.text('No pay agreement yet.'), findsOneWidget);
+    await tester.tap(find.text('Set up pay agreement…'));
+    expect(opened.single, contains('add=agreement'));
   });
 
   group('employment setup', () {
@@ -174,12 +194,7 @@ void main() {
 
       await pumpScreen(tester, AsyncData(agreementState(2)));
       expect(find.byKey(const ValueKey('agreement-hourly-rate')), findsNothing);
-      expect(
-        find.text(
-          'Used by 2 finished shifts. New versions arrive in a later update.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Used by 2 finished shifts.'), findsOneWidget);
     });
   });
 

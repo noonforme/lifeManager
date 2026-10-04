@@ -35,7 +35,7 @@ Future<List<Uri>> _pump(
   WidgetTester tester,
   CellSelectionController cells, {
   bool withMenu = false,
-  double width = 300,
+  double width = 176,
 }) async {
   final opened = <Uri>[];
   await tester.pumpWidget(
@@ -55,7 +55,10 @@ Future<List<Uri>> _pump(
                   alignment: Alignment.topLeft,
                   child: SizedBox(
                     width: width,
-                    child: WorkingGroupBox(onNavigate: opened.add),
+                    child: WorkingDetails(
+                      onNavigate: opened.add,
+                      fallback: const Text('Synthetic depot'),
+                    ),
                   ),
                 ),
               ],
@@ -72,7 +75,7 @@ TapGestureRecognizer _operand(WidgetTester tester, String text) {
   TapGestureRecognizer? found;
   final texts = tester.widgetList<RichText>(
     find.descendant(
-      of: find.byType(WorkingGroupBox),
+      of: find.byType(WorkingDetails),
       matching: find.byType(RichText),
     ),
   );
@@ -88,8 +91,9 @@ TapGestureRecognizer _operand(WidgetTester tester, String text) {
 }
 
 void main() {
-  testWidgets('shows nothing without a selection', (tester) async {
+  testWidgets('without a selection it shows the fallback', (tester) async {
     await _pump(tester, CellSelectionController());
+    expect(find.text('Synthetic depot'), findsOneWidget);
     expect(find.byType(GroupBox), findsNothing);
   });
 
@@ -108,6 +112,12 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Agreement “Standard” v1'), findsOneWidget);
+    expect(find.text('Synthetic depot'), findsNothing);
+    expect(
+      find.byType(GroupBox),
+      findsNothing,
+      reason: 'Details has no box of its own',
+    );
   });
 
   testWidgets('clicking an operand or the source opens it', (tester) async {
@@ -119,7 +129,9 @@ void main() {
     expect(opened, [_source.route, _source.route]);
   });
 
-  testWidgets('a recorded cell says it is a recorded fact', (tester) async {
+  testWidgets('a recorded cell shows the fallback, not a working', (
+    tester,
+  ) async {
     final cells = CellSelectionController()
       ..value = CellSelection(
         owner: Object(),
@@ -128,12 +140,12 @@ void main() {
         display: '07:00',
       );
     await _pump(tester, cells);
-    expect(find.text('Working: Start'), findsOneWidget);
-    expect(find.text('D4 = 07:00'), findsOneWidget);
-    expect(find.text('Recorded fact'), findsOneWidget);
+    expect(find.text('Synthetic depot'), findsOneWidget);
+    expect(find.text('Working: Start'), findsNothing);
+    expect(find.text('Recorded fact'), findsNothing);
   });
 
-  testWidgets('a long working wraps in 300 px and every operand still opens', (
+  testWidgets('a long working wraps in 176 px and every operand still opens', (
     tester,
   ) async {
     final tokens = <ExplanationToken>[
@@ -154,10 +166,7 @@ void main() {
       );
     final opened = await _pump(tester, cells);
     expect(tester.takeException(), isNull);
-    expect(
-      tester.getSize(find.byType(WorkingGroupBox)).height,
-      greaterThan(60),
-    );
+    expect(tester.getSize(find.byType(WorkingDetails)).height, greaterThan(60));
     _operand(tester, 'operand 6').onTap!();
     expect(opened, [_source.route]);
   });
