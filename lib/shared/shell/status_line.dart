@@ -24,6 +24,29 @@ final class StatusSnapshot {
   final bool lastSaveUncertain;
 }
 
+/// What the last finished action did, for the status bar's first panel
+/// ("Shift saved."). It stays until the next notice replaces it.
+final class StatusNoticeController extends ValueNotifier<String?> {
+  StatusNoticeController() : super(null);
+}
+
+final class StatusNoticeScope
+    extends InheritedNotifier<StatusNoticeController> {
+  const StatusNoticeScope({
+    required StatusNoticeController controller,
+    required super.child,
+    super.key,
+  }) : super(notifier: controller);
+
+  static String? valueOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<StatusNoticeScope>()
+      ?.notifier
+      ?.value;
+
+  static StatusNoticeController? read(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<StatusNoticeScope>()?.notifier;
+}
+
 /// The sunken status bar at the bottom of the shell.
 final class StatusLine extends StatelessWidget {
   const StatusLine({required this.snapshot, super.key});
@@ -35,6 +58,7 @@ final class StatusLine extends StatelessWidget {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
     final style = skin.typography.small.copyWith(color: tokens.ink);
+    final notice = StatusNoticeScope.valueOf(context);
     final save = snapshot.lastSaveUncertain
         ? 'Last save uncertain. Reload to check'
         : snapshot.lastSave == null
@@ -52,9 +76,15 @@ final class StatusLine extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // The first panel stretches; Part 2 of schedules fills it
-            // with the days still to confirm.
-            const Expanded(child: SizedBox.shrink()),
+            // The first panel stretches and says what was just done.
+            Expanded(
+              child: notice == null
+                  ? const SizedBox.shrink()
+                  : Semantics(
+                      liveRegion: true,
+                      child: _Panel(child: Text(notice, style: style)),
+                    ),
+            ),
             if (snapshot.needsYou > 0)
               _Panel(
                 child: Text('Needs you: ${snapshot.needsYou}', style: style),

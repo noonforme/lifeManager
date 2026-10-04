@@ -80,4 +80,25 @@ void main() {
       ),
     );
   });
+
+  testWidgets('the first panel shows the last notice', (tester) async {
+    final notices = StatusNoticeController();
+    addTearDown(notices.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: StatusNoticeScope(
+              controller: notices,
+              child: const StatusLine(snapshot: StatusSnapshot()),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Shift saved.'), findsNothing);
+    notices.value = 'Shift saved.';
+    await tester.pump();
+    expect(find.text('Shift saved.'), findsOneWidget);
+  });
 }

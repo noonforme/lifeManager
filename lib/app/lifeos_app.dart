@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../shared/shell/navigation_history.dart';
 import '../shared/shell/shell_frame.dart';
+import '../shared/shell/status_line.dart';
 import '../shared/workbench/cell_selection.dart';
 import '../shared/workbench/lifeos_skin.dart';
 import '../shared/workbench/lifeos_theme.dart';
@@ -24,6 +25,7 @@ final class LifeOsApp extends StatefulWidget {
 final class _LifeOsAppState extends State<LifeOsApp> {
   final _view = ShellViewController();
   final _cells = CellSelectionController();
+  final _notices = StatusNoticeController();
   final _history = NavigationHistory();
 
   @override
@@ -56,6 +58,7 @@ final class _LifeOsAppState extends State<LifeOsApp> {
   void dispose() {
     _view.dispose();
     _cells.dispose();
+    _notices.dispose();
     widget.router.routeInformationProvider.removeListener(_recordLocation);
     _history.dispose();
     super.dispose();
@@ -73,25 +76,28 @@ final class _LifeOsAppState extends State<LifeOsApp> {
         onQuit: widget.onQuit,
         child: ShellViewScope(
           controller: _view,
-          child: CellSelectionScope(
-            controller: _cells,
-            child: NavigationHistoryScope(
-              history: _history,
-              onNavigate: widget.router.go,
-              child: Builder(
-                // Mouse back and forward buttons travel the history.
-                builder: (context) => Listener(
-                  behavior: HitTestBehavior.translucent,
-                  onPointerDown: (event) => _onPointerDown(
-                    event,
-                    NavigationHistoryScope.maybeOf(context),
-                  ),
-                  child: LifeOSSkinScope(
-                    // Material forms, dialogs and menus follow the skin.
-                    child: Builder(
-                      builder: (context) => Theme(
-                        data: lifeOSThemeFor(LifeOSSkinScope.of(context)),
-                        child: child ?? const SizedBox.shrink(),
+          child: StatusNoticeScope(
+            controller: _notices,
+            child: CellSelectionScope(
+              controller: _cells,
+              child: NavigationHistoryScope(
+                history: _history,
+                onNavigate: widget.router.go,
+                child: Builder(
+                  // Mouse back and forward buttons travel the history.
+                  builder: (context) => Listener(
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: (event) => _onPointerDown(
+                      event,
+                      NavigationHistoryScope.maybeOf(context),
+                    ),
+                    child: LifeOSSkinScope(
+                      // Material forms, dialogs and menus follow the skin.
+                      child: Builder(
+                        builder: (context) => Theme(
+                          data: lifeOSThemeFor(LifeOSSkinScope.of(context)),
+                          child: child ?? const SizedBox.shrink(),
+                        ),
                       ),
                     ),
                   ),
