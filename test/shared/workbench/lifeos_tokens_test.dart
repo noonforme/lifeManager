@@ -75,4 +75,12 @@ void main() {
       );
     }
   });
+
+  test('caption titles read on their caption, active and inactive', () {
+    expect(contrastRatio(t.headInk, t.head), greaterThanOrEqualTo(4.5));
+    expect(
+      contrastRatio(t.headInk, MillenniumColors.inactiveCaption),
+      greaterThanOrEqualTo(4.5),
+    );
+  });
 }

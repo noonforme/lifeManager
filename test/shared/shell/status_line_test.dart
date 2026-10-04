@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/shared/shell/era_window_frame.dart';
 import 'package:lifeos/shared/shell/status_line.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+
+import '../../support/fake_window_controls.dart';
 
 Future<void> _pump(WidgetTester tester, StatusSnapshot snapshot) =>
     tester.pumpWidget(
@@ -100,5 +103,35 @@ void main() {
     notices.value = 'Shift saved.';
     await tester.pump();
     expect(find.text('Shift saved.'), findsOneWidget);
+  });
+
+  testWidgets('the size grip shows unless maximized and resizes the corner', (
+    tester,
+  ) async {
+    final controls = FakeWindowControls();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: WindowControlsScope(
+                controls: controls,
+                child: const StatusLine(snapshot: StatusSnapshot()),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.byKey(const ValueKey('size-grip')), findsOneWidget);
+    await tester.drag(
+      find.byKey(const ValueKey('size-grip')),
+      const Offset(20, 20),
+    );
+    expect(controls.calls, contains('resize WindowEdge.bottomRight'));
+    controls.frame = const WindowFrameState(maximized: true);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('size-grip')), findsNothing);
   });
 }

@@ -16,6 +16,7 @@ final class WindowManagerDesktopWindowService implements DesktopWindowService {
         minimumSize: Size(1280, 760),
         size: Size(1440, 900),
         center: true,
+        titleBarStyle: TitleBarStyle.hidden,
       ),
     );
   }

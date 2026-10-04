@@ -13,6 +13,7 @@ import '../features/work/presentation/work_route_state.dart';
 import '../features/work/presentation/work_views.dart';
 import '../shared/shell/address_bar.dart';
 import '../shared/shell/book_tree.dart';
+import '../shared/shell/era_window_frame.dart';
 import '../shared/shell/menu_bar.dart';
 import '../shared/shell/name_dialog.dart';
 import '../shared/shell/quick_add.dart';
@@ -140,6 +141,14 @@ final class ShellChromeHost extends ConsumerWidget {
               .map((value) => value.name)
               .firstOrNull;
 
+    final crumbs = _crumbs(location, employmentName);
+    // The window caption names where the owner is ("Shifts - LifeOS").
+    final title = crumbs.lastOrNull?.label;
+    final titles = WindowTitleScope.read(context);
+    if (titles != null && titles.value != title) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => titles.value = title);
+    }
+
     return ShellChrome(
       menuBar: LifeOSMenuBar(
         onNavigate: context.go,
@@ -154,7 +163,7 @@ final class ShellChromeHost extends ConsumerWidget {
         },
       ),
       status: const StatusLine(snapshot: StatusSnapshot()),
-      crumbs: _crumbs(location, employmentName),
+      crumbs: crumbs,
       onNavigate: context.go,
       quickAdd: _quickAdd(context, employments, employmentId),
       fromLastTime: _fromLastTime(context, ref, employments, employmentId),

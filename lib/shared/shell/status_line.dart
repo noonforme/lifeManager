@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../workbench/lifeos_skin.dart';
 import '../workbench/millennium_style.dart';
+import 'era_window_frame.dart';
 
 /// What the status line reports (spec 5.4). Segments appear only for facts
 /// LifeOS actually has; nothing is shown as a placeholder.
@@ -106,6 +107,13 @@ final class StatusLine extends StatelessWidget {
                     : style,
               ),
             ),
+            if (WindowControlsScope.maybeOf(context) case final controls?)
+              ValueListenableBuilder<WindowFrameState>(
+                valueListenable: controls.state,
+                builder: (context, state, _) => state.maximized
+                    ? const SizedBox.shrink()
+                    : _SizeGrip(controls: controls),
+              ),
           ],
         ),
       ),
@@ -138,4 +146,48 @@ final class _Panel extends StatelessWidget {
       child: child,
     );
   }
+}
+
+/// Diagonal dots at the status bar's right end; dragging resizes the
+/// window from its bottom-right corner (XP-authentic shell spec 5).
+final class _SizeGrip extends StatelessWidget {
+  const _SizeGrip({required this.controls});
+
+  final WindowControls controls;
+
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+    key: const ValueKey('size-grip'),
+    cursor: SystemMouseCursors.resizeDownRight,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onPanStart: (_) => controls.startResizing(WindowEdge.bottomRight),
+      child: const SizedBox(
+        width: 14,
+        child: CustomPaint(painter: _GripPainter()),
+      ),
+    ),
+  );
+}
+
+final class _GripPainter extends CustomPainter {
+  const _GripPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final dark = Paint()..color = MillenniumColors.sunkenEdge;
+    final light = Paint()..color = const Color(0xffffffff);
+    for (var row = 0; row < 3; row++) {
+      for (var col = 0; col <= row; col++) {
+        final x = size.width - 4 - col * 4.0;
+        final y = size.height - 4 - (row - col) * 4.0;
+        canvas
+          ..drawRect(Rect.fromLTWH(x + 1, y + 1, 2, 2), light)
+          ..drawRect(Rect.fromLTWH(x, y, 2, 2), dark);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GripPainter oldDelegate) => false;
 }
