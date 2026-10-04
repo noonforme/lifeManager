@@ -13,6 +13,7 @@ import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/shared/shell/working_group_box.dart';
 
 import '../support/era_pickers.dart';
+import '../support/work_dialogs.dart';
 
 /// The shell spec's section 10 flow on the production composition: a
 /// fresh install from Today to a finalized shift, then the formula bar,
@@ -89,6 +90,8 @@ void main() {
     await setTime(tester, 'shift-end-time', const LocalTime(17, 0));
     await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
     await tester.pumpAndSettle();
+    expect(find.text('Shift saved.'), findsOneWidget);
+    await openRowProperties(tester, '2026-10-01');
     expect(find.text('Shift finalized'), findsOneWidget);
 
     // The Working group box explains the expected pay cell.
@@ -132,8 +135,9 @@ void main() {
   });
 }
 
+/// [finder] inside the open dialog (Properties sheet or form).
 Finder _inInspector(Finder finder) => find.descendant(
-  of: find.bySemanticsLabel('Record inspector'),
+  of: find.byKey(const ValueKey('shell-dialog')),
   matching: finder,
 );
 

@@ -5,7 +5,7 @@ import '../domain/pay_period.dart';
 import '../domain/payslip.dart';
 import '../domain/shift.dart';
 
-enum WorkInspectorMode { inspect, create, edit, correct }
+enum WorkInspectorMode { inspect, properties, create, edit, correct }
 
 enum WorkRouteProblem { malformedId, malformedScope, invalidMode }
 
@@ -184,6 +184,7 @@ WorkRouteParseResult parseWorkRoute(Uri uri) {
   }
   final mode = switch (uri.queryParameters['mode'] ?? 'inspect') {
     'inspect' => WorkInspectorMode.inspect,
+    'properties' => WorkInspectorMode.properties,
     'create' => WorkInspectorMode.create,
     'edit' => WorkInspectorMode.edit,
     'correct' => WorkInspectorMode.correct,

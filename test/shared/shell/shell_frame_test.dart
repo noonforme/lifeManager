@@ -29,11 +29,7 @@ Future<ShellViewController> _pump(
   addTearDown(tester.view.reset);
   final controller = view ?? ShellViewController();
   await tester.pumpWidget(
-    _Harness(
-      view: controller,
-      dialogOpen: dialogOpen,
-      textScale: textScale,
-    ),
+    _Harness(view: controller, dialogOpen: dialogOpen, textScale: textScale),
   );
   return controller;
 }
@@ -107,11 +103,7 @@ void main() {
     expect(find.text('Tree content'), findsOneWidget);
     tester.view.physicalSize = const Size(1280, 800);
     await tester.pumpWidget(
-      _Harness(
-        view: view,
-        dialogOpen: false,
-        textScale: 1,
-      ),
+      _Harness(view: view, dialogOpen: false, textScale: 1),
     );
     await tester.pumpAndSettle();
     expect(find.text('Close tasks'), findsNothing);
@@ -120,11 +112,7 @@ void main() {
     expect(find.text('Desk content'), findsOneWidget);
     tester.view.physicalSize = const Size(960, 760);
     await tester.pumpWidget(
-      _Harness(
-        view: view,
-        dialogOpen: false,
-        textScale: 1,
-      ),
+      _Harness(view: view, dialogOpen: false, textScale: 1),
     );
     await tester.pumpAndSettle();
     expect(find.text('Tasks'), findsOneWidget);

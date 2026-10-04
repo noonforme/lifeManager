@@ -28,6 +28,7 @@ import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
 
 import '../support/era_pickers.dart';
+import '../support/work_dialogs.dart';
 
 void main() {
   test(
@@ -104,7 +105,7 @@ void main() {
 
     expect(find.bySemanticsLabel('Task pane'), findsOneWidget);
     expect(find.bySemanticsLabel('Work register'), findsOneWidget);
-    expect(find.bySemanticsLabel('Record inspector'), findsOneWidget);
+    expect(find.bySemanticsLabel('Record inspector'), findsNothing);
     expect(
       find.text(
         'Track shifts, see what you should be paid, and compare it with your payslips. Start by adding where you work.',
@@ -227,7 +228,7 @@ void main() {
     addTearDown(repository.close);
     final initialLocation =
         '/work?employment=${_employmentId.value}'
-        '&record=shift:${_shiftId.value}&mode=inspect';
+        '&record=shift:${_shiftId.value}&mode=properties';
     final router = createAppRouter(initialLocation: initialLocation);
     addTearDown(router.dispose);
 
@@ -276,7 +277,7 @@ void main() {
     final router = createAppRouter(
       initialLocation:
           '/work?employment=${_employmentId.value}'
-          '&record=shift:${_shiftId.value}&mode=inspect',
+          '&record=shift:${_shiftId.value}&mode=properties',
     );
     addTearDown(router.dispose);
 
@@ -542,20 +543,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.descendant(
-        of: find.bySemanticsLabel('Record inspector'),
-        matching: find.text('Record payslip'),
-      ),
-    );
+    await tester.tap(find.widgetWithText(KeyButton, 'Record payslip'));
     await tester.pumpAndSettle();
     await pickDate(tester, 'payslip-issued-date', const LocalDate(2026, 9, 30));
     await tester.enterText(
       find.byKey(const ValueKey('payslip-amount')),
       '950.00',
     );
-    await tester.tap(find.text('Save payslip'));
-    await tester.pumpAndSettle();
+    await tapInDialog(tester, find.text('Save payslip'));
 
     expect(issued?.periodId, _periodId);
     expect(issued?.amountMinorUnits, 95000);
@@ -601,7 +596,7 @@ void main() {
     );
     addTearDown(repository.close);
     CorrectShiftCommand? issued;
-    final router = createAppRouter(initialLocation: _finalizedLocation);
+    final router = createAppRouter(initialLocation: _finalizedProperties);
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
@@ -748,7 +743,7 @@ void main() {
     CorrectPayslipCommand? issued;
     final location =
         '/work?employment=${_employmentId.value}&period=${_periodId.value}'
-        '&record=payslip:${_payslipId.value}&mode=inspect';
+        '&record=payslip:${_payslipId.value}&mode=properties';
     final router = createAppRouter(initialLocation: location);
     addTearDown(router.dispose);
 
@@ -890,7 +885,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Revise replacement shift'), findsOneWidget);
+    expect(find.text('Revise replacement shift'), findsWidgets);
     expect(timeIn(tester, 'shift-start-time'), const LocalTime(10, 0));
     expect(timeIn(tester, 'shift-end-time'), const LocalTime(18, 0));
     await setTime(tester, 'shift-end-time', const LocalTime(17, 0));
@@ -932,8 +927,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
-    await tester.pumpAndSettle();
+    await tapInDialog(tester, find.byKey(const ValueKey('save-manual-shift')));
 
     expect(
       router.routeInformationProvider.value.uri.toString(),
@@ -1068,7 +1062,7 @@ const _periodId = PayPeriodId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c51');
 const _payslipId = PayslipId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c61');
 final _periodLocation =
     '/work?employment=${_employmentId.value}&period=${_periodId.value}'
-    '&record=payPeriod:${_periodId.value}&mode=inspect';
+    '&record=payPeriod:${_periodId.value}&mode=properties';
 
 final _openPeriod = PayPeriod.create(
   id: _periodId,
@@ -1172,6 +1166,10 @@ final _finalizedLocation =
     '/work?employment=${_employmentId.value}'
     '&from=2026-09-29&to=2026-09-29'
     '&record=shift:${_shiftId.value}&mode=inspect';
+final _finalizedProperties = _finalizedLocation.replaceFirst(
+  'mode=inspect',
+  'mode=properties',
+);
 
 final class _PayslipQueryRepository implements WorkQueryRepository {
   @override

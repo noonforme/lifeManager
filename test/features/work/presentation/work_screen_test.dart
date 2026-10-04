@@ -90,9 +90,24 @@ void main() {
   });
 
   group('employment setup', () {
-    testWidgets('a selected employment shows its header', (tester) async {
+    testWidgets("an employment's Properties show its header", (tester) async {
       final routes = <String>[];
-      await pumpScreen(tester, AsyncData(setupState()), onNavigate: routes.add);
+      await pumpScreen(
+        tester,
+        AsyncData(
+          setupState(
+            record: const WorkRecordRef(
+              kind: WorkRecordKind.employment,
+              id: _employmentId,
+            ),
+            mode: WorkInspectorMode.properties,
+            inspector: WorkInspectorRecord(
+              EmploymentRecordProjection(_employment),
+            ),
+          ),
+        ),
+        onNavigate: routes.add,
+      );
 
       final header = find.bySemanticsLabel('Employment');
       expect(header, findsOneWidget);
@@ -201,6 +216,7 @@ void main() {
       AsyncData(
         setupState(
           record: const WorkRecordRef(kind: WorkRecordKind.shift, id: _shiftId),
+          mode: WorkInspectorMode.properties,
           inspector: WorkInspectorRecord(
             ShiftRecordProjection(shift, breaks: const [], pay: pay),
           ),
@@ -264,7 +280,7 @@ void main() {
       employmentId: _employmentId,
       scope: const PayPeriodScope(_periodId),
       record: const WorkRecordRef(kind: WorkRecordKind.payslip, id: _payslipId),
-      mode: WorkInspectorMode.inspect,
+      mode: WorkInspectorMode.properties,
     );
     final ready = WorkReady(
       register: WorkRegisterProjection.empty(
@@ -292,14 +308,14 @@ void main() {
     expect(find.text('Work record selected'), findsNothing);
   });
 
-  testWidgets('missing selected record remains unavailable in the inspector', (
+  testWidgets("a missing record's Properties say it is unavailable", (
     tester,
   ) async {
     final route = WorkRouteState(
       employmentId: _employmentId,
       scope: null,
       record: const WorkRecordRef(kind: WorkRecordKind.shift, id: _shiftId),
-      mode: WorkInspectorMode.inspect,
+      mode: WorkInspectorMode.properties,
     );
     final ready = WorkReady(
       register: WorkRegisterProjection.empty(
@@ -312,7 +328,15 @@ void main() {
     await pumpScreen(tester, AsyncData(ready));
 
     expect(find.text('Work record unavailable'), findsOneWidget);
-    expect(find.bySemanticsLabel('Work register'), findsOneWidget);
+    // The register stays mounted behind the sheet, hidden from semantics
+    // while the modal sheet is open.
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics && widget.properties.label == 'Work register',
+      ),
+      findsOneWidget,
+    );
   });
 }
 

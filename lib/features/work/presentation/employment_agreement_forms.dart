@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/local_time.dart';
+import '../../../shared/shell/shell_dialog.dart';
 import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_field.dart';
@@ -151,6 +152,7 @@ final class _EmploymentFormState extends State<EmploymentForm> {
                   onPressed: _submitting ? null : _submit,
                   child: const Text('Save employment'),
                 ),
+                const DialogCancelKey(),
               ],
             ),
           ],
@@ -605,6 +607,7 @@ final class _AgreementFormState extends State<AgreementForm> {
                     onPressed: _submitting ? null : _submit,
                     child: const Text('Save agreement'),
                   ),
+                  const DialogCancelKey(),
                 ],
               ),
             ],

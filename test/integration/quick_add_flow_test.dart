@@ -16,6 +16,7 @@ import 'package:lifeos/features/work/domain/employment.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
 
 import '../support/era_pickers.dart';
+import '../support/work_dialogs.dart';
 
 /// + Add and "from last time" on the production composition, with a fixed
 /// clock so today is 2026-10-03 in Vilnius.
@@ -124,6 +125,7 @@ void main() {
     );
     expect(timeIn(tester, 'shift-break-start-0'), const LocalTime(1, 0));
     expect(timeIn(tester, 'shift-break-end-0'), const LocalTime(1, 30));
+    await revealInDialog(tester, find.byKey(const ValueKey('shift-note')));
     expect(field('shift-note'), isEmpty);
   });
 
@@ -151,6 +153,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(location(), contains('add=payPeriod'));
     expect(find.byKey(const ValueKey('period-start')), findsOneWidget);
+    // The form is a modal dialog; close it before using the toolbar again.
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('quick-add')));
     await tester.pumpAndSettle();

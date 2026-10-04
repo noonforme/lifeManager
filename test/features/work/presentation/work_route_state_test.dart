@@ -85,4 +85,15 @@ void main() {
       isA<InvalidWorkRoute>(),
     );
   });
+
+  test('properties mode round-trips through the URL', () {
+    const shift = '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c22';
+    final uri = Uri.parse(
+      '/work?employment=${employment.value}&record=shift:$shift'
+      '&mode=properties',
+    );
+    final parsed = parseWorkRoute(uri) as ValidWorkRoute;
+    expect(parsed.state.mode, WorkInspectorMode.properties);
+    expect(workRouteUri(parsed.state).queryParameters['mode'], 'properties');
+  });
 }

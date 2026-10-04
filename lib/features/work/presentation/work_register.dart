@@ -22,6 +22,7 @@ final class WorkRegister extends StatelessWidget {
     required this.projection,
     required this.selectedRecord,
     required this.onSelect,
+    this.onProperties,
     required this.onPrimaryAction,
     this.onOpenEmployment,
     this.onNewPeriod,
@@ -39,6 +40,9 @@ final class WorkRegister extends StatelessWidget {
   final WorkRegisterProjection? projection;
   final WorkRecordRef? selectedRecord;
   final ValueChanged<WorkRecordRef> onSelect;
+
+  /// Opens a row's Properties sheet.
+  final ValueChanged<WorkRecordRef>? onProperties;
   final VoidCallback onPrimaryAction;
   final ValueChanged<EmploymentId>? onOpenEmployment;
   final VoidCallback? onNewPeriod;
@@ -138,6 +142,7 @@ final class WorkRegister extends StatelessWidget {
         timezones: timezones ?? IanaTimezoneService(),
         selectedId: selectedId,
         onOpen: onSelect,
+        onProperties: onProperties,
         showVoid: route.showVoid,
         onAddManualShift: onAddManualShift,
       ),
@@ -145,6 +150,7 @@ final class WorkRegister extends StatelessWidget {
         rows: value.periodSheet,
         selectedId: selectedId,
         onOpen: onSelect,
+        onProperties: onProperties,
         onNewPeriod: onNewPeriod,
       ),
       WorkSheet.payslips => PayslipsSheet(
@@ -152,6 +158,7 @@ final class WorkRegister extends StatelessWidget {
         periods: value.periodSheet,
         selectedId: selectedId,
         onOpen: onSelect,
+        onProperties: onProperties,
         showVoid: route.showVoid,
         onRecordPayslip: period == null || recordPayslip == null
             ? null
@@ -162,6 +169,7 @@ final class WorkRegister extends StatelessWidget {
         employmentName: value.employment?.name ?? 'Employment',
         selectedId: selectedId,
         onOpen: onSelect,
+        onProperties: onProperties,
       ),
     };
     return Column(

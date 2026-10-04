@@ -53,6 +53,7 @@ final class ShiftsSheet extends StatelessWidget {
     required this.timezones,
     required this.selectedId,
     required this.onOpen,
+    this.onProperties,
     required this.showVoid,
     this.onAddManualShift,
     super.key,
@@ -62,6 +63,9 @@ final class ShiftsSheet extends StatelessWidget {
   final TimezoneService timezones;
   final String? selectedId;
   final ValueChanged<WorkRecordRef> onOpen;
+
+  /// Opens the row's Properties (Enter, double-click, right-click).
+  final ValueChanged<WorkRecordRef>? onProperties;
   final bool showVoid;
   final VoidCallback? onAddManualShift;
 
@@ -124,6 +128,17 @@ final class ShiftsSheet extends StatelessWidget {
           '${shiftStateLabel(row.shift.state)}',
       selectedId: selectedId,
       onOpen: (row) => onOpen(_shiftRef(row)),
+      onActivate: onProperties == null
+          ? null
+          : (row) => onProperties!(_shiftRef(row)),
+      actions: onProperties == null
+          ? null
+          : (row) => [
+              RowAction(
+                label: 'Properties',
+                onInvoke: () => onProperties!(_shiftRef(row)),
+              ),
+            ],
       columns: [
         RegisterColumn(
           key: 'date',
@@ -222,6 +237,7 @@ final class PeriodsSheet extends StatelessWidget {
     required this.rows,
     required this.selectedId,
     required this.onOpen,
+    this.onProperties,
     this.onNewPeriod,
     super.key,
   });
@@ -229,6 +245,9 @@ final class PeriodsSheet extends StatelessWidget {
   final List<PeriodSheetRow> rows;
   final String? selectedId;
   final ValueChanged<WorkRecordRef> onOpen;
+
+  /// Opens the row's Properties (Enter, double-click, right-click).
+  final ValueChanged<WorkRecordRef>? onProperties;
   final VoidCallback? onNewPeriod;
 
   @override
@@ -264,6 +283,17 @@ final class PeriodsSheet extends StatelessWidget {
       rowLabel: (row) => 'Pay period ${periodName(row.period)}',
       selectedId: selectedId,
       onOpen: (row) => onOpen(ref(row)),
+      onActivate: onProperties == null
+          ? null
+          : (row) => onProperties!(ref(row)),
+      actions: onProperties == null
+          ? null
+          : (row) => [
+              RowAction(
+                label: 'Properties',
+                onInvoke: () => onProperties!(ref(row)),
+              ),
+            ],
       columns: [
         RegisterColumn(
           key: 'start',
@@ -332,6 +362,7 @@ final class PayslipsSheet extends StatelessWidget {
     required this.periods,
     required this.selectedId,
     required this.onOpen,
+    this.onProperties,
     required this.showVoid,
     this.onRecordPayslip,
     super.key,
@@ -341,6 +372,9 @@ final class PayslipsSheet extends StatelessWidget {
   final List<PeriodSheetRow> periods;
   final String? selectedId;
   final ValueChanged<WorkRecordRef> onOpen;
+
+  /// Opens the row's Properties (Enter, double-click, right-click).
+  final ValueChanged<WorkRecordRef>? onProperties;
   final bool showVoid;
 
   /// Records a payslip in the selected pay period, when one is selected.
@@ -378,6 +412,17 @@ final class PayslipsSheet extends StatelessWidget {
       rowLabel: (value) => 'Payslip issued ${value.issuedDate}',
       selectedId: selectedId,
       onOpen: (value) => onOpen(ref(value)),
+      onActivate: onProperties == null
+          ? null
+          : (value) => onProperties!(ref(value)),
+      actions: onProperties == null
+          ? null
+          : (value) => [
+              RowAction(
+                label: 'Properties',
+                onInvoke: () => onProperties!(ref(value)),
+              ),
+            ],
       columns: [
         RegisterColumn(
           key: 'issued',
@@ -445,6 +490,7 @@ final class AgreementsSheet extends StatelessWidget {
     required this.employmentName,
     required this.selectedId,
     required this.onOpen,
+    this.onProperties,
     super.key,
   });
 
@@ -452,6 +498,9 @@ final class AgreementsSheet extends StatelessWidget {
   final String employmentName;
   final String? selectedId;
   final ValueChanged<WorkRecordRef> onOpen;
+
+  /// Opens the row's Properties (Enter, double-click, right-click).
+  final ValueChanged<WorkRecordRef>? onProperties;
 
   @override
   Widget build(BuildContext context) {
@@ -467,6 +516,17 @@ final class AgreementsSheet extends StatelessWidget {
       rowLabel: (row) => 'Agreement version ${row.agreement.version}',
       selectedId: selectedId,
       onOpen: (row) => onOpen(ref(row)),
+      onActivate: onProperties == null
+          ? null
+          : (row) => onProperties!(ref(row)),
+      actions: onProperties == null
+          ? null
+          : (row) => [
+              RowAction(
+                label: 'Properties',
+                onInvoke: () => onProperties!(ref(row)),
+              ),
+            ],
       columns: [
         RegisterColumn(
           key: 'version',

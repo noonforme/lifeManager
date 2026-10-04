@@ -214,49 +214,49 @@ final class _ShellFrameState extends State<ShellFrame> {
             return ShellDialogLayer(
               dialog: widget.dialog,
               child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _Landmark(
-                  label: 'Menu bar',
-                  // A minimum, so 200 % text grows the bar instead of
-                  // clipping it.
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minHeight: ShellMetrics.menuBarHeight,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Landmark(
+                    label: 'Menu bar',
+                    // A minimum, so 200 % text grows the bar instead of
+                    // clipping it.
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minHeight: ShellMetrics.menuBarHeight,
+                      ),
+                      child: chrome?.menuBar ?? const SizedBox.shrink(),
                     ),
-                    child: chrome?.menuBar ?? const SizedBox.shrink(),
                   ),
-                ),
-                _Landmark(
-                  label: 'Toolbar',
-                  child: _Toolbar(
-                    showTasks: folded,
-                    tasksOpen: _tasksOpen,
-                    onTasks: _toggleTasks,
-                    quickAdd: chrome?.quickAdd ?? const [],
-                    fromLastTime: chrome?.fromLastTime ?? const [],
-                  ),
-                ),
-                AddressBar(
-                  crumbs: chrome?.crumbs ?? const [],
-                  onNavigate: (route) => chrome?.onNavigate(route),
-                  // Go reopens the current location (its last crumb).
-                  onGo: () {
-                    final here = chrome?.crumbs.lastOrNull?.route;
-                    if (here != null) chrome?.onNavigate(here);
-                  },
-                ),
-                Expanded(child: body),
-                _Landmark(
-                  label: 'Status line',
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minHeight: ShellMetrics.statusBarHeight,
+                  _Landmark(
+                    label: 'Toolbar',
+                    child: _Toolbar(
+                      showTasks: folded,
+                      tasksOpen: _tasksOpen,
+                      onTasks: _toggleTasks,
+                      quickAdd: chrome?.quickAdd ?? const [],
+                      fromLastTime: chrome?.fromLastTime ?? const [],
                     ),
-                    child: chrome?.status ?? const SizedBox.shrink(),
                   ),
-                ),
-              ],
+                  AddressBar(
+                    crumbs: chrome?.crumbs ?? const [],
+                    onNavigate: (route) => chrome?.onNavigate(route),
+                    // Go reopens the current location (its last crumb).
+                    onGo: () {
+                      final here = chrome?.crumbs.lastOrNull?.route;
+                      if (here != null) chrome?.onNavigate(here);
+                    },
+                  ),
+                  Expanded(child: body),
+                  _Landmark(
+                    label: 'Status line',
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minHeight: ShellMetrics.statusBarHeight,
+                      ),
+                      child: chrome?.status ?? const SizedBox.shrink(),
+                    ),
+                  ),
+                ],
               ),
             );
           },

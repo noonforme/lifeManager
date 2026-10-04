@@ -44,9 +44,7 @@ void main() {
             fromLastTime: [
               if (hasLastShift) entry('Manual shift from last time'),
             ],
-            child: const ShellFrame(
-              desk: SizedBox.shrink(),
-            ),
+            child: const ShellFrame(desk: SizedBox.shrink()),
           ),
         ),
       ),
@@ -103,4 +101,3 @@ void main() {
     expect(find.text('Manual shift from last time'), findsNothing);
   });
 }
-

@@ -33,7 +33,7 @@ void main() {
 
     expect(find.bySemanticsLabel('Task pane'), findsOneWidget);
     expect(find.bySemanticsLabel('Work register'), findsOneWidget);
-    expect(find.bySemanticsLabel('Record inspector'), findsOneWidget);
+    expect(find.bySemanticsLabel('Record inspector'), findsNothing);
     expect(
       find.text(
         'Track shifts, see what you should be paid, and compare it with your payslips. Start by adding where you work.',

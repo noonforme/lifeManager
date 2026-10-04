@@ -13,6 +13,7 @@ import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/shared/workbench/inspector_parts.dart';
 
 import '../support/era_pickers.dart';
+import '../support/work_dialogs.dart';
 
 /// Drives the Work core flow through the real router, controller, services
 /// and Drift repositories on an in-memory database with synthetic facts.
@@ -57,7 +58,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(location(), contains('record=shift:'));
     expect(location(), endsWith('mode=inspect'));
-    expect(find.text('Shift finalized'), findsOneWidget);
+    expect(find.text('Shift saved.'), findsOneWidget);
     final shiftLocation = location();
     final employment = RegExp(r'employment=([0-9a-f-]+)')
         .firstMatch(shiftLocation)!
@@ -76,30 +77,26 @@ void main() {
     expect(periodLocation, contains('record=payPeriod:'));
     expect(_summary('Expected under recorded agreement'), 'EUR 160.00');
 
-    // Payslip and reconciliation.
-    await tester.tap(
-      find.descendant(
-        of: find.bySemanticsLabel('Record inspector'),
-        matching: find.text('Record payslip'),
-      ),
-    );
+    // Payslip and reconciliation, from the period's Properties.
+    router.go(periodLocation.replaceFirst('mode=inspect', 'mode=properties'));
+    await tester.pumpAndSettle();
+    await tester.tap(_inInspector(find.text('Record payslip')));
     await tester.pumpAndSettle();
     await pickDate(tester, 'payslip-issued-date', const LocalDate(2026, 9, 30));
     await tester.enterText(
       find.byKey(const ValueKey('payslip-amount')),
       '150.00',
     );
-    await tester.tap(find.text('Save payslip'));
-    await tester.pumpAndSettle();
+    await tapInDialog(tester, find.text('Save payslip'));
     expect(location(), contains('record=payslip:'));
     expect(_summary('Paid evidence'), 'EUR 150.00');
     expect(_summary('Difference'), 'EUR -10.00');
 
-    // Correct the shift: void it and revise the replacement draft.
-    router.go(shiftLocation);
+    // Correct the shift from its Properties: void it and revise the
+    // replacement draft.
+    router.go(shiftLocation.replaceFirst('mode=inspect', 'mode=properties'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Correct shift'));
-    await tester.pumpAndSettle();
+    await tapInDialog(tester, find.text('Correct shift'));
     expect(location(), endsWith('mode=correct'));
     await tester.enterText(
       find.byKey(const ValueKey('correction-reason')),
@@ -109,12 +106,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(location(), endsWith('mode=edit'));
     expect(location(), isNot(shiftLocation.replaceFirst('inspect', 'edit')));
-    expect(find.text('Revise replacement shift'), findsOneWidget);
+    expect(find.text('Revise replacement shift'), findsWidgets);
     await setTime(tester, 'shift-end-time', const LocalTime(17, 0));
-    await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
-    await tester.pumpAndSettle();
+    await tapInDialog(tester, find.byKey(const ValueKey('save-manual-shift')));
     expect(location(), endsWith('mode=inspect'));
-    expect(find.text('Shift finalized'), findsOneWidget);
+    expect(find.text('Shift saved.'), findsOneWidget);
 
     // Totals count only the finalized replacement.
     router.go(periodLocation);
@@ -194,6 +190,8 @@ void main() {
     await setTime(tester, 'shift-end-time', const LocalTime(6, 0));
     await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
     await tester.pumpAndSettle();
+    expect(find.text('Shift saved.'), findsOneWidget);
+    await openRowProperties(tester, '2026-10-01');
 
     // 8 night hours at EUR 20/h × 1.5.
     expect(find.text('Shift finalized'), findsOneWidget);
@@ -275,6 +273,9 @@ void main() {
       ),
       findsOneWidget,
     );
+    // Setup resumes from the task pane rather than opening by itself.
+    await tester.tap(find.text('Set up pay agreement…'));
+    await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('Create agreement'), findsOneWidget);
   });
 }
@@ -329,7 +330,7 @@ Future<void> _setUpEmployment(WidgetTester tester) async {
   );
   await tester.tap(find.byKey(const ValueKey('save-agreement')));
   await tester.pumpAndSettle();
-  expect(_inInspector(find.text('Record work')), findsOneWidget);
+  expect(_inInspector(find.text('Record work')), findsWidgets);
 }
 
 /// The value beside a fact label in the inspector.
@@ -345,8 +346,9 @@ String _fact(String label) {
       .last!;
 }
 
+/// [finder] inside the open dialog (Properties sheet or form).
 Finder _inInspector(Finder finder) => find.descendant(
-  of: find.bySemanticsLabel('Record inspector'),
+  of: find.byKey(const ValueKey('shell-dialog')),
   matching: finder,
 );
 

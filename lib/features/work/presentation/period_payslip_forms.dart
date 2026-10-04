@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
+import '../../../shared/shell/shell_dialog.dart';
 import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_field.dart';
@@ -233,6 +234,7 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
                 onPressed: _submitting ? null : _submit,
                 child: const Text('Create period'),
               ),
+              const DialogCancelKey(),
             ],
           ),
         ],
@@ -425,6 +427,7 @@ final class _PayslipInspectorState extends State<PayslipInspector> {
                 onPressed: _submitting ? null : _submit,
                 child: const Text('Save payslip'),
               ),
+              const DialogCancelKey(),
             ],
           ),
         ],

@@ -187,6 +187,32 @@ final class _WorkRouteHost extends ConsumerWidget {
             .recordPayslip,
         onOpenCorrection: () => _replaceMode(ref, WorkInspectorMode.correct),
         onCancelCorrection: () => _replaceMode(ref, WorkInspectorMode.inspect),
+        onOpenProperties: (record) {
+          final parsed = ref.read(workRouteProvider);
+          if (parsed case ValidWorkRoute(:final state)) {
+            ref.read(replaceWorkRouteProvider)(
+              state.copyWith(
+                scope: () => record.kind == WorkRecordKind.payPeriod
+                    ? PayPeriodScope(record.id as PayPeriodId)
+                    : state.scope,
+                record: () => record,
+                mode: WorkInspectorMode.properties,
+              ),
+            );
+          }
+        },
+        onCloseDialog: () {
+          final parsed = ref.read(workRouteProvider);
+          if (parsed case ValidWorkRoute(:final state)) {
+            ref.read(replaceWorkRouteProvider)(
+              state.copyWith(
+                mode: WorkInspectorMode.inspect,
+                adding: () => null,
+                fromLast: false,
+              ),
+            );
+          }
+        },
         onCorrectShift: ref
             .read(workControllerProvider.notifier)
             .correctShiftWithReason,
@@ -321,4 +347,3 @@ final class _UnavailableSurface extends StatelessWidget {
     );
   }
 }
-

@@ -15,12 +15,7 @@ void main() {
         size: size,
         screen: syntheticScreens['period']!,
       );
-      for (final label in [
-        'Menu bar',
-        'Toolbar',
-        'Address',
-        'Status line',
-      ]) {
+      for (final label in ['Menu bar', 'Toolbar', 'Address', 'Status line']) {
         expect(find.bySemanticsLabel(label), findsWidgets, reason: label);
       }
       // The desk keeps its place at every width (XP-authentic spec 3.1).

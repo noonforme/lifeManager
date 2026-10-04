@@ -76,6 +76,50 @@ void main() {
     expect(opened, ['shift:1']);
   });
 
+  testWidgets('Enter activates the row under the cursor; Space only opens', (
+    tester,
+  ) async {
+    final opened = <String>[];
+    final activated = <String>[];
+    await tester.pumpWidget(
+      _TestRegister(onOpen: opened.add, onActivate: activated.add),
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    expect(opened, ['shift:1']);
+    expect(activated, isEmpty);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    expect(activated, ['shift:1']);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    expect(activated, ['shift:1', 'shift:1'], reason: 'Alt+Enter too');
+  });
+
+  testWidgets('a double-click activates; two slow clicks only open', (
+    tester,
+  ) async {
+    final opened = <String>[];
+    final activated = <String>[];
+    await tester.pumpWidget(
+      _TestRegister(onOpen: opened.add, onActivate: activated.add),
+    );
+    final cell = tester.getCenter(find.text('First shift'));
+    Future<void> click(Duration at) async {
+      final gesture = await tester.createGesture();
+      await gesture.down(cell, timeStamp: at);
+      await gesture.up(timeStamp: at + const Duration(milliseconds: 40));
+      await tester.pump();
+    }
+
+    await click(const Duration(seconds: 1));
+    await click(const Duration(seconds: 2));
+    expect(activated, isEmpty, reason: 'a second apart is two clicks');
+    await click(const Duration(seconds: 2, milliseconds: 200));
+    expect(activated, ['shift:1']);
+    expect(opened.length, 2, reason: 'the activating click does not reopen');
+  });
+
   testWidgets('a click places the cursor and opens the row', (tester) async {
     final opened = <String>[];
     final cells = CellSelectionController();
@@ -239,6 +283,7 @@ void main() {
 final class _TestRegister extends StatelessWidget {
   const _TestRegister({
     required this.onOpen,
+    this.onActivate,
     this.width = 900,
     this.selectedId,
     this.cells,
@@ -248,6 +293,7 @@ final class _TestRegister extends StatelessWidget {
   });
 
   final ValueChanged<String> onOpen;
+  final ValueChanged<String>? onActivate;
   final double width;
   final String? selectedId;
   final CellSelectionController? cells;
@@ -313,6 +359,9 @@ final class _TestRegister extends StatelessWidget {
                 rowLabel: (row) => row.label,
                 selectedId: selectedId,
                 onOpen: (row) => onOpen(row.id),
+                onActivate: onActivate == null
+                    ? null
+                    : (row) => onActivate!(row.id),
                 actions: actions,
                 sortedColumn: sortedColumn,
               ),

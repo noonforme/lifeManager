@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -145,6 +146,7 @@ final class DataRegister<T> extends StatefulWidget {
     required this.rowLabel,
     required this.selectedId,
     required this.onOpen,
+    this.onActivate,
     this.actions,
     this.sortedColumn,
     this.sortDescending = false,
@@ -160,6 +162,10 @@ final class DataRegister<T> extends StatefulWidget {
   /// The row whose record is open in the inspector.
   final String? selectedId;
   final ValueChanged<T> onOpen;
+
+  /// Opens the row's Properties: Enter, Alt+Enter or a double-click.
+  /// Without it, Enter opens the row as Space does.
+  final ValueChanged<T>? onActivate;
 
   /// Right-click actions for a row. The register adds nothing of its own.
   final List<RowAction> Function(T row)? actions;
@@ -182,6 +188,24 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
   int? _cursorRow;
   String? _cursorColumn;
   CellSelectionController? _selection;
+
+  /// The last primary press: row index and event time, for double-clicks.
+  (int, Duration)? _lastPress;
+  bool _activatePending = false;
+
+  void _press(int index, PointerDownEvent event) {
+    if (event.buttons != kPrimaryButton) return;
+    final last = _lastPress;
+    _lastPress = (index, event.timeStamp);
+    // Synthetic events without a time stamp never pair into a double-click.
+    if (last != null &&
+        event.timeStamp > Duration.zero &&
+        last.$1 == index &&
+        event.timeStamp - last.$2 <= kDoubleTapTimeout) {
+      _lastPress = null;
+      _activatePending = true;
+    }
+  }
 
   List<RowLine<T>> get _rows =>
       widget.lines.whereType<RowLine<T>>().toList(growable: false);
@@ -284,9 +308,12 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
       _moveCursor(row, visible[math.max(columnIndex - 1, 0)].key, visible);
       return KeyEventResult.handled;
     }
-    if ((key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) &&
-        row != null) {
+    if (key == LogicalKeyboardKey.space && row != null) {
       widget.onOpen(rows[row].row);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter && row != null) {
+      (widget.onActivate ?? widget.onOpen)(rows[row].row);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -375,10 +402,16 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
                   cursor: cursorHere,
                   cursorColumn: cursorHere ? _cursorColumn : null,
                   skin: skin,
+                  onPress: (event) => _press(index, event),
                   onCellTap: (column) {
                     _focus.requestFocus();
                     _moveCursor(index, column, visible);
-                    widget.onOpen(row);
+                    if (_activatePending) {
+                      _activatePending = false;
+                      (widget.onActivate ?? widget.onOpen)(row);
+                    } else {
+                      widget.onOpen(row);
+                    }
                   },
                   onSecondaryTap: (column, position) {
                     _focus.requestFocus();
@@ -692,6 +725,7 @@ final class _DataRow<T> extends StatelessWidget {
     required this.cursor,
     required this.cursorColumn,
     required this.skin,
+    required this.onPress,
     required this.onCellTap,
     required this.onSecondaryTap,
   });
@@ -703,6 +737,7 @@ final class _DataRow<T> extends StatelessWidget {
   final bool cursor;
   final String? cursorColumn;
   final LifeOSSkinData skin;
+  final ValueChanged<PointerDownEvent> onPress;
   final ValueChanged<String> onCellTap;
   final void Function(String column, Offset position) onSecondaryTap;
 
@@ -710,68 +745,74 @@ final class _DataRow<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = skin.tokens;
     final voided = line.state == RowState.voided;
-    return Semantics(
-      button: true,
-      selected: selected,
-      focused: cursor,
-      label: label,
-      value: line.state.announcement,
-      excludeSemantics: true,
-      child: Container(
-        decoration: BoxDecoration(
-          color: selected ? tokens.selWash : tokens.paper,
-        ),
-        foregroundDecoration: cursor && cursorColumn == null
-            ? skin.painters.cellCursor(tokens, onSelection: selected)
-            : null,
-        child: Row(
-          children: [
-            for (final column in columns)
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onCellTap(column.key),
-                onSecondaryTapUp: (details) =>
-                    onSecondaryTap(column.key, details.globalPosition),
-                child: Container(
-                  width: column.width,
-                  constraints: const BoxConstraints(minHeight: 20),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 2,
-                  ),
-                  alignment: column.kind.isNumeric
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  foregroundDecoration: cursorColumn == column.key
-                      ? skin.painters.cellCursor(tokens, onSelection: selected)
-                      : null,
-                  child:
-                      column.cell?.call(line.row) ??
-                      Text(
-                        column.value(line.row),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: column.kind.isNumeric
-                            ? TextAlign.right
-                            : TextAlign.left,
-                        style: _cellStyle(skin, column.kind).copyWith(
-                          // Selection wins, so every cell of a selected
-                          // row reads on selWash in every skin.
-                          color: selected
-                              ? tokens.selInk
-                              : voided
-                              ? tokens.muted
-                              : tokens.ink,
-                          decoration: voided
-                              ? TextDecoration.lineThrough
-                              : null,
-                          decorationColor: tokens.negative,
-                          decorationThickness: 2,
+    return Listener(
+      onPointerDown: onPress,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        focused: cursor,
+        label: label,
+        value: line.state.announcement,
+        excludeSemantics: true,
+        child: Container(
+          decoration: BoxDecoration(
+            color: selected ? tokens.selWash : tokens.paper,
+          ),
+          foregroundDecoration: cursor && cursorColumn == null
+              ? skin.painters.cellCursor(tokens, onSelection: selected)
+              : null,
+          child: Row(
+            children: [
+              for (final column in columns)
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onCellTap(column.key),
+                  onSecondaryTapUp: (details) =>
+                      onSecondaryTap(column.key, details.globalPosition),
+                  child: Container(
+                    width: column.width,
+                    constraints: const BoxConstraints(minHeight: 20),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 2,
+                    ),
+                    alignment: column.kind.isNumeric
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
+                    foregroundDecoration: cursorColumn == column.key
+                        ? skin.painters.cellCursor(
+                            tokens,
+                            onSelection: selected,
+                          )
+                        : null,
+                    child:
+                        column.cell?.call(line.row) ??
+                        Text(
+                          column.value(line.row),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: column.kind.isNumeric
+                              ? TextAlign.right
+                              : TextAlign.left,
+                          style: _cellStyle(skin, column.kind).copyWith(
+                            // Selection wins, so every cell of a selected
+                            // row reads on selWash in every skin.
+                            color: selected
+                                ? tokens.selInk
+                                : voided
+                                ? tokens.muted
+                                : tokens.ink,
+                            decoration: voided
+                                ? TextDecoration.lineThrough
+                                : null,
+                            decorationColor: tokens.negative,
+                            decorationThickness: 2,
+                          ),
                         ),
-                      ),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
