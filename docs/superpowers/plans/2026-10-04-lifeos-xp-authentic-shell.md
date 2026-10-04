@@ -15,7 +15,7 @@
 - Colours come from `LifeOSTokens.millennium` and named constants on `MillenniumColors` (`lib/shared/workbench/millennium_style.dart`), never literals in widgets.
 - No vendor names, logos, icons, wallpapers or sounds; every icon, arrow and glyph is painted (a test fails if `lib/` uses a font glyph as an icon).
 - No drop shadows or blur.
-- Every key keeps a visible label and a 24 × 24 minimum target; caption keys meet it through their surround.
+- Every key keeps a visible label and a 24 × 24 minimum target.
 - Colour never carries meaning alone: Draft, Void, Open, Reviewed, over and under are always written.
 - Text pairs meet 4.5:1; indicators, key outlines and focus meet 3:1 (`test/shared/workbench/lifeos_tokens_test.dart`).
 - Synthetic data only in tests, goldens and screenshots.
@@ -29,7 +29,7 @@
 2. **Back and Forward across an open dialog** — Back after opening Properties closes it (the route returns to `mode=inspect`); Forward reopens it. Pinned in Task 3.
 3. **A committed save from a dialog** — the dialog closes, the record is selected, and the status bar says what was saved; an `Invalid` or `Stale` result leaves the dialog open with the typed values. Pinned in Task 3.
 4. **Clicking the same row twice slowly versus a double-click** — two clicks further apart than the double-click time only select; only a real double-click opens Properties. Pinned in Task 3.
-5. **The window maximized** — the frame border and size grip disappear and the caption keys read "Restore"; un-maximizing brings them back. Pinned in Task 7.
+5. ~~The window maximized~~ — withdrawn with Task 8 (system frame kept).
 
 ## File Structure
 
@@ -45,8 +45,6 @@
 | `lib/features/work/presentation/work_record_names.dart` (new) | `recordName`, `recordIcon` |
 | `lib/shared/workbench/data_register.dart` | `onActivate` (Enter, double-click); sort tint; unfocused grey selection; header hover |
 | `lib/shared/workbench/inspector_parts.dart` | XP file-properties layout: icon + name + etched line, `Label:` rows |
-| `lib/app/window_controls.dart` (new) | `WindowControls` interface + `window_manager` implementation |
-| `lib/shared/shell/era_window_frame.dart` (new) | Painted caption, caption keys, frame border, resize edges, `WindowTitleScope` |
 | `lib/shared/workbench/era_scrollbar.dart` (new) | `EraScrollbar`, `EraScrollBehavior` |
 | `lib/shared/workbench/era_icons.dart` (new) | `EraIconKind`, `EraIcon` painters |
 | `lib/app/font_licenses.dart` (new) | Registers the EraSans licence |
