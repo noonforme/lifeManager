@@ -100,4 +100,12 @@ void main() {
     await pump(tester, hasLastShift: false);
     expect(find.text('Manual shift from last time'), findsNothing);
   });
+
+  testWidgets('each toolbar band starts with a dotted gripper', (tester) async {
+    await pump(tester);
+    // + Add and "from last time" are two bands; there is no history here.
+    expect(find.byType(ToolbarGripper), findsNWidgets(2));
+    await pump(tester, hasLastShift: false);
+    expect(find.byType(ToolbarGripper), findsOneWidget);
+  });
 }

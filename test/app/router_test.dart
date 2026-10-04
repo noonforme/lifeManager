@@ -810,10 +810,7 @@ void main() {
     router.go('/finance');
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Finance is not built yet. It arrives in a later update.'),
-      findsOneWidget,
-    );
+    expect(find.text('Finance is not built yet.'), findsOneWidget);
   });
 
   testWidgets('invalid Work date scope is explicit and not replaced', (

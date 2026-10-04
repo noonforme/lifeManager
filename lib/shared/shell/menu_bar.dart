@@ -5,6 +5,7 @@ import '../workbench/cell_selection.dart';
 import '../workbench/era_dialog.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/office_controls.dart';
+import 'licenses_dialog.dart';
 import 'navigation_history.dart';
 import 'shell_frame.dart';
 
@@ -17,9 +18,6 @@ final class LifeOSMenuBar extends StatelessWidget {
 
   /// Closes the window. Null disables Quit (for example in tests).
   final VoidCallback? onQuit;
-
-  static const _desks = "Open Today and use the desk's own Desk menu";
-  static const _history = 'Open a record and choose its History tab';
 
   @override
   Widget build(BuildContext context) {
@@ -71,12 +69,6 @@ final class LifeOSMenuBar extends StatelessWidget {
       child: Text(label),
     );
 
-    Widget later(String label, String reason) => MenuItemButton(
-      style: itemStyle,
-      onPressed: null,
-      child: Tooltip(message: reason, child: Text(label)),
-    );
-
     Widget menu(String label, List<Widget> children) => SubmenuButton(
       style: itemStyle,
       menuStyle: menuStyle,
@@ -111,18 +103,6 @@ final class LifeOSMenuBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: ExcludeSemantics(
-              child: Text(
-                'LifeOS',
-                style: skin.typography.body.copyWith(
-                  color: tokens.ink,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
           Expanded(
             child: MenuBar(
               style: MenuStyle(
@@ -150,7 +130,6 @@ final class LifeOSMenuBar extends StatelessWidget {
                             ClipboardData(text: cell.display),
                           ),
                   ),
-                  later('Copy row', 'Copy row arrives in a later update'),
                   item(
                     'Copy explanation',
                     explanation == null
@@ -167,18 +146,10 @@ final class LifeOSMenuBar extends StatelessWidget {
                     (v, on) => v.copyWith(showTaskPane: on),
                   ),
                 ]),
-                menu('Desk', [
-                  item('Open Today', () => onNavigate('/today')),
-                  later('New desk', _desks),
-                  later('Add sheet to desk', _desks),
-                  later('Layout', _desks),
-                  later('Rename desk', _desks),
-                  later('Reset starter desk', _desks),
-                ]),
+                menu('Desk', [item('Open Today', () => onNavigate('/today'))]),
                 menu('Record', [
                   for (final entry in quickAdd)
                     item('+ ${entry.label}', entry.open),
-                  later('Show history', _history),
                 ]),
                 menu('Window', [
                   item(
@@ -209,9 +180,9 @@ final class LifeOSMenuBar extends StatelessWidget {
                         actions: [
                           KeyButton(
                             label: 'Licenses',
-                            onPressed: () => showLicensePage(
+                            onPressed: () => showDialog<void>(
                               context: context,
-                              applicationName: 'LifeOS',
+                              builder: (_) => const LicensesDialog(),
                             ),
                           ),
                           KeyButton(

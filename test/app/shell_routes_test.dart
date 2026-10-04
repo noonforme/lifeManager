@@ -68,10 +68,7 @@ void main() {
   ) async {
     final router = await pumpAt(tester, '/money');
     expect(router.routeInformationProvider.value.uri.path, '/finance');
-    expect(
-      find.text('Finance is not built yet. It arrives in a later update.'),
-      findsOneWidget,
-    );
+    expect(find.text('Finance is not built yet.'), findsOneWidget);
 
     router.go('/habits');
     await tester.pumpAndSettle();
@@ -85,10 +82,7 @@ void main() {
     await tester.tap(find.text('Knowledge'));
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/knowledge');
-    expect(
-      find.text('Knowledge is not built yet. It arrives in a later update.'),
-      findsOneWidget,
-    );
+    expect(find.text('Knowledge is not built yet.'), findsOneWidget);
   });
 }
 

@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import '../workbench/era_controls.dart';
 import '../workbench/era_icons.dart';
 import '../workbench/lifeos_skin.dart';
+import '../workbench/millennium_style.dart';
 import '../workbench/office_controls.dart';
 import 'address_bar.dart';
 import 'navigation_history.dart';
@@ -314,12 +315,20 @@ final class _Toolbar extends StatelessWidget {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
     final history = NavigationHistoryScope.maybeOf(context);
+    // An etched line between bands, and the dotted gripper that starts each
+    // band (XP-authentic shell spec 3).
     Widget separator() => Container(
-      width: 1,
+      width: 2,
       height: 24,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      color: tokens.chromeLine,
+      margin: const EdgeInsets.symmetric(horizontal: 3),
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: tokens.chromeLine),
+          right: BorderSide(color: tokens.paper),
+        ),
+      ),
     );
+    Widget gripper() => const ToolbarGripper();
     return Container(
       constraints: const BoxConstraints(minHeight: ShellMetrics.toolbarHeight),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -336,6 +345,7 @@ final class _Toolbar extends StatelessWidget {
               onPressed: onTasks,
             ),
           if (history != null) ...[
+            gripper(),
             KeyButton(
               label: 'Back',
               kind: KeyKind.toolbar,
@@ -361,10 +371,12 @@ final class _Toolbar extends StatelessWidget {
           ],
           if (quickAdd.isNotEmpty) ...[
             separator(),
+            gripper(),
             QuickAddMenu(entries: quickAdd),
           ],
           if (fromLastTime.isNotEmpty) ...[
             separator(),
+            gripper(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
@@ -383,4 +395,34 @@ final class _Toolbar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The dotted handle at the left of a toolbar band.
+final class ToolbarGripper extends StatelessWidget {
+  const ToolbarGripper({super.key});
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(
+    width: 6,
+    height: 24,
+    child: CustomPaint(painter: _GripperPainter()),
+  );
+}
+
+final class _GripperPainter extends CustomPainter {
+  const _GripperPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final light = Paint()..color = const Color(0xffffffff);
+    final dark = Paint()..color = MillenniumColors.sunkenEdge;
+    for (var y = 3.0; y < size.height - 3; y += 4) {
+      canvas
+        ..drawRect(Rect.fromLTWH(2, y + 1, 2, 2), light)
+        ..drawRect(Rect.fromLTWH(1, y, 2, 2), dark);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GripperPainter oldDelegate) => false;
 }

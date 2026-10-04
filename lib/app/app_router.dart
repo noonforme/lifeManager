@@ -47,21 +47,9 @@ GoRouter createAppRouter({String initialLocation = '/work'}) {
           child: _JournalHost(uri: state.uri),
         ),
       ),
-      unavailable(
-        '/finance',
-        'Finance',
-        'Finance is not built yet. It arrives in a later update.',
-      ),
-      unavailable(
-        '/tracking',
-        'Tracking',
-        'Tracking is not built yet. It arrives in a later update.',
-      ),
-      unavailable(
-        '/knowledge',
-        'Knowledge',
-        'Knowledge is not built yet. It arrives in a later update.',
-      ),
+      unavailable('/finance', 'Finance', 'Finance is not built yet.'),
+      unavailable('/tracking', 'Tracking', 'Tracking is not built yet.'),
+      unavailable('/knowledge', 'Knowledge', 'Knowledge is not built yet.'),
       unavailable(
         '/system/files',
         'Backup and export',
