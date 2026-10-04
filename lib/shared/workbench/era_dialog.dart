@@ -42,6 +42,7 @@ final class EraDialog extends StatelessWidget {
           children: [
             CaptionBar(
               title: title,
+              large: true,
               onClose: onClose ?? () => Navigator.of(context).maybePop(),
             ),
             Padding(
@@ -71,11 +72,15 @@ final class CaptionBar extends StatelessWidget {
     this.leading,
     this.trailing = const [],
     this.closeLabel,
+    this.large = false,
     super.key,
   });
 
   final String title;
   final VoidCallback? onClose;
+
+  /// A dialog's caption, in Caption type; desk tiles keep the small one.
+  final bool large;
   final Widget? leading;
   final List<Widget> trailing;
 
@@ -87,7 +92,7 @@ final class CaptionBar extends StatelessWidget {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
     return Container(
-      constraints: const BoxConstraints(minHeight: 24),
+      constraints: BoxConstraints(minHeight: large ? 26 : 24),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -114,10 +119,9 @@ final class CaptionBar extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: skin.typography.body.copyWith(
-                  color: tokens.headInk,
-                  fontWeight: FontWeight.w700,
-                ),
+                style:
+                    (large ? skin.typography.caption : skin.typography.strong)
+                        .copyWith(color: tokens.headInk),
               ),
             ),
           ),

@@ -327,7 +327,7 @@ final class _UnavailableSurface extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: skin.typography.title.copyWith(
+                    style: skin.typography.strong.copyWith(
                       color: skin.tokens.ink,
                     ),
                   ),

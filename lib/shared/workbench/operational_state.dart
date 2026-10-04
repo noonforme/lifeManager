@@ -105,8 +105,10 @@ final class _Glyph extends StatelessWidget {
               padding: EdgeInsets.only(top: warning ? 8 : 0),
               child: Text(
                 warning ? '!' : 'i',
-                style: skin.typography.title.copyWith(
+                style: skin.typography.strong.copyWith(
                   color: warning ? skin.tokens.ink : skin.tokens.paper,
+                  fontSize: 14,
+                  height: 18 / 14,
                   fontFamily: 'NotoSans',
                 ),
               ),

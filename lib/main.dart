@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app/app_router.dart';
 import 'app/desktop_window_service.dart';
+import 'app/font_licenses.dart';
 import 'app/lifeos_app.dart';
 import 'app/production_work_providers.dart';
 import 'app/startup_recovery.dart';
@@ -24,6 +25,7 @@ Future<void> main() async {
     BootstrapDependencies(
       initializeBindings: () async {
         WidgetsFlutterBinding.ensureInitialized();
+        registerFontLicenses();
         await window.prepare();
       },
       resolveSupportDirectory: () async {},

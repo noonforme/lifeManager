@@ -1,0 +1,7 @@
+EraSans is Wine's Tahoma-metric font (fonts/tahoma.ttf, fonts/tahomabd.ttf),
+from https://gitlab.winehq.org/wine/wine, (C) 2004 Larry Snyder, based on
+Bitstream Vera Sans. LGPL-2.1-or-later; see LICENSE. Renamed in LifeOS's
+pubspec only; the files are unmodified. Fetched 2026-10-04.
+
+508a2acc88cd6abdd399ae79c9965db43fba75a46bb115117b55d2be2272d889  EraSans-Bold.ttf
+90f1abad4da0ce03da5d2277ee75a9600ce812d37c90eab76e0838ffa7937e55  EraSans-Regular.ttf

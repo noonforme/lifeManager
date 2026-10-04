@@ -7,7 +7,8 @@ import 'millennium_style.dart';
 @immutable
 final class LifeOSTypography {
   const LifeOSTypography({
-    required this.title,
+    required this.caption,
+    required this.strong,
     required this.label,
     required this.body,
     required this.small,
@@ -15,8 +16,11 @@ final class LifeOSTypography {
     required this.counter,
   });
 
-  /// Inspector record title.
-  final TextStyle title;
+  /// Window and dialog captions.
+  final TextStyle caption;
+
+  /// Record names, group-task titles and other emphasis in body size.
+  final TextStyle strong;
 
   /// Column headers and group-box legends.
   final TextStyle label;

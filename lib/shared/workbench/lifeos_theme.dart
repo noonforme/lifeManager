@@ -30,9 +30,9 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
   );
   TextStyle ink(TextStyle style) => style.copyWith(color: t.ink);
   final textTheme = TextTheme(
-    headlineSmall: ink(type.title),
-    titleLarge: ink(type.title),
-    titleMedium: ink(type.title),
+    headlineSmall: ink(type.strong),
+    titleLarge: ink(type.strong),
+    titleMedium: ink(type.strong),
     titleSmall: ink(type.body.copyWith(fontWeight: FontWeight.w700)),
     bodyLarge: ink(type.body),
     bodyMedium: ink(type.body),
@@ -104,6 +104,7 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
     brightness: scheme.brightness,
     colorScheme: scheme,
     fontFamily: type.body.fontFamily,
+    fontFamilyFallback: type.body.fontFamilyFallback,
     textTheme: textTheme,
     scaffoldBackgroundColor: t.ground,
     canvasColor: t.paper,
@@ -232,7 +233,7 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
       shape: const RoundedRectangleBorder(
         side: BorderSide(color: MillenniumColors.keyLine),
       ),
-      titleTextStyle: type.title.copyWith(color: t.ink),
+      titleTextStyle: type.strong.copyWith(color: t.ink),
       contentTextStyle: type.body.copyWith(color: t.ink),
     ),
     tooltipTheme: TooltipThemeData(

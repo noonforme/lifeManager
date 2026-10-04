@@ -144,7 +144,11 @@ final class _DialogWindow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                CaptionBar(title: dialog.title, onClose: dialog.onClose),
+                CaptionBar(
+                  title: dialog.title,
+                  large: true,
+                  onClose: dialog.onClose,
+                ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(8),

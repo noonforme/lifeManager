@@ -79,42 +79,63 @@ abstract final class MillenniumColors {
 
 /// LifeOS type (Millennium shell spec 3.4): Noto Sans throughout, tabular
 /// figures for numbers. Sizes scale with the platform text scale.
+const _family = 'EraSans';
+const _fallback = ['NotoSans'];
+
+/// The era's 8 pt system type: EraSans, Wine's Tahoma-metric font, at 11 px
+/// (XP-authentic shell spec 6.1). Noto Sans covers any glyph it lacks.
 const lifeOSTypography = LifeOSTypography(
-  title: TextStyle(
-    fontFamily: 'NotoSans',
-    fontSize: 14,
-    height: 18 / 14,
+  caption: TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 13,
+    height: 16 / 13,
+    fontWeight: FontWeight.w700,
+  ),
+  strong: TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 11,
+    height: 14 / 11,
     fontWeight: FontWeight.w700,
   ),
   label: TextStyle(
-    fontFamily: 'NotoSans',
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w400,
   ),
   body: TextStyle(
-    fontFamily: 'NotoSans',
-    fontSize: 12,
-    height: 16 / 12,
-    fontWeight: FontWeight.w400,
-  ),
-  small: TextStyle(
-    fontFamily: 'NotoSans',
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w400,
   ),
+  small: TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 11,
+    height: 14 / 11,
+    fontWeight: FontWeight.w400,
+  ),
+  // EraSans digits share one advance width (checked 2026-10-04: 1118 units
+  // regular, 1304 bold), so figures line up; the feature is kept for the
+  // fallback face.
   figure: TextStyle(
-    fontFamily: 'NotoSans',
-    fontSize: 12,
-    height: 16 / 12,
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 11,
+    height: 14 / 11,
     fontWeight: FontWeight.w400,
     fontFeatures: [FontFeature.tabularFigures()],
   ),
   counter: TextStyle(
-    fontFamily: 'NotoSans',
-    fontSize: 20,
-    height: 22 / 20,
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 18,
+    height: 20 / 18,
     fontWeight: FontWeight.w700,
     fontFeatures: [FontFeature.tabularFigures()],
   ),
