@@ -21,10 +21,26 @@ import 'package:lifeos/features/work/domain/pay_period.dart';
 final syntheticScreens = <String, String Function(String, String)>{
   'shell': (employment, _) => '/work?employment=$employment',
   'period': (employment, period) =>
-      '/work?employment=$employment&record=payPeriod:$period',
+      '/work?employment=$employment&record=payPeriod:$period'
+      '&mode=properties',
+  'selected': (employment, _) => '/work?employment=$employment',
+  'working': (employment, _) => '/work?employment=$employment',
   'form': (employment, _) => '/work?employment=$employment&mode=edit',
   'today': (_, _) => '/today',
   'agreement': (employment, _) => '/work?employment=$employment&add=agreement',
+};
+
+/// What a screen does after it opens, before it is captured: select a row
+/// or a derived figure (XP-authentic shell spec 10).
+final syntheticInteractions = <String, Future<void> Function(WidgetTester)>{
+  'selected': (tester) async {
+    await tester.tap(find.text('2026-09-08'));
+    await tester.pumpAndSettle();
+  },
+  'working': (tester) async {
+    await tester.tap(find.text('EUR 220.80'));
+    await tester.pumpAndSettle();
+  },
 };
 
 /// Seeds synthetic Work records (one employment, its agreement, a pay

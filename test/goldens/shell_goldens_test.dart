@@ -14,6 +14,7 @@ void main() {
       final file = '${name}_${size.width.round()}x${size.height.round()}';
       testWidgets(file, (tester) async {
         await pumpSyntheticShell(tester, size: size, screen: screen);
+        await syntheticInteractions[name]?.call(tester);
         await expectLater(
           find.byType(LifeOsApp),
           matchesGoldenFile('$file.png'),

@@ -286,7 +286,7 @@ String _summary(String label) {
       .ancestor(
         of: find.descendant(
           of: find.bySemanticsLabel('Task pane'),
-          matching: find.text(label),
+          matching: find.text('$label:'),
         ),
         matching: find.byType(InspectorFactRow),
       )
@@ -336,7 +336,7 @@ Future<void> _setUpEmployment(WidgetTester tester) async {
 /// The value beside a fact label in the inspector.
 String _fact(String label) {
   final row = find.ancestor(
-    of: _inInspector(find.text(label)),
+    of: _inInspector(find.text('$label:')),
     matching: find.byType(InspectorFactRow),
   );
   return find

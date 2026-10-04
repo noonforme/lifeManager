@@ -36,6 +36,7 @@ void main() {
         size: const Size(1280, 800),
         screen: screen,
       );
+      await syntheticInteractions[name]?.call(tester);
       await expectLater(
         find.byType(LifeOsApp),
         matchesGoldenFile('real_font/$name.png'),

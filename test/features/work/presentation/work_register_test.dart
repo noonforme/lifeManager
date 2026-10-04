@@ -138,8 +138,8 @@ void main() {
   ) async {
     await tester.pumpWidget(_TestDetails(_reconciliationProjection()));
 
-    expect(find.text('Expected under recorded agreement'), findsOneWidget);
-    expect(find.text('Paid evidence'), findsOneWidget);
+    expect(find.text('Expected under recorded agreement:'), findsOneWidget);
+    expect(find.text('Paid evidence:'), findsOneWidget);
     final paid = tester.widget<Text>(find.text('EUR 95.00'));
     expect(
       paid.style?.fontFeatures,
@@ -174,7 +174,7 @@ void main() {
       ),
     );
     expect(find.textContaining('Open'), findsOneWidget);
-    expect(find.text('Estimated pay'), findsOneWidget);
+    expect(find.text('Estimated pay:'), findsOneWidget);
     // Voided shifts are not counted.
     expect(find.text('EUR 154.80'), findsOneWidget);
   });
@@ -185,7 +185,7 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     final label = tester.getSize(
-      find.text('Expected under recorded agreement'),
+      find.text('Expected under recorded agreement:'),
     );
     // The label keeps a usable width instead of one letter per line.
     expect(label.width, greaterThan(100));
@@ -196,10 +196,10 @@ void main() {
   ) async {
     await tester.pumpWidget(_TestDetails(_mixedBasisProjection()));
 
-    expect(find.text('Gross · EUR'), findsOneWidget);
-    expect(find.text('Net · EUR'), findsOneWidget);
-    expect(find.text('Expected under recorded agreement'), findsNWidgets(2));
-    expect(find.text('Paid evidence'), findsNWidgets(2));
+    expect(find.bySemanticsLabel('Gross · EUR'), findsOneWidget);
+    expect(find.bySemanticsLabel('Net · EUR'), findsOneWidget);
+    expect(find.text('Expected under recorded agreement:'), findsNWidgets(2));
+    expect(find.text('Paid evidence:'), findsNWidgets(2));
     expect(find.text('Combined difference'), findsNothing);
   });
 

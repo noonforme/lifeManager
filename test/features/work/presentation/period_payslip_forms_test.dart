@@ -47,10 +47,10 @@ void main() {
         find.text('Gross and net evidence cannot be combined.'),
         findsOneWidget,
       );
-      expect(find.text('Gross · EUR'), findsOneWidget);
-      expect(find.text('Net · EUR'), findsOneWidget);
-      expect(find.text('Expected under recorded agreement'), findsNWidgets(2));
-      expect(find.text('Paid evidence'), findsNWidgets(2));
+      expect(find.bySemanticsLabel('Gross · EUR'), findsOneWidget);
+      expect(find.bySemanticsLabel('Net · EUR'), findsOneWidget);
+      expect(find.text('Expected under recorded agreement:'), findsNWidgets(2));
+      expect(find.text('Paid evidence:'), findsNWidgets(2));
       expect(find.text('Single difference'), findsNothing);
     },
   );
@@ -75,7 +75,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Paid evidence'), findsOneWidget);
+    expect(find.text('Paid evidence:'), findsOneWidget);
     expect(find.text('EUR 100.00'), findsNWidgets(2));
     expect(find.text('2 payslips'), findsOneWidget);
     expect(find.text('Balanced'), findsOneWidget);

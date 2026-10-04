@@ -18,6 +18,7 @@ import 'package:lifeos/shared/workbench/inspector_parts.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
+import '../../../support/work_dialogs.dart';
 import '../../../support/work_sheets.dart';
 
 void main() {
@@ -242,7 +243,7 @@ void main() {
     final inspector = find.bySemanticsLabel('Finalized shift');
     String fact(String label) {
       final row = find.ancestor(
-        of: find.descendant(of: inspector, matching: find.text(label)),
+        of: find.descendant(of: inspector, matching: find.text('$label:')),
         matching: find.byType(InspectorFactRow),
       );
       return (tester
@@ -261,10 +262,11 @@ void main() {
     expect(fact('Night hours'), '8:00');
     expect(fact('Holiday hours'), '0:00');
     expect(fact('Overtime hours'), '2:00');
-    expect(
-      find.textContaining('Expected pay is an estimate until a payslip'),
-      findsOneWidget,
+    final note = find.textContaining(
+      'Expected pay is an estimate until a payslip',
     );
+    await revealInDialog(tester, note);
+    expect(note, findsOneWidget);
   });
 
   testWidgets('screen keeps frame mounted while Work is loading', (

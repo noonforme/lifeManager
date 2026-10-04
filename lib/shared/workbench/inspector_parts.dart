@@ -17,7 +17,9 @@ final class InspectorPane extends StatelessWidget {
       ListView(padding: inspectorInset, children: children);
 }
 
-/// The record title in Title type, with an optional secondary line.
+/// The record's name at the top of a Properties page, as an era
+/// file-properties sheet opened: the name, an optional secondary line,
+/// then an etched separator (XP-authentic shell spec 4.3).
 final class InspectorTitle extends StatelessWidget {
   const InspectorTitle(this.title, {this.meta, super.key});
 
@@ -29,31 +31,53 @@ final class InspectorTitle extends StatelessWidget {
     final skin = LifeOSSkinScope.of(context);
     return Semantics(
       header: true,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: skin.typography.title.copyWith(color: skin.tokens.ink),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: skin.typography.body.copyWith(
+              color: skin.tokens.ink,
+              fontWeight: FontWeight.w700,
             ),
-            if (meta case final meta?) ...[
-              const SizedBox(height: 2),
-              Text(
-                meta,
-                style: skin.typography.small.copyWith(color: skin.tokens.muted),
-              ),
-            ],
+          ),
+          if (meta case final meta?) ...[
+            const SizedBox(height: 2),
+            Text(
+              meta,
+              style: skin.typography.small.copyWith(color: skin.tokens.muted),
+            ),
           ],
-        ),
+          const EtchedLine(),
+        ],
       ),
     );
   }
 }
 
-/// Label and value pairs, the label on the left and the value
-/// right-aligned. With a [legend] they sit in a group box (spec 5.5).
+/// A 2 px etched separator: a grey line over a white one.
+final class EtchedLine extends StatelessWidget {
+  const EtchedLine({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = LifeOSSkinScope.of(context).tokens;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(height: 1, color: tokens.chromeLine),
+          Container(height: 1, color: tokens.paper),
+        ],
+      ),
+    );
+  }
+}
+
+/// A block of "Label:" rows closed by an etched line, as an era
+/// file-properties page groups its facts. [legend] names the block for
+/// screen readers.
 final class InspectorFacts extends StatelessWidget {
   const InspectorFacts(this.facts, {this.legend, super.key});
 
@@ -61,14 +85,18 @@ final class InspectorFacts extends StatelessWidget {
   final String? legend;
 
   @override
-  Widget build(BuildContext context) {
-    final rows = Column(
+  Widget build(BuildContext context) => Semantics(
+    container: true,
+    explicitChildNodes: true,
+    label: legend,
+    child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [for (final fact in facts) InspectorFactRow(fact: fact)],
-    );
-    final legend = this.legend;
-    return legend == null ? rows : GroupBox(legend: legend, child: rows);
-  }
+      children: [
+        for (final fact in facts) InspectorFactRow(fact: fact),
+        const EtchedLine(),
+      ],
+    ),
+  );
 }
 
 /// One inspector fact. Dates, times, durations and amounts are [figure]s
@@ -88,6 +116,9 @@ final class Fact {
 
 enum FactTone { negative, positive }
 
+/// The width of a Properties page's label column.
+const _labelColumn = 96.0;
+
 /// One row of [InspectorFacts].
 final class InspectorFactRow extends StatelessWidget {
   const InspectorFactRow({required this.fact, super.key});
@@ -106,9 +137,9 @@ final class InspectorFactRow extends StatelessWidget {
     final valueStyle = fact.figure
         ? skin.typography.figure.copyWith(color: ink)
         : skin.typography.body.copyWith(color: ink);
-    final labelStyle = skin.typography.body.copyWith(color: tokens.muted);
-    final label = Text(fact.label, style: labelStyle);
-    final value = Text(fact.value, textAlign: TextAlign.end, style: valueStyle);
+    final labelStyle = skin.typography.body.copyWith(color: tokens.ink);
+    final label = Text('${fact.label}:', style: labelStyle);
+    final value = Text(fact.value, style: valueStyle);
     return MergeSemantics(
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 20),
@@ -116,9 +147,9 @@ final class InspectorFactRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // Label and value share a line when both fit at their own
-              // width; otherwise the value moves under its label, still
-              // right-aligned, so nothing is squeezed into a narrow column.
+              // The label column is 96 px and the value follows it, when
+              // both fit at their own width; otherwise the value moves under
+              // its label, so nothing is squeezed into a narrow column.
               final scaler = MediaQuery.textScalerOf(context);
               double width(String text, TextStyle style) {
                 final painter = TextPainter(
@@ -133,13 +164,12 @@ final class InspectorFactRow extends StatelessWidget {
               }
 
               final fits =
-                  width(fact.label, labelStyle) +
-                      16 +
-                      width(fact.value, valueStyle) <=
-                  constraints.maxWidth;
+                  width('${fact.label}:', labelStyle) <= _labelColumn - 4 &&
+                  _labelColumn + width(fact.value, valueStyle) <=
+                      constraints.maxWidth;
               if (!fits) {
                 return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [label, value],
                 );
               }
@@ -147,9 +177,8 @@ final class InspectorFactRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Expanded(child: label),
-                  const SizedBox(width: 16),
-                  value,
+                  SizedBox(width: _labelColumn, child: label),
+                  Expanded(child: value),
                 ],
               );
             },

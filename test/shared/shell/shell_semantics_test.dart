@@ -13,7 +13,7 @@ void main() {
       await pumpSyntheticShell(
         tester,
         size: size,
-        screen: syntheticScreens['period']!,
+        screen: syntheticScreens['shell']!,
       );
       for (final label in ['Menu bar', 'Toolbar', 'Address', 'Status line']) {
         expect(find.bySemanticsLabel(label), findsWidgets, reason: label);

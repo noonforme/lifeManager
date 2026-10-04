@@ -18,18 +18,27 @@ void main() {
     ),
   );
 
-  testWidgets('facts with a legend sit in a group box', (tester) async {
+  testWidgets('facts read as "Label:" rows under an etched line', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       host(
         const InspectorPane(
           children: [
-            InspectorFacts([Fact('Date', '2026-09-09')], legend: 'Shift'),
+            InspectorTitle('Shift 2026-09-08'),
+            InspectorFacts([Fact('Date', '2026-09-08')], legend: 'Shift'),
           ],
         ),
       ),
     );
-    expect(find.widgetWithText(GroupBox, 'Date'), findsOneWidget);
-    expect(find.text('Shift'), findsOneWidget);
+    expect(find.text('Date:'), findsOneWidget);
+    expect(find.byType(EtchedLine), findsNWidgets(2));
+    expect(find.byType(GroupBox), findsNothing);
+    expect(find.text('Shift'), findsNothing, reason: 'blocks have no legend');
+    expect(find.bySemanticsLabel('Shift'), findsOneWidget);
+    final label = tester.getRect(find.text('Date:'));
+    final value = tester.getRect(find.text('2026-09-08').last);
+    expect(value.left, greaterThanOrEqualTo(label.left + 96));
   });
 
   testWidgets('long facts hold at 200 % text in the property sheet', (

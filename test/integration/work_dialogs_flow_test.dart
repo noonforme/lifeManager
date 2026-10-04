@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_time.dart';
 
 import '../support/era_pickers.dart';
+import '../support/work_dialogs.dart';
 import '../support/synthetic_shell.dart';
 
 void main() {
@@ -86,11 +87,9 @@ void main() {
       size: const Size(1280, 800),
       screen: syntheticScreens['form']!,
     );
-    expect(find.text('Save manual shift'), findsOneWidget);
     await setTime(tester, 'shift-start-time', const LocalTime(8, 0));
     await setTime(tester, 'shift-end-time', const LocalTime(16, 0));
-    await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
-    await tester.pumpAndSettle();
+    await tapInDialog(tester, find.byKey(const ValueKey('save-manual-shift')));
     expect(find.text('Save manual shift'), findsNothing);
     expect(find.text('Shift saved.'), findsOneWidget);
   });
@@ -104,9 +103,8 @@ void main() {
       screen: syntheticScreens['form']!,
     );
     await setTime(tester, 'shift-start-time', const LocalTime(8, 0));
-    await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
-    await tester.pumpAndSettle();
-    expect(find.text('Save manual shift'), findsOneWidget);
+    await tapInDialog(tester, find.byKey(const ValueKey('save-manual-shift')));
+    expect(find.byKey(const ValueKey('save-manual-shift')), findsOneWidget);
     expect(find.text('Shift saved.'), findsNothing);
     expect(timeIn(tester, 'shift-start-time'), const LocalTime(8, 0));
   });
