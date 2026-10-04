@@ -50,3 +50,6 @@ playwright-report/
 .vscode/
 .idea/
 .DS_Store
+
+# Golden-test failure images (generated)
+test/goldens/failures/
