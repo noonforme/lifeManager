@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/timezone_service.dart';
+import '../../../shared/workbench/era_icons.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../data/projections/work_record_projection.dart';
@@ -175,7 +176,7 @@ final class _FinalizedShift extends StatelessWidget {
     );
     return InspectorPane(
       children: [
-        const InspectorTitle('Shift finalized'),
+        const InspectorTitle('Shift finalized', icon: EraIconKind.shift),
         InspectorFacts([
           Fact('Date', shift.localStartDate.toString()),
           Fact(
@@ -231,7 +232,7 @@ final class _PayslipDetail extends StatelessWidget {
     label: 'Payslip',
     child: InspectorPane(
       children: [
-        const InspectorTitle('Paid evidence'),
+        const InspectorTitle('Paid evidence', icon: EraIconKind.payslip),
         InspectorFacts([
           Fact('Amount', _money(payslip.amount)),
           Fact.words('Basis', _basis(payslip.basis)),

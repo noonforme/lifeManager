@@ -8,6 +8,7 @@ import '../../../shared/shell/shell_dialog.dart';
 import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/era_icons.dart';
 import '../../../shared/workbench/era_time_field.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
@@ -201,7 +202,7 @@ final class _FinalizeShiftInspectorState extends State<FinalizeShiftInspector> {
     label: 'Finalize shift',
     child: InspectorPane(
       children: [
-        const InspectorTitle('Finalize shift'),
+        const InspectorTitle('Finalize shift', icon: EraIconKind.shift),
         const InspectorText(
           'Overtime, night and holiday pay are worked out from the '
           'agreement.',

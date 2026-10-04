@@ -7,6 +7,7 @@ import '../../../shared/shell/shell_dialog.dart';
 import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/era_icons.dart';
 import '../../../shared/workbench/era_time_field.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
@@ -642,7 +643,10 @@ final class AgreementView extends StatelessWidget {
       label: 'Agreement',
       child: InspectorPane(
         children: [
-          InspectorTitle(a.label ?? 'Agreement v${a.version}'),
+          InspectorTitle(
+            a.label ?? 'Agreement v${a.version}',
+            icon: EraIconKind.agreement,
+          ),
           InspectorFacts(legend: 'Terms', [
             Fact('Starts on', a.effectiveStart.toString()),
             if (a.effectiveEnd case final end?) Fact('Ends on', end.toString()),
@@ -779,7 +783,11 @@ final class _EmploymentHeaderState extends State<EmploymentHeader> {
       label: 'Employment',
       child: InspectorPane(
         children: [
-          InspectorTitle(employment.name, meta: employment.legalLabel),
+          InspectorTitle(
+            employment.name,
+            meta: employment.legalLabel,
+            icon: EraIconKind.employment,
+          ),
           InspectorActions(
             children: [
               KeyButton(label: 'Edit', onPressed: widget.onEdit),

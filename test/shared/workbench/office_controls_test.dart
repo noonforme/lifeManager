@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/shared/workbench/era_icons.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
 import 'package:lifeos/shared/workbench/millennium_style.dart';
@@ -155,7 +156,9 @@ void main() {
     });
   });
 
-  testWidgets('area keys are announced by their area name', (tester) async {
+  testWidgets('area keys are painted icons announced by their name', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _host(
         Row(
@@ -166,8 +169,9 @@ void main() {
     );
     for (final area in LifeOSArea.values) {
       expect(find.bySemanticsLabel(area.label), findsOneWidget);
-      expect(find.text(area.letter), findsOneWidget);
+      expect(find.text(area.letter), findsNothing);
     }
+    expect(find.byType(EraIcon), findsNWidgets(LifeOSArea.values.length));
   });
 
   testWidgets('count badges announce what they count', (tester) async {

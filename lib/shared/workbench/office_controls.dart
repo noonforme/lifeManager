@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'era_icons.dart';
 import 'lifeos_skin.dart';
 import 'lifeos_tokens.dart';
 import 'millennium_style.dart';
@@ -170,7 +171,8 @@ final class _FocusRing extends StatelessWidget {
   }
 }
 
-/// The keycap that marks a record's area. Announced by the area's name.
+/// The painted icon that marks a record's area (XP-authentic shell spec 7).
+/// Announced by the area's name.
 final class AreaKey extends StatelessWidget {
   const AreaKey({required this.area, this.skin, super.key});
 
@@ -180,30 +182,8 @@ final class AreaKey extends StatelessWidget {
   final LifeOSSkinData? skin;
 
   @override
-  Widget build(BuildContext context) {
-    final skin = this.skin ?? LifeOSSkinScope.of(context);
-    return Semantics(
-      label: area.label,
-      excludeSemantics: true,
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-        padding: const EdgeInsets.symmetric(horizontal: 3),
-        decoration: skin.painters.areaMarker(skin.tokens, area),
-        child: Center(
-          widthFactor: 1,
-          heightFactor: 1,
-          child: Text(
-            area.letter,
-            style: skin.typography.label.copyWith(
-              color: skin.tokens.areaKeys[area]!.ink,
-              letterSpacing: 0,
-              height: 1,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      EraIcon(areaIcon(area), semanticLabel: area.label);
 }
 
 /// An orange count for something waiting on the owner, such as drafts or

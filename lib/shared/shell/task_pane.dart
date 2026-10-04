@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../workbench/era_controls.dart';
+import '../workbench/era_icons.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/millennium_style.dart';
 
@@ -194,10 +195,18 @@ final class _CollapseKey extends StatelessWidget {
 /// A task-pane link (spec 5.2): link blue, underlined on hover, at least
 /// 24 px high. Null [onPressed] shows it unavailable.
 final class TaskLink extends StatefulWidget {
-  const TaskLink({required this.label, required this.onPressed, super.key});
+  const TaskLink({
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    super.key,
+  });
 
   final String label;
   final VoidCallback? onPressed;
+
+  /// The 16 px painted icon before the label, as era task links had.
+  final EraIconKind? icon;
 
   @override
   State<TaskLink> createState() => _TaskLinkState();
@@ -249,15 +258,25 @@ final class _TaskLinkState extends State<TaskLink> {
                 foregroundDecoration: _focused
                     ? DottedFocusRectangle(color: tokens.focus, inset: 0.5)
                     : null,
-                child: Text(
-                  widget.label,
-                  style: skin.typography.body.copyWith(
-                    color: enabled ? MillenniumColors.link : tokens.muted,
-                    decoration: _hovered && enabled
-                        ? TextDecoration.underline
-                        : null,
-                    decorationColor: MillenniumColors.link,
-                  ),
+                child: Row(
+                  children: [
+                    if (widget.icon case final icon?) ...[
+                      EraIcon(icon, disabled: !enabled),
+                      const SizedBox(width: 6),
+                    ],
+                    Flexible(
+                      child: Text(
+                        widget.label,
+                        style: skin.typography.body.copyWith(
+                          color: enabled ? MillenniumColors.link : tokens.muted,
+                          decoration: _hovered && enabled
+                              ? TextDecoration.underline
+                              : null,
+                          decorationColor: MillenniumColors.link,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

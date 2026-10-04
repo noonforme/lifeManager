@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'era_controls.dart';
+import 'era_icons.dart';
 import 'lifeos_skin.dart';
 
 /// The property-sheet page's inset.
@@ -21,10 +22,13 @@ final class InspectorPane extends StatelessWidget {
 /// file-properties sheet opened: the name, an optional secondary line,
 /// then an etched separator (XP-authentic shell spec 4.3).
 final class InspectorTitle extends StatelessWidget {
-  const InspectorTitle(this.title, {this.meta, super.key});
+  const InspectorTitle(this.title, {this.meta, this.icon, super.key});
 
   final String title;
   final String? meta;
+
+  /// The record kind's 32 px icon beside the name.
+  final EraIconKind? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -34,20 +38,36 @@ final class InspectorTitle extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            title,
-            style: skin.typography.body.copyWith(
-              color: skin.tokens.ink,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            children: [
+              if (icon case final icon?) ...[
+                EraIcon(icon, size: 32),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: skin.typography.strong.copyWith(
+                        color: skin.tokens.ink,
+                      ),
+                    ),
+                    if (meta case final meta?) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        meta,
+                        style: skin.typography.small.copyWith(
+                          color: skin.tokens.muted,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
-          if (meta case final meta?) ...[
-            const SizedBox(height: 2),
-            Text(
-              meta,
-              style: skin.typography.small.copyWith(color: skin.tokens.muted),
-            ),
-          ],
           const EtchedLine(),
         ],
       ),

@@ -1,3 +1,4 @@
+import '../../../shared/workbench/era_icons.dart';
 import '../data/projections/work_record_projection.dart';
 
 /// A record's name in captions and Details: "Shift 2026-09-08".
@@ -8,4 +9,13 @@ String recordName(WorkRecordProjection record) => switch (record) {
   PayslipRecordProjection(:final payslip) => 'Payslip ${payslip.issuedDate}',
   EmploymentRecordProjection(:final employment) => employment.name,
   AgreementRecordProjection() => 'Pay agreement',
+};
+
+/// A record kind's painted icon.
+EraIconKind recordIcon(WorkRecordProjection record) => switch (record) {
+  ShiftRecordProjection() => EraIconKind.shift,
+  PayPeriodRecordProjection() => EraIconKind.payPeriod,
+  PayslipRecordProjection() => EraIconKind.payslip,
+  EmploymentRecordProjection() => EraIconKind.employment,
+  AgreementRecordProjection() => EraIconKind.agreement,
 };

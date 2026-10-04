@@ -140,11 +140,23 @@ final class JournalSheet extends StatelessWidget {
           key: 'area',
           label: 'Area',
           kind: ColumnKind.area,
-          width: 56,
+          width: 106,
           value: (entry) => entry.area.label,
-          cell: (entry) => Align(
-            alignment: Alignment.centerLeft,
-            child: AreaKey(area: entry.area),
+          // The icon beside the word: the icon never stands alone.
+          cell: (entry) => Row(
+            children: [
+              AreaKey(area: entry.area),
+              const SizedBox(width: 4),
+              Flexible(
+                child: ExcludeSemantics(
+                  child: Text(
+                    entry.area.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         RegisterColumn(

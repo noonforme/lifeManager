@@ -90,8 +90,8 @@ void main() {
     ];
     expect(widths[0], greaterThan(widths[1]));
     expect(widths[1], widths[2]);
-    // Only the Work tile carries an area key.
-    expect(find.text('W'), findsOneWidget);
+    // Only the Work tile carries an area icon.
+    expect(find.bySemanticsLabel('Work'), findsOneWidget);
   });
 
   testWidgets('a tile closes, opens full size and is replaced from its menu', (

@@ -6,6 +6,7 @@ import '../../../shared/shell/shell_dialog.dart';
 import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/era_icons.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
@@ -149,7 +150,10 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
         label: 'Pay period',
         child: InspectorPane(
           children: [
-            InspectorTitle(period.label ?? 'Pay period'),
+            InspectorTitle(
+              period.label ?? 'Pay period',
+              icon: EraIconKind.payPeriod,
+            ),
             InspectorFacts([
               Fact('Dates', '${period.start} – ${period.end}'),
               Fact.words(

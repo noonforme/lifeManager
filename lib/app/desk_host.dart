@@ -20,6 +20,7 @@ import '../shared/shell/desk_view.dart';
 import '../shared/shell/name_dialog.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/shell/task_pane.dart';
+import '../shared/workbench/era_icons.dart';
 import '../shared/workbench/lifeos_tokens.dart';
 import '../shared/workbench/operational_state.dart';
 import 'desk_providers.dart';
@@ -87,10 +88,26 @@ final class DeskHost extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TaskLink(label: 'New desk', onPressed: actions.newDesk),
-                TaskLink(label: 'Rename desk…', onPressed: actions.rename),
-                TaskLink(label: 'Reset desk', onPressed: actions.reset),
-                TaskLink(label: 'Delete desk', onPressed: actions.delete),
+                TaskLink(
+                  label: 'New desk',
+                  icon: EraIconKind.newDesk,
+                  onPressed: actions.newDesk,
+                ),
+                TaskLink(
+                  label: 'Rename desk…',
+                  icon: EraIconKind.correct,
+                  onPressed: actions.rename,
+                ),
+                TaskLink(
+                  label: 'Reset desk',
+                  icon: EraIconKind.newDesk,
+                  onPressed: actions.reset,
+                ),
+                TaskLink(
+                  label: 'Delete desk',
+                  icon: EraIconKind.delete,
+                  onPressed: actions.delete,
+                ),
               ],
             ),
           ),
