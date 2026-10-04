@@ -1,7 +1,8 @@
 # LifeOS XP-Authentic Shell Design
 
 Date: 2026-10-04
-Status: approved in conversation, awaiting written-spec review
+Status: approved 2026-10-04. Amended 2026-10-04 during the build: the owner
+kept the system window frame (section 5 withdrawn).
 Amends: `2026-10-02-lifeos-millennium-shell-design.md`. This document
 replaces its decisions on window frame, font and icons (section 2), the shell
 layout (section 4), the property sheet (5.5), the **+ Desk** tab (5.7) and the
@@ -28,7 +29,7 @@ behave as today except where section 9 lists a change.
 | Right-hand inspector | Removed. The selection's summary and its Working go to the task pane's **Details** group; records open in a **Properties** dialog; forms open as dialog boxes. |
 | Working | In **Details**, whenever a figure is selected. |
 | Task pane | Its top group follows the selection (Work tasks, Shift tasks, Period tasks, Payslip tasks). |
-| Window frame | LifeOS draws its own: an undecorated window with a painted blue caption, caption keys, frame border and status-bar size grip. |
+| Window frame | The system title bar stays. LifeOS draws nothing outside its client area (unchanged from the Millennium spec; a painted frame was built and withdrawn at the owner's request). |
 | Font | Wine's Tahoma clone (LGPL-2.1-or-later), 11 px. Noto Sans stays only as a glyph fallback. Archivo and Azeret Mono are removed. |
 | Icons | A painted, vendor-free 16 px and 32 px set for areas, record kinds and task links. The W/F/T/K letter squares go. |
 | Scrollbars | One era scrollbar for every scroll area. |
@@ -39,16 +40,14 @@ behave as today except where section 9 lists a change.
 
 Top to bottom:
 
-1. **Window frame**: 4 px blue border and a 30 px caption (section 5).
-2. **Menu bar** (24 px): File, Edit, View, Desk, Record, Window, Help. The
-   bold "LifeOS" label is removed; the name lives in the caption.
-3. **Toolbar** (38 px): unchanged keys, drawn as bands, each with a dotted
+1. **Menu bar** (24 px): File, Edit, View, Desk, Record, Window, Help. The
+   bold "LifeOS" label is removed; the system title bar names the app.
+2. **Toolbar** (38 px): unchanged keys, drawn as bands, each with a dotted
    gripper at its left edge and an etched line between bands.
-4. **Address bar** (26 px): the path combo and **Go** (section 6.3).
-5. **Body**: **task pane** (200 px, left) and **content** (the rest). There
+3. **Address bar** (26 px): the path combo and **Go** (section 6.3).
+4. **Body**: **task pane** (200 px, left) and **content** (the rest). There
    is no third column.
-6. **Status bar** (22 px): sunken panels, then a size grip at the right end
-   (hidden when maximized).
+5. **Status bar** (22 px): sunken panels.
 
 ### 3.1 Width behaviour
 
@@ -148,28 +147,8 @@ wording, and **OK**. A stale lifecycle action offers **Reload** and
 
 ## 5. Window Frame
 
-- **Runner**: `linux/runner/my_application.cc` creates no GTK header bar and
-  the window starts undecorated, so no system frame flashes on launch.
-  `window_manager` (already a dependency) moves, resizes, minimizes,
-  maximizes and closes it.
-- **`EraWindowFrame`** wraps the whole app:
-  - a 4 px blue frame border on every side, which is also the resize edge
-    (`DragToResizeArea`);
-  - a 30 px caption with the era's vertical blue gradient and 8 px rounded
-    top corners;
-  - on the caption: a painted 16 px app glyph, the title
-    "{location} - LifeOS" in 13 px bold white with a 1 px dark text shadow,
-    and three 21 × 21 caption keys: Minimize, Maximize/Restore and a red
-    Close with a white ×;
-  - dragging the caption moves the window; a double-click toggles maximize;
-  - when the window is inactive the caption and border fade to the era's
-    pale blue and the title to a light ink;
-  - when maximized the border is gone and the corners are square.
-- The caption text shadow is the one shadow the style allows.
-- Caption keys meet the 24 × 24 target through their 3 px surround; each has
-  a semantics label ("Minimize", "Maximize", "Restore", "Close").
-- **Size grip**: painted diagonal dots in the status bar's last 14 px;
-  dragging it resizes from the bottom-right corner.
+Withdrawn. The system window frame and title bar stay; LifeOS paints
+nothing outside its client area.
 
 ## 6. Type, Scrollbars, Address Bar, Menus
 
@@ -185,7 +164,7 @@ wording, and **OK**. A stale lifecycle action offers **Reload** and
 
 | Style | Size / line | Weight | Use |
 |---|---|---|---|
-| Caption | 13 / 16 | 700 | Window caption, dialog caption |
+| Caption | 13 / 16 | 700 | Dialog caption |
 | Body | 11 / 14 | 400 | Controls, rows, menus, facts, labels |
 | Strong | 11 / 14 | 700 | Record name, group-task titles, Details heading |
 | Label | 11 / 14 | 400 | Column headers, group-box legends (Head blue) |
@@ -232,7 +211,7 @@ highlight, drawn in the era's manner. No vendor artwork or font glyphs.
 
 | Group | Icons |
 |---|---|
-| App | App glyph (caption, About) |
+| App | App glyph (About) |
 | Areas | Work (briefcase), Finance (coins), Tracking (chart), Knowledge (book) |
 | Record kinds | Shift (clock), Pay period (calendar page), Payslip (lined slip), Employment (building), Agreement (sealed document) |
 | Tasks | Add (page with green plus), Properties (page with lines), Correct (pencil), Mark reviewed (green tick), Record payslip, Save view, New desk |
@@ -300,7 +279,6 @@ Only these change; everything else behaves as today.
    Properties dialogs and forms in dialog boxes.
 2. The task pane's first group follows the selection.
 3. Working shows in Details.
-4. The window has LifeOS's own caption, frame and size grip.
 5. The address bar is a path combo with a location tree.
 6. The "Add a manual shift" entry row and the **+ Desk** tab are removed.
 7. Licences open in an era dialog.
@@ -320,19 +298,17 @@ Only these change; everything else behaves as today.
     and closes on commit with the status message.
   - Each former inspector failure shows its message box.
   - The address drop-down lists the tree and navigates.
-  - Caption keys call a fake window manager; double-click toggles
-    maximize; the frame and grip hide when maximized.
   - Every scroll area builds an `EraScrollbar`.
   - A selected row turns grey when the list loses focus.
 - The glyph test keeps failing on any font glyph used as an icon.
-- Token contrast test adds: caption title on caption blue (active and
-  inactive), scrollbar arrow on its key, ink on the unfocused selection.
+- Token contrast test adds: scrollbar arrow on its key, ink on the
+  unfocused selection.
 - Goldens at 1280 × 800 and 960 × 760: register; row selected with Details;
   figure selected with Working; Properties dialog; Manual Shift dialog; Pay
   Agreement dialog; calendar open inside a dialog; Today desk. The
   real-font renders under `test/goldens/real_font/` are regenerated and
   checked by eye before merge.
-- Semantics test: every region, caption key and dialog keeps its label at
+- Semantics test: every region and dialog keeps its label at
   both sizes.
 - `./app.sh` start, tests and checks still pass.
 
@@ -340,15 +316,15 @@ Only these change; everything else behaves as today.
 
 1. **Records**: section 3 layout, section 4, the message boxes, and the
    tests and goldens they touch.
-2. **Window and type**: sections 5, 6.1, 6.2, and the icons of section 7.
+2. **Type**: sections 6.1, 6.2, and the icons of section 7.
 3. **Era sweep and forms**: sections 6.3, 6.4, 8, the remaining goldens,
    and the documentation of section 12.
 
 ## 12. Documentation
 
 - `DESIGN.md` is rewritten for the shipped result: layout without the
-  property-sheet column, the dialog patterns, the window frame, EraSans and
-  the type table, scrollbars, icons, and the caption text-shadow exception.
+  property-sheet column, the dialog patterns, EraSans and the type table,
+  scrollbars, icons. No shadows anywhere; the system window frame stays.
 - The Millennium shell spec gets a note at its top pointing to this
   document for the replaced sections.
 - The Work surface brief in `.impeccable/surfaces/` is rewritten to the

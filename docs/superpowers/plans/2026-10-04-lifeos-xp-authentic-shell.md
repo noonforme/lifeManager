@@ -14,7 +14,7 @@
 
 - Colours come from `LifeOSTokens.millennium` and named constants on `MillenniumColors` (`lib/shared/workbench/millennium_style.dart`), never literals in widgets.
 - No vendor names, logos, icons, wallpapers or sounds; every icon, arrow and glyph is painted (a test fails if `lib/` uses a font glyph as an icon).
-- No drop shadows or blur. The single exception: a 1 px dark text shadow under the window caption title.
+- No drop shadows or blur.
 - Every key keeps a visible label and a 24 × 24 minimum target; caption keys meet it through their surround.
 - Colour never carries meaning alone: Draft, Void, Open, Reviewed, over and under are always written.
 - Text pairs meet 4.5:1; indicators, key outlines and focus meet 3:1 (`test/shared/workbench/lifeos_tokens_test.dart`).
@@ -2590,6 +2590,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 8: LifeOS's own window frame
 
+> **Withdrawn 2026-10-04 by the owner:** the system window frame stays. The task was built (4b6babc) and reverted (fd9d483). Skip it; later tasks drop every caption-key, size-grip and window-title reference.
+
 **Files:**
 - Create: `lib/shared/shell/era_window_frame.dart`, `lib/app/window_controls.dart`
 - Modify: `linux/runner/my_application.cc:27-53`, `lib/app/desktop_window_service.dart`, `lib/app/lifeos_app.dart`, `lib/main.dart`, `lib/app/shell_host.dart`, `lib/shared/shell/status_line.dart`, `lib/shared/workbench/millennium_style.dart`, `test/shared/workbench/lifeos_tokens_test.dart`
@@ -3851,7 +3853,7 @@ flutter analyze lib test tool && flutter test --exclude-tags real-font --update-
 flutter test --run-skipped -t real-font --update-goldens test/goldens/real_font_check_test.dart
 flutter test
 ```
-Open each PNG under `test/goldens/real_font/`. Check: caption with app glyph, "Shifts - LifeOS" and the three keys; EraSans everywhere (no Noto shapes); bold text kerning (the Wine bold has a known gap in some letter pairs — if a label like "Pay agreement" shows a visible gap, note it in the commit body; it is a font defect, not a layout bug); icons in Books, tasks and Properties; the scrollbar on the Pay agreement dialog; Details text fits 176 px.
+Open each PNG under `test/goldens/real_font/`. Check: EraSans everywhere (no Noto shapes); bold text kerning (the Wine bold has a known gap in some letter pairs — if a label like "Pay agreement" shows a visible gap, note it in the commit body; it is a font defect, not a layout bug); icons in Books, tasks and Properties; the scrollbar on the Pay agreement dialog; Details text fits 176 px.
 
 - [ ] **Step 6: Commit**
 
@@ -5042,7 +5044,7 @@ Rewrite `.impeccable/surfaces/lib-features-work-presentation-work-screen-dart.md
 
 - [ ] **Step 5: Semantics at both sizes (spec §10)**
 
-Extend `test/shared/shell/shell_semantics_test.dart` (it already checks region labels at both sizes via `pumpSyntheticShell`): for each of `Size(1280, 800)` and `Size(960, 760)`, also expect `find.bySemanticsLabel('Minimize')`, `'Maximize'`, `'Close'` (caption keys, painted with `InertWindowControls`), `'Address, Work, Synthetic depot, Shifts'`, and — after `await tester.sendKeyEvent(LogicalKeyboardKey.enter)` on a selected row — the dialog's label `'Shift 2026-09-08 Properties'`. Run it: PASS.
+Extend `test/shared/shell/shell_semantics_test.dart` (it already checks region labels at both sizes via `pumpSyntheticShell`): for each of `Size(1280, 800)` and `Size(960, 760)`, also expect `'Address, Work, Synthetic depot, Shifts'`, and — after `await tester.sendKeyEvent(LogicalKeyboardKey.enter)` on a selected row — the dialog's label `'Shift 2026-09-08 Properties'`. Run it: PASS.
 
 - [ ] **Step 6: Final goldens and a full run**
 
@@ -5065,7 +5067,7 @@ printf '3\n4\n' | ./app.sh    # checks
 timeout 180 bash -c "printf '1\n' | ./app.sh" || true   # starts; close the window by hand
 ```
 
-Confirm the window opens with the painted caption and no GNOME header bar. `app.sh` needs no change unless a command failed; if it did, fix `app.sh` and re-run.
+Confirm the window opens (system title bar) and the shell renders. `app.sh` needs no change unless a command failed; if it did, fix `app.sh` and re-run.
 
 - [ ] **Step 8: Commit**
 
