@@ -74,17 +74,6 @@ abstract final class MillenniumColors {
   /// A transparent edge that keeps a flat key the same size as a raised one.
   static const clear = Color(0x00000000);
   static const infoGlyph = Color(0xff215dc6);
-
-  // Window frame and caption (XP-authentic shell spec 5).
-  static const frameActive = Color(0xff0831d9);
-  static const frameInactive = Color(0xff7b8fd6);
-  static const windowCaptionLight = Color(0xff3d95ff);
-  static const windowCaptionDeep = Color(0xff0040c8);
-  static const inactiveCaptionLight = Color(0xff9db3ec);
-  static const inactiveCaption = Color(0xff5670c4);
-  static const captionShadow = Color(0xff0a1a64);
-  static const captionKeyTop = Color(0xff5a8ff8);
-  static const captionKeyBottom = Color(0xff2259d8);
   static const warningGlyph = Color(0xfff2b01e);
 }
 

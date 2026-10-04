@@ -6,7 +6,6 @@ import 'app/font_licenses.dart';
 import 'app/lifeos_app.dart';
 import 'app/production_work_providers.dart';
 import 'app/startup_recovery.dart';
-import 'app/window_controls.dart';
 import 'bootstrap.dart';
 import 'core/database/app_database.dart';
 import 'core/database/database_config.dart';
@@ -49,11 +48,7 @@ Future<void> main() async {
         return BootstrapProviders(scope: built.scope);
       },
       buildRouter: (providers) async => providers.scope(
-        LifeOsApp(
-          router: createAppRouter(),
-          onQuit: window.close,
-          window: WindowManagerControls(),
-        ),
+        LifeOsApp(router: createAppRouter(), onQuit: window.close),
       ),
       mountApp: (app) async => runApp(app),
       showWindow: window.show,
