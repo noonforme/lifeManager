@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_time.dart';
 
 import '../support/era_pickers.dart';
-import '../support/work_dialogs.dart';
 import '../support/synthetic_shell.dart';
+import '../support/work_dialogs.dart';
 
 void main() {
   testWidgets('selecting a row opens no dialog; Enter opens its Properties', (
