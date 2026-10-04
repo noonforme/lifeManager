@@ -166,11 +166,6 @@ final class LifeOSMenuBar extends StatelessWidget {
                     (v) => v.showTaskPane,
                     (v, on) => v.copyWith(showTaskPane: on),
                   ),
-                  viewItem(
-                    'Show property sheet',
-                    (v) => v.showPropertySheet,
-                    (v, on) => v.copyWith(showPropertySheet: on),
-                  ),
                 ]),
                 menu('Desk', [
                   item('Open Today', () => onNavigate('/today')),

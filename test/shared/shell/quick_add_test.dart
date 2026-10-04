@@ -46,9 +46,6 @@ void main() {
             ],
             child: const ShellFrame(
               desk: SizedBox.shrink(),
-              inspector: SizedBox.shrink(),
-              inspectorOpen: false,
-              onBackToList: _noop,
             ),
           ),
         ),
@@ -107,4 +104,3 @@ void main() {
   });
 }
 
-void _noop() {}

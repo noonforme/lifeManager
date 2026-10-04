@@ -251,8 +251,6 @@ final class _JournalHost extends ConsumerWidget {
       _ => null,
     };
     return ShellFrame(
-      inspectorOpen: false,
-      onBackToList: _noop,
       desk: JournalSheet(
         range: range,
         entries: entries,
@@ -291,8 +289,6 @@ final class _UnavailableSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ShellFrame(
-      inspectorOpen: false,
-      onBackToList: _noop,
       desk: Builder(
         builder: (context) {
           final skin = LifeOSSkinScope.of(context);
@@ -326,4 +322,3 @@ final class _UnavailableSurface extends StatelessWidget {
   }
 }
 
-void _noop() {}

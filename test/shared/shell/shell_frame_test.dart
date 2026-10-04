@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/shell/address_bar.dart';
+import 'package:lifeos/shared/shell/shell_dialog.dart';
 import 'package:lifeos/shared/shell/shell_frame.dart';
 import 'package:lifeos/shared/shell/task_pane.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
@@ -12,7 +13,6 @@ const _landmarks = [
   'Address',
   'Task pane',
   'Desk workspace',
-  'Record inspector',
   'Status line',
 ];
 
@@ -20,8 +20,7 @@ Future<ShellViewController> _pump(
   WidgetTester tester, {
   required double width,
   double height = 800,
-  bool inspectorOpen = false,
-  bool hasInspector = true,
+  bool dialogOpen = false,
   double textScale = 1,
   ShellViewController? view,
 }) async {
@@ -32,8 +31,7 @@ Future<ShellViewController> _pump(
   await tester.pumpWidget(
     _Harness(
       view: controller,
-      inspectorOpen: inspectorOpen,
-      hasInspector: hasInspector,
+      dialogOpen: dialogOpen,
       textScale: textScale,
     ),
   );
@@ -41,35 +39,38 @@ Future<ShellViewController> _pump(
 }
 
 void main() {
-  testWidgets('full width shows every landmark side by side', (tester) async {
+  testWidgets('the body is the task pane and the content; no property sheet', (
+    tester,
+  ) async {
     await _pump(tester, width: 1280);
     for (final label in _landmarks) {
       expect(find.bySemanticsLabel(label), findsOneWidget, reason: label);
     }
+    expect(find.bySemanticsLabel('Record inspector'), findsNothing);
     expect(find.text('Desk content'), findsOneWidget);
-    expect(find.text('Inspector content'), findsOneWidget);
     expect(find.text('Back to list'), findsNothing);
     expect(find.text('Tasks'), findsNothing);
+    final desk = tester.getSize(find.bySemanticsLabel('Desk workspace'));
+    expect(desk.width, 1280 - ShellMetrics.taskPaneWidth);
   });
 
-  testWidgets(
-    'below full width an open record replaces the desk and keeps its draft',
-    (tester) async {
-      await _pump(tester, width: 1100);
-      await tester.enterText(find.byType(TextField), 'kept draft');
+  testWidgets('a dialog opens over the desk, which keeps its draft', (
+    tester,
+  ) async {
+    await _pump(tester, width: 1100);
+    await tester.enterText(find.byType(TextField), 'kept draft');
 
-      await tester.tap(find.text('Open record'));
-      await tester.pump();
-      expect(find.text('Inspector content'), findsOneWidget);
-      expect(find.text('Back to list'), findsOneWidget);
-      expect(find.text('Desk content'), findsNothing);
+    await tester.tap(find.text('Open record'));
+    await tester.pump();
+    expect(find.text('New pay period'), findsOneWidget);
+    expect(find.text('Dialog content'), findsOneWidget);
+    expect(find.text('Desk content'), findsOneWidget);
 
-      await tester.tap(find.text('Back to list'));
-      await tester.pump();
-      expect(find.text('Desk content'), findsOneWidget);
-      expect(find.text('kept draft'), findsOneWidget);
-    },
-  );
+    await tester.tap(find.bySemanticsLabel('Close New pay period'));
+    await tester.pump();
+    expect(find.text('Dialog content'), findsNothing);
+    expect(find.text('kept draft'), findsOneWidget);
+  });
 
   testWidgets('narrow windows fold the task pane into Tasks', (tester) async {
     await _pump(tester, width: 960);
@@ -97,29 +98,6 @@ void main() {
     expect(find.text('Tasks'), findsOneWidget);
   });
 
-  testWidgets('hiding the inspector makes records alternate with the desk', (
-    tester,
-  ) async {
-    final view = await _pump(tester, width: 1280);
-    view.value = view.value.copyWith(showPropertySheet: false);
-    await tester.pump();
-    expect(find.text('Inspector content'), findsNothing);
-
-    await tester.tap(find.text('Open record'));
-    await tester.pump();
-    expect(find.text('Inspector content'), findsOneWidget);
-    expect(find.text('Back to list'), findsOneWidget);
-  });
-
-  testWidgets('a surface without an inspector gives the desk the width', (
-    tester,
-  ) async {
-    await _pump(tester, width: 1280, hasInspector: false);
-    expect(find.bySemanticsLabel('Record inspector'), findsNothing);
-    final desk = tester.getSize(find.bySemanticsLabel('Desk workspace'));
-    expect(desk.width, greaterThan(1280 - 320));
-  });
-
   testWidgets('widening past 1024 docks the task pane and drops the overlay', (
     tester,
   ) async {
@@ -131,8 +109,7 @@ void main() {
     await tester.pumpWidget(
       _Harness(
         view: view,
-        inspectorOpen: false,
-        hasInspector: true,
+        dialogOpen: false,
         textScale: 1,
       ),
     );
@@ -145,8 +122,7 @@ void main() {
     await tester.pumpWidget(
       _Harness(
         view: view,
-        inspectorOpen: false,
-        hasInspector: true,
+        dialogOpen: false,
         textScale: 1,
       ),
     );
@@ -185,8 +161,7 @@ void main() {
     await tester.pumpWidget(
       _Harness(
         view: ShellViewController(),
-        inspectorOpen: false,
-        hasInspector: true,
+        dialogOpen: false,
         textScale: 1,
         onTask: () => done++,
       ),
@@ -204,7 +179,7 @@ void main() {
     testWidgets('no overflow at $width wide and 200% text', (tester) async {
       await _pump(tester, width: width, textScale: 2);
       expect(tester.takeException(), isNull);
-      await _pump(tester, width: width, inspectorOpen: true);
+      await _pump(tester, width: width, dialogOpen: true);
       expect(tester.takeException(), isNull);
     });
   }
@@ -213,15 +188,13 @@ void main() {
 final class _Harness extends StatefulWidget {
   const _Harness({
     required this.view,
-    required this.inspectorOpen,
-    required this.hasInspector,
+    required this.dialogOpen,
     required this.textScale,
     this.onTask,
   });
 
   final ShellViewController view;
-  final bool inspectorOpen;
-  final bool hasInspector;
+  final bool dialogOpen;
   final double textScale;
 
   /// When set, the frame shows a task group with one link, "Do thing".
@@ -232,7 +205,7 @@ final class _Harness extends StatefulWidget {
 }
 
 final class _HarnessState extends State<_Harness> {
-  late bool _inspectorOpen = widget.inspectorOpen;
+  late bool _dialogOpen = widget.dialogOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -256,21 +229,23 @@ final class _HarnessState extends State<_Harness> {
                 crumbs: const [AddressCrumb('Work', '/work')],
                 onNavigate: (_) {},
                 child: ShellFrame(
-                  inspectorOpen: _inspectorOpen,
-                  onBackToList: () => setState(() => _inspectorOpen = false),
+                  dialog: _dialogOpen
+                      ? ShellDialog(
+                          title: 'New pay period',
+                          onClose: () => setState(() => _dialogOpen = false),
+                          child: const Text('Dialog content'),
+                        )
+                      : null,
                   desk: Column(
                     children: [
                       const Text('Desk content'),
                       const SizedBox(width: 200, child: TextField()),
                       TextButton(
-                        onPressed: () => setState(() => _inspectorOpen = true),
+                        onPressed: () => setState(() => _dialogOpen = true),
                         child: const Text('Open record'),
                       ),
                     ],
                   ),
-                  inspector: widget.hasInspector
-                      ? const Text('Inspector content')
-                      : null,
                   tasks: [
                     if (widget.onTask case final onTask?)
                       TaskGroup(

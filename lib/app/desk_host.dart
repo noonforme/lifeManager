@@ -78,8 +78,6 @@ final class DeskHost extends ConsumerWidget {
       desk = _desk(context, ref, desks, selected, actions);
     }
     return ShellFrame(
-      inspectorOpen: false,
-      onBackToList: () {},
       desk: desk,
       tasks: [
         if (actions case final actions?)

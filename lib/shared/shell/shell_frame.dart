@@ -9,6 +9,7 @@ import '../workbench/office_controls.dart';
 import 'address_bar.dart';
 import 'navigation_history.dart';
 import 'quick_add.dart';
+import 'shell_dialog.dart';
 import 'task_pane.dart';
 
 /// Fixed shell geometry (spec 5.1–5.2).
@@ -18,10 +19,6 @@ abstract final class ShellMetrics {
   static const addressBarHeight = 26.0;
   static const statusBarHeight = 22.0;
   static const taskPaneWidth = 200.0;
-  static const propertySheetWidth = 300.0;
-
-  /// At and above this width every region is visible.
-  static const fullWidth = 1280.0;
 
   /// Below this width the task pane folds into the **Tasks** key.
   static const taskPaneFoldWidth = 1024.0;
@@ -30,25 +27,19 @@ abstract final class ShellMetrics {
 /// Which optional regions the owner shows (View menu).
 @immutable
 final class ShellView {
-  const ShellView({this.showTaskPane = true, this.showPropertySheet = true});
+  const ShellView({this.showTaskPane = true});
 
   final bool showTaskPane;
-  final bool showPropertySheet;
 
-  ShellView copyWith({bool? showTaskPane, bool? showPropertySheet}) =>
-      ShellView(
-        showTaskPane: showTaskPane ?? this.showTaskPane,
-        showPropertySheet: showPropertySheet ?? this.showPropertySheet,
-      );
+  ShellView copyWith({bool? showTaskPane}) =>
+      ShellView(showTaskPane: showTaskPane ?? this.showTaskPane);
 
   @override
   bool operator ==(Object other) =>
-      other is ShellView &&
-      other.showTaskPane == showTaskPane &&
-      other.showPropertySheet == showPropertySheet;
+      other is ShellView && other.showTaskPane == showTaskPane;
 
   @override
-  int get hashCode => Object.hash(showTaskPane, showPropertySheet);
+  int get hashCode => showTaskPane.hashCode;
 }
 
 final class ShellViewController extends ValueNotifier<ShellView> {
@@ -68,7 +59,7 @@ final class ShellViewScope extends InheritedNotifier<ShellViewController> {
 
 /// The app-level parts of the shell: menu bar, book tree, status line and
 /// the current location's title. The app provides them once; every surface
-/// then only supplies its desk and inspector.
+/// then only supplies its desk, tasks and dialog.
 final class ShellChrome extends InheritedWidget {
   const ShellChrome({
     required this.menuBar,
@@ -115,17 +106,12 @@ final class ShellChrome extends InheritedWidget {
       fromLastTime != oldWidget.fromLastTime;
 }
 
-/// The Office Machine shell: menu bar, toolbar, formula bar, book tree,
-/// desk, inspector and status line, with the width behaviour of spec 5.2.
-///
-/// The desk and inspector stay mounted while the narrower layouts swap
-/// between them, so scroll position, selection and drafts survive.
+/// The shell (XP-authentic shell spec 3): menu bar, toolbar, Address bar,
+/// task pane and content, status bar, and the open dialog over all of it.
 final class ShellFrame extends StatefulWidget {
   const ShellFrame({
     required this.desk,
-    required this.inspectorOpen,
-    required this.onBackToList,
-    this.inspector,
+    this.dialog,
     this.tasks = const [],
     this.details,
     super.key,
@@ -133,14 +119,8 @@ final class ShellFrame extends StatefulWidget {
 
   final Widget desk;
 
-  /// Null on a surface with no records to inspect, such as a desk of
-  /// tiles; the desk then takes the whole width.
-  final Widget? inspector;
-
-  /// Whether a record is open. Below full width the inspector then replaces
-  /// the desk until [onBackToList].
-  final bool inspectorOpen;
-  final VoidCallback onBackToList;
+  /// The open Properties sheet, form or message box, if any.
+  final ShellDialog? dialog;
 
   /// The surface's own task-pane groups, shown above Books.
   final List<Widget> tasks;
@@ -176,8 +156,6 @@ final class _ShellFrameState extends State<ShellFrame> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
-            final full =
-                width >= ShellMetrics.fullWidth && view.showPropertySheet;
             final folded =
                 width < ShellMetrics.taskPaneFoldWidth || !view.showTaskPane;
             // Widening the window docks the pane; the overlay state goes.
@@ -205,39 +183,10 @@ final class _ShellFrameState extends State<ShellFrame> {
               ),
             );
             final desk = _Landmark(label: 'Desk workspace', child: widget.desk);
-            final inspecting = widget.inspector;
-            final inspector = inspecting == null
-                ? null
-                : _Landmark(
-                    label: 'Record inspector',
-                    child: _PropertySheetRegion(
-                      showBackToList: !full,
-                      onBackToList: widget.onBackToList,
-                      child: inspecting,
-                    ),
-                  );
-            final Widget work = inspector == null
-                ? desk
-                : full
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: desk),
-                      SizedBox(
-                        width: ShellMetrics.propertySheetWidth,
-                        child: inspector,
-                      ),
-                    ],
-                  )
-                : IndexedStack(
-                    index: widget.inspectorOpen ? 1 : 0,
-                    sizing: StackFit.expand,
-                    children: [desk, inspector],
-                  );
             final Widget body = folded
                 ? Stack(
                     children: [
-                      Positioned.fill(child: work),
+                      Positioned.fill(child: desk),
                       if (_tasksOpen)
                         Positioned(
                           left: 0,
@@ -258,11 +207,13 @@ final class _ShellFrameState extends State<ShellFrame> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       SizedBox(width: ShellMetrics.taskPaneWidth, child: pane),
-                      Expanded(child: work),
+                      Expanded(child: desk),
                     ],
                   );
 
-            return Column(
+            return ShellDialogLayer(
+              dialog: widget.dialog,
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _Landmark(
@@ -306,6 +257,7 @@ final class _ShellFrameState extends State<ShellFrame> {
                   ),
                 ),
               ],
+              ),
             );
           },
         ),
@@ -414,45 +366,6 @@ final class _Toolbar extends StatelessWidget {
                 onPressed: entry.open,
               ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-final class _PropertySheetRegion extends StatelessWidget {
-  const _PropertySheetRegion({
-    required this.showBackToList,
-    required this.onBackToList,
-    required this.child,
-  });
-
-  final bool showBackToList;
-  final VoidCallback onBackToList;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = LifeOSSkinScope.of(context).tokens;
-    return Container(
-      color: tokens.chrome,
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (showBackToList)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: KeyButton(
-                  label: 'Back to list',
-                  kind: KeyKind.small,
-                  onPressed: onBackToList,
-                ),
-              ),
-            ),
-          Expanded(child: child),
         ],
       ),
     );

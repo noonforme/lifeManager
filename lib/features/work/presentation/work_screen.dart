@@ -117,7 +117,6 @@ final class WorkScreen extends StatefulWidget {
 final class _WorkScreenState extends State<WorkScreen> {
   LocalDate get _today => widget.today ?? _deviceToday();
 
-  bool _showRegister = false;
   MutationOutcome<PayPeriod>? _periodFailure;
   bool _creatingPeriod = false;
   PayPeriodId? _payslipPeriod;
@@ -171,7 +170,6 @@ final class _WorkScreenState extends State<WorkScreen> {
     final oldRecord = _selectedRecord(oldWidget.state);
     final newRecord = _selectedRecord(widget.state);
     if (oldRecord?.id != newRecord?.id) {
-      _showRegister = false;
       _periodFailure = null;
       _creatingPeriod = false;
       _payslipPeriod = null;
@@ -185,25 +183,11 @@ final class _WorkScreenState extends State<WorkScreen> {
   @override
   Widget build(BuildContext context) {
     final ready = _current(widget.state);
-    final routeRecord = ready is WorkReady ? ready.route.record : null;
-    final creating =
-        ready is WorkReady &&
-        (ready.route.mode != WorkInspectorMode.inspect ||
-            ready.route.adding != null);
-    final inspectorActive =
-        (routeRecord != null ||
-            creating ||
-            _creatingPeriod ||
-            _payslipPeriod != null) &&
-        !_showRegister;
     final register = ready is WorkReady ? ready.register : null;
     final route = ready is WorkReady ? ready.route : null;
     final employmentId = route?.employmentId;
     return ShellFrame(
       desk: _RegisterLandmark(child: _register(ready)),
-      inspector: _inspector(ready),
-      inspectorOpen: inspectorActive,
-      onBackToList: () => setState(() => _showRegister = true),
       tasks: [
         if (employmentId != null && route != null)
           TaskGroup(
@@ -222,8 +206,7 @@ final class _WorkScreenState extends State<WorkScreen> {
                       ? null
                       : () => setState(() {
                           _creatingPeriod = true;
-                          _showRegister = false;
-                        }),
+                                            }),
                 ),
                 TaskLink(
                   label: 'Record payslip',
@@ -232,8 +215,7 @@ final class _WorkScreenState extends State<WorkScreen> {
                       ? null
                       : () => setState(() {
                           _payslipPeriod = register!.period!.id;
-                          _showRegister = false;
-                        }),
+                                            }),
                 ),
                 TaskLink(
                   label: 'Save this view…',
@@ -295,8 +277,7 @@ final class _WorkScreenState extends State<WorkScreen> {
             ? null
             : () => setState(() {
                 _creatingPeriod = true;
-                _showRegister = false;
-              }),
+                        }),
         onAllEmployments: () => _go(
           const WorkRouteState(
             employmentId: null,
@@ -323,8 +304,7 @@ final class _WorkScreenState extends State<WorkScreen> {
             ? null
             : (period) => setState(() {
                 _payslipPeriod = period;
-                _showRegister = false;
-              }),
+                        }),
         timezones: widget.timezones,
       ),
       null => const OperationalState(
@@ -335,6 +315,7 @@ final class _WorkScreenState extends State<WorkScreen> {
     };
   }
 
+  // ignore: unused_element
   Widget _inspector(WorkViewState? state) {
     if (state is! WorkReady) {
       return const OperationalState(
