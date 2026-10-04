@@ -75,4 +75,14 @@ void main() {
       );
     }
   });
+
+  test('scrollbar arrows read on their keys', () {
+    expect(
+      contrastRatio(
+        MillenniumColors.comboArrowInk,
+        MillenniumColors.scrollFaceBottom,
+      ),
+      greaterThanOrEqualTo(3),
+    );
+  });
 }

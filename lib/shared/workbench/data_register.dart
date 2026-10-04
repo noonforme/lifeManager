@@ -434,34 +434,31 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
               container: true,
               explicitChildNodes: true,
               label: '${widget.label}, horizontally scrollable',
-              child: Scrollbar(
+              child: SingleChildScrollView(
                 controller: _horizontal,
-                child: SingleChildScrollView(
-                  controller: _horizontal,
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: tableWidth,
-                    height: constraints.maxHeight.isFinite
-                        ? constraints.maxHeight
-                        : null,
-                    child: Column(
-                      mainAxisSize: constraints.maxHeight.isFinite
-                          ? MainAxisSize.max
-                          : MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _HeaderRow<T>(
-                          columns: visible,
-                          skin: skin,
-                          sortedColumn: widget.sortedColumn,
-                          sortDescending: widget.sortDescending,
-                        ),
-                        if (constraints.maxHeight.isFinite)
-                          Expanded(child: ListView(children: body))
-                        else
-                          ...body,
-                      ],
-                    ),
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: tableWidth,
+                  height: constraints.maxHeight.isFinite
+                      ? constraints.maxHeight
+                      : null,
+                  child: Column(
+                    mainAxisSize: constraints.maxHeight.isFinite
+                        ? MainAxisSize.max
+                        : MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _HeaderRow<T>(
+                        columns: visible,
+                        skin: skin,
+                        sortedColumn: widget.sortedColumn,
+                        sortDescending: widget.sortDescending,
+                      ),
+                      if (constraints.maxHeight.isFinite)
+                        Expanded(child: ListView(children: body))
+                      else
+                        ...body,
+                    ],
                   ),
                 ),
               ),

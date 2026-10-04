@@ -6,6 +6,7 @@ import '../shared/shell/navigation_history.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/shell/status_line.dart';
 import '../shared/workbench/cell_selection.dart';
+import '../shared/workbench/era_scrollbar.dart';
 import '../shared/workbench/lifeos_skin.dart';
 import '../shared/workbench/lifeos_theme.dart';
 import 'shell_host.dart';
@@ -70,6 +71,7 @@ final class _LifeOsAppState extends State<LifeOsApp> {
       debugShowCheckedModeBanner: false,
       title: 'LifeOS',
       theme: buildLifeOSTheme(),
+      scrollBehavior: const EraScrollBehavior(),
       routerConfig: widget.router,
       // Every LifeOS-owned widget reads its skin, tokens and type from here.
       builder: (context, child) => AppQuit(

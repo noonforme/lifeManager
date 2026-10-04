@@ -74,6 +74,15 @@ abstract final class MillenniumColors {
   /// A transparent edge that keeps a flat key the same size as a raised one.
   static const clear = Color(0x00000000);
   static const infoGlyph = Color(0xff215dc6);
+
+  // Scrollbars (XP-authentic shell spec 6.2).
+  static const scrollTrack = Color(0xfff4f3ee);
+  static const scrollTrackEdge = Color(0xffeeede5);
+  static const scrollFaceTop = Color(0xffcadaff);
+  static const scrollFaceBottom = Color(0xffb5c9f7);
+  static const scrollFaceEdge = Color(0xff98b0e8);
+  static const scrollGripLight = Color(0xffeef4fe);
+  static const scrollGripDark = Color(0xff8cb0f8);
   static const warningGlyph = Color(0xfff2b01e);
 }
 
