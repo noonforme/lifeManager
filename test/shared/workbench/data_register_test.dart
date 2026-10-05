@@ -192,6 +192,57 @@ void main() {
     expect(opened.length, 2, reason: 'the activating click does not reopen');
   });
 
+  testWidgets('a cancelled second press never arms a later click', (
+    tester,
+  ) async {
+    final opened = <String>[];
+    final activated = <String>[];
+    await tester.pumpWidget(
+      _TestRegister(onOpen: opened.add, onActivate: activated.add),
+    );
+    final first = tester.getCenter(find.text('First shift'));
+    final gesture = await tester.createGesture();
+    await gesture.down(first, timeStamp: const Duration(seconds: 1));
+    await gesture.up(timeStamp: const Duration(seconds: 1, milliseconds: 40));
+    await tester.pump();
+    // The second press drags away: no tap, no double-click.
+    await gesture.down(
+      first,
+      timeStamp: const Duration(seconds: 1, milliseconds: 200),
+    );
+    await gesture.moveBy(
+      const Offset(0, 120),
+      timeStamp: const Duration(seconds: 1, milliseconds: 250),
+    );
+    await gesture.up(timeStamp: const Duration(seconds: 1, milliseconds: 300));
+    await tester.pump();
+    // Much later, one plain click only opens.
+    final second = tester.getCenter(find.text('Second shift'));
+    await gesture.down(second, timeStamp: const Duration(seconds: 40));
+    await gesture.up(timeStamp: const Duration(seconds: 40, milliseconds: 40));
+    await tester.pump();
+    expect(activated, isEmpty);
+  });
+
+  testWidgets("a double-click may take the desktop's 400 ms", (tester) async {
+    final activated = <String>[];
+    await tester.pumpWidget(
+      _TestRegister(onOpen: (_) {}, onActivate: activated.add),
+    );
+    final cell = tester.getCenter(find.text('First shift'));
+    final gesture = await tester.createGesture();
+    await gesture.down(cell, timeStamp: const Duration(seconds: 1));
+    await gesture.up(timeStamp: const Duration(seconds: 1, milliseconds: 40));
+    await tester.pump();
+    await gesture.down(
+      cell,
+      timeStamp: const Duration(seconds: 1, milliseconds: 380),
+    );
+    await gesture.up(timeStamp: const Duration(seconds: 1, milliseconds: 420));
+    await tester.pump();
+    expect(activated, ['shift:1']);
+  });
+
   testWidgets('a click places the cursor and opens the row', (tester) async {
     final opened = <String>[];
     final cells = CellSelectionController();

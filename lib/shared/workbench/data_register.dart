@@ -202,15 +202,22 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
   (int, Duration)? _lastPress;
   bool _activatePending = false;
 
+  /// The desktop's double-click time (GTK's default), longer than
+  /// Flutter's touch-oriented double-tap timeout.
+  static const _doubleClick = Duration(milliseconds: 400);
+
   void _press(int index, PointerDownEvent event) {
     if (event.buttons != kPrimaryButton) return;
+    // Every press starts fresh: a second press that never became a click
+    // (dragged away) must not arm a later one.
+    _activatePending = false;
     final last = _lastPress;
     _lastPress = (index, event.timeStamp);
     // Synthetic events without a time stamp never pair into a double-click.
     if (last != null &&
         event.timeStamp > Duration.zero &&
         last.$1 == index &&
-        event.timeStamp - last.$2 <= kDoubleTapTimeout) {
+        event.timeStamp - last.$2 <= _doubleClick) {
       _lastPress = null;
       _activatePending = true;
     }
