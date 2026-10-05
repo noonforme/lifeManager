@@ -189,4 +189,37 @@ void main() {
     await tester.tap(find.text('OK'));
     expect(closed, 1);
   });
+
+  testWidgets('Enter presses OK on a Properties sheet, not a focused key', (
+    tester,
+  ) async {
+    var closed = 0;
+    var pressed = 0;
+    await tester.pumpWidget(
+      _host(
+        ShellDialogLayer(
+          dialog: ShellDialog(
+            title: 'Pay period Properties',
+            kind: ShellDialogKind.properties,
+            onClose: () => closed++,
+            child: KeyButton(
+              label: 'Mark reviewed',
+              onPressed: () => pressed++,
+            ),
+          ),
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    expect(closed, 1, reason: 'Enter is the default key, OK');
+    // Tab to the record's own key: Enter now presses it instead.
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(pressed, 1);
+    expect(closed, 1);
+  });
 }

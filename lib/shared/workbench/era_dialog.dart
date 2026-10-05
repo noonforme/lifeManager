@@ -127,7 +127,19 @@ final class CaptionBar extends StatelessWidget {
           ),
           ...trailing,
           if (onClose case final close?)
-            _CloseKey(label: closeLabel ?? 'Close $title', onPressed: close),
+            // A dialog's caption key is not a Tab stop, as in the era:
+            // Escape closes a dialog, and Tab starts at its content.
+            large
+                ? ExcludeFocusTraversal(
+                    child: _CloseKey(
+                      label: closeLabel ?? 'Close $title',
+                      onPressed: close,
+                    ),
+                  )
+                : _CloseKey(
+                    label: closeLabel ?? 'Close $title',
+                    onPressed: close,
+                  ),
         ],
       ),
     );

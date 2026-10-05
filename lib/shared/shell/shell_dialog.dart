@@ -153,85 +153,107 @@ final class _DialogWindow extends StatelessWidget {
         const SingleActivator(LogicalKeyboardKey.escape): dialog.onClose,
       },
       child: FocusScope(
-        autofocus: true,
-        child: Semantics(
-          scopesRoute: true,
-          namesRoute: true,
-          explicitChildNodes: true,
-          label: dialog.title,
-          child: Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: tokens.chrome,
-              border: Border.all(color: MillenniumColors.keyLine),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(6),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                CaptionBar(
-                  title: dialog.title,
-                  large: true,
-                  onClose: dialog.onClose,
+        // A form's own autofocus field takes focus; otherwise the scope does.
+        autofocus: dialog.kind == ShellDialogKind.form,
+        // On a sheet or message box the dialog itself holds focus when it opens. There, Enter is the
+        // Properties sheet's default key, OK, as in the era; on a focused
+        // key, Enter presses that key instead.
+        child: Focus(
+          autofocus: dialog.kind != ShellDialogKind.form,
+          onKeyEvent: (node, event) {
+            final enter =
+                event is KeyDownEvent &&
+                (event.logicalKey == LogicalKeyboardKey.enter ||
+                    event.logicalKey == LogicalKeyboardKey.numpadEnter);
+            if (enter &&
+                dialog.kind != ShellDialogKind.form &&
+                FocusManager.instance.primaryFocus == node) {
+              dialog.onClose();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: Semantics(
+            scopesRoute: true,
+            namesRoute: true,
+            explicitChildNodes: true,
+            label: dialog.title,
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: tokens.chrome,
+                border: Border.all(color: MillenniumColors.keyLine),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(6),
                 ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: ShellDialogScope(
-                      onClose: dialog.onClose,
-                      child: DefaultTextStyle.merge(
-                        style: skin.typography.body.copyWith(color: tokens.ink),
-                        // A message box leads with the era's warning sign.
-                        child: dialog.kind == ShellDialogKind.message
-                            ? Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Padding(
-                                    padding: EdgeInsets.all(4),
-                                    child: EraIcon(
-                                      EraIconKind.warning,
-                                      size: 32,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CaptionBar(
+                    title: dialog.title,
+                    large: true,
+                    onClose: dialog.onClose,
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: ShellDialogScope(
+                        onClose: dialog.onClose,
+                        child: DefaultTextStyle.merge(
+                          style: skin.typography.body.copyWith(
+                            color: tokens.ink,
+                          ),
+                          // A message box leads with the era's warning sign.
+                          child: dialog.kind == ShellDialogKind.message
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: EraIcon(
+                                        EraIconKind.warning,
+                                        size: 32,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(child: dialog.child),
-                                ],
-                              )
-                            : dialog.child,
+                                    const SizedBox(width: 8),
+                                    Expanded(child: dialog.child),
+                                  ],
+                                )
+                              : dialog.child,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                if (dialog.kind == ShellDialogKind.message)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                    child: FormFooter(
-                      children: [
-                        KeyButton(
-                          label: 'OK',
-                          kind: KeyKind.primary,
-                          onPressed: dialog.onClose,
-                        ),
-                      ],
+                  if (dialog.kind == ShellDialogKind.message)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                      child: FormFooter(
+                        children: [
+                          KeyButton(
+                            label: 'OK',
+                            kind: KeyKind.primary,
+                            onPressed: dialog.onClose,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                if (dialog.kind == ShellDialogKind.properties)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                    child: FormFooter(
-                      children: [
-                        KeyButton(
-                          label: 'OK',
-                          kind: KeyKind.primary,
-                          onPressed: dialog.onClose,
-                        ),
-                        KeyButton(label: 'Cancel', onPressed: dialog.onClose),
-                      ],
+                  if (dialog.kind == ShellDialogKind.properties)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                      child: FormFooter(
+                        children: [
+                          KeyButton(
+                            label: 'OK',
+                            kind: KeyKind.primary,
+                            onPressed: dialog.onClose,
+                          ),
+                          KeyButton(label: 'Cancel', onPressed: dialog.onClose),
+                        ],
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
