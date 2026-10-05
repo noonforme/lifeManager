@@ -34,29 +34,36 @@ final class EraDialog extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            CaptionBar(
-              title: title,
-              large: true,
-              onClose: onClose ?? () => Navigator.of(context).maybePop(),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-              child: DefaultTextStyle.merge(
-                style: skin.typography.body.copyWith(color: tokens.ink),
-                child: body,
+      // Named by its caption, which is not announced a second time.
+      child: Semantics(
+        scopesRoute: true,
+        namesRoute: true,
+        explicitChildNodes: true,
+        label: title,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              CaptionBar(
+                title: title,
+                large: true,
+                onClose: onClose ?? () => Navigator.of(context).maybePop(),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              child: FormFooter(children: actions),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                child: DefaultTextStyle.merge(
+                  style: skin.typography.body.copyWith(color: tokens.ink),
+                  child: body,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: FormFooter(children: actions),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -113,8 +120,11 @@ final class CaptionBar extends StatelessWidget {
             const SizedBox(width: 6),
           ],
           Expanded(
+            // A dialog is already named by its caption as a route, so the
+            // caption text is not announced again; a desk tile's is.
             child: Semantics(
               header: true,
+              excludeSemantics: large,
               child: Text(
                 title,
                 maxLines: 1,

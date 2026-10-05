@@ -41,7 +41,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.bySemanticsLabel('Shift 2026-09-08 Properties'),
-        findsWidgets,
+        findsOneWidget,
       );
       expect(find.bySemanticsLabel('General'), findsOneWidget);
       expect(find.bySemanticsLabel('History'), findsOneWidget);

@@ -20,6 +20,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Licenses'), findsOneWidget);
+    expect(find.bySemanticsLabel('Licenses'), findsOneWidget);
     expect(find.text('SyntheticPackage'), findsOneWidget);
     expect(find.textContaining('Synthetic terms.'), findsOneWidget);
   });

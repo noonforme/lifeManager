@@ -5,10 +5,9 @@ import 'package:flutter/services.dart';
 /// About › Licenses.
 void registerFontLicenses() {
   LicenseRegistry.addLicense(() async* {
-    yield LicenseEntryWithLineBreaks(
-      const ['NotoSans'],
-      await rootBundle.loadString('assets/fonts/noto_sans/OFL.txt'),
-    );
+    yield LicenseEntryWithLineBreaks(const [
+      'NotoSans',
+    ], await rootBundle.loadString('assets/fonts/noto_sans/OFL.txt'));
   });
   LicenseRegistry.addLicense(() async* {
     final text = await rootBundle.loadString('assets/fonts/era_sans/LICENSE');

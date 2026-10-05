@@ -245,4 +245,21 @@ void main() {
     expect(height, lessThan(200));
     expect(find.text('OK'), findsOneWidget);
   });
+
+  testWidgets('a dialog is named once, by its caption', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        ShellDialogLayer(
+          dialog: ShellDialog(
+            title: 'Pay period Properties',
+            kind: ShellDialogKind.properties,
+            onClose: () {},
+            child: const SizedBox.shrink(),
+          ),
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+    expect(find.bySemanticsLabel('Pay period Properties'), findsOneWidget);
+  });
 }
