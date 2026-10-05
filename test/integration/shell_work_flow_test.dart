@@ -82,6 +82,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // A shift from 09:00 to 17:00, entered by hand and finalized on save.
+    await tester.tap(find.text('Add a shift'));
+    await tester.pumpAndSettle();
     await tester.tap(_inInspector(find.text('Add manual shift')));
     await tester.pumpAndSettle();
     await pickDate(tester, 'shift-start-date', const LocalDate(2026, 10, 1));

@@ -46,6 +46,8 @@ void main() {
     await _setUpEmployment(tester);
 
     // Manual shift, finalized on save.
+    await tester.tap(find.text('Add a shift'));
+    await tester.pumpAndSettle();
     await tester.tap(_inInspector(find.text('Add manual shift')));
     await tester.pumpAndSettle();
     expect(location(), contains('mode=edit'));
@@ -182,6 +184,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // A night shift, 22:00 to 06:00 local, finalized on save.
+    await tester.tap(find.text('Add a shift'));
+    await tester.pumpAndSettle();
     await tester.tap(_inInspector(find.text('Add manual shift')));
     await tester.pumpAndSettle();
     await pickDate(tester, 'shift-start-date', const LocalDate(2026, 10, 1));
@@ -330,7 +334,9 @@ Future<void> _setUpEmployment(WidgetTester tester) async {
   );
   await tester.tap(find.byKey(const ValueKey('save-agreement')));
   await tester.pumpAndSettle();
-  expect(_inInspector(find.text('Record work')), findsWidgets);
+  // The setup's last step closes; the next shift starts from the task pane.
+  expect(find.text('Pay agreement saved.'), findsOneWidget);
+  expect(find.byKey(const ValueKey('shell-dialog')), findsNothing);
 }
 
 /// The value beside a fact label in the inspector.

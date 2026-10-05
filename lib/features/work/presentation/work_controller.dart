@@ -346,8 +346,7 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     return outcome;
   }
 
-  /// Saves a new agreement. One added from + Add returns to the
-  /// employment; during setup the route moves on by itself.
+  /// Saves a new agreement and returns to the employment.
   Future<MutationOutcome<PayAgreement>> submitAgreement(
     AgreementDraft value,
   ) async {
@@ -360,9 +359,12 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       ),
     );
     final parsed = ref.read(workRouteProvider);
+    // Added from + Add or as setup's last step, the dialog closes on the
+    // employment; the next shift starts from the task pane.
     if (outcome is Committed<PayAgreement> &&
         parsed is ValidWorkRoute &&
-        parsed.state.adding == WorkAddKind.agreement) {
+        (parsed.state.adding == WorkAddKind.agreement ||
+            parsed.state.mode == WorkInspectorMode.create)) {
       _showEmployment(value.employmentId);
     }
     return outcome;
