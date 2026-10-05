@@ -371,6 +371,24 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('a storage overlap brings the Rate tab forward', (
+      tester,
+    ) async {
+      await pumpAgreementForm(
+        tester,
+        outcome: const Invalid<PayAgreement>({
+          'effectiveRange': [],
+        }),
+      );
+      await enter(tester, 'agreement-hourly-rate', '18.40');
+      await openTab(tester, 'Notes');
+      await submitAgreement(tester);
+      expect(
+        find.text('These dates overlap another agreement.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('night start equal to its end is refused', (tester) async {
       await pumpAgreementForm(tester);
 

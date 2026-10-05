@@ -350,6 +350,8 @@ final class _AgreementFormState extends State<AgreementForm> {
             _errors = {
               'effectiveEnd': 'These dates overlap another agreement.',
             };
+            // The dates are on Rate; bring it forward to show the problem.
+            _tab = _tabOf['effectiveEnd']!;
           } else {
             _formError = 'Check the agreement values.';
           }
