@@ -491,12 +491,8 @@ final class _FormGroup extends StatelessWidget {
     background: LifeOSSkinScope.of(context).tokens.chrome,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (final (index, child) in children.indexed) ...[
-          if (index > 0) const SizedBox(height: 10),
-          child,
-        ],
-      ],
+      // Label rows carry their own 7 px between them.
+      children: children,
     ),
   );
 }

@@ -241,7 +241,9 @@ void main() {
         ),
       ),
     );
-    final height = tester.getSize(find.byKey(const ValueKey('shell-dialog'))).height;
+    final height = tester
+        .getSize(find.byKey(const ValueKey('shell-dialog')))
+        .height;
     expect(height, lessThan(200));
     expect(find.text('OK'), findsOneWidget);
   });

@@ -141,7 +141,6 @@ final class _EmploymentFormState extends State<EmploymentForm> {
                   hint: 'What you call this job, e.g. Warehouse',
                   autofocus: true,
                 ),
-                const SizedBox(height: 12),
                 _Field(
                   controller: _legalLabel,
                   label: 'Legal name (optional)',

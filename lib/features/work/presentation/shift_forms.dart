@@ -406,15 +406,12 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     String label,
     LocalDate value,
     ValueChanged<LocalDate> onChanged,
-  ) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: EraDateField(
-      fieldKey: ValueKey(key),
-      label: label,
-      value: value,
-      today: widget.today,
-      onChanged: (picked) => onChanged(picked!),
-    ),
+  ) => EraDateField(
+    fieldKey: ValueKey(key),
+    label: label,
+    value: value,
+    today: widget.today,
+    onChanged: (picked) => onChanged(picked!),
   );
 
   Widget _time(
@@ -424,16 +421,13 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     required LocalTime emptyStart,
     required ValueChanged<LocalTime> onChanged,
     String? error,
-  }) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: EraTimeField(
-      fieldKey: ValueKey(key),
-      label: label,
-      value: value,
-      emptyStart: emptyStart,
-      error: error,
-      onChanged: onChanged,
-    ),
+  }) => EraTimeField(
+    fieldKey: ValueKey(key),
+    label: label,
+    value: value,
+    emptyStart: emptyStart,
+    error: error,
+    onChanged: onChanged,
   );
 
   @override

@@ -376,9 +376,7 @@ void main() {
     ) async {
       await pumpAgreementForm(
         tester,
-        outcome: const Invalid<PayAgreement>({
-          'effectiveRange': [],
-        }),
+        outcome: const Invalid<PayAgreement>({'effectiveRange': []}),
       );
       await enter(tester, 'agreement-hourly-rate', '18.40');
       await openTab(tester, 'Notes');

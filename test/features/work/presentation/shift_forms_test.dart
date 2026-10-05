@@ -7,6 +7,7 @@ import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/shift_forms.dart';
+import 'package:lifeos/shared/workbench/era_form.dart';
 import 'package:lifeos/shared/workbench/era_time_field.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
@@ -39,6 +40,18 @@ Future<List<ManualShiftDraft>> _pumpShift(
 }
 
 void main() {
+  testWidgets("rows sit an era dialog's 7 px apart", (tester) async {
+    await _pumpShift(tester);
+    // Each label row carries its own 7 px; nothing else sits between rows.
+    Rect row(String key) => tester.getRect(
+      find.ancestor(
+        of: find.byKey(ValueKey(key)),
+        matching: find.byType(EraLabelled),
+      ),
+    );
+    expect(row('shift-end-date').top - row('shift-start-time').bottom, 0);
+  });
+
   testWidgets('manual overnight entry submits picked local facts', (
     tester,
   ) async {
