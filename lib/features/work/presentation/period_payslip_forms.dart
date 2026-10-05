@@ -380,20 +380,14 @@ final class _PayslipInspectorState extends State<PayslipInspector> {
             _FormGroup(
               legend: 'Basis',
               children: [
-                Wrap(
-                  spacing: 12,
-                  children: [
-                    for (final (value, label) in const [
-                      (GrossBasis(), 'Gross'),
-                      (NetBasis(), 'Net'),
-                    ])
-                      EraRadio<RateBasis>(
-                        value: value,
-                        groupValue: _basis,
-                        label: label,
-                        onChanged: (next) => setState(() => _basis = next),
-                      ),
+                EraRadioGroup<RateBasis>(
+                  direction: Axis.horizontal,
+                  options: const [
+                    EraRadioOption(GrossBasis(), 'Gross'),
+                    EraRadioOption(NetBasis(), 'Net'),
                   ],
+                  groupValue: _basis,
+                  onChanged: (next) => setState(() => _basis = next),
                 ),
               ],
             ),

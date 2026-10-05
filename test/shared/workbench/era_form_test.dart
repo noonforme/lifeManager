@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/workbench/era_field.dart';
 import 'package:lifeos/shared/workbench/era_form.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 Widget _host(Widget child) => MaterialApp(
   home: LifeOSSkinScope(
@@ -108,5 +110,47 @@ void main() {
     await tester.tap(find.text('Net'));
     await tester.pump();
     expect(basis, 'net');
+  });
+
+  testWidgets('a radio group is one Tab stop; arrows move the choice', (
+    tester,
+  ) async {
+    var value = 'a';
+    var after = 0;
+    await tester.pumpWidget(
+      _host(
+        StatefulBuilder(
+          builder: (context, setState) => Column(
+            children: [
+              EraRadioGroup<String>(
+                options: const [
+                  EraRadioOption('a', 'Highest wins'),
+                  EraRadioOption('b', 'Add the extras'),
+                  EraRadioOption('c', 'Multiply'),
+                ],
+                groupValue: value,
+                onChanged: (next) => setState(() => value = next),
+              ),
+              KeyButton(label: 'After', onPressed: () => after++),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    expect(value, 'b');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+    expect(value, 'a');
+    // One more Tab leaves the group for the next control.
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(after, 1);
+    expect(value, 'a');
   });
 }

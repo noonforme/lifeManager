@@ -422,20 +422,14 @@ final class _AgreementFormState extends State<AgreementForm> {
           ),
           EraLabelled(
             label: 'Basis',
-            field: Wrap(
-              spacing: 12,
-              children: [
-                for (final (value, label) in const [
-                  (GrossBasis(), 'Gross'),
-                  (NetBasis(), 'Net'),
-                ])
-                  EraRadio<RateBasis>(
-                    value: value,
-                    groupValue: _basis,
-                    label: label,
-                    onChanged: (next) => setState(() => _basis = next),
-                  ),
+            field: EraRadioGroup<RateBasis>(
+              direction: Axis.horizontal,
+              options: const [
+                EraRadioOption(GrossBasis(), 'Gross'),
+                EraRadioOption(NetBasis(), 'Net'),
               ],
+              groupValue: _basis,
+              onChanged: (next) => setState(() => _basis = next),
             ),
           ),
         ]),
@@ -525,30 +519,27 @@ final class _AgreementFormState extends State<AgreementForm> {
           ),
         ]),
         _group(context, 'When several apply', [
-          for (final (value, title, example) in const [
-            (
-              PremiumStacking.highest,
-              'Highest wins',
-              'A night hour on a holiday pays ×2.',
-            ),
-            (
-              PremiumStacking.additive,
-              'Add the extras',
-              'A night hour on a holiday pays ×2.5.',
-            ),
-            (
-              PremiumStacking.multiplicative,
-              'Multiply',
-              'A night hour on a holiday pays ×3.',
-            ),
-          ])
-            EraRadio<PremiumStacking>(
-              value: value,
-              groupValue: _stacking,
-              label: title,
-              detail: example,
-              onChanged: (next) => setState(() => _stacking = next),
-            ),
+          EraRadioGroup<PremiumStacking>(
+            options: const [
+              EraRadioOption(
+                PremiumStacking.highest,
+                'Highest wins',
+                detail: 'A night hour on a holiday pays ×2.',
+              ),
+              EraRadioOption(
+                PremiumStacking.additive,
+                'Add the extras',
+                detail: 'A night hour on a holiday pays ×2.5.',
+              ),
+              EraRadioOption(
+                PremiumStacking.multiplicative,
+                'Multiply',
+                detail: 'A night hour on a holiday pays ×3.',
+              ),
+            ],
+            groupValue: _stacking,
+            onChanged: (next) => setState(() => _stacking = next),
+          ),
         ]),
       ],
       [

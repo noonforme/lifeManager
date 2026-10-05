@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'era_controls.dart';
 import 'lifeos_skin.dart';
@@ -153,6 +154,8 @@ final class EraRadio<T> extends StatelessWidget {
     required this.onChanged,
     required this.label,
     this.detail,
+    this.focusable = true,
+    this.highlighted = false,
     super.key,
   });
 
@@ -164,15 +167,107 @@ final class EraRadio<T> extends StatelessWidget {
   /// A muted line under the label, such as an example.
   final String? detail;
 
+  /// False inside an [EraRadioGroup], which is the one Tab stop.
+  final bool focusable;
+
+  /// Draws the focus rectangle for a group that has focus.
+  final bool highlighted;
+
   @override
   Widget build(BuildContext context) => _Choice(
     label: label,
     detail: detail,
+    focusable: focusable,
+    highlighted: highlighted,
     checked: value == groupValue,
     radio: true,
     onPressed: onChanged == null ? null : () => onChanged!(value),
     mark: _Dot(selected: value == groupValue, enabled: onChanged != null),
   );
+}
+
+/// One choice in an [EraRadioGroup].
+@immutable
+final class EraRadioOption<T> {
+  const EraRadioOption(this.value, this.label, {this.detail});
+
+  final T value;
+  final String label;
+  final String? detail;
+}
+
+/// Era radios that are one Tab stop together (XP-authentic shell spec
+/// 8.1): Tab enters the group at the chosen radio, the arrow keys move the
+/// choice, and Tab leaves for the next control.
+final class EraRadioGroup<T> extends StatefulWidget {
+  const EraRadioGroup({
+    required this.options,
+    required this.groupValue,
+    required this.onChanged,
+    this.direction = Axis.vertical,
+    super.key,
+  });
+
+  final List<EraRadioOption<T>> options;
+  final T groupValue;
+  final ValueChanged<T>? onChanged;
+  final Axis direction;
+
+  @override
+  State<EraRadioGroup<T>> createState() => _EraRadioGroupState<T>();
+}
+
+final class _EraRadioGroupState<T> extends State<EraRadioGroup<T>> {
+  bool _focused = false;
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    final change = widget.onChanged;
+    if (change == null || widget.options.isEmpty) {
+      return KeyEventResult.ignored;
+    }
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey;
+    final step = switch (key) {
+      LogicalKeyboardKey.arrowDown || LogicalKeyboardKey.arrowRight => 1,
+      LogicalKeyboardKey.arrowUp || LogicalKeyboardKey.arrowLeft => -1,
+      _ => 0,
+    };
+    if (step == 0) return KeyEventResult.ignored;
+    final values = [for (final option in widget.options) option.value];
+    final at = values.indexOf(widget.groupValue);
+    final next = (at < 0 ? 0 : at + step) % values.length;
+    change(values[next < 0 ? next + values.length : next]);
+    return KeyEventResult.handled;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final radios = [
+      for (final option in widget.options)
+        EraRadio<T>(
+          value: option.value,
+          groupValue: widget.groupValue,
+          label: option.label,
+          detail: option.detail,
+          focusable: false,
+          highlighted: _focused && option.value == widget.groupValue,
+          onChanged: widget.onChanged,
+        ),
+    ];
+    return Focus(
+      canRequestFocus: widget.onChanged != null,
+      onFocusChange: (focused) => setState(() => _focused = focused),
+      onKeyEvent: _onKey,
+      child: widget.direction == Axis.vertical
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: radios,
+            )
+          : Wrap(spacing: 12, children: radios),
+    );
+  }
 }
 
 final class _Choice extends StatefulWidget {
@@ -183,10 +278,14 @@ final class _Choice extends StatefulWidget {
     required this.onPressed,
     required this.mark,
     this.detail,
+    this.focusable = true,
+    this.highlighted = false,
   });
 
   final String label;
   final String? detail;
+  final bool focusable;
+  final bool highlighted;
   final bool checked;
   final bool radio;
   final VoidCallback? onPressed;
@@ -213,7 +312,7 @@ final class _ChoiceState extends State<_Choice> {
       onTap: widget.onPressed,
       excludeSemantics: true,
       child: FocusableActionDetector(
-        enabled: enabled,
+        enabled: enabled && widget.focusable,
         onShowFocusHighlight: (value) => setState(() => _focused = value),
         actions: {
           ActivateIntent: CallbackAction<ActivateIntent>(
@@ -236,7 +335,7 @@ final class _ChoiceState extends State<_Choice> {
                 Flexible(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 1),
-                    foregroundDecoration: _focused
+                    foregroundDecoration: _focused || widget.highlighted
                         ? DottedFocusRectangle(color: tokens.focus, inset: 0)
                         : null,
                     child: Column(
