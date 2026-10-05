@@ -45,9 +45,16 @@ final class _LifeOsAppState extends State<LifeOsApp> {
     }
   }
 
-  void _recordLocation() => _history.visit(
-    widget.router.routeInformationProvider.value.uri.toString(),
-  );
+  String? _area;
+
+  void _recordLocation() {
+    final uri = widget.router.routeInformationProvider.value.uri;
+    _history.visit(uri.toString());
+    // A notice ("Shift saved.") belongs to the area it was said in; leaving
+    // the area clears it, so it is never read as news about another place.
+    if (_area != null && _area != uri.path) _notices.value = null;
+    _area = uri.path;
+  }
 
   void _onPointerDown(PointerDownEvent event, NavigationHistoryScope? scope) {
     if (scope == null) return;
