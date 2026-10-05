@@ -17,7 +17,7 @@ typedef DeskTileContent = ({
   String? fullSizeRoute,
 });
 
-/// Desk tabs with + Desk over the selected desk's tiles (shell spec 6.4).
+/// Desk tabs over the selected desk's tiles (shell spec 6.4).
 final class DeskView extends StatelessWidget {
   const DeskView({
     required this.desks,
@@ -79,15 +79,14 @@ final class DeskView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
-                    // The last tab, + Desk, makes a new desk (spec 5.7).
+                    // Only desks: a new desk comes from Desk tasks or the
+                    // Desk menu (XP-authentic shell spec 8.3).
                     child: PropertySheetTabs(
-                      labels: [for (final desk in desks) desk.name, '+ Desk'],
+                      labels: [for (final desk in desks) desk.name],
                       selectedIndex: desks.indexWhere(
                         (desk) => desk.id == selected.id,
                       ),
-                      onSelected: (index) => index == desks.length
-                          ? onNewDesk()
-                          : onSelectDesk(desks[index]),
+                      onSelected: (index) => onSelectDesk(desks[index]),
                     ),
                   ),
                   const SizedBox(width: 6),

@@ -79,7 +79,7 @@ void main() {
     tester,
   ) async {
     final router = await pumpAt(tester, '/work');
-    await tester.tap(find.text('Knowledge'));
+    await tester.tap(find.text('Knowledge (not built yet)'));
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/knowledge');
     expect(find.text('Knowledge is not built yet.'), findsOneWidget);

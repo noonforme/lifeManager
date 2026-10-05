@@ -58,14 +58,15 @@ void main() {
     );
   }
 
-  testWidgets('desk tabs select a desk and + Desk creates one', (tester) async {
+  testWidgets('desk tabs are only desks and select one', (tester) async {
     await pump(tester, desks: [_today, _weekly]);
 
     expect(find.text('Today'), findsOneWidget);
     expect(find.text('Weekly review'), findsOneWidget);
+    // New desks come from Desk tasks and the Desk menu, not a browser tab.
+    expect(find.text('+ Desk'), findsNothing);
     await tester.tap(find.text('Weekly review'));
-    await tester.tap(find.text('+ Desk'));
-    expect(calls, ['select Weekly review', 'new']);
+    expect(calls, ['select Weekly review']);
   });
 
   testWidgets('main and side shows every tile, the first widest', (

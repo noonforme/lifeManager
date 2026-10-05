@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../workbench/era_icons.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/lifeos_tokens.dart';
 import '../workbench/millennium_style.dart';
@@ -11,7 +12,7 @@ sealed class TreeNode {
 }
 
 /// An area heading such as Work or Finance. An unbuilt area opens its
-/// honest unavailable sheet and says "Not built yet".
+/// honest unavailable sheet and says "(not built yet)" after its name.
 final class TreeArea extends TreeNode {
   const TreeArea({
     required this.area,
@@ -140,42 +141,30 @@ final class _AreaRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
+    // An unbuilt area is one muted row: its icon greyed and "(not built
+    // yet)" after its name (XP-authentic shell spec 8.3).
+    final name = node.built
+        ? node.area.label
+        : '${node.area.label} (not built yet)';
     return _TreeRow(
       route: node.route,
-      label: node.area.label,
-      semanticValue: node.built ? null : 'Not built yet',
+      label: name,
+      semanticValue: null,
       selected: selected,
       onOpen: onOpen,
-      // The name keeps its whole width; "Not built yet" takes what is left
-      // and moves under the name when the two do not fit on one line.
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 6,
+      child: Row(
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AreaKey(area: node.area),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  node.area.label,
-                  style: skin.typography.body.copyWith(
-                    color: _ink(tokens, selected: selected, built: node.built),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (!node.built)
-            Padding(
-              padding: const EdgeInsets.only(left: 24),
-              child: Text(
-                'Not built yet',
-                style: skin.typography.small.copyWith(color: tokens.muted),
+          EraIcon(areaIcon(node.area), disabled: !node.built),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              name,
+              style: skin.typography.body.copyWith(
+                color: _ink(tokens, selected: selected, built: node.built),
+                fontWeight: node.built ? FontWeight.w700 : FontWeight.w400,
               ),
             ),
+          ),
         ],
       ),
     );
@@ -251,10 +240,12 @@ final class _SheetRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
-    final value = node.built ? node.liveValue : 'Not built yet';
+    // An unbuilt sheet says so in its one row, like an unbuilt area.
+    final value = node.built ? node.liveValue : null;
+    final name = node.built ? node.label : '${node.label} (not built yet)';
     return _TreeRow(
       route: node.route,
-      label: node.label,
+      label: name,
       semanticValue: value,
       selected: selected,
       onOpen: onOpen,
@@ -264,7 +255,7 @@ final class _SheetRow extends StatelessWidget {
           if (indent) const SizedBox(width: 20),
           Expanded(
             child: Text(
-              node.label,
+              name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: skin.typography.body.copyWith(

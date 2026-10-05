@@ -148,10 +148,10 @@ void main() {
     expect(find.text('1 period without one'), findsOneWidget);
   });
 
-  testWidgets('+ Desk adds a desk that can be deleted again', (tester) async {
+  testWidgets('New desk adds a desk that can be deleted again', (tester) async {
     final location = await launch(tester);
 
-    await tester.tap(find.text('+ Desk'));
+    await tester.tap(find.text('New desk'));
     await tester.pumpAndSettle();
     expect(find.text('Desk 4'), findsOneWidget);
     expect(

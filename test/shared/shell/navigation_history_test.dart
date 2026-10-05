@@ -93,7 +93,7 @@ void main() {
       expect(find.bySemanticsLabel('Back, unavailable'), findsOneWidget);
       expect(find.bySemanticsLabel('Forward, unavailable'), findsOneWidget);
 
-      await tester.tap(find.text('Finance'));
+      await tester.tap(find.text('Finance (not built yet)'));
       await tester.pumpAndSettle();
       expect(path(router), '/finance');
 
@@ -111,7 +111,7 @@ void main() {
       tester,
     ) async {
       final router = await pumpApp(tester);
-      await tester.tap(find.text('Tracking'));
+      await tester.tap(find.text('Tracking (not built yet)'));
       await tester.pumpAndSettle();
 
       final center = tester.getCenter(find.bySemanticsLabel('Desk workspace'));
@@ -136,7 +136,7 @@ void main() {
 
     testWidgets('Window › Back follows the same history', (tester) async {
       final router = await pumpApp(tester);
-      await tester.tap(find.text('Knowledge'));
+      await tester.tap(find.text('Knowledge (not built yet)'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Window'));

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/shell/book_tree.dart';
+import 'package:lifeos/shared/workbench/era_icons.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
 
@@ -58,24 +59,27 @@ Future<List<String>> _pumpTree(WidgetTester tester, {String? selected}) async {
 }
 
 void main() {
-  testWidgets('area names are never cut short by "Not built yet"', (
+  testWidgets('an unbuilt area is one muted row with a grey icon', (
     tester,
   ) async {
     await _pumpTree(tester);
     for (final name in ['Finance', 'Tracking', 'Knowledge']) {
-      final paragraph = tester.renderObject<RenderParagraph>(find.text(name));
+      final row = find.text('$name (not built yet)');
+      expect(row, findsOneWidget, reason: name);
+      final paragraph = tester.renderObject<RenderParagraph>(row);
       expect(paragraph.didExceedMaxLines, isFalse, reason: name);
     }
+    expect(find.text('Not built yet'), findsNothing);
+    final greyed = tester
+        .widgetList<EraIcon>(find.byType(EraIcon))
+        .where((icon) => icon.disabled);
+    expect(greyed.length, 3);
   });
 
-  testWidgets('unbuilt areas say so and still open their sheet', (
-    tester,
-  ) async {
+  testWidgets('unbuilt rows say so and still open their sheet', (tester) async {
     final opened = await _pumpTree(tester);
-    // Journal, Finance, Tracking and Knowledge.
-    expect(find.text('Not built yet'), findsNWidgets(4));
-
-    await tester.tap(find.text('Finance'));
+    expect(find.text('Journal (not built yet)'), findsOneWidget);
+    await tester.tap(find.text('Finance (not built yet)'));
     expect(opened, ['/finance']);
   });
 
@@ -106,7 +110,7 @@ void main() {
       isSemantics(isSelected: true),
     );
     expect(
-      tester.getSemantics(find.bySemanticsLabel('Journal')),
+      tester.getSemantics(find.bySemanticsLabel('Journal (not built yet)')),
       isSemantics(isSelected: false),
     );
     semantics.dispose();
