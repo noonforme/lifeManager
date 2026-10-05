@@ -1,33 +1,19 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
 /// The four LifeOS areas, each with its own keycap colour.
 enum LifeOSArea {
-  work('Work', 'W'),
-  finance('Finance', 'F'),
-  tracking('Tracking', 'T'),
-  knowledge('Knowledge', 'K');
+  work('Work'),
+  finance('Finance'),
+  tracking('Tracking'),
+  knowledge('Knowledge');
 
-  const LifeOSArea(this.label, this.letter);
+  const LifeOSArea(this.label);
 
   final String label;
-  final String letter;
 }
 
-/// Fill and text colour of one area keycap.
-@immutable
-final class AreaKeyColors {
-  const AreaKeyColors({required this.fill, required this.ink});
-
-  final Color fill;
-  final Color ink;
-}
-
-/// Colour tokens of one palette. Widgets take every colour from here; none
-/// uses a literal colour.
-@immutable
 final class LifeOSTokens {
   const LifeOSTokens({
     required this.ground,
@@ -49,7 +35,6 @@ final class LifeOSTokens {
     required this.negative,
     required this.positive,
     required this.focus,
-    required this.areaKeys,
   });
 
   /// Casing behind panes and tiles.
@@ -109,27 +94,7 @@ final class LifeOSTokens {
   /// Keyboard focus ring.
   final Color focus;
 
-  final Map<LifeOSArea, AreaKeyColors> areaKeys;
-
   /// The area keycap colours.
-  static const standardAreaKeys = {
-    LifeOSArea.work: AreaKeyColors(
-      fill: Color(0xff3a6ea5),
-      ink: Color(0xffffffff),
-    ),
-    LifeOSArea.finance: AreaKeyColors(
-      fill: Color(0xffd9a400),
-      ink: Color(0xff1d1d1b),
-    ),
-    LifeOSArea.tracking: AreaKeyColors(
-      fill: Color(0xff3f7a2e),
-      ink: Color(0xffffffff),
-    ),
-    LifeOSArea.knowledge: AreaKeyColors(
-      fill: Color(0xff7b5ea7),
-      ink: Color(0xffffffff),
-    ),
-  };
 
   /// The LifeOS palette: the 2001 office PC (Millennium shell spec 3.3).
   static const millennium = LifeOSTokens(
@@ -152,7 +117,6 @@ final class LifeOSTokens {
     negative: Color(0xffcc0000),
     positive: Color(0xff2a752d),
     focus: Color(0xff000000),
-    areaKeys: standardAreaKeys,
   );
 }
 

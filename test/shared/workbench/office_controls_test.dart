@@ -169,7 +169,6 @@ void main() {
     );
     for (final area in LifeOSArea.values) {
       expect(find.bySemanticsLabel(area.label), findsOneWidget);
-      expect(find.text(area.letter), findsNothing);
     }
     expect(find.byType(EraIcon), findsNWidgets(LifeOSArea.values.length));
   });

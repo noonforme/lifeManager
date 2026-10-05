@@ -217,12 +217,9 @@ final class StepKey extends StatelessWidget {
 /// The painted icon that marks a record's area (XP-authentic shell spec 7).
 /// Announced by the area's name.
 final class AreaKey extends StatelessWidget {
-  const AreaKey({required this.area, this.skin, super.key});
+  const AreaKey({required this.area, super.key});
 
   final LifeOSArea area;
-
-  /// The skin to paint with where no scope is above, such as in a popup.
-  final LifeOSSkinData? skin;
 
   @override
   Widget build(BuildContext context) =>

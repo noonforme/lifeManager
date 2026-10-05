@@ -25,14 +25,11 @@ final class WorkRegister extends StatelessWidget {
     this.onProperties,
     required this.onPrimaryAction,
     this.onOpenEmployment,
-    this.onNewPeriod,
     this.today,
     this.onAllEmployments,
     this.onCreateEmployment,
     this.route,
     this.onRoute,
-    this.onAddManualShift,
-    this.onRecordPayslip,
     this.timezones,
     super.key,
   });
@@ -45,7 +42,6 @@ final class WorkRegister extends StatelessWidget {
   final ValueChanged<WorkRecordRef>? onProperties;
   final VoidCallback onPrimaryAction;
   final ValueChanged<EmploymentId>? onOpenEmployment;
-  final VoidCallback? onNewPeriod;
 
   /// The date a new range ends on; the device date when null.
   final LocalDate? today;
@@ -61,11 +57,6 @@ final class WorkRegister extends StatelessWidget {
 
   /// Applies a sheet, scope or filter change.
   final ValueChanged<WorkRouteState>? onRoute;
-
-  final VoidCallback? onAddManualShift;
-
-  /// Records a payslip in the given pay period.
-  final ValueChanged<PayPeriodId>? onRecordPayslip;
 
   /// Reads shift times on their own wall clock.
   final TimezoneService? timezones;
@@ -134,8 +125,6 @@ final class WorkRegister extends StatelessWidget {
     final selectedId = selectedRecord == null
         ? null
         : workRowId(selectedRecord!);
-    final period = value.period;
-    final recordPayslip = onRecordPayslip;
     final Widget sheet = switch (route.sheet) {
       WorkSheet.shifts => ShiftsSheet(
         rows: value.shiftSheet,
@@ -144,14 +133,12 @@ final class WorkRegister extends StatelessWidget {
         onOpen: onSelect,
         onProperties: onProperties,
         showVoid: route.showVoid,
-        onAddManualShift: onAddManualShift,
       ),
       WorkSheet.periods => PeriodsSheet(
         rows: value.periodSheet,
         selectedId: selectedId,
         onOpen: onSelect,
         onProperties: onProperties,
-        onNewPeriod: onNewPeriod,
       ),
       WorkSheet.payslips => PayslipsSheet(
         payslips: value.payslipSheet,
@@ -160,9 +147,6 @@ final class WorkRegister extends StatelessWidget {
         onOpen: onSelect,
         onProperties: onProperties,
         showVoid: route.showVoid,
-        onRecordPayslip: period == null || recordPayslip == null
-            ? null
-            : () => recordPayslip(period.id),
       ),
       WorkSheet.agreements => AgreementsSheet(
         rows: value.agreementSheet,

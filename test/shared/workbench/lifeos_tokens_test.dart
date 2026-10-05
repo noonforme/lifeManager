@@ -51,13 +51,6 @@ void main() {
     });
   }
 
-  test('area key letters meet 4.5:1 on their keys', () {
-    expect(t.areaKeys.keys, unorderedEquals(LifeOSArea.values));
-    for (final key in t.areaKeys.values) {
-      expect(contrastRatio(key.ink, key.fill), greaterThanOrEqualTo(4.5));
-    }
-  });
-
   test('indicators and outlines meet 3:1', () {
     for (final (name, color, surface) in [
       ('signal', t.signal, t.paper),

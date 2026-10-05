@@ -55,7 +55,6 @@ final class ShiftsSheet extends StatelessWidget {
     required this.onOpen,
     this.onProperties,
     required this.showVoid,
-    this.onAddManualShift,
     super.key,
   });
 
@@ -67,7 +66,6 @@ final class ShiftsSheet extends StatelessWidget {
   /// Opens the row's Properties (Enter, double-click, right-click).
   final ValueChanged<WorkRecordRef>? onProperties;
   final bool showVoid;
-  final VoidCallback? onAddManualShift;
 
   @override
   Widget build(BuildContext context) {
@@ -235,7 +233,6 @@ final class PeriodsSheet extends StatelessWidget {
     required this.selectedId,
     required this.onOpen,
     this.onProperties,
-    this.onNewPeriod,
     super.key,
   });
 
@@ -245,7 +242,6 @@ final class PeriodsSheet extends StatelessWidget {
 
   /// Opens the row's Properties (Enter, double-click, right-click).
   final ValueChanged<WorkRecordRef>? onProperties;
-  final VoidCallback? onNewPeriod;
 
   @override
   Widget build(BuildContext context) {
@@ -358,7 +354,6 @@ final class PayslipsSheet extends StatelessWidget {
     required this.onOpen,
     this.onProperties,
     required this.showVoid,
-    this.onRecordPayslip,
     super.key,
   });
 
@@ -370,9 +365,6 @@ final class PayslipsSheet extends StatelessWidget {
   /// Opens the row's Properties (Enter, double-click, right-click).
   final ValueChanged<WorkRecordRef>? onProperties;
   final bool showVoid;
-
-  /// Records a payslip in the selected pay period, when one is selected.
-  final VoidCallback? onRecordPayslip;
 
   @override
   Widget build(BuildContext context) {

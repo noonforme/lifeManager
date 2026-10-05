@@ -46,7 +46,7 @@ final class QuickAddMenu extends StatelessWidget {
               enabled: entry.open != null,
               child: Row(
                 children: [
-                  AreaKey(area: entry.area, skin: skin),
+                  AreaKey(area: entry.area),
                   const SizedBox(width: 8),
                   Text(entry.label),
                 ],

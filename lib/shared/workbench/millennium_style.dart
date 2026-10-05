@@ -228,19 +228,6 @@ final class LifeOSPainters {
     );
   }
 
-  BoxDecoration areaMarker(LifeOSTokens tokens, LifeOSArea area) {
-    final fill = tokens.areaKeys[area]!.fill;
-    return BoxDecoration(
-      borderRadius: _radius,
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color.lerp(fill, tokens.paper, 0.35)!, fill, fill],
-        stops: const [0, 0.5, 1],
-      ),
-    );
-  }
-
   BoxDecoration countBadge(LifeOSTokens tokens) => BoxDecoration(
     color: tokens.runInk,
     borderRadius: const BorderRadius.all(Radius.circular(8)),

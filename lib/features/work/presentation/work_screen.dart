@@ -379,12 +379,6 @@ final class _WorkScreenState extends State<WorkScreen> {
             ),
           ).toString(),
         ),
-        onNewPeriod:
-            widget.onCreatePayPeriod == null || route.employmentId == null
-            ? null
-            : () => setState(() {
-                _creatingPeriod = true;
-              }),
         onAllEmployments: () => _go(
           const WorkRouteState(
             employmentId: null,
@@ -403,15 +397,6 @@ final class _WorkScreenState extends State<WorkScreen> {
         ),
         route: route,
         onRoute: _go,
-        onAddManualShift:
-            widget.onOpenManualShift == null || route.employmentId == null
-            ? null
-            : () => widget.onOpenManualShift!(route.employmentId!),
-        onRecordPayslip: widget.onRecordPayslip == null
-            ? null
-            : (period) => setState(() {
-                _payslipPeriod = period;
-              }),
         onProperties: widget.onOpenProperties,
         timezones: widget.timezones,
       ),
