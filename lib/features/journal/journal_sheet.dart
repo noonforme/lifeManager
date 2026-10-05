@@ -46,10 +46,9 @@ final class JournalSheet extends StatelessWidget {
             decoration: skin.painters.toolbar(skin.tokens),
             child: Row(
               children: [
-                KeyButton(
-                  label: '‹',
+                StepKey(
+                  forward: false,
                   semanticLabel: 'Earlier days',
-                  kind: KeyKind.small,
                   onPressed: () => onRange(range.step(-1)),
                 ),
                 const SizedBox(width: 8),
@@ -58,10 +57,9 @@ final class JournalSheet extends StatelessWidget {
                   style: skin.typography.body.copyWith(color: skin.tokens.ink),
                 ),
                 const SizedBox(width: 8),
-                KeyButton(
-                  label: '›',
+                StepKey(
+                  forward: true,
                   semanticLabel: 'Later days',
-                  kind: KeyKind.small,
                   onPressed: () => onRange(range.step(1)),
                 ),
               ],

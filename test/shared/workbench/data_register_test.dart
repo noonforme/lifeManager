@@ -34,6 +34,9 @@ void main() {
     await tester.pumpWidget(
       _TestRegister(selectedId: 'shift:2', onOpen: (_) {}),
     );
+    // The list takes focus at the end of its first frame; a focused list
+    // draws its selection blue.
+    await tester.pump();
     expect(tester.getSize(find.bySemanticsLabel('First shift')).height, 20);
     final fills = tester
         .widgetList<Container>(
@@ -196,13 +199,59 @@ void main() {
     expect(node.flagsCollection.isButton, isTrue);
   });
 
-  testWidgets('the entry line opens the create form', (tester) async {
-    var entries = 0;
+  testWidgets(
+    'the sorted column is tinted; amber marks only the hovered header',
+    (tester) async {
+      await tester.pumpWidget(
+        _TestRegister(onOpen: (_) {}, sortedColumn: 'record'),
+      );
+      final tinted = tester
+          .widgetList<Container>(
+            find.ancestor(
+              of: find.text('First shift'),
+              matching: find.byType(Container),
+            ),
+          )
+          .map((value) => value.color)
+          .whereType<Color>();
+      expect(tinted, contains(MillenniumColors.sortTint));
+      expect(find.byKey(const ValueKey('header-hot-record')), findsNothing);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: tester.getCenter(find.text('Record')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('header-hot-record')), findsOneWidget);
+    },
+  );
+
+  testWidgets('a selected row turns grey when the list loses focus', (
+    tester,
+  ) async {
+    final elsewhere = FocusNode();
+    addTearDown(elsewhere.dispose);
     await tester.pumpWidget(
-      _TestRegister(onOpen: (_) {}, onEntry: () => entries++),
+      _TestRegister(
+        onOpen: (_) {},
+        selectedId: 'shift:2',
+        elsewhere: elsewhere,
+      ),
     );
-    await tester.tap(find.text('Click to add a shift'));
-    expect(entries, 1);
+    await tester.tap(find.text('First shift'));
+    await tester.pump();
+    Color? fill() =>
+        (tester
+                    .widget<Container>(
+                      find.byKey(const ValueKey('register-row-shift:2')),
+                    )
+                    .decoration
+                as BoxDecoration?)
+            ?.color;
+    expect(fill(), LifeOSTokens.millennium.selWash);
+    elsewhere.requestFocus();
+    // Focus moves at the end of a frame; the list repaints on the next.
+    await tester.pump();
+    await tester.pump();
+    expect(fill(), LifeOSTokens.millennium.chrome);
   });
 
   testWidgets('right-click lists the row actions', (tester) async {
@@ -284,20 +333,22 @@ final class _TestRegister extends StatelessWidget {
   const _TestRegister({
     required this.onOpen,
     this.onActivate,
+    this.elsewhere,
     this.width = 900,
     this.selectedId,
     this.cells,
-    this.onEntry,
     this.actions,
     this.sortedColumn,
   });
 
   final ValueChanged<String> onOpen;
   final ValueChanged<String>? onActivate;
+
+  /// Focus beside the list, to take focus away from it.
+  final FocusNode? elsewhere;
   final double width;
   final String? selectedId;
   final CellSelectionController? cells;
-  final VoidCallback? onEntry;
   final List<RowAction> Function(_Row row)? actions;
   final String? sortedColumn;
 
@@ -308,63 +359,69 @@ final class _TestRegister extends StatelessWidget {
         child: Scaffold(
           body: Align(
             alignment: Alignment.topLeft,
-            child: SizedBox(
-              width: width,
-              height: 400,
-              child: DataRegister<_Row>(
-                label: 'Work rows',
-                lines: [
-                  const GroupLine(label: 'September 2026', summary: '3 shifts'),
-                  const RowLine(_first),
-                  const RowLine(_second),
-                  const RowLine(_void, state: RowState.voided),
-                  const SubtotalLine(
-                    label: 'Expected',
-                    cells: {'amount': '201.34'},
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (elsewhere case final node?)
+                  Focus(focusNode: node, child: const SizedBox(height: 4)),
+                SizedBox(
+                  width: width,
+                  height: 400,
+                  child: DataRegister<_Row>(
+                    label: 'Work rows',
+                    lines: [
+                      const GroupLine(
+                        label: 'September 2026',
+                        summary: '3 shifts',
+                      ),
+                      const RowLine(_first),
+                      const RowLine(_second),
+                      const RowLine(_void, state: RowState.voided),
+                      const SubtotalLine(
+                        label: 'Expected',
+                        cells: {'amount': '201.34'},
+                      ),
+                    ],
+                    columns: [
+                      RegisterColumn(
+                        key: 'record',
+                        label: 'Record',
+                        kind: ColumnKind.text,
+                        width: 300,
+                        value: (row) => row.label,
+                      ),
+                      RegisterColumn(
+                        key: 'amount',
+                        label: 'Amount',
+                        kind: ColumnKind.derived,
+                        width: 200,
+                        value: (row) => row.amount,
+                        explain: (row) => Explanation(
+                          label: 'Amount',
+                          tokens: [ResultToken(row.amount)],
+                        ),
+                      ),
+                      RegisterColumn(
+                        key: 'note',
+                        label: 'Note',
+                        kind: ColumnKind.text,
+                        width: 400,
+                        value: (row) => 'Synthetic note',
+                        optional: true,
+                      ),
+                    ],
+                    rowId: (row) => row.id,
+                    rowLabel: (row) => row.label,
+                    selectedId: selectedId,
+                    onOpen: (row) => onOpen(row.id),
+                    onActivate: onActivate == null
+                        ? null
+                        : (row) => onActivate!(row.id),
+                    actions: actions,
+                    sortedColumn: sortedColumn,
                   ),
-                  EntryLine(
-                    hint: 'Click to add a shift',
-                    onOpen: onEntry ?? () {},
-                  ),
-                ],
-                columns: [
-                  RegisterColumn(
-                    key: 'record',
-                    label: 'Record',
-                    kind: ColumnKind.text,
-                    width: 300,
-                    value: (row) => row.label,
-                  ),
-                  RegisterColumn(
-                    key: 'amount',
-                    label: 'Amount',
-                    kind: ColumnKind.derived,
-                    width: 200,
-                    value: (row) => row.amount,
-                    explain: (row) => Explanation(
-                      label: 'Amount',
-                      tokens: [ResultToken(row.amount)],
-                    ),
-                  ),
-                  RegisterColumn(
-                    key: 'note',
-                    label: 'Note',
-                    kind: ColumnKind.text,
-                    width: 400,
-                    value: (row) => 'Synthetic note',
-                    optional: true,
-                  ),
-                ],
-                rowId: (row) => row.id,
-                rowLabel: (row) => row.label,
-                selectedId: selectedId,
-                onOpen: (row) => onOpen(row.id),
-                onActivate: onActivate == null
-                    ? null
-                    : (row) => onActivate!(row.id),
-                actions: actions,
-                sortedColumn: sortedColumn,
-              ),
+                ),
+              ],
             ),
           ),
         ),

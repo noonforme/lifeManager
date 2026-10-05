@@ -181,12 +181,11 @@ final class PeriodPicker extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        KeyButton(
-          label: '‹',
+        StepKey(
+          forward: false,
           semanticLabel: previous == null
               ? 'Previous period, unavailable'
               : 'Previous period',
-          kind: KeyKind.small,
           onPressed: previous == null ? null : () => onScope(previous),
         ),
         const SizedBox(width: 4),
@@ -218,12 +217,11 @@ final class PeriodPicker extends StatelessWidget {
           child: _MenuFace(label: 'Period', detail: _label),
         ),
         const SizedBox(width: 4),
-        KeyButton(
-          label: '›',
+        StepKey(
+          forward: true,
           semanticLabel: next == null
               ? 'Next period, unavailable'
               : 'Next period',
-          kind: KeyKind.small,
           onPressed: next == null ? null : () => onScope(next),
         ),
       ],

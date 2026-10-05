@@ -103,9 +103,6 @@ final class ShiftsSheet extends StatelessWidget {
         ),
       );
     }
-    if (onAddManualShift case final add?) {
-      lines.add(EntryLine(hint: 'Add a manual shift', onOpen: add));
-    }
 
     String premium(ShiftSheetRow row, int Function(ExpectedPay pay) pick) {
       final pay = row.pay;
@@ -263,9 +260,6 @@ final class PeriodsSheet extends StatelessWidget {
       }
       lines.add(RowLine(row));
     }
-    if (onNewPeriod case final add?) {
-      lines.add(EntryLine(hint: 'Add a pay period', onOpen: add));
-    }
     String money(
       PeriodSheetRow row,
       Money? Function(ReconciliationGroup group) pick,
@@ -398,11 +392,6 @@ final class PayslipsSheet extends StatelessWidget {
           payslip,
           state: payslip.isEffective ? RowState.normal : RowState.voided,
         ),
-      );
-    }
-    if (onRecordPayslip case final add?) {
-      lines.add(
-        EntryLine(hint: 'Record a payslip for this period', onOpen: add),
       );
     }
     return DataRegister<Payslip>(

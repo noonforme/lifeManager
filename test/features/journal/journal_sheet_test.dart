@@ -70,8 +70,8 @@ void main() {
     final (ranges, _) = await pump(tester, const []);
     expect(find.text('Nothing recorded on these days'), findsOneWidget);
 
-    await tester.tap(find.text('‹'));
-    await tester.tap(find.text('›'));
+    await tester.tap(find.bySemanticsLabel('Earlier days'));
+    await tester.tap(find.bySemanticsLabel('Later days'));
     expect(ranges[0].from, const LocalDate(2026, 9, 1));
     expect(ranges[0].to, const LocalDate(2026, 9, 7));
     expect(ranges[1].from, const LocalDate(2026, 9, 15));

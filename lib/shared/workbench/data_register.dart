@@ -100,14 +100,6 @@ final class SubtotalLine<T> extends RegisterLine<T> {
   final String? label;
 }
 
-/// The last line of a register, opening its create form in place.
-final class EntryLine<T> extends RegisterLine<T> {
-  const EntryLine({required this.hint, required this.onOpen});
-
-  final String hint;
-  final VoidCallback onOpen;
-}
-
 /// An action offered on a row's right-click menu. Null [onInvoke] shows the
 /// action disabled.
 final class RowAction {
@@ -209,6 +201,22 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
 
   List<RowLine<T>> get _rows =>
       widget.lines.whereType<RowLine<T>>().toList(growable: false);
+
+  /// Whether the list has keyboard focus; a selected row is blue only then
+  /// and grey otherwise, as era lists drew it.
+  bool _hasFocus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(_focusChanged);
+  }
+
+  void _focusChanged() {
+    if (_focus.hasFocus != _hasFocus) {
+      setState(() => _hasFocus = _focus.hasFocus);
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -384,17 +392,15 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
                 label: label,
                 skin: skin,
               ),
-              EntryLine(:final hint, :final onOpen) => _EntryRow(
-                hint: hint,
-                onOpen: onOpen,
-                skin: skin,
-              ),
               RowLine<T>() => () {
                 rowIndex++;
                 final index = rowIndex;
                 final row = line.row;
                 final cursorHere = _cursorRow == index;
                 return _DataRow<T>(
+                  rowId: widget.rowId(row),
+                  focused: _hasFocus,
+                  sortedColumn: widget.sortedColumn,
                   line: line,
                   columns: visible,
                   label: widget.rowLabel(row),
@@ -514,55 +520,93 @@ final class _HeaderRow<T> extends StatelessWidget {
       child: Row(
         children: [
           for (final column in columns)
-            Container(
-              width: column.width,
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-              decoration: BoxDecoration(
-                border: Border(
-                  right: BorderSide(color: tokens.chromeLine),
-                  bottom: column.key == sortedColumn
-                      ? const BorderSide(
-                          color: MillenniumColors.sortAccent,
-                          width: 3,
-                        )
-                      : BorderSide.none,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: column.kind.isNumeric
-                    ? MainAxisAlignment.end
-                    : MainAxisAlignment.start,
-                children: [
-                  Flexible(
-                    child: Text(
-                      column.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: column.kind.isNumeric
-                          ? TextAlign.right
-                          : TextAlign.left,
-                      style: skin.typography.label.copyWith(color: tokens.ink),
-                    ),
-                  ),
-                  if (column.key == sortedColumn) ...[
-                    const SizedBox(width: 4),
-                    // The order is said, not only drawn.
-                    Semantics(
-                      label: sortDescending
-                          ? 'sorted descending'
-                          : 'sorted ascending',
-                      child: EraGlyph(
-                        sortDescending
-                            ? EraGlyphKind.sortDown
-                            : EraGlyphKind.sortUp,
-                        color: tokens.ink,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+            _HeaderCell<T>(
+              column: column,
+              skin: skin,
+              sorted: column.key == sortedColumn,
+              sortDescending: sortDescending,
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// One column header: the sort arrow when sorted, and the era's amber
+/// bottom edge while the pointer is over it.
+final class _HeaderCell<T> extends StatefulWidget {
+  const _HeaderCell({
+    required this.column,
+    required this.skin,
+    required this.sorted,
+    required this.sortDescending,
+  });
+
+  final RegisterColumn<T> column;
+  final LifeOSSkinData skin;
+  final bool sorted;
+  final bool sortDescending;
+
+  @override
+  State<_HeaderCell<T>> createState() => _HeaderCellState<T>();
+}
+
+final class _HeaderCellState<T> extends State<_HeaderCell<T>> {
+  bool _hot = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = widget.skin;
+    final tokens = skin.tokens;
+    final column = widget.column;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hot = true),
+      onExit: (_) => setState(() => _hot = false),
+      child: Container(
+        key: _hot ? ValueKey('header-hot-${column.key}') : null,
+        width: column.width,
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+        decoration: BoxDecoration(
+          border: Border(
+            right: BorderSide(color: tokens.chromeLine),
+            bottom: _hot
+                ? const BorderSide(color: MillenniumColors.sortAccent, width: 3)
+                : BorderSide.none,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: column.kind.isNumeric
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
+          children: [
+            Flexible(
+              child: Text(
+                column.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: column.kind.isNumeric
+                    ? TextAlign.right
+                    : TextAlign.left,
+                style: skin.typography.label.copyWith(color: tokens.ink),
+              ),
+            ),
+            if (widget.sorted) ...[
+              const SizedBox(width: 4),
+              // The order is said, not only drawn.
+              Semantics(
+                label: widget.sortDescending
+                    ? 'sorted descending'
+                    : 'sorted ascending',
+                child: EraGlyph(
+                  widget.sortDescending
+                      ? EraGlyphKind.sortDown
+                      : EraGlyphKind.sortUp,
+                  color: tokens.ink,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -667,54 +711,11 @@ final class _SubtotalRow<T> extends StatelessWidget {
   }
 }
 
-final class _EntryRow extends StatelessWidget {
-  const _EntryRow({
-    required this.hint,
-    required this.onOpen,
-    required this.skin,
-  });
-
-  final String hint;
-  final VoidCallback onOpen;
-  final LifeOSSkinData skin;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = skin.tokens;
-    return Semantics(
-      button: true,
-      label: hint,
-      excludeSemantics: true,
-      onTap: onOpen,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onOpen,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 20),
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            alignment: Alignment.centerLeft,
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: tokens.rule)),
-            ),
-            child: Text(
-              hint,
-              style: skin.typography.body.copyWith(
-                color: tokens.muted,
-                fontStyle: FontStyle.italic,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 final class _DataRow<T> extends StatelessWidget {
   const _DataRow({
+    required this.rowId,
+    required this.focused,
+    required this.sortedColumn,
     required this.line,
     required this.columns,
     required this.label,
@@ -727,6 +728,9 @@ final class _DataRow<T> extends StatelessWidget {
     required this.onSecondaryTap,
   });
 
+  final String rowId;
+  final bool focused;
+  final String? sortedColumn;
   final RowLine<T> line;
   final List<RegisterColumn<T>> columns;
   final String label;
@@ -742,6 +746,8 @@ final class _DataRow<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = skin.tokens;
     final voided = line.state == RowState.voided;
+    // Blue with white ink only while the list has focus.
+    final lit = selected && focused;
     return Listener(
       onPointerDown: onPress,
       child: Semantics(
@@ -752,11 +758,14 @@ final class _DataRow<T> extends StatelessWidget {
         value: line.state.announcement,
         excludeSemantics: true,
         child: Container(
+          key: ValueKey('register-row-$rowId'),
           decoration: BoxDecoration(
-            color: selected ? tokens.selWash : tokens.paper,
+            color: selected
+                ? (focused ? tokens.selWash : tokens.chrome)
+                : tokens.paper,
           ),
           foregroundDecoration: cursor && cursorColumn == null
-              ? skin.painters.cellCursor(tokens, onSelection: selected)
+              ? skin.painters.cellCursor(tokens, onSelection: lit)
               : null,
           child: Row(
             children: [
@@ -768,6 +777,9 @@ final class _DataRow<T> extends StatelessWidget {
                       onSecondaryTap(column.key, details.globalPosition),
                   child: Container(
                     width: column.width,
+                    color: !selected && column.key == sortedColumn
+                        ? MillenniumColors.sortTint
+                        : null,
                     constraints: const BoxConstraints(minHeight: 20),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 5,
@@ -777,10 +789,7 @@ final class _DataRow<T> extends StatelessWidget {
                         ? Alignment.centerRight
                         : Alignment.centerLeft,
                     foregroundDecoration: cursorColumn == column.key
-                        ? skin.painters.cellCursor(
-                            tokens,
-                            onSelection: selected,
-                          )
+                        ? skin.painters.cellCursor(tokens, onSelection: lit)
                         : null,
                     child:
                         column.cell?.call(line.row) ??
@@ -792,9 +801,9 @@ final class _DataRow<T> extends StatelessWidget {
                               ? TextAlign.right
                               : TextAlign.left,
                           style: _cellStyle(skin, column.kind).copyWith(
-                            // Selection wins, so every cell of a selected
-                            // row reads on selWash in every skin.
-                            color: selected
+                            // A focused selection wins, so every cell of the
+                            // row reads white on selWash.
+                            color: lit
                                 ? tokens.selInk
                                 : voided
                                 ? tokens.muted

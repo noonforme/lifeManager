@@ -25,6 +25,9 @@ abstract final class MillenniumColors {
   /// The sorted column's bottom edge. Decorative: the painted arrow beside
   /// the column name, announced as "sorted ascending", says the order.
   static const sortAccent = Color(0xfff9b119);
+
+  /// The faint grey down the sorted column's cells.
+  static const sortTint = Color(0xfff7f7f7);
   static const keyLine = Color(0xff003c74);
   static const fieldLine = Color(0xff7f9db9);
 

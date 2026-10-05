@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'era_controls.dart';
 import 'era_icons.dart';
 import 'lifeos_skin.dart';
 import 'lifeos_tokens.dart';
@@ -177,6 +178,38 @@ final class _FocusRing extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A small key with a painted step arrow (◂ or ▸), for stepping through
+/// periods or days. Announced by [semanticLabel].
+final class StepKey extends StatelessWidget {
+  const StepKey({
+    required this.forward,
+    required this.semanticLabel,
+    required this.onPressed,
+    super.key,
+  });
+
+  final bool forward;
+  final String semanticLabel;
+
+  /// Null greys the key: there is nothing in that direction.
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = LifeOSSkinScope.of(context).tokens;
+    return KeyButton(
+      label: '',
+      semanticLabel: semanticLabel,
+      kind: KeyKind.small,
+      leading: EraGlyph(
+        forward ? EraGlyphKind.stepForward : EraGlyphKind.stepBack,
+        color: onPressed == null ? tokens.muted : tokens.ink,
+      ),
+      onPressed: onPressed,
     );
   }
 }

@@ -339,7 +339,9 @@ void main() {
       );
       expect(find.bySemanticsLabel('Next period, unavailable'), findsOne);
 
-      await tester.tap(find.text('‹'));
+      // The step keys are painted arrows, not font characters.
+      expect(find.text('‹'), findsNothing);
+      await tester.tap(find.bySemanticsLabel('Previous period'));
       expect((routes.single.scope! as PayPeriodScope).periodId, _periodId);
     });
 
@@ -357,7 +359,7 @@ void main() {
           onRoute: routes.add,
         ),
       );
-      await tester.tap(find.text('›'));
+      await tester.tap(find.bySemanticsLabel('Next period'));
       final next = routes.single.scope! as DateRangeScope;
       expect(next.start, const LocalDate(2026, 9, 8));
       expect(next.end, const LocalDate(2026, 9, 14));
