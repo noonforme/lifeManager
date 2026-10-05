@@ -256,11 +256,12 @@ or carries a semantics label, never meaning alone.
   is hovered.
 - A selected row is selection blue while the list has focus and face grey
   with ink text while it does not.
-- The "Add a manual shift" entry row is removed; Add a shift stays in the
-  task pane and the toolbar.
+- The "Add a…" entry rows at the foot of the lists are removed; their
+  actions stay in the task pane and the toolbar.
 - The period ‹ › keys become one matched pair of keys with painted arrows,
-  labelled "Previous period" and "Next period", both greyed together when
-  unavailable.
+  labelled "Previous period" and "Next period"; each greys when its
+  direction has no period (at the last period only **Next** is grey). The
+  Journal's day keys use the same painted arrows.
 
 ### 8.3 Desks and Books
 

@@ -2,28 +2,28 @@
 version: 1
 slug: "lib-features-work-presentation-work-screen-dart"
 primary_target: "lib/features/work/presentation/work_screen.dart"
-related_targets: ["lib/shared/shell/shell_frame.dart","lib/shared/workbench/lifeos_tokens.dart","lib/shared/workbench/lifeos_skin.dart","lib/app/app_router.dart","lib/features/work/presentation/work_inspector.dart"]
+related_targets: ["lib/shared/shell/shell_frame.dart","lib/shared/shell/shell_dialog.dart","lib/features/work/presentation/work_tasks.dart","lib/shared/workbench/millennium_style.dart","lib/app/app_router.dart"]
 ---
 
 ## Scope
 
-Mode: Operate. The LifeOS desktop shell and Work, its first surface. Later areas (Finance, Tracking, Knowledge) live inside the same shell. One optional appearance, Millennium (2001 desktop), reskins the same shell without changing structure or behaviour (spec 4.7); Office Machine stays the default.
+Mode: Operate. The LifeOS desktop shell and Work, its first surface. Later areas (Finance, Tracking, Knowledge) live inside the same shell. One style only: Millennium, the 2001 office PC (DESIGN.md); no appearance setting, no dark mode.
 
 ## Direction contract
 
-THESIS: LifeOS is a calculating machine for one person's records: every figure sits in a register and can show its working in the formula bar; it refuses the dashboard of detached KPI cards and the scaled-up tablet app.
+THESIS: LifeOS is a 2001 office program for one person's records, arranged the way that era's file browser was: select a record to see it in the task pane, open it to see its Properties; every figure sits in a details list and can show its working. It refuses the docked inspector, the dashboard of KPI cards and the scaled-up tablet app.
 
-OWN-WORLD: Office Machine. Grey casing (#cfd1cc) around paper-white registers, black keys for headers and the status line, one signal orange (#e8590c, #c2410c for filled actions) for the thing to press and anything running, and one coloured keycap per area (Work blue, Finance yellow, Tracking green, Knowledge violet). Archivo for words, Azeret Mono for figures. Buttons have a 2px pressable bottom edge; no shadows, gradients or glow. A night palette in charcoal with glowing orange, and a high-contrast variant.
+OWN-WORLD: The XP-authentic Millennium shell in DESIGN.md: face-coloured chrome, white lists, Head-blue captions and selection, the blue task pane, EraSans (Wine's Tahoma-metric font) at 11 px, painted icons and orbs, era scrollbars, bevels only. The system window frame stays.
 
-STORY: The owner opens Today, sees what needs them, records a shift or entry from the toolbar with values prefilled from last time, selects any number to read how it was worked out, checks a record's history, and arranges sheets into desks for weekly review and month close.
+STORY: The owner opens Today, selects a row and reads its summary in Details, clicks a derived figure to read its Working, opens the record's Properties (Enter, double-click or the task link) to check facts and History, and records a shift or entry from the toolbar or task pane in a dialog box; the status bar confirms the save.
 
-FIRST VIEWPORT: At 1280×800: menu bar, toolbar (‹ › · + Add · from-last-time templates), formula bar; a 228px book tree with live values on the left; desk tabs (Today, Weekly review, Month close) over the Today desk — Journal of today and yesterday as the main tile, Needs you and the period tiles at the side; a 252px inspector with Record and History tabs on the right; a black status line with the running shift. Primary action: orange + Add in the toolbar.
+FIRST VIEWPORT: At 1280 × 800: menu bar; toolbar bands (Back, Forward · Add · from last time); the Address path combo; the 200 px task pane (selection's tasks, Books, Details) beside the details list with its filter row; the status bar. No right-hand column.
 
-FORM: Formula-bar Ledger (direction round seed 60e3d2a0, chosen by the owner from the pick card) rendered in the Office Machine colour world; layout merges the three dealt structures of surface round ca5bdafb (desks, book tree, daybook). Code-led. Signature interaction: selecting a derived cell shows its calculation with clickable operands that navigate to their source, and Back returns.
+FORM: File-explorer shell. Signature interaction: the task pane follows the selection, and a derived figure's Working appears in Details with operand links that open their source; Back returns.
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: unreviewed is unfinished: goldens and the real-font renders under test/goldens/real_font/ are looked at before merge, and DESIGN.md describes what shipped.
 
 ## Unresolved
 
-- Free-form tile resizing is deferred; Phase 1 desks use three fixed layouts.
+- Free-form tile resizing is deferred; desks use fixed layouts.
 - Finance, Tracking and Knowledge sheets are specified in later phases.

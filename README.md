@@ -1,6 +1,6 @@
 # LifeOS
 
-LifeOS is a private, local-first personal reconciliation system. The active application is a native Flutter desktop app built as an office machine: a menu bar, toolbar and formula bar over a book tree, a desk and a record inspector. Work is the first area. Finance, Tracking and Knowledge are honest unavailable destinations until their domains are implemented.
+LifeOS is a private, local-first personal reconciliation system. The active application is a native Flutter desktop app shaped like a 2001 office program: a menu bar, toolbar and Address bar over a blue task pane and a details list, with records opening in Properties dialogs. Work is the first area. Finance, Tracking and Knowledge are honest unavailable destinations until their domains are implemented.
 
 The repository contains only the native Flutter application. Earlier prototypes live in Git history; their data is never read, imported, or migrated.
 
@@ -38,13 +38,14 @@ Or use the interactive launcher, which finds Flutter through `FLUTTER`, `PATH`, 
 ./app.sh
 ```
 
-LifeOS looks like a 2001 office PC, shaped like that era's file browser: an orb toolbar, an Address bar, a blue task pane, details lists and property sheets.
+LifeOS looks like a 2001 office PC, shaped like that era's file browser: an orb toolbar, an Address bar, a blue task pane that follows the selection, details lists, Properties dialogs and forms as dialog boxes, set in EraSans (Wine's Tahoma-metric font).
 
 What the shell holds:
 
 - **Work:** employments and agreements with night, holiday and overtime premiums and leave pay; rotating schedules with planned days you confirm, day changes and paid leave; manual shifts; pay periods, payslips and reconciliation; and correction. Shifts, Pay periods, Payslips and Agreements are chosen with the **View:** dropdown; Work tasks sit in the task pane.
-- **Working:** select any derived figure; the record's property sheet shows how it was worked out.
-- **History:** every record keeps its own History tab beside General.
+- **Working:** select any derived figure; Details in the task pane shows how it was worked out.
+- **Properties:** select a row and press Enter, double-click it, or use its Properties task to open its Properties sheet.
+- **History:** every record's Properties sheet keeps a History tab beside General.
 - **Add and "from last time":** create records from anywhere.
 - **Today:** desks of tiles (Needs you, Work this period, the Journal, the Month close checklist). Create your own desks, and save filtered sheets as views.
 - **Journal:** every event, by day.
@@ -60,7 +61,7 @@ flutter test
 dart run tool/schema_check.dart
 ```
 
-`./app.sh` runs the same: option 2 runs the tests, and option 3 runs analysis, the format check and the schema check. Goldens in `test/goldens/` cover the Work list, a pay period, a form and Today at 1280 × 800 and 960 × 760; refresh them with `flutter test --update-goldens test/goldens` after an intended visual change. `flutter test --run-skipped -t real-font --update-goldens test/goldens/real_font_check_test.dart` renders the same screens in the bundled Noto Sans for a look by eye.
+`./app.sh` runs the same: option 2 runs the tests, and option 3 runs analysis, the format check and the schema check. Goldens in `test/goldens/` cover the Work list, a selected row, a figure's Working, a pay period's Properties, the manual shift and pay agreement forms, the open calendar and Today at 1280 × 800 and 960 × 760; refresh them with `flutter test --update-goldens test/goldens` after an intended visual change. `flutter test --run-skipped -t real-font --update-goldens test/goldens/real_font_check_test.dart` renders the same screens in the bundled EraSans for a look by eye.
 
 Release packaging and backup/export file selection are established by the release plan rather than documented speculatively here.
 

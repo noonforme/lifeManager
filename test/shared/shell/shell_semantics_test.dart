@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/synthetic_shell.dart';
@@ -29,6 +29,22 @@ void main() {
       for (final key in ['Back, unavailable', 'Forward, unavailable', 'Go']) {
         expect(find.bySemanticsLabel(key), findsOneWidget, reason: key);
       }
+      expect(
+        find.bySemanticsLabel('Address, Work, Synthetic depot, Shifts'),
+        findsOneWidget,
+      );
+      // A record's Properties sheet is announced by its caption, with its
+      // tabs inside it.
+      await tester.tap(find.text('2026-09-08'));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(
+        find.bySemanticsLabel('Shift 2026-09-08 Properties'),
+        findsWidgets,
+      );
+      expect(find.bySemanticsLabel('General'), findsOneWidget);
+      expect(find.bySemanticsLabel('History'), findsOneWidget);
     });
   }
 }

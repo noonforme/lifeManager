@@ -2,6 +2,8 @@
 
 Date: 2026-10-02
 Status: approved in conversation, awaiting written-spec review
+Amended by: `2026-10-04-lifeos-xp-authentic-shell-design.md` (font, icons,
+layout, property sheet, desk tabs; the system window frame stays).
 Supersedes: the visual system and shell layout of
 `2026-10-01-lifeos-office-machine-shell-design.md` (sections 4 and 5, and
 the presentation parts of 6). Its behaviour, data and routing decisions stay
