@@ -43,6 +43,7 @@ final class EraScrollbar extends StatefulWidget {
     required this.controller,
     required this.axis,
     required this.child,
+    this.depth = 0,
     super.key,
   });
 
@@ -52,6 +53,10 @@ final class EraScrollbar extends StatefulWidget {
   final ScrollController controller;
   final Axis axis;
   final Widget child;
+
+  /// How many scroll views lie between this bar and the one it follows:
+  /// 0 for its own child, 1 for a list inside a sideways-scrolling table.
+  final int depth;
 
   @override
   State<EraScrollbar> createState() => _EraScrollbarState();
@@ -114,12 +119,16 @@ final class _EraScrollbarState extends State<EraScrollbar> {
   Widget build(BuildContext context) {
     final content = NotificationListener<ScrollMetricsNotification>(
       onNotification: (notification) {
-        if (notification.depth == 0) _update(notification.metrics);
+        if (notification.depth == widget.depth) {
+          _update(notification.metrics);
+        }
         return false;
       },
       child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
-          if (notification.depth == 0) _update(notification.metrics);
+          if (notification.depth == widget.depth) {
+            _update(notification.metrics);
+          }
           return false;
         },
         child: widget.child,

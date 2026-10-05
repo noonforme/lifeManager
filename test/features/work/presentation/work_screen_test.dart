@@ -38,6 +38,7 @@ void main() {
   WorkReady setupState({
     WorkRecordRef? record,
     WorkInspectorMode mode = WorkInspectorMode.inspect,
+    WorkTemporalScope? scope,
     WorkInspectorState inspector = const WorkInspectorEmpty(),
     bool canDelete = true,
     bool used = false,
@@ -58,7 +59,7 @@ void main() {
     ),
     route: WorkRouteState(
       employmentId: _employmentId,
-      scope: null,
+      scope: scope,
       record: record,
       mode: mode,
     ),
@@ -71,17 +72,16 @@ void main() {
     final opened = <String>[];
     await pumpScreen(tester, AsyncData(setupState()), onNavigate: opened.add);
     final pane = find.bySemanticsLabel('Task pane');
-    expect(
-      find.descendant(of: pane, matching: find.text('Add a shift')),
-      findsOneWidget,
-    );
-    // This screen has no pay-period, payslip or saved-view actions, so
-    // their links are left out rather than greyed (XP-authentic spec 4.1).
-    for (final task in [
-      'New pay period',
-      'Record payslip',
-      'Save this view…',
-    ]) {
+    for (final task in ['Add a shift', 'New pay period']) {
+      expect(
+        find.descendant(of: pane, matching: find.text(task)),
+        findsOneWidget,
+        reason: task,
+      );
+    }
+    // This screen has no payslip or saved-view actions, so their links are
+    // left out rather than greyed (XP-authentic spec 4.1).
+    for (final task in ['Record payslip', 'Save this view…']) {
       expect(
         find.descendant(of: pane, matching: find.text(task)),
         findsNothing,
@@ -108,6 +108,30 @@ void main() {
     expect(find.text('No pay agreement yet.'), findsOneWidget);
     await tester.tap(find.text('Set up pay agreement…'));
     expect(opened.single, contains('add=agreement'));
+  });
+
+  testWidgets('a dialog the task pane opened closes when the route moves', (
+    tester,
+  ) async {
+    await pumpScreen(tester, AsyncData(setupState()));
+    await tester.tap(find.text('New pay period'));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Create pay period'), findsOneWidget);
+    // Back or Forward (the mouse buttons work behind a modal) moves the
+    // route; the dialog must not stay open over the new location.
+    await pumpScreen(
+      tester,
+      AsyncData(
+        setupState(
+          scope: const DateRangeScope(
+            start: LocalDate(2026, 9, 1),
+            end: LocalDate(2026, 9, 30),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Create pay period'), findsNothing);
   });
 
   group('employment setup', () {
@@ -375,6 +399,7 @@ final class _TestScreen extends StatelessWidget {
             onPrimaryAction: () {},
             onCreateEmployment: (_) async => throw UnimplementedError(),
             onCreateAgreement: (_) async => throw UnimplementedError(),
+            onCreatePayPeriod: (_) async => throw UnimplementedError(),
             onNavigate: onNavigate,
             onUpdateEmployment: (_, _) async => throw UnimplementedError(),
             onDeleteEmployment: (_) async => throw UnimplementedError(),

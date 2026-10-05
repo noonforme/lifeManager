@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../../core/explain/explanation.dart';
 import 'cell_selection.dart';
 import 'era_controls.dart';
+import 'era_scrollbar.dart';
 import 'lifeos_skin.dart';
 import 'millennium_style.dart';
 import 'office_controls.dart';
@@ -175,6 +176,22 @@ final class DataRegister<T> extends StatefulWidget {
 final class _DataRegisterState<T> extends State<DataRegister<T>> {
   final FocusNode _focus = FocusNode(debugLabel: 'Data register');
   final ScrollController _horizontal = ScrollController();
+  final ScrollController _vertical = ScrollController();
+
+  /// Whether the rows overflow, so the table leaves room for the vertical
+  /// era scrollbar beside it.
+  bool _overflowing = false;
+
+  bool _onVerticalMetrics(ScrollMetricsNotification notification) {
+    final metrics = notification.metrics;
+    if (notification.depth == 0 && metrics.axis == Axis.vertical) {
+      final overflowing = metrics.maxScrollExtent > metrics.minScrollExtent;
+      if (overflowing != _overflowing) {
+        setState(() => _overflowing = overflowing);
+      }
+    }
+    return false;
+  }
 
   /// Index into the selectable rows, and the cursor's column key.
   int? _cursorRow;
@@ -247,6 +264,7 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
     }
     _focus.dispose();
     _horizontal.dispose();
+    _vertical.dispose();
     super.dispose();
   }
 
@@ -372,9 +390,16 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
     final skin = LifeOSSkinScope.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final visible = _visibleColumns(constraints.maxWidth);
+        // The vertical scrollbar sits outside the sideways scroll, at the
+        // list's right edge; the rows keep the room it leaves.
+        final available =
+            constraints.maxWidth -
+            (_overflowing && constraints.maxWidth.isFinite
+                ? EraScrollbar.thickness
+                : 0);
+        final visible = _visibleColumns(available);
         final tableWidth = math.max(
-          constraints.maxWidth.isFinite ? constraints.maxWidth : 0.0,
+          available.isFinite ? available : 0.0,
           visible.fold<double>(0, (sum, column) => sum + column.width),
         );
         var rowIndex = -1;
@@ -440,31 +465,50 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
               container: true,
               explicitChildNodes: true,
               label: '${widget.label}, horizontally scrollable',
-              child: SingleChildScrollView(
-                controller: _horizontal,
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: tableWidth,
-                  height: constraints.maxHeight.isFinite
-                      ? constraints.maxHeight
-                      : null,
-                  child: Column(
-                    mainAxisSize: constraints.maxHeight.isFinite
-                        ? MainAxisSize.max
-                        : MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _HeaderRow<T>(
-                        columns: visible,
-                        skin: skin,
-                        sortedColumn: widget.sortedColumn,
-                        sortDescending: widget.sortDescending,
-                      ),
-                      if (constraints.maxHeight.isFinite)
-                        Expanded(child: ListView(children: body))
-                      else
-                        ...body,
-                    ],
+              child: EraScrollbar(
+                controller: _vertical,
+                axis: Axis.vertical,
+                depth: 1,
+                child: SingleChildScrollView(
+                  controller: _horizontal,
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    height: constraints.maxHeight.isFinite
+                        ? constraints.maxHeight
+                        : null,
+                    child: Column(
+                      mainAxisSize: constraints.maxHeight.isFinite
+                          ? MainAxisSize.max
+                          : MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _HeaderRow<T>(
+                          columns: visible,
+                          skin: skin,
+                          sortedColumn: widget.sortedColumn,
+                          sortDescending: widget.sortDescending,
+                        ),
+                        if (constraints.maxHeight.isFinite)
+                          Expanded(
+                            child:
+                                NotificationListener<ScrollMetricsNotification>(
+                                  onNotification: _onVerticalMetrics,
+                                  // Its bar is drawn outside the sideways scroll.
+                                  child: ScrollConfiguration(
+                                    behavior: ScrollConfiguration.of(context)
+                                        .copyWith(scrollbars: false),
+                                    child: ListView(
+                                      controller: _vertical,
+                                      children: body,
+                                    ),
+                                  ),
+                                ),
+                          )
+                        else
+                          ...body,
+                      ],
+                    ),
                   ),
                 ),
               ),

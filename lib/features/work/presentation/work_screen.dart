@@ -225,6 +225,16 @@ final class _WorkScreenState extends State<WorkScreen> {
       _reviseFailure = null;
       _creatingPeriod = false;
     }
+    // A dialog the task pane opened belongs to the location it was opened
+    // at; when the route moves (Back, Forward, a link), it closes, so a new
+    // pay period can never be saved against another employment.
+    final oldRoute = _routeUri(oldWidget.state);
+    final newRoute = _routeUri(widget.state);
+    if (oldRoute != null && newRoute != null && oldRoute != newRoute) {
+      _creatingPeriod = false;
+      _payslipPeriod = null;
+      _periodFailure = null;
+    }
   }
 
   @override
@@ -428,6 +438,7 @@ final class _WorkScreenState extends State<WorkScreen> {
     }
     if (_creatingPeriod && employmentId != null) {
       return PeriodInspector.create(
+        key: ValueKey(('create-period', employmentId)),
         employmentId: employmentId,
         onSubmit: _createPeriod,
         today: _today,
@@ -538,6 +549,7 @@ extension on _WorkScreenState {
     switch (adding) {
       case WorkAddKind.payPeriod when widget.onCreatePayPeriod != null:
         return PeriodInspector.create(
+          key: ValueKey(('create-period', employmentId)),
           employmentId: employmentId,
           onSubmit: _createPeriod,
           today: _today,
@@ -910,6 +922,12 @@ Widget _rejected(
   message: message,
   child: _Rejected(message: message, onDismiss: onDismiss, action: action),
 );
+
+/// The route a state was built from, to tell when the location moved.
+String? _routeUri(AsyncValue<WorkViewState> state) {
+  final value = _current(state);
+  return value is WorkReady ? workRouteUri(value.route).toString() : null;
+}
 
 WorkInspectorMode? _routeMode(AsyncValue<WorkViewState> state) {
   final value = _current(state);

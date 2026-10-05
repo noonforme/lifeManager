@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/explain/explanation.dart';
 import 'package:lifeos/shared/workbench/cell_selection.dart';
 import 'package:lifeos/shared/workbench/data_register.dart';
+import 'package:lifeos/shared/workbench/era_scrollbar.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
 import 'package:lifeos/shared/workbench/millennium_style.dart';
@@ -16,6 +17,74 @@ const _second = _Row(id: 'shift:2', label: 'Second shift', amount: '67.89');
 const _void = _Row(id: 'shift:3', label: 'Voided shift', amount: '10.00');
 
 void main() {
+  testWidgets('a long list keeps its rows whole beside the era scrollbar', (
+    tester,
+  ) async {
+    for (final width in [400.0, 500.0, 510.0]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          scrollBehavior: const EraScrollBehavior(),
+          home: LifeOSSkinScope(
+            child: Scaffold(
+              body: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: width,
+                  height: 200,
+                  child: DataRegister<int>(
+                    label: 'Many rows',
+                    lines: [for (var i = 0; i < 40; i++) RowLine(i)],
+                    columns: [
+                      RegisterColumn<int>(
+                        key: 'a',
+                        label: 'A',
+                        kind: ColumnKind.text,
+                        width: 300,
+                        value: (row) => 'Row $row',
+                      ),
+                      RegisterColumn<int>(
+                        key: 'b',
+                        label: 'B',
+                        kind: ColumnKind.money,
+                        width: 200,
+                        value: (row) => 'EUR $row.00',
+                      ),
+                    ],
+                    rowId: (row) => '$row',
+                    rowLabel: (row) => 'Row $row',
+                    selectedId: null,
+                    onOpen: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(tester.takeException(), isNull, reason: 'at $width px');
+      // The vertical bar stays at the list's right edge, not past a
+      // horizontally scrolled table.
+      final bars = find.byKey(const ValueKey('era-scrollbar'));
+      final vertical = tester
+          .widgetList<SizedBox>(bars)
+          .where((box) => box.width == EraScrollbar.thickness);
+      expect(vertical, isNotEmpty, reason: 'at $width px');
+      final right = tester
+          .getRect(
+            find.byWidgetPredicate(
+              (widget) =>
+                  widget is SizedBox &&
+                  widget.key == const ValueKey('era-scrollbar') &&
+                  widget.width == EraScrollbar.thickness,
+            ),
+          )
+          .right;
+      expect(right, width, reason: 'at $width px');
+    }
+  });
+
   testWidgets('headers are not uppercased and the sorted column says so', (
     tester,
   ) async {

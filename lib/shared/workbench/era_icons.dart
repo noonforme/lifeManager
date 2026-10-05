@@ -24,6 +24,7 @@ enum EraIconKind {
   saveView,
   newDesk,
   delete,
+  warning,
 }
 
 EraIconKind areaIcon(LifeOSArea area) => switch (area) {
@@ -282,6 +283,23 @@ final class _IconPainter extends CustomPainter {
         );
         _fillRect(canvas, const Rect.fromLTRB(2, 3, 12, 5.5), _blueBottom);
         _plus(canvas, const Offset(11.5, 11.5));
+      case EraIconKind.warning:
+        final triangle = Path()
+          ..moveTo(8, 1.5)
+          ..lineTo(15, 14.5)
+          ..lineTo(1, 14.5)
+          ..close();
+        _pathShape(canvas, triangle, _goldTop, _goldBottom, _goldEdge);
+        canvas
+          ..drawLine(
+            const Offset(8, 5.5),
+            const Offset(8, 10),
+            Paint()
+              ..color = _ink
+              ..strokeWidth = 1.8
+              ..strokeCap = StrokeCap.round,
+          )
+          ..drawCircle(const Offset(8, 12.5), 1, Paint()..color = _ink);
       case EraIconKind.delete:
         final paint = Paint()
           ..color = _redBottom

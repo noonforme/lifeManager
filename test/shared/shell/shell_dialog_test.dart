@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/shared/shell/shell_dialog.dart';
 import 'package:lifeos/shared/workbench/era_date_field.dart';
+import 'package:lifeos/shared/workbench/era_icons.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
 
@@ -166,5 +167,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('October 2026'), findsNothing);
     expect(closed, 0);
+  });
+
+  testWidgets('a message box has a warning icon and OK', (tester) async {
+    var closed = 0;
+    await tester.pumpWidget(
+      _host(
+        ShellDialogLayer(
+          dialog: ShellDialog(
+            title: 'Work',
+            kind: ShellDialogKind.message,
+            size: const Size(380, 260),
+            onClose: () => closed++,
+            child: const Text('This record is no longer available.'),
+          ),
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+    expect(find.byType(EraIcon), findsOneWidget);
+    await tester.tap(find.text('OK'));
+    expect(closed, 1);
   });
 }

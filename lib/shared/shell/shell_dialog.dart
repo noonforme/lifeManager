@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../workbench/era_controls.dart';
 import '../workbench/era_dialog.dart';
+import '../workbench/era_icons.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/millennium_style.dart';
 import '../workbench/office_controls.dart';
@@ -68,8 +69,10 @@ final class DialogCancelKey extends StatelessWidget {
 /// The window, with [dialog] over it when one is open. The window keeps its
 /// look but takes no input or focus while the dialog is up, as an era modal
 /// dialog did. The window's subtree keeps one shape whether or not a dialog
-/// is open, so its scroll positions, selection and drafts survive.
-final class ShellDialogLayer extends StatelessWidget {
+/// is open, so its scroll positions, selection and drafts survive. When the
+/// dialog closes, keyboard focus goes back to where it was, so Enter,
+/// Escape and the arrow keys carry on in the list.
+final class ShellDialogLayer extends StatefulWidget {
   const ShellDialogLayer({
     required this.dialog,
     required this.child,
@@ -80,8 +83,32 @@ final class ShellDialogLayer extends StatelessWidget {
   final Widget child;
 
   @override
+  State<ShellDialogLayer> createState() => _ShellDialogLayerState();
+}
+
+final class _ShellDialogLayerState extends State<ShellDialogLayer> {
+  FocusNode? _returnTo;
+
+  @override
+  void didUpdateWidget(covariant ShellDialogLayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final opened = oldWidget.dialog == null && widget.dialog != null;
+    final closed = oldWidget.dialog != null && widget.dialog == null;
+    if (opened) _returnTo = FocusManager.instance.primaryFocus;
+    if (closed) {
+      final node = _returnTo;
+      _returnTo = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && node != null && node.context != null) {
+          node.requestFocus();
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final dialog = this.dialog;
+    final dialog = widget.dialog;
     final open = dialog != null;
     return Stack(
       fit: StackFit.expand,
@@ -90,7 +117,7 @@ final class ShellDialogLayer extends StatelessWidget {
           excluding: open,
           child: AbsorbPointer(
             absorbing: open,
-            child: ExcludeSemantics(excluding: open, child: child),
+            child: ExcludeSemantics(excluding: open, child: widget.child),
           ),
         ),
         if (dialog != null)
@@ -156,11 +183,40 @@ final class _DialogWindow extends StatelessWidget {
                       onClose: dialog.onClose,
                       child: DefaultTextStyle.merge(
                         style: skin.typography.body.copyWith(color: tokens.ink),
-                        child: dialog.child,
+                        // A message box leads with the era's warning sign.
+                        child: dialog.kind == ShellDialogKind.message
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Padding(
+                                    padding: EdgeInsets.all(4),
+                                    child: EraIcon(
+                                      EraIconKind.warning,
+                                      size: 32,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: dialog.child),
+                                ],
+                              )
+                            : dialog.child,
                       ),
                     ),
                   ),
                 ),
+                if (dialog.kind == ShellDialogKind.message)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                    child: FormFooter(
+                      children: [
+                        KeyButton(
+                          label: 'OK',
+                          kind: KeyKind.primary,
+                          onPressed: dialog.onClose,
+                        ),
+                      ],
+                    ),
+                  ),
                 if (dialog.kind == ShellDialogKind.properties)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),

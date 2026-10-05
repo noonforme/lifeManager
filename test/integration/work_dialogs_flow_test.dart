@@ -121,4 +121,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Shift 2026-09-08 Properties'), findsOneWidget);
   });
+
+  testWidgets('closing a dialog gives the keyboard back to the list', (
+    tester,
+  ) async {
+    await pumpSyntheticShell(
+      tester,
+      size: const Size(1280, 800),
+      screen: syntheticScreens['shell']!,
+    );
+    await tester.tap(find.text('2026-09-08'));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.text('Shift 2026-09-08 Properties'), findsNothing);
+    // Down to the next row, then Enter opens its Properties.
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(find.text('Shift 2026-09-09 Properties'), findsOneWidget);
+  });
 }
