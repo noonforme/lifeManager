@@ -143,4 +143,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Shift 2026-09-09 Properties'), findsOneWidget);
   });
+
+  testWidgets('the one-key Record work step fits its content', (tester) async {
+    await pumpSyntheticShell(
+      tester,
+      size: const Size(1280, 800),
+      screen: syntheticScreens['shell']!,
+    );
+    await tester.tap(find.text('Add a shift'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add manual shift'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('shell-dialog'))).height,
+      lessThan(220),
+    );
+  });
 }

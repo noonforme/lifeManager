@@ -14,8 +14,9 @@ final class InspectorPane extends StatelessWidget {
   final List<Widget> children;
 
   @override
+  // Shrink-wrapped, so a short page lets its dialog fit its content.
   Widget build(BuildContext context) =>
-      ListView(padding: inspectorInset, children: children);
+      ListView(shrinkWrap: true, padding: inspectorInset, children: children);
 }
 
 /// The record's name at the top of a Properties page, as an era

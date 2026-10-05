@@ -222,4 +222,27 @@ void main() {
     expect(pressed, 1);
     expect(closed, 1);
   });
+
+  testWidgets('a short dialog fits its content, up to its size', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        ShellDialogLayer(
+          dialog: ShellDialog(
+            title: 'Work',
+            kind: ShellDialogKind.message,
+            size: const Size(380, 600),
+            fitHeight: true,
+            onClose: () {},
+            child: const Text('This record is no longer available.'),
+          ),
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+    final height = tester.getSize(find.byKey(const ValueKey('shell-dialog'))).height;
+    expect(height, lessThan(200));
+    expect(find.text('OK'), findsOneWidget);
+  });
 }

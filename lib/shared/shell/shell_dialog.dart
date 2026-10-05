@@ -25,6 +25,7 @@ final class ShellDialog {
     required this.onClose,
     this.kind = ShellDialogKind.form,
     this.size = const Size(440, 560),
+    this.fitHeight = false,
   });
 
   final String title;
@@ -32,8 +33,12 @@ final class ShellDialog {
   final VoidCallback onClose;
   final ShellDialogKind kind;
 
-  /// The dialog's size; it shrinks to 90 % of a smaller window.
+  /// The dialog's size; it shrinks to 90 % of a smaller window. With
+  /// [fitHeight], the height is a maximum and the dialog fits its content.
   final Size size;
+
+  /// Sizes the dialog to its content, for a message or a one-key step.
+  final bool fitHeight;
 }
 
 /// Lets a key inside a dialog close it.
@@ -123,12 +128,27 @@ final class _ShellDialogLayerState extends State<ShellDialogLayer> {
         if (dialog != null)
           LayoutBuilder(
             builder: (context, constraints) => Center(
-              child: SizedBox(
+              child: ConstrainedBox(
                 key: const ValueKey('shell-dialog'),
-                width: math.min(dialog.size.width, constraints.maxWidth * 0.9),
-                height: math.min(
-                  dialog.size.height,
-                  constraints.maxHeight * 0.9,
+                constraints: BoxConstraints(
+                  minWidth: math.min(
+                    dialog.size.width,
+                    constraints.maxWidth * 0.9,
+                  ),
+                  maxWidth: math.min(
+                    dialog.size.width,
+                    constraints.maxWidth * 0.9,
+                  ),
+                  minHeight: dialog.fitHeight
+                      ? 0
+                      : math.min(
+                          dialog.size.height,
+                          constraints.maxHeight * 0.9,
+                        ),
+                  maxHeight: math.min(
+                    dialog.size.height,
+                    constraints.maxHeight * 0.9,
+                  ),
                 ),
                 child: _DialogWindow(dialog: dialog),
               ),
@@ -188,6 +208,9 @@ final class _DialogWindow extends StatelessWidget {
                 ),
               ),
               child: Column(
+                mainAxisSize: dialog.fitHeight
+                    ? MainAxisSize.min
+                    : MainAxisSize.max,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   CaptionBar(
@@ -195,7 +218,8 @@ final class _DialogWindow extends StatelessWidget {
                     large: true,
                     onClose: dialog.onClose,
                   ),
-                  Expanded(
+                  Flexible(
+                    fit: dialog.fitHeight ? FlexFit.loose : FlexFit.tight,
                     child: Padding(
                       padding: const EdgeInsets.all(8),
                       child: ShellDialogScope(

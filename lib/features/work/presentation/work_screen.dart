@@ -247,6 +247,7 @@ final class _WorkScreenState extends State<WorkScreen> {
               title: _dialogTitle(ready),
               kind: _dialogKind(ready),
               size: _dialogSize(ready),
+              fitHeight: _fitsContent(ready),
               onClose: _closeDialog,
               child: _inspector(ready),
             )
@@ -614,6 +615,20 @@ extension on _WorkScreenState {
       : state.route.mode == WorkInspectorMode.properties
       ? ShellDialogKind.properties
       : ShellDialogKind.form;
+
+  /// A message box or the one-key Record work step fits its content.
+  bool _fitsContent(WorkReady state) {
+    final route = state.route;
+    final recordWork =
+        route.mode == WorkInspectorMode.create &&
+        route.record == null &&
+        route.employmentId != null &&
+        route.adding == null &&
+        !_creatingPeriod &&
+        _payslipPeriod == null &&
+        !_settingUpAgreement(state);
+    return _failed() || recordWork;
+  }
 
   Size _dialogSize(WorkReady state) {
     if (_failed()) return const Size(380, 260);
