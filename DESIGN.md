@@ -199,19 +199,19 @@ Depth comes from the era's bevels: vertical gradients on toolbars, keys, tabs, c
 - **Toolbar key** (`KeyKind.toolbar`): flat until hovered, focused or pressed. **Orbs** are painted glossy circles. **Step keys** (`StepKey`) are small keys with painted ◂ ▸ arrows, each grey when its direction has nothing.
 - **Task pane** (`TaskPane`, `TaskGroup`, `TaskLink`): rounded groups with a collapse key. The first, special group follows the selection — **Work tasks** with nothing selected, **Shift / Period / Payslip / Employment / Agreement tasks** for a selected row. Each link has a 16 px painted icon; a link whose action is unavailable is left out, not greyed.
 - **Details** (`WorkingDetails`, `RecordSummary`): Working for a selected derived figure (the calculation with operand links); otherwise the selected record's name, kind and facts above the scope's totals; otherwise the scope's totals.
-- **Shell dialog** (`ShellDialog`, `ShellDialogLayer`): an in-window modal over the whole shell; the window behind keeps its look but takes no input. Open state lives in the route (`mode=properties|create|edit|correct`, `add=`), so Back and Forward close and reopen it. Escape and the caption's red key close it.
-- **Properties sheet**: caption "{record} Properties", **General | History** tabs, OK and Cancel. General is laid out like the era's file-properties page: a 32 px record icon and the name, an etched line, then blocks of `Label:` rows each closed by an etched line (`InspectorTitle`, `InspectorFacts`, `EtchedLine`).
+- **Shell dialog** (`ShellDialog`, `ShellDialogLayer`): an in-window modal over the whole shell; the window behind keeps its look but takes no input. Open state lives in the route (`mode=properties|create|edit|correct`, `add=`), so Back and Forward close and reopen it. Escape and the caption's red key close it; focus returns to where it was. Message boxes and one-key steps fit their content; forms keep a fixed size and scroll.
+- **Properties sheet**: caption "{record} Properties", **General | History** tabs, OK and Cancel; Enter is OK unless a key inside has focus. General is laid out like the era's file-properties page: a 32 px record icon and the name, an etched line, then blocks of `Label:` rows each closed by an etched line (`InspectorTitle`, `InspectorFacts`, `EtchedLine`).
 - **Dialog forms** (`EraFormScope`, `EraLabelled`, `EraField`, `EraDateField`, `EraTimeField`): group boxes of `Label:` rows with fields at their kind width (the label moves above its field when the row is too narrow); sentence fields read on one line ("After [8] hours per shift, pay [1.5] ×"); the primary verb key plus **Cancel** (`DialogCancelKey`) bottom-right. The Pay agreement is tabbed: Rate | Premiums | Leave | Notes.
-- **Check boxes and radios** (`EraCheckBox`, `EraRadio`): 13 px, 4 px from their label; the whole row is the target.
-- **Details list** (`DataRegister`): bevelled headers with a sort arrow; the sorted column tinted; amber edge on the hovered header; blue group rows; 20 px rows; blue selection while focused, face grey while not; a dotted cell cursor. Click selects; Enter, Alt+Enter, a double-click or right-click › Properties opens the record.
+- **Check boxes and radios** (`EraCheckBox`, `EraRadio`, `EraRadioGroup`): 13 px, 4 px from their label; the whole row is the target. A radio group is one Tab stop; the arrow keys move the choice.
+- **Details list** (`DataRegister`): bevelled headers with a sort arrow; the sorted column tinted; amber edge on the hovered header; blue group rows; 20 px rows; blue selection while focused, face grey while not; a dotted cell cursor. Click selects; Enter, Alt+Enter, a double-click (400 ms) or right-click › Properties opens the record.
 - **Scrollbars** (`EraScrollbar`, `EraScrollBehavior`): 17 px, arrow keys at both ends, a pale track and a blue thumb with grip lines; shown only when content overflows; one-line text fields have none.
 - **Icons** (`EraIcon`): painted at 16 and 32 px — areas (Work briefcase, Finance coins, Tracking chart, Knowledge book), record kinds, tasks and an app glyph; greyed for unbuilt areas.
 - **Address bar** (`AddressBar`): the path combo and **Go**.
 - **Desks**: desk tabs (desks only), tiles drawn as small windows with a blue caption bar, area icon, drop-arrow menu and red close key. New desks come from Desk tasks or the Desk menu.
 - **Books**: Today, Journal, Views and each area with its icon and live values; an unbuilt area or sheet is one muted row, "Finance (not built yet)".
-- **Message box**: the information panel (`OperationalState`) inside a dialog.
+- **Message box**: a dialog with the painted ⚠ sign, the message and **OK**.
 - **Licences** (`LicensesDialog`): every package and font with its licence in a read-only white box.
-- **Status bar** (`StatusLine`, `StatusNoticeScope`): sunken panels; the first shows the last notice.
+- **Status bar** (`StatusLine`, `StatusNoticeScope`): sunken panels; the first shows the last notice until the owner leaves that area.
 
 ### Focus and selection
 
