@@ -16,7 +16,7 @@ void main() {
         home: LifeOSSkinScope(
           child: Scaffold(
             body: SizedBox(
-              width: 280,
+              width: 420,
               child: EraField(
                 controller: controller,
                 label: 'Start date',
@@ -31,14 +31,14 @@ void main() {
     );
   }
 
-  testWidgets('the label sits above the field, not on its border', (
+  testWidgets('"Label:" sits beside the field, not on its border', (
     tester,
   ) async {
     await pump(tester);
-    final label = tester.getRect(find.text('Start date'));
+    final label = tester.getRect(find.text('Start date:'));
     final field = tester.getRect(find.byKey(const ValueKey('start')));
-    expect(label.bottom, lessThanOrEqualTo(field.top));
-    expect(label.left, field.left);
+    expect(field.left, greaterThan(label.right));
+    expect((label.top - field.top).abs(), lessThan(8), reason: 'same row');
     final decoration = tester
         .widget<TextField>(find.byType(TextField))
         .decoration!;

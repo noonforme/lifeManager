@@ -18,6 +18,7 @@ import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/shared/workbench/era_time_field.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 import '../../../support/era_pickers.dart';
 
@@ -39,7 +40,37 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  // The agreement's tabs (XP-authentic shell spec 4.4) and the fields on
+  // the tabs other than Rate.
+  const tabOf = {
+    'agreement-overtime-hours': 'Premiums',
+    'agreement-overtime-multiplier': 'Premiums',
+    'agreement-night-enabled': 'Premiums',
+    'agreement-night-start': 'Premiums',
+    'agreement-night-end': 'Premiums',
+    'agreement-night-multiplier': 'Premiums',
+    'agreement-holidays-enabled': 'Premiums',
+    'agreement-holiday-multiplier': 'Premiums',
+    'agreement-vacation-percent': 'Leave',
+    'agreement-sick-percent': 'Leave',
+    'agreement-sick-days': 'Leave',
+  };
+
+  Future<void> openTab(WidgetTester tester, String tab) async {
+    await tester.tap(
+      find.descendant(
+        of: find.byType(PropertySheetTabs),
+        matching: find.text(tab),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> openTabFor(WidgetTester tester, String key) =>
+      openTab(tester, tabOf[key] ?? 'Rate');
+
   Future<void> enter(WidgetTester tester, String key, String text) async {
+    await openTabFor(tester, key);
     final field = find.byKey(ValueKey(key));
     await tester.scrollUntilVisible(
       field,
@@ -88,12 +119,12 @@ void main() {
         ),
       );
 
-      expect(find.text('Name'), findsOneWidget);
+      expect(find.text('Name:'), findsOneWidget);
       expect(
         find.text('What you call this job, e.g. Warehouse'),
         findsOneWidget,
       );
-      expect(find.text('Legal name (optional)'), findsOneWidget);
+      expect(find.text('Legal name (optional):'), findsOneWidget);
       expect(
         find.text('Employer name as it appears on payslips'),
         findsOneWidget,
@@ -114,7 +145,8 @@ void main() {
         ),
       );
 
-      expect(find.text('Edit employment'), findsOneWidget);
+      // The dialog caption names the form; the form is announced as such.
+      expect(find.bySemanticsLabel('Edit employment'), findsOneWidget);
       expect(find.text('Studio'), findsOneWidget);
       await tester.enterText(
         find.byKey(const ValueKey('employment-name')),
@@ -207,6 +239,7 @@ void main() {
       await enter(tester, 'agreement-overtime-hours', '7.5');
       await enter(tester, 'agreement-overtime-multiplier', '1.25');
       await enter(tester, 'agreement-night-multiplier', '1.333');
+      await openTab(tester, 'Premiums');
       await tapVisible(tester, find.text('Add the extras'));
       await submitAgreement(tester);
 
@@ -245,6 +278,7 @@ void main() {
         const LocalDate(2026, 10, 1),
       );
       expect(dateIn(tester, 'agreement-effective-end'), isNull);
+      await openTab(tester, 'Premiums');
       expect(timeIn(tester, 'agreement-night-start'), const LocalTime(22, 0));
       expect(timeIn(tester, 'agreement-night-end'), const LocalTime(6, 0));
 
@@ -254,6 +288,7 @@ void main() {
         'agreement-effective-end',
         const LocalDate(2026, 12, 31),
       );
+      await openTab(tester, 'Premiums');
       await setTime(tester, 'agreement-night-start', const LocalTime(21, 30));
       await submitAgreement(tester);
 
@@ -285,6 +320,7 @@ void main() {
       tester,
     ) async {
       await pumpAgreementForm(tester);
+      await openTab(tester, 'Premiums');
       final night = find.byKey(const ValueKey('agreement-night-enabled'));
       await tester.ensureVisible(night);
       await tester.pumpAndSettle();
@@ -302,6 +338,7 @@ void main() {
       tester,
     ) async {
       await pumpAgreementForm(tester, textScale: 2);
+      await openTab(tester, 'Premiums');
       for (final key in ['agreement-night-start', 'agreement-night-end']) {
         await tester.scrollUntilVisible(
           find.byKey(ValueKey(key)),
@@ -338,6 +375,7 @@ void main() {
       await pumpAgreementForm(tester);
 
       await enter(tester, 'agreement-hourly-rate', '18.40');
+      await openTab(tester, 'Premiums');
       await setTime(tester, 'agreement-night-start', const LocalTime(6, 0));
       await submitAgreement(tester);
       await tester.drag(find.byType(Scrollable).first, const Offset(0, 400));
@@ -353,6 +391,7 @@ void main() {
       await pumpAgreementForm(tester, onSubmit: (draft) => submitted = draft);
 
       await enter(tester, 'agreement-hourly-rate', '18.40');
+      await openTab(tester, 'Premiums');
       await tapVisible(
         tester,
         find.byKey(const ValueKey('agreement-night-enabled')),
@@ -377,7 +416,8 @@ void main() {
         onSubmit: (draft) => submitted = draft,
       );
 
-      expect(find.text('Edit agreement'), findsOneWidget);
+      // The dialog caption names the form; the form is announced as such.
+      expect(find.bySemanticsLabel('Edit agreement'), findsOneWidget);
       expect(find.text('25.50'), findsOneWidget);
       await submitAgreement(tester);
       expect(submitted?.terms.hourlyRateMicroEur, 25500000);

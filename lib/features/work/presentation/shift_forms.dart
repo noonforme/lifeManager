@@ -8,6 +8,7 @@ import '../../../shared/shell/shell_dialog.dart';
 import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/era_form.dart';
 import '../../../shared/workbench/era_icons.dart';
 import '../../../shared/workbench/era_time_field.dart';
 import '../../../shared/workbench/inspector_parts.dart';
@@ -150,7 +151,6 @@ final class ShiftCreateInspector extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InspectorPane(
     children: [
-      const InspectorTitle('Record work'),
       InspectorActions(
         children: [
           KeyButton(
@@ -441,109 +441,111 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     container: true,
     explicitChildNodes: true,
     label: widget.prefill == null ? 'Add manual shift' : widget.title,
-    child: ListView(
-      padding: inspectorInset,
-      children: [
-        InspectorTitle(widget.title),
-        _group(context, 'Times', [
-          _date('shift-start-date', 'Start date', _startDate, _setStartDate),
-          _time(
-            'shift-start-time',
-            'Start time',
-            _startTime,
-            emptyStart: _firstShiftStep,
-            error: _errors['startTime'],
-            onChanged: (value) => setState(() => _startTime = value),
-          ),
-          _date(
-            'shift-end-date',
-            'End date',
-            _endDate,
-            (value) => setState(() {
-              _endDate = value;
-              _endDatePicked = true;
-            }),
-          ),
-          _time(
-            'shift-end-time',
-            'End time',
-            _endTime,
-            emptyStart: _startTime ?? _firstShiftStep,
-            error: _errors['endTime'],
-            onChanged: (value) => setState(() => _endTime = value),
-          ),
-          _field(
-            key: const ValueKey('shift-timezone'),
-            label: 'Timezone',
-            controller: _timezone,
-            error: _errors['timezone'],
-          ),
-        ]),
-        _group(context, 'Breaks', [
-          for (final (index, value) in _breaks.indexed) ...[
+    child: EraFormScope(
+      labelWidth: 90,
+      child: ListView(
+        padding: inspectorInset,
+        children: [
+          _group(context, 'Times', [
+            _date('shift-start-date', 'Start date', _startDate, _setStartDate),
+            _time(
+              'shift-start-time',
+              'Start time',
+              _startTime,
+              emptyStart: _firstShiftStep,
+              error: _errors['startTime'],
+              onChanged: (value) => setState(() => _startTime = value),
+            ),
             _date(
-              'shift-break-start-date-$index',
-              'Break ${index + 1} start date',
-              value.startDate,
-              (picked) => _pickBreakStartDate(value, picked),
+              'shift-end-date',
+              'End date',
+              _endDate,
+              (value) => setState(() {
+                _endDate = value;
+                _endDatePicked = true;
+              }),
             ),
             _time(
-              'shift-break-start-$index',
-              'Break ${index + 1} start time',
-              value.start,
+              'shift-end-time',
+              'End time',
+              _endTime,
               emptyStart: _startTime ?? _firstShiftStep,
-              error: _errors['break-$index'],
-              onChanged: (picked) => setState(() => value.start = picked),
+              error: _errors['endTime'],
+              onChanged: (value) => setState(() => _endTime = value),
             ),
-            _date(
-              'shift-break-end-date-$index',
-              'Break ${index + 1} end date',
-              value.endDate,
-              (picked) => _pickBreakEndDate(value, picked),
+            _field(
+              key: const ValueKey('shift-timezone'),
+              label: 'Timezone',
+              controller: _timezone,
+              error: _errors['timezone'],
             ),
-            _time(
-              'shift-break-end-$index',
-              'Break ${index + 1} end time',
-              value.end,
-              emptyStart: value.start ?? _startTime ?? _firstShiftStep,
-              onChanged: (picked) => setState(() => value.end = picked),
+          ]),
+          _group(context, 'Breaks', [
+            for (final (index, value) in _breaks.indexed) ...[
+              _date(
+                'shift-break-start-date-$index',
+                'Break ${index + 1} start date',
+                value.startDate,
+                (picked) => _pickBreakStartDate(value, picked),
+              ),
+              _time(
+                'shift-break-start-$index',
+                'Break ${index + 1} start time',
+                value.start,
+                emptyStart: _startTime ?? _firstShiftStep,
+                error: _errors['break-$index'],
+                onChanged: (picked) => setState(() => value.start = picked),
+              ),
+              _date(
+                'shift-break-end-date-$index',
+                'Break ${index + 1} end date',
+                value.endDate,
+                (picked) => _pickBreakEndDate(value, picked),
+              ),
+              _time(
+                'shift-break-end-$index',
+                'Break ${index + 1} end time',
+                value.end,
+                emptyStart: value.start ?? _startTime ?? _firstShiftStep,
+                onChanged: (picked) => setState(() => value.end = picked),
+              ),
+            ],
+            Align(
+              alignment: Alignment.centerLeft,
+              child: KeyButton(
+                label: 'Add break',
+                kind: KeyKind.small,
+                onPressed: _addBreak,
+              ),
             ),
+          ]),
+          _group(context, 'Note', [
+            _field(
+              key: const ValueKey('shift-note'),
+              label: 'Shift note',
+              controller: _note,
+              maxLines: 3,
+            ),
+          ]),
+          if (_errors['shift'] case final error?) ...[
+            Text(
+              error,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            const SizedBox(height: 8),
           ],
-          Align(
-            alignment: Alignment.centerLeft,
-            child: KeyButton(
-              label: 'Add break',
-              kind: KeyKind.small,
-              onPressed: _addBreak,
-            ),
+          FormFooter(
+            children: [
+              FilledButton(
+                key: const ValueKey('save-manual-shift'),
+                onPressed: _submit,
+                child: const Text('Save manual shift'),
+              ),
+              const DialogCancelKey(),
+            ],
           ),
-        ]),
-        _group(context, 'Note', [
-          _field(
-            key: const ValueKey('shift-note'),
-            label: 'Shift note',
-            controller: _note,
-            maxLines: 3,
-          ),
-        ]),
-        if (_errors['shift'] case final error?) ...[
-          Text(
-            error,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-          const SizedBox(height: 8),
         ],
-        FormFooter(
-          children: [
-            FilledButton(
-              key: const ValueKey('save-manual-shift'),
-              onPressed: _submit,
-              child: const Text('Save manual shift'),
-            ),
-            const DialogCancelKey(),
-          ],
-        ),
-      ],
+      ),
     ),
   );
 }

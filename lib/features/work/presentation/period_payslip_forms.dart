@@ -6,6 +6,7 @@ import '../../../shared/shell/shell_dialog.dart';
 import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/era_form.dart';
 import '../../../shared/workbench/era_icons.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
@@ -202,46 +203,48 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
       container: true,
       explicitChildNodes: true,
       label: 'Create pay period',
-      child: ListView(
-        padding: inspectorInset,
-        children: [
-          const InspectorTitle('Pay period'),
-          _FormGroup(
-            legend: 'Dates',
-            children: [
-              EraDateField(
-                label: 'Start date',
-                fieldKey: const ValueKey('period-start'),
-                value: _start,
-                today: widget.today!,
-                error: _errors['start'],
-                onChanged: (value) => setState(() => _start = value!),
-              ),
-              EraDateField(
-                label: 'End date',
-                fieldKey: const ValueKey('period-end'),
-                value: _end,
-                today: widget.today!,
-                error: _errors['end'],
-                onChanged: (value) => setState(() => _end = value!),
-              ),
-              _Field(
-                controller: _label,
-                label: 'Label',
-                fieldKey: const ValueKey('period-label'),
-              ),
-            ],
-          ),
-          FormFooter(
-            children: [
-              FilledButton(
-                onPressed: _submitting ? null : _submit,
-                child: const Text('Create period'),
-              ),
-              const DialogCancelKey(),
-            ],
-          ),
-        ],
+      child: EraFormScope(
+        labelWidth: 100,
+        child: ListView(
+          padding: inspectorInset,
+          children: [
+            _FormGroup(
+              legend: 'Dates',
+              children: [
+                EraDateField(
+                  label: 'Start date',
+                  fieldKey: const ValueKey('period-start'),
+                  value: _start,
+                  today: widget.today!,
+                  error: _errors['start'],
+                  onChanged: (value) => setState(() => _start = value!),
+                ),
+                EraDateField(
+                  label: 'End date',
+                  fieldKey: const ValueKey('period-end'),
+                  value: _end,
+                  today: widget.today!,
+                  error: _errors['end'],
+                  onChanged: (value) => setState(() => _end = value!),
+                ),
+                _Field(
+                  controller: _label,
+                  label: 'Label',
+                  fieldKey: const ValueKey('period-label'),
+                ),
+              ],
+            ),
+            FormFooter(
+              children: [
+                FilledButton(
+                  onPressed: _submitting ? null : _submit,
+                  child: const Text('Create period'),
+                ),
+                const DialogCancelKey(),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -338,103 +341,92 @@ final class _PayslipInspectorState extends State<PayslipInspector> {
     explicitChildNodes: true,
     label: 'Record payslip',
     child: Form(
-      child: ListView(
-        padding: inspectorInset,
-        children: [
-          const InspectorTitle('Paid evidence'),
-          _FormGroup(
-            legend: 'Payslip',
-            children: [
-              EraDateField(
-                label: 'Issued date',
-                fieldKey: const ValueKey('payslip-issued-date'),
-                value: _issuedDate,
-                today: widget.today,
-                error: _errors['issuedDate'],
-                onChanged: (value) => setState(() => _issuedDate = value!),
-              ),
-              EraDateField(
-                label: 'Paid date',
-                optional: true,
-                fieldKey: const ValueKey('payslip-paid-date'),
-                value: _paidDate,
-                today: widget.today,
-                error: _errors['paidDate'],
-                onChanged: (value) => setState(() => _paidDate = value),
-              ),
-              _Field(
-                controller: _amount,
-                label: 'Paid amount',
-                fieldKey: const ValueKey('payslip-amount'),
-                error: _errors['amount'],
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+      child: EraFormScope(
+        labelWidth: 100,
+        child: ListView(
+          padding: inspectorInset,
+          children: [
+            _FormGroup(
+              legend: 'Payslip',
+              children: [
+                EraDateField(
+                  label: 'Issued date',
+                  fieldKey: const ValueKey('payslip-issued-date'),
+                  value: _issuedDate,
+                  today: widget.today,
+                  error: _errors['issuedDate'],
+                  onChanged: (value) => setState(() => _issuedDate = value!),
                 ),
-              ),
-            ],
-          ),
-          _FormGroup(
-            legend: 'Basis',
-            children: [
-              RadioGroup<RateBasis>(
-                groupValue: _basis,
-                onChanged: (value) {
-                  if (value != null) setState(() => _basis = value);
-                },
-                child: Wrap(
+                EraDateField(
+                  label: 'Paid date',
+                  optional: true,
+                  fieldKey: const ValueKey('payslip-paid-date'),
+                  value: _paidDate,
+                  today: widget.today,
+                  error: _errors['paidDate'],
+                  onChanged: (value) => setState(() => _paidDate = value),
+                ),
+                _Field(
+                  controller: _amount,
+                  label: 'Paid amount',
+                  fieldKey: const ValueKey('payslip-amount'),
+                  error: _errors['amount'],
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+              ],
+            ),
+            _FormGroup(
+              legend: 'Basis',
+              children: [
+                Wrap(
+                  spacing: 12,
                   children: [
                     for (final (value, label) in const [
                       (GrossBasis(), 'Gross'),
                       (NetBasis(), 'Net'),
                     ])
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => setState(() => _basis = value),
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Radio<RateBasis>(value: value),
-                              Text(label),
-                            ],
-                          ),
-                        ),
+                      EraRadio<RateBasis>(
+                        value: value,
+                        groupValue: _basis,
+                        label: label,
+                        onChanged: (next) => setState(() => _basis = next),
                       ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          _FormGroup(
-            legend: 'Breakdown',
-            children: [
-              _Field(controller: _gross, label: 'Gross amount'),
-              _Field(controller: _net, label: 'Net amount'),
-              _Field(controller: _deductions, label: 'Deductions'),
-            ],
-          ),
-          _FormGroup(
-            legend: 'Reference',
-            children: [
-              _Field(
-                controller: _reference,
-                label: 'Reference',
-                fieldKey: const ValueKey('payslip-reference'),
-              ),
-              _Field(controller: _note, label: 'Note', maxLines: 3),
-            ],
-          ),
-          FormFooter(
-            children: [
-              FilledButton(
-                onPressed: _submitting ? null : _submit,
-                child: const Text('Save payslip'),
-              ),
-              const DialogCancelKey(),
-            ],
-          ),
-        ],
+              ],
+            ),
+            _FormGroup(
+              legend: 'Breakdown',
+              children: [
+                _Field(controller: _gross, label: 'Gross amount'),
+                _Field(controller: _net, label: 'Net amount'),
+                _Field(controller: _deductions, label: 'Deductions'),
+              ],
+            ),
+            _FormGroup(
+              legend: 'Reference',
+              children: [
+                _Field(
+                  controller: _reference,
+                  label: 'Reference',
+                  fieldKey: const ValueKey('payslip-reference'),
+                ),
+                _Field(controller: _note, label: 'Note', maxLines: 3),
+              ],
+            ),
+            FormFooter(
+              children: [
+                FilledButton(
+                  onPressed: _submitting ? null : _submit,
+                  child: const Text('Save payslip'),
+                ),
+                const DialogCancelKey(),
+              ],
+            ),
+          ],
+        ),
       ),
     ),
   );

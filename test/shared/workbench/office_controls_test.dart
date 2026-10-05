@@ -221,4 +221,37 @@ void main() {
     expect(find.byKey(const ValueKey('focus-ring')), findsNothing);
     semantics.dispose();
   });
+
+  testWidgets('push buttons are at least 75 × 24; small keys are not widened', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            KeyButton(
+              key: const ValueKey('ok'),
+              label: 'OK',
+              kind: KeyKind.primary,
+              onPressed: () {},
+            ),
+            KeyButton(
+              key: const ValueKey('go'),
+              label: 'Go',
+              kind: KeyKind.small,
+              onPressed: () {},
+            ),
+          ],
+        ),
+      ),
+    );
+    final ok = tester.getSize(find.byKey(const ValueKey('ok')));
+    expect(ok.width, greaterThanOrEqualTo(75));
+    expect(ok.height, greaterThanOrEqualTo(24));
+    expect(
+      tester.getSize(find.byKey(const ValueKey('go'))).width,
+      lessThan(75),
+    );
+  });
 }

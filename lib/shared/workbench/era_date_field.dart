@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../core/time/local_date.dart';
 import 'era_controls.dart';
 import 'era_dates.dart';
+import 'era_form.dart';
 import 'era_month_calendar.dart';
 import 'lifeos_skin.dart';
 import 'millennium_style.dart';
@@ -188,124 +189,128 @@ final class _EraDateFieldState extends State<EraDateField> {
     final name =
         '${widget.label}, ${value == null ? 'none' : spokenDate(value)}';
     final highlighted = _focused && _enabled;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ExcludeSemantics(
-          child: Text(
-            widget.label,
-            style: skin.typography.body.copyWith(color: t.ink),
-          ),
-        ),
-        const SizedBox(height: 2),
-        TapRegion(
-          groupId: this,
-          child: OverlayPortal.overlayChildLayoutBuilder(
-            controller: _portal,
-            overlayChildBuilder: _calendar,
-            child: Semantics(
-              container: true,
-              button: true,
-              enabled: _enabled,
-              // The Focus below is excluded with the box's inner text, so
-              // the button reports focus itself, as EraTimeField does. A
-              // non-null value also marks it focusable; a clear box is not.
-              focused: _enabled ? _focused : null,
-              label: widget.error == null ? name : '$name, ${widget.error}',
-              onTap: _enabled ? _open : null,
-              child: Container(
-                key: widget.fieldKey,
-                constraints: const BoxConstraints(minHeight: 24),
-                decoration: BoxDecoration(
-                  color: t.paper,
-                  border: Border.all(
-                    color: widget.error == null
-                        ? MillenniumColors.fieldLine
-                        : t.negative,
+    // "Label:" in the dialog's label column, the box after it (XP-authentic
+    // shell spec 8.1). The optional check box widens the box a little.
+    return EraLabelled(
+      label: widget.label,
+      fieldWidth: widget.optional
+          ? EraFieldWidth.date + 20
+          : EraFieldWidth.date,
+      field: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TapRegion(
+            groupId: this,
+            child: OverlayPortal.overlayChildLayoutBuilder(
+              controller: _portal,
+              overlayChildBuilder: _calendar,
+              child: Semantics(
+                container: true,
+                button: true,
+                enabled: _enabled,
+                // The Focus below is excluded with the box's inner text, so
+                // the button reports focus itself, as EraTimeField does. A
+                // non-null value also marks it focusable; a clear box is not.
+                focused: _enabled ? _focused : null,
+                label: widget.error == null ? name : '$name, ${widget.error}',
+                onTap: _enabled ? _open : null,
+                child: Container(
+                  key: widget.fieldKey,
+                  constraints: const BoxConstraints(minHeight: 24),
+                  decoration: BoxDecoration(
+                    color: t.paper,
+                    border: Border.all(
+                      color: widget.error == null
+                          ? MillenniumColors.fieldLine
+                          : t.negative,
+                    ),
                   ),
-                ),
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (widget.optional)
-                        _EraCheck(
-                          key: const ValueKey('era-date-check'),
-                          label: widget.label,
-                          checked: value != null,
-                          onToggle: _toggle,
-                        ),
-                      Expanded(
-                        child: ExcludeSemantics(
-                          child: Focus(
-                            focusNode: _box,
-                            canRequestFocus: _enabled,
-                            onKeyEvent: _onKey,
-                            onFocusChange: (focused) =>
-                                setState(() => _focused = focused),
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: _enabled ? _tapBox : null,
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 3,
-                                          vertical: 2,
-                                        ),
-                                        child: Container(
-                                          color: highlighted ? t.selWash : null,
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (widget.optional)
+                          _EraCheck(
+                            key: const ValueKey('era-date-check'),
+                            label: widget.label,
+                            checked: value != null,
+                            onToggle: _toggle,
+                          ),
+                        Expanded(
+                          child: ExcludeSemantics(
+                            child: Focus(
+                              focusNode: _box,
+                              canRequestFocus: _enabled,
+                              onKeyEvent: _onKey,
+                              onFocusChange: (focused) =>
+                                  setState(() => _focused = focused),
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _enabled ? _tapBox : null,
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Padding(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 2,
+                                            horizontal: 3,
+                                            vertical: 2,
                                           ),
-                                          child: Text(
-                                            eraBoxDate(shown),
-                                            style: skin.typography.figure
-                                                .copyWith(
-                                                  color: !_enabled
-                                                      ? t.muted
-                                                      : highlighted
-                                                      ? t.selInk
-                                                      : t.ink,
-                                                ),
+                                          child: Container(
+                                            color: highlighted
+                                                ? t.selWash
+                                                : null,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 2,
+                                            ),
+                                            child: Text(
+                                              eraBoxDate(shown),
+                                              style: skin.typography.figure
+                                                  .copyWith(
+                                                    color: !_enabled
+                                                        ? t.muted
+                                                        : highlighted
+                                                        ? t.selInk
+                                                        : t.ink,
+                                                  ),
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  _DropButton(
-                                    key: const ValueKey('era-date-drop'),
-                                    enabled: _enabled,
-                                  ),
-                                ],
+                                    _DropButton(
+                                      key: const ValueKey('era-date-drop'),
+                                      enabled: _enabled,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-        if (widget.error case final error?)
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: ExcludeSemantics(
-              child: Text(
-                error,
-                style: skin.typography.small.copyWith(color: t.negative),
+          if (widget.error case final error?)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: ExcludeSemantics(
+                child: Text(
+                  error,
+                  style: skin.typography.small.copyWith(color: t.negative),
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

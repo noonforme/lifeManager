@@ -7,10 +7,12 @@ import '../../../shared/shell/shell_dialog.dart';
 import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/era_form.dart';
 import '../../../shared/workbench/era_icons.dart';
 import '../../../shared/workbench/era_time_field.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
+import '../../../shared/workbench/millennium_style.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../application/work_commands.dart';
 import '../domain/agreement.dart';
@@ -125,38 +127,40 @@ final class _EmploymentFormState extends State<EmploymentForm> {
       explicitChildNodes: true,
       label: editing ? 'Edit employment' : 'Create employment',
       child: Form(
-        child: ListView(
-          padding: inspectorInset,
-          children: [
-            InspectorTitle(editing ? 'Edit employment' : 'Employment details'),
-            _group(context, 'Employment', [
-              _Field(
-                controller: _name,
-                label: 'Name',
-                fieldKey: const ValueKey('employment-name'),
-                error: _nameError,
-                hint: 'What you call this job, e.g. Warehouse',
-                autofocus: true,
-              ),
-              const SizedBox(height: 12),
-              _Field(
-                controller: _legalLabel,
-                label: 'Legal name (optional)',
-                fieldKey: const ValueKey('employment-legal-name'),
-                hint: 'Employer name as it appears on payslips',
-              ),
-            ]),
-            if (_formError case final error?) _ErrorText(error),
-            FormFooter(
-              children: [
-                FilledButton(
-                  onPressed: _submitting ? null : _submit,
-                  child: const Text('Save employment'),
+        child: EraFormScope(
+          labelWidth: 90,
+          child: ListView(
+            padding: inspectorInset,
+            children: [
+              _group(context, 'Employment', [
+                _Field(
+                  controller: _name,
+                  label: 'Name',
+                  fieldKey: const ValueKey('employment-name'),
+                  error: _nameError,
+                  hint: 'What you call this job, e.g. Warehouse',
+                  autofocus: true,
                 ),
-                const DialogCancelKey(),
-              ],
-            ),
-          ],
+                const SizedBox(height: 12),
+                _Field(
+                  controller: _legalLabel,
+                  label: 'Legal name (optional)',
+                  fieldKey: const ValueKey('employment-legal-name'),
+                  hint: 'Employer name as it appears on payslips',
+                ),
+              ]),
+              if (_formError case final error?) _ErrorText(error),
+              FormFooter(
+                children: [
+                  FilledButton(
+                    onPressed: _submitting ? null : _submit,
+                    child: const Text('Save employment'),
+                  ),
+                  const DialogCancelKey(),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -187,6 +191,9 @@ final class AgreementForm extends StatefulWidget {
 
 final class _AgreementFormState extends State<AgreementForm> {
   late final PayAgreement? _initial = widget.initial;
+
+  /// The open tab: Rate, Premiums, Leave or Notes.
+  int _tab = 0;
   late final LocalDate _today = widget.today ?? _localToday();
   late LocalDate _effectiveStart = _initial?.effectiveStart ?? _today;
   late LocalDate? _effectiveEnd = _initial?.effectiveEnd;
@@ -293,6 +300,9 @@ final class _AgreementFormState extends State<AgreementForm> {
       setState(() {
         _errors = errors;
         _formError = null;
+        _tab = errors.keys
+            .map((key) => _tabOf[key] ?? 0)
+            .reduce((best, tab) => tab < best ? tab : best);
       });
       return;
     }
@@ -355,263 +365,281 @@ final class _AgreementFormState extends State<AgreementForm> {
     });
   }
 
+  /// The tab that holds each validated field, so a failed save brings the
+  /// first problem forward (XP-authentic shell spec 4.4).
+  static const _tabOf = {
+    'effectiveEnd': 0,
+    'hourlyRate': 0,
+    'overtimeHours': 1,
+    'overtimeMultiplier': 1,
+    'nightEnd': 1,
+    'nightMultiplier': 1,
+    'holidayMultiplier': 1,
+    'vacationPercent': 2,
+    'sickPercent': 2,
+    'sickDays': 2,
+  };
+
   @override
   Widget build(BuildContext context) {
     final editing = widget.initial != null;
+    final tokens = LifeOSSkinScope.of(context).tokens;
+    final pages = <List<Widget>>[
+      [
+        const InspectorText(
+          'Defaults follow the Lithuanian Labour Code minimums. They are '
+          'defaults, not legal advice.',
+        ),
+        const SizedBox(height: 8),
+        _group(context, 'Rate', [
+          EraDateField(
+            label: 'Starts on',
+            fieldKey: const ValueKey('agreement-effective-start'),
+            value: _effectiveStart,
+            today: _today,
+            onChanged: (value) => setState(() => _effectiveStart = value!),
+          ),
+          EraDateField(
+            label: 'Ends on',
+            optional: true,
+            fieldKey: const ValueKey('agreement-effective-end'),
+            value: _effectiveEnd,
+            today: _today,
+            error: _errors['effectiveEnd'],
+            onChanged: (value) => setState(() => _effectiveEnd = value),
+          ),
+          _Field(
+            controller: _hourlyRate,
+            label: 'Hourly rate (€)',
+            fieldKey: const ValueKey('agreement-hourly-rate'),
+            semanticLabel: 'Hourly rate',
+            error: _errors['hourlyRate'],
+            autofocus: !editing,
+            width: EraFieldWidth.money,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          EraLabelled(
+            label: 'Basis',
+            field: Wrap(
+              spacing: 12,
+              children: [
+                for (final (value, label) in const [
+                  (GrossBasis(), 'Gross'),
+                  (NetBasis(), 'Net'),
+                ])
+                  EraRadio<RateBasis>(
+                    value: value,
+                    groupValue: _basis,
+                    label: label,
+                    onChanged: (next) => setState(() => _basis = next),
+                  ),
+              ],
+            ),
+          ),
+        ]),
+      ],
+      [
+        _group(context, 'Overtime', [
+          _Sentence(
+            children: [
+              const Text('After'),
+              _Short(
+                controller: _overtimeHours,
+                fieldKey: const ValueKey('agreement-overtime-hours'),
+                semanticLabel: 'Overtime after hours',
+                error: _errors['overtimeHours'],
+              ),
+              const Text('hours per shift, pay'),
+              _Short(
+                controller: _overtimeMultiplier,
+                fieldKey: const ValueKey('agreement-overtime-multiplier'),
+                semanticLabel: 'Overtime multiplier',
+                error: _errors['overtimeMultiplier'],
+              ),
+              const Text('×'),
+            ],
+          ),
+        ]),
+        _group(context, 'Night', [
+          EraCheckBox(
+            key: const ValueKey('agreement-night-enabled'),
+            value: _nightEnabled,
+            label: 'Night pay',
+            onChanged: (value) => setState(() => _nightEnabled = value),
+          ),
+          const SizedBox(height: 4),
+          _Sentence(
+            enabled: _nightEnabled,
+            children: [
+              _ClockBox(
+                fieldKey: const ValueKey('agreement-night-start'),
+                semanticLabel: 'Night pay starts',
+                value: _nightStart,
+                enabled: _nightEnabled,
+                onChanged: (value) => setState(() => _nightStart = value),
+              ),
+              const Text('to'),
+              _ClockBox(
+                fieldKey: const ValueKey('agreement-night-end'),
+                semanticLabel: 'Night pay ends',
+                value: _nightEnd,
+                enabled: _nightEnabled,
+                error: _errors['nightEnd'],
+                onChanged: (value) => setState(() => _nightEnd = value),
+              ),
+              const Text('pay'),
+              _Short(
+                controller: _nightMultiplier,
+                fieldKey: const ValueKey('agreement-night-multiplier'),
+                semanticLabel: 'Night multiplier',
+                error: _errors['nightMultiplier'],
+                enabled: _nightEnabled,
+              ),
+              const Text('×'),
+            ],
+          ),
+        ]),
+        _group(context, 'Holidays', [
+          EraCheckBox(
+            key: const ValueKey('agreement-holidays-enabled'),
+            value: _holidays,
+            label: 'Public holidays (Lithuania)',
+            onChanged: (value) => setState(() => _holidays = value),
+          ),
+          const SizedBox(height: 4),
+          _Sentence(
+            enabled: _holidays,
+            children: [
+              const Text('Pay'),
+              _Short(
+                controller: _holidayMultiplier,
+                fieldKey: const ValueKey('agreement-holiday-multiplier'),
+                semanticLabel: 'Holiday multiplier',
+                error: _errors['holidayMultiplier'],
+                enabled: _holidays,
+              ),
+              const Text('×'),
+            ],
+          ),
+        ]),
+        _group(context, 'When several apply', [
+          for (final (value, title, example) in const [
+            (
+              PremiumStacking.highest,
+              'Highest wins',
+              'A night hour on a holiday pays ×2.',
+            ),
+            (
+              PremiumStacking.additive,
+              'Add the extras',
+              'A night hour on a holiday pays ×2.5.',
+            ),
+            (
+              PremiumStacking.multiplicative,
+              'Multiply',
+              'A night hour on a holiday pays ×3.',
+            ),
+          ])
+            EraRadio<PremiumStacking>(
+              value: value,
+              groupValue: _stacking,
+              label: title,
+              detail: example,
+              onChanged: (next) => setState(() => _stacking = next),
+            ),
+        ]),
+      ],
+      [
+        _group(context, 'Leave pay', [
+          _Field(
+            controller: _vacationPercent,
+            label: 'Vacation %',
+            fieldKey: const ValueKey('agreement-vacation-percent'),
+            semanticLabel: 'Vacation percent',
+            error: _errors['vacationPercent'],
+            width: EraFieldWidth.short,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          _Field(
+            controller: _sickPercent,
+            label: 'Sick, first days %',
+            fieldKey: const ValueKey('agreement-sick-percent'),
+            semanticLabel: 'Sick pay percent for the first days',
+            error: _errors['sickPercent'],
+            width: EraFieldWidth.short,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          _Field(
+            controller: _sickDays,
+            label: 'Sick days the employer pays',
+            fieldKey: const ValueKey('agreement-sick-days'),
+            error: _errors['sickDays'],
+            width: EraFieldWidth.short,
+            keyboardType: TextInputType.number,
+          ),
+          const InspectorNote(
+            'Paid from the average of the 3 months before. Defaults, '
+            'not legal advice.',
+          ),
+        ]),
+      ],
+      [
+        _group(context, 'Notes', [
+          _Field(controller: _label, label: 'Label'),
+          _Field(controller: _note, label: 'Note', maxLines: 3),
+        ]),
+      ],
+    ];
     return Semantics(
       container: true,
       explicitChildNodes: true,
       label: editing ? 'Edit agreement' : 'Create agreement',
-      // Switch and radio tiles paint their ink on this Material, above the
-      // inspector's background.
       child: Material(
         type: MaterialType.transparency,
         child: Form(
-          child: ListView(
-            padding: inspectorInset,
-            children: [
-              InspectorTitle(editing ? 'Edit agreement' : 'Pay agreement'),
-              const InspectorText(
-                'Defaults follow the Lithuanian Labour Code minimums. They are '
-                'defaults, not legal advice.',
-              ),
-              const SizedBox(height: 4),
-              _group(context, 'Rate', [
-                EraDateField(
-                  label: 'Starts on',
-                  fieldKey: const ValueKey('agreement-effective-start'),
-                  value: _effectiveStart,
-                  today: _today,
-                  onChanged: (value) =>
-                      setState(() => _effectiveStart = value!),
+          child: EraFormScope(
+            labelWidth: 120,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PropertySheetTabs(
+                  labels: const ['Rate', 'Premiums', 'Leave', 'Notes'],
+                  selectedIndex: _tab,
+                  onSelected: (index) => setState(() => _tab = index),
                 ),
-                const SizedBox(height: 12),
-                EraDateField(
-                  label: 'Ends on',
-                  optional: true,
-                  fieldKey: const ValueKey('agreement-effective-end'),
-                  value: _effectiveEnd,
-                  today: _today,
-                  error: _errors['effectiveEnd'],
-                  onChanged: (value) => setState(() => _effectiveEnd = value),
-                ),
-                const SizedBox(height: 12),
-                _Field(
-                  controller: _hourlyRate,
-                  label: 'Hourly rate (€)',
-                  fieldKey: const ValueKey('agreement-hourly-rate'),
-                  semanticLabel: 'Hourly rate',
-                  error: _errors['hourlyRate'],
-                  autofocus: !editing,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
+                Expanded(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: tokens.chrome,
+                      border: const Border(
+                        left: BorderSide(color: MillenniumColors.tabLine),
+                        right: BorderSide(color: MillenniumColors.tabLine),
+                        bottom: BorderSide(color: MillenniumColors.tabLine),
+                      ),
+                    ),
+                    child: IndexedStack(
+                      index: _tab,
+                      sizing: StackFit.expand,
+                      children: [
+                        for (final page in pages)
+                          ListView(padding: inspectorInset, children: page),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                RadioGroup<RateBasis>(
-                  groupValue: _basis,
-                  onChanged: (value) {
-                    if (value != null) setState(() => _basis = value);
-                  },
-                  child: Wrap(
-                    children: [
-                      for (final (value, label) in const [
-                        (GrossBasis(), 'Gross'),
-                        (NetBasis(), 'Net'),
-                      ])
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => setState(() => _basis = value),
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 12),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Radio<RateBasis>(value: value),
-                                Text(label),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ]),
-              _group(context, 'Overtime', [
-                _Sentence(
+                if (_formError case final error?) _ErrorText(error),
+                FormFooter(
                   children: [
-                    const Text('after'),
-                    _Short(
-                      controller: _overtimeHours,
-                      fieldKey: const ValueKey('agreement-overtime-hours'),
-                      semanticLabel: 'Overtime after hours',
-                      error: _errors['overtimeHours'],
+                    FilledButton(
+                      key: const ValueKey('save-agreement'),
+                      onPressed: _submitting ? null : _submit,
+                      child: const Text('Save agreement'),
                     ),
-                    const Text('hours per shift,'),
-                    _Short(
-                      prefix: '×',
-                      controller: _overtimeMultiplier,
-                      fieldKey: const ValueKey('agreement-overtime-multiplier'),
-                      semanticLabel: 'Overtime multiplier',
-                      error: _errors['overtimeMultiplier'],
-                    ),
+                    const DialogCancelKey(),
                   ],
                 ),
-              ]),
-              _group(context, 'Night', [
-                CheckboxListTile(
-                  key: const ValueKey('agreement-night-enabled'),
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text('Night pay'),
-                  value: _nightEnabled,
-                  onChanged: (value) =>
-                      setState(() => _nightEnabled = value ?? false),
-                ),
-                _Sentence(
-                  enabled: _nightEnabled,
-                  children: [
-                    _ClockBox(
-                      fieldKey: const ValueKey('agreement-night-start'),
-                      semanticLabel: 'Night pay starts',
-                      value: _nightStart,
-                      enabled: _nightEnabled,
-                      onChanged: (value) => setState(() => _nightStart = value),
-                    ),
-                    const Text('to'),
-                    _ClockBox(
-                      fieldKey: const ValueKey('agreement-night-end'),
-                      semanticLabel: 'Night pay ends',
-                      value: _nightEnd,
-                      enabled: _nightEnabled,
-                      error: _errors['nightEnd'],
-                      onChanged: (value) => setState(() => _nightEnd = value),
-                    ),
-                    _Short(
-                      prefix: '×',
-                      controller: _nightMultiplier,
-                      fieldKey: const ValueKey('agreement-night-multiplier'),
-                      semanticLabel: 'Night multiplier',
-                      error: _errors['nightMultiplier'],
-                      enabled: _nightEnabled,
-                    ),
-                  ],
-                ),
-              ]),
-              _group(context, 'Holidays', [
-                CheckboxListTile(
-                  key: const ValueKey('agreement-holidays-enabled'),
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text('Public holidays (Lithuania)'),
-                  value: _holidays,
-                  onChanged: (value) =>
-                      setState(() => _holidays = value ?? false),
-                ),
-                _Sentence(
-                  enabled: _holidays,
-                  children: [
-                    _Short(
-                      prefix: '×',
-                      controller: _holidayMultiplier,
-                      fieldKey: const ValueKey('agreement-holiday-multiplier'),
-                      semanticLabel: 'Holiday multiplier',
-                      error: _errors['holidayMultiplier'],
-                      enabled: _holidays,
-                    ),
-                  ],
-                ),
-              ]),
-              _group(context, 'When several apply', [
-                RadioGroup<PremiumStacking>(
-                  groupValue: _stacking,
-                  onChanged: (value) {
-                    if (value != null) setState(() => _stacking = value);
-                  },
-                  child: const Column(
-                    children: [
-                      _StackingOption(
-                        value: PremiumStacking.highest,
-                        title: 'Highest wins',
-                        example: 'A night hour on a holiday pays ×2.',
-                      ),
-                      _StackingOption(
-                        value: PremiumStacking.additive,
-                        title: 'Add the extras',
-                        example: 'A night hour on a holiday pays ×2.5.',
-                      ),
-                      _StackingOption(
-                        value: PremiumStacking.multiplicative,
-                        title: 'Multiply',
-                        example: 'A night hour on a holiday pays ×3.',
-                      ),
-                    ],
-                  ),
-                ),
-              ]),
-              _group(context, 'Leave pay', [
-                _Field(
-                  controller: _vacationPercent,
-                  label: 'Vacation %',
-                  fieldKey: const ValueKey('agreement-vacation-percent'),
-                  semanticLabel: 'Vacation percent',
-                  error: _errors['vacationPercent'],
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _Field(
-                  controller: _sickPercent,
-                  label: 'Sick, first days %',
-                  fieldKey: const ValueKey('agreement-sick-percent'),
-                  semanticLabel: 'Sick pay percent for the first days',
-                  error: _errors['sickPercent'],
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _Field(
-                  controller: _sickDays,
-                  label: 'Sick days the employer pays',
-                  fieldKey: const ValueKey('agreement-sick-days'),
-                  error: _errors['sickDays'],
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 4),
-                const InspectorNote(
-                  'Paid from the average of the 3 months before. Defaults, '
-                  'not legal advice.',
-                ),
-              ]),
-              ExpansionTile(
-                key: const ValueKey('agreement-more'),
-                tilePadding: EdgeInsets.zero,
-                title: const Text('More'),
-                initiallyExpanded:
-                    _initial?.label != null || _initial?.note != null,
-                children: [
-                  _Field(controller: _label, label: 'Label'),
-                  const SizedBox(height: 12),
-                  _Field(controller: _note, label: 'Note', maxLines: 3),
-                  const SizedBox(height: 8),
-                ],
-              ),
-              if (_formError case final error?) _ErrorText(error),
-              FormFooter(
-                children: [
-                  FilledButton(
-                    key: const ValueKey('save-agreement'),
-                    onPressed: _submitting ? null : _submit,
-                    child: const Text('Save agreement'),
-                  ),
-                  const DialogCancelKey(),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -818,26 +846,6 @@ final class _EmploymentHeaderState extends State<EmploymentHeader> {
   }
 }
 
-final class _StackingOption extends StatelessWidget {
-  const _StackingOption({
-    required this.value,
-    required this.title,
-    required this.example,
-  });
-
-  final PremiumStacking value;
-  final String title;
-  final String example;
-
-  @override
-  Widget build(BuildContext context) => RadioListTile<PremiumStacking>(
-    value: value,
-    contentPadding: EdgeInsets.zero,
-    title: Text(title),
-    subtitle: Text(example),
-  );
-}
-
 /// A row of short fields read as one sentence, e.g. "after [8] hours".
 final class _Sentence extends StatelessWidget {
   const _Sentence({required this.children, this.enabled = true});
@@ -878,7 +886,7 @@ final class _ClockBox extends StatelessWidget {
 
   /// The era width of the box; it grows past this with its text, so the
   /// time never splits, and widens to fit an error as `_Short` does.
-  static const _width = 88.0;
+  static const _width = EraFieldWidth.time;
 
   @override
   Widget build(BuildContext context) => ConstrainedBox(
@@ -907,7 +915,6 @@ final class _Short extends StatelessWidget {
     required this.semanticLabel,
     this.error,
     this.enabled = true,
-    this.prefix,
   });
 
   final TextEditingController controller;
@@ -915,11 +922,10 @@ final class _Short extends StatelessWidget {
   final String semanticLabel;
   final String? error;
   final bool enabled;
-  final String? prefix;
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: error == null ? 72 : 240,
+    width: error == null ? EraFieldWidth.short : 240,
     child: Semantics(
       label: error == null ? semanticLabel : '$semanticLabel, $error',
       textField: true,
@@ -930,7 +936,6 @@ final class _Short extends StatelessWidget {
         enabled: enabled,
         decoration: InputDecoration(
           isDense: true,
-          prefixText: prefix,
           errorText: error,
           errorMaxLines: 2,
         ),
@@ -950,6 +955,7 @@ final class _Field extends StatelessWidget {
     this.autofocus = false,
     this.keyboardType,
     this.maxLines = 1,
+    this.width = EraFieldWidth.text,
   });
 
   final TextEditingController controller;
@@ -961,9 +967,11 @@ final class _Field extends StatelessWidget {
   final bool autofocus;
   final TextInputType? keyboardType;
   final int maxLines;
+  final double? width;
 
   @override
   Widget build(BuildContext context) => EraField(
+    width: width,
     controller: controller,
     label: label,
     semanticLabel: semanticLabel,

@@ -69,37 +69,47 @@ final class _KeyButtonState extends State<KeyButton> {
       key: const ValueKey('key-face'),
       constraints: BoxConstraints(
         minHeight: kind == KeyKind.toolbar ? 30 : 24,
-        minWidth: 24,
+        // Dialog push buttons are at least 75 px wide, as the era's were
+        // (XP-authentic shell spec 8.1); small and toolbar keys fit their
+        // label.
+        minWidth: kind == KeyKind.primary || kind == KeyKind.secondary
+            ? 75
+            : 24,
       ),
       padding: EdgeInsets.symmetric(horizontal: kind == KeyKind.small ? 7 : 10),
       decoration: surface.decoration,
       foregroundDecoration: rings == null
           ? null
           : InsetRings(rings.$1, rings.$2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.leading case final leading?) ...[
-            leading,
-            const SizedBox(width: 5),
-          ],
-          Flexible(
-            child: Text(
-              widget.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style:
-                  (kind == KeyKind.small
-                          ? skin.typography.small
-                          : skin.typography.body)
-                      .copyWith(color: surface.ink),
+      // Centred in the 75 px minimum, and as wide as the label otherwise.
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.leading case final leading?) ...[
+              leading,
+              const SizedBox(width: 5),
+            ],
+            Flexible(
+              child: Text(
+                widget.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    (kind == KeyKind.small
+                            ? skin.typography.small
+                            : skin.typography.body)
+                        .copyWith(color: surface.ink),
+              ),
             ),
-          ),
-          if (widget.trailing case final trailing?) ...[
-            const SizedBox(width: 4),
-            trailing,
+            if (widget.trailing case final trailing?) ...[
+              const SizedBox(width: 4),
+              trailing,
+            ],
           ],
-        ],
+        ),
       ),
     );
     // One merged node per key: label, button, enabled, focus and tap.

@@ -133,9 +133,10 @@ form's current title.
   the status bar's first panel confirms it ("Shift saved.").
 - **Invalid** or **stale**: the dialog stays open with today's messages on
   the fields; nothing typed is lost.
-- **Pay Agreement** is a tabbed dialog: **Rate | Overtime | Night |
-  Holidays | When several apply**. The tab holding the first invalid field
-  is brought forward on save.
+- **Pay Agreement** is a tabbed dialog: **Rate | Premiums | Leave | Notes**
+  (Premiums holds Overtime, Night, Holidays and When several apply). The
+  tab holding the first invalid field is brought forward on save. (Tabs
+  amended during the build: the form also has Leave pay and Notes.)
 
 ### 4.5 Message boxes
 

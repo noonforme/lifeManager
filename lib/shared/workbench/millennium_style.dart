@@ -75,6 +75,11 @@ abstract final class MillenniumColors {
   static const clear = Color(0x00000000);
   static const infoGlyph = Color(0xff215dc6);
 
+  // Check boxes and radios (XP-authentic shell spec 8.1).
+  static const choiceLine = Color(0xff1c5180);
+  static const choiceMark = Color(0xff21a121);
+  static const choiceMarkLight = Color(0xff55d651);
+
   // Scrollbars (XP-authentic shell spec 6.2).
   static const scrollTrack = Color(0xfff4f3ee);
   static const scrollTrackEdge = Color(0xffeeede5);

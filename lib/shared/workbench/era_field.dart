@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'lifeos_skin.dart';
+import 'era_form.dart';
 
-/// A labelled text field in the era's shape (Millennium shell spec 5.5):
-/// the label in Body type above a sunken white field. The pair is one
+/// A labelled text field in the era's shape (XP-authentic shell spec 8.1):
+/// "Label:" in the dialog's label column, then a sunken white field. The pair is one
 /// semantics node, named by the label and, when present, the error.
 final class EraField extends StatelessWidget {
   const EraField({
@@ -17,6 +17,7 @@ final class EraField extends StatelessWidget {
     this.maxLines = 1,
     this.autofocus = false,
     this.onSubmitted,
+    this.width = EraFieldWidth.text,
     super.key,
   });
 
@@ -35,32 +36,29 @@ final class EraField extends StatelessWidget {
   final bool autofocus;
   final ValueChanged<String>? onSubmitted;
 
+  /// The field's width by kind ([EraFieldWidth]); null fills the row. A
+  /// multi-line field always fills the row.
+  final double? width;
+
   @override
   Widget build(BuildContext context) {
-    final skin = LifeOSSkinScope.of(context);
     final name = semanticLabel ?? label;
     return Semantics(
       label: error == null ? name : '$name, $error',
       textField: true,
       excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            label,
-            style: skin.typography.body.copyWith(color: skin.tokens.ink),
-          ),
-          const SizedBox(height: 2),
-          TextField(
-            key: fieldKey,
-            controller: controller,
-            autofocus: autofocus,
-            keyboardType: keyboardType,
-            maxLines: maxLines,
-            onSubmitted: onSubmitted,
-            decoration: InputDecoration(hintText: hint, errorText: error),
-          ),
-        ],
+      child: EraLabelled(
+        label: label,
+        fieldWidth: maxLines > 1 ? null : width,
+        field: TextField(
+          key: fieldKey,
+          controller: controller,
+          autofocus: autofocus,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          onSubmitted: onSubmitted,
+          decoration: InputDecoration(hintText: hint, errorText: error),
+        ),
       ),
     );
   }

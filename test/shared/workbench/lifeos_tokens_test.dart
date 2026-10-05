@@ -85,4 +85,15 @@ void main() {
       greaterThanOrEqualTo(3),
     );
   });
+
+  test('check marks and choice outlines read on white', () {
+    expect(
+      contrastRatio(MillenniumColors.choiceMark, t.paper),
+      greaterThanOrEqualTo(3),
+    );
+    expect(
+      contrastRatio(MillenniumColors.choiceLine, t.paper),
+      greaterThanOrEqualTo(3),
+    );
+  });
 }

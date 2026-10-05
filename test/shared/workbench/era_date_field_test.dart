@@ -84,7 +84,7 @@ void main() {
   testWidgets('the box shows the weekday and ISO date', (tester) async {
     await _pump(tester);
     expect(find.text('Mon 2026-10-05'), findsOneWidget);
-    expect(find.text('Starts on'), findsOneWidget);
+    expect(find.text('Starts on:'), findsOneWidget);
     expect(tester.getSize(find.byKey(_box)).height, greaterThanOrEqualTo(24));
   });
 

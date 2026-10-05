@@ -72,6 +72,7 @@ final class _CorrectionConfirmationInspectorState<T>
     child: ListView(
       padding: inspectorInset,
       children: [
+        // Names the record itself, which the dialog caption does not.
         InspectorTitle('Correct ${widget.recordName}'),
         const InspectorText(
           'The original remains in history and is excluded from active totals. A linked replacement will be created.',

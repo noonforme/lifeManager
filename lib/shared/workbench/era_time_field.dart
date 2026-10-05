@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../core/time/local_time.dart';
 import 'era_controls.dart';
+import 'era_form.dart';
 import 'lifeos_skin.dart';
 import 'millennium_style.dart';
 
@@ -225,19 +226,10 @@ final class _EraTimeFieldState extends State<EraTimeField> {
     }
 
     final colon = Text(':', style: skin.typography.figure.copyWith(color: ink));
-    return Column(
+    final box = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (widget.label case final label?) ...[
-          ExcludeSemantics(
-            child: Text(
-              label,
-              style: skin.typography.body.copyWith(color: t.ink),
-            ),
-          ),
-          const SizedBox(height: 2),
-        ],
         MergeSemantics(
           child: Focus(
             focusNode: _focus,
@@ -330,6 +322,16 @@ final class _EraTimeFieldState extends State<EraTimeField> {
             ),
           ),
       ],
+    );
+    // A labelled box sits after "Label:" in the dialog's label column
+    // (XP-authentic shell spec 8.1); a box set in a sentence has no label.
+    final label = widget.label;
+    if (label == null) return box;
+    return EraLabelled(
+      label: label,
+      fieldWidth: EraFieldWidth.time,
+      grow: true,
+      field: box,
     );
   }
 }
