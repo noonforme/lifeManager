@@ -608,7 +608,9 @@ extension on _WorkScreenState {
       state.register.employment != null &&
       !state.register.hasAgreement;
 
-  bool _failed() => _periodFailure != null || _reviseFailure != null;
+  // A failed revision shows above its form, so only a period failure is a
+  // message box of its own.
+  bool _failed() => _periodFailure != null;
 
   ShellDialogKind _dialogKind(WorkReady state) => _failed()
       ? ShellDialogKind.message
@@ -814,10 +816,25 @@ extension on _WorkScreenState {
   }
 
   Widget _revision(ShiftRecordProjection record) {
-    if (_reviseFailure case final failure?) {
-      return _reviseOutcome(failure, dismiss: _clearReviseFailure);
-    }
     final shift = record.shift;
+    final failure = _reviseFailure;
+    // A failed save explains itself above the form, which keeps what the
+    // owner typed; "Reload record" clears it and the form refreshes from
+    // the stored record.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (failure != null)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 160),
+            child: _reviseOutcome(failure, dismiss: _clearReviseFailure),
+          ),
+        Expanded(child: _revisionForm(record, shift)),
+      ],
+    );
+  }
+
+  Widget _revisionForm(ShiftRecordProjection record, WorkShift shift) {
     return ShiftEditInspector(
       key: ValueKey(('revise', record.id, shift.revision)),
       employmentId: shift.employmentId,

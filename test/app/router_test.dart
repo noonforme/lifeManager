@@ -924,8 +924,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // What the owner typed survives the stale outcome.
+    await setTime(tester, 'shift-end-time', const LocalTime(17, 0));
     await tapInDialog(tester, find.byKey(const ValueKey('save-manual-shift')));
 
+    expect(timeIn(tester, 'shift-end-time'), const LocalTime(17, 0));
     expect(
       router.routeInformationProvider.value.uri.toString(),
       _replacementEditLocation,
