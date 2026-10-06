@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/features/work/domain/schedule.dart';
 
 import '../../../support/schedule_fixture.dart';
 
@@ -38,4 +39,49 @@ void main() {
       'Depot rotation',
     );
   });
+
+  test(
+    'schedules re-emit when confirmed day flips usedByConfirmedDay',
+    () async {
+      final fixture = await ScheduleFixture.create();
+      addTearDown(fixture.dispose);
+      await fixture.saveDepot();
+
+      final versions = <List<WorkSchedule>>[];
+      final subscription = fixture.schedules
+          .watch(fixtureEmployment)
+          .listen((schedules) => versions.add(schedules));
+      addTearDown(subscription.cancel);
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(versions, isNotEmpty);
+      expect(versions.last.single.usedByConfirmedDay, isFalse);
+
+      // Confirming a day makes the schedule version mark usedByConfirmedDay
+      await fixture.plans.confirm(
+        fixtureEmployment,
+        const LocalDate(2026, 10, 5),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(versions.length, greaterThan(1));
+      expect(versions.last.single.usedByConfirmedDay, isTrue);
+    },
+  );
+
+  test(
+    'cancel immediately after listen throws nothing and leaves no work',
+    () async {
+      final fixture = await ScheduleFixture.create();
+      addTearDown(fixture.dispose);
+      await fixture.saveDepot();
+
+      // Subscribe and immediately cancel
+      // ignore: unawaited_futures
+      fixture.schedules.watch(fixtureEmployment).listen((_) {}).cancel();
+
+      // Should complete without timeout or error
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    },
+  );
 }

@@ -44,20 +44,13 @@ final class DriftScheduleRepository
       _schedules.forEmployment(id);
 
   @override
-  Stream<List<WorkSchedule>> watchSchedules(EmploymentId id) async* {
-    yield await _schedules.forEmployment(id);
-    await for (final _ in _database.tableUpdates(
-      TableUpdateQuery.onAllTables([
-        _database.workSchedules,
-        _database.workScheduleShiftTypes,
-        _database.workScheduleBlocks,
-        _database.workShifts,
-        _database.workLeaveRecords,
-      ]),
-    )) {
-      yield await _schedules.forEmployment(id);
-    }
-  }
+  Stream<List<WorkSchedule>> watchSchedules(EmploymentId id) => _watch([
+    _database.workSchedules,
+    _database.workScheduleShiftTypes,
+    _database.workScheduleBlocks,
+    _database.workShifts,
+    _database.workLeaveRecords,
+  ], () => _schedules.forEmployment(id));
 
   @override
   Future<LocalDate?> lastConfirmedDate(ScheduleId id, int version) =>
@@ -160,48 +153,15 @@ final class DriftScheduleRepository
   );
 
   @override
-  Stream<PlanInputs> watchPlanInputs(EmploymentId id) {
-    late StreamController<PlanInputs> controller;
-    late StreamSubscription<void> updates;
-
-    controller = StreamController<PlanInputs>(
-      onListen: () async {
-        // Emit initial value
-        final initial = await planInputs(id);
-        if (!controller.isClosed) {
-          controller.add(initial);
-        }
-        // Listen for updates
-        updates = _database
-            .tableUpdates(
-              TableUpdateQuery.onAllTables([
-                _database.workSchedules,
-                _database.workScheduleShiftTypes,
-                _database.workScheduleBlocks,
-                _database.workDayExceptions,
-                _database.workShifts,
-                _database.workLeaveRecords,
-                _database.payAgreements,
-              ]),
-            )
-            .listen(
-              (_) async {
-                final updated = await planInputs(id);
-                if (!controller.isClosed) {
-                  controller.add(updated);
-                }
-              },
-              onError: controller.addError,
-              onDone: controller.close,
-            );
-      },
-      onCancel: () async {
-        await updates.cancel();
-      },
-    );
-
-    return controller.stream;
-  }
+  Stream<PlanInputs> watchPlanInputs(EmploymentId id) => _watch([
+    _database.workSchedules,
+    _database.workScheduleShiftTypes,
+    _database.workScheduleBlocks,
+    _database.workDayExceptions,
+    _database.workShifts,
+    _database.workLeaveRecords,
+    _database.payAgreements,
+  ], () => planInputs(id));
 
   @override
   Future<MutationOutcome<DayException>> putException(
@@ -250,14 +210,8 @@ final class DriftScheduleRepository
   Future<LeaveRecord?> leaveById(LeaveRecordId id) => _leave.byId(id);
 
   @override
-  Stream<List<LeaveRecord>> watchLeave(EmploymentId id) async* {
-    yield await _leave.forEmployment(id);
-    await for (final _ in _database.tableUpdates(
-      TableUpdateQuery.onAllTables([_database.workLeaveRecords]),
-    )) {
-      yield await _leave.forEmployment(id);
-    }
-  }
+  Stream<List<LeaveRecord>> watchLeave(EmploymentId id) =>
+      _watch([_database.workLeaveRecords], () => _leave.forEmployment(id));
 
   @override
   Future<MutationOutcome<LeaveRecord>> insertLeave(LeaveRecord value) async {
@@ -326,4 +280,26 @@ final class DriftScheduleRepository
 
   Future<Set<LocalDate>> _confirmedDates(EmploymentId id) =>
       _schedules.confirmedDates(id);
+
+  /// [read] now and again after each commit to [tables]; reads run one at a
+  /// time, in order, and errors reach the listener. The subscription is
+  /// created synchronously so cancel is always safe, even immediately after
+  /// listen.
+  Stream<T> _watch<T>(
+    List<TableInfo<Table, dynamic>> tables,
+    Future<T> Function() read,
+  ) {
+    final updates = _database.tableUpdates(
+      TableUpdateQuery.onAllTables(tables),
+    );
+    return Stream<void>.multi((controller) {
+      controller.add(null);
+      final subscription = updates.listen(
+        (_) => controller.add(null),
+        onError: controller.addError,
+        onDone: controller.close,
+      );
+      controller.onCancel = subscription.cancel;
+    }).asyncMap((_) => read());
+  }
 }
