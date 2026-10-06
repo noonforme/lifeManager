@@ -10,23 +10,28 @@ const _sheets = {
 };
 
 /// What Save as view stores for a Work route: the sheet and its structural
-/// filters. The open record, form and mode are not part of a view.
-ViewShape workViewShape(WorkRouteState route) => ViewShape(
-  sheetRef: _sheets[route.sheet]!,
-  filters: {
-    if (route.employmentId case final employment?)
-      'employment': employment.value,
-    ...switch (route.scope) {
-      PayPeriodScope(:final periodId) => {'period': periodId.value},
-      DateRangeScope(:final start, :final end) => {
-        'from': '$start',
-        'to': '$end',
+/// filters, or null for a sheet that is not saved as a view. The open
+/// record, form and mode are not part of a view.
+ViewShape? workViewShape(WorkRouteState route) {
+  final sheetRef = _sheets[route.sheet ?? WorkSheet.shifts];
+  if (sheetRef == null) return null;
+  return ViewShape(
+    sheetRef: sheetRef,
+    filters: {
+      if (route.employmentId case final employment?)
+        'employment': employment.value,
+      ...switch (route.scope) {
+        PayPeriodScope(:final periodId) => {'period': periodId.value},
+        DateRangeScope(:final start, :final end) => {
+          'from': '$start',
+          'to': '$end',
+        },
+        null => const <String, String>{},
       },
-      null => const <String, String>{},
+      if (route.showVoid) 'void': '1',
     },
-    if (route.showVoid) 'void': '1',
-  },
-);
+  );
+}
 
 /// The Work route a view reopens, or null for a view of another area.
 WorkRouteState? workViewState(ViewShape shape) {

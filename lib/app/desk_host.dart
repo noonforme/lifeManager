@@ -454,7 +454,7 @@ DeskTileContent _viewTile(
   );
   final Widget body = switch (register) {
     null => const TileList(lines: [], empty: 'Reading records.'),
-    final register => switch (state.sheet) {
+    final register => switch (state.sheet ?? WorkSheet.shifts) {
       WorkSheet.shifts => ShiftsSheet(
         rows: register.shiftSheet,
         timezones: ref.read(timezoneServiceProvider),
@@ -480,6 +480,9 @@ DeskTileContent _viewTile(
         selectedId: null,
         onOpen: open,
       ),
+      // Never saved as views (work_views.dart).
+      WorkSheet.calendar || WorkSheet.leave || WorkSheet.schedules =>
+        const TileList(lines: [], empty: 'This view is not available.'),
     },
   };
   return (

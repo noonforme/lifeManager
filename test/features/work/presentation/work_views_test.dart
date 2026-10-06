@@ -28,9 +28,10 @@ void main() {
         ),
         record: null,
         mode: WorkInspectorMode.inspect,
+        sheet: WorkSheet.shifts,
       ),
     ]) {
-      final shape = workViewShape(route);
+      final shape = workViewShape(route)!;
       expect(viewShapeIssues(shape), isEmpty);
       expect(workViewRoute(shape), workRouteUri(route).toString());
     }
@@ -47,9 +48,36 @@ void main() {
         adding: WorkAddKind.payslip,
         fromLast: true,
       ),
-    );
+    )!;
     expect(shape.sheetRef, ViewSheets.workPeriods);
     expect(shape.filters, {'employment': _employment.value});
+  });
+
+  test('a default route saves as a Shifts view', () {
+    const route = WorkRouteState(
+      employmentId: _employment,
+      scope: null,
+      record: null,
+      mode: WorkInspectorMode.inspect,
+    );
+    expect(workViewShape(route)!.sheetRef, ViewSheets.workShifts);
+  });
+
+  test('the calendar and schedules sheets are not saved as views', () {
+    for (final sheet in [WorkSheet.calendar, WorkSheet.schedules]) {
+      expect(
+        workViewShape(
+          WorkRouteState(
+            employmentId: _employment,
+            scope: null,
+            record: null,
+            mode: WorkInspectorMode.inspect,
+            sheet: sheet,
+          ),
+        ),
+        isNull,
+      );
+    }
   });
 
   test('a view of another area has no Work route', () {

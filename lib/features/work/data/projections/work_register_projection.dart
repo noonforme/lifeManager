@@ -43,8 +43,17 @@ final class DateRangeScope extends WorkTemporalScope {
   int get hashCode => Object.hash(start, end);
 }
 
-/// The four Work sheets (shell spec 7.2).
-enum WorkSheet { shifts, periods, payslips, agreements }
+/// The sheets an employment's Work desk shows, in the Books tree's order
+/// (schedules spec 5).
+enum WorkSheet {
+  calendar,
+  shifts,
+  leave,
+  schedules,
+  periods,
+  payslips,
+  agreements,
+}
 
 /// A shift with its derived columns: break and paid time, and for a
 /// finalized shift the pay breakdown with the facts it came from.

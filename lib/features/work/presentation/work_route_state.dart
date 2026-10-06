@@ -10,7 +10,7 @@ enum WorkInspectorMode { inspect, properties, create, edit, correct }
 enum WorkRouteProblem { malformedId, malformedScope, invalidMode }
 
 /// A create form opened by route, for example from + Add.
-enum WorkAddKind { payPeriod, payslip, agreement }
+enum WorkAddKind { payPeriod, payslip, agreement, schedule, extraShift, leave }
 
 enum WorkRecordKind {
   employment,
@@ -19,6 +19,8 @@ enum WorkRecordKind {
   shiftBreak,
   payPeriod,
   payslip,
+  schedule,
+  leave,
 }
 
 sealed class WorkRouteParseResult {
@@ -68,6 +70,11 @@ final class WorkRecordRef {
         PayPeriodId.tryParse(idText),
       ),
       'payslip' => _record(WorkRecordKind.payslip, PayslipId.tryParse(idText)),
+      'schedule' => _record(
+        WorkRecordKind.schedule,
+        ScheduleId.tryParse(idText),
+      ),
+      'leave' => _record(WorkRecordKind.leave, LeaveRecordId.tryParse(idText)),
       _ => null,
     };
   }
@@ -109,10 +116,12 @@ final class WorkRouteState {
     required this.scope,
     required this.record,
     required this.mode,
-    this.sheet = WorkSheet.shifts,
+    this.sheet,
     this.showVoid = false,
     this.adding,
     this.fromLast = false,
+    this.day,
+    this.confirming = false,
   });
 
   final EmploymentId? employmentId;
@@ -120,8 +129,9 @@ final class WorkRouteState {
   final WorkRecordRef? record;
   final WorkInspectorMode mode;
 
-  /// The sheet on the desk; Shifts unless the route names another.
-  final WorkSheet sheet;
+  /// The sheet on the desk; null shows the employment's default, Calendar
+  /// when a schedule is in use today, otherwise Shifts (schedules spec 5).
+  final WorkSheet? sheet;
 
   /// Whether voided rows are listed; they are hidden by default.
   final bool showVoid;
@@ -132,6 +142,12 @@ final class WorkRouteState {
   /// Whether the manual shift form is prefilled from the last shift.
   final bool fromLast;
 
+  /// A planned day whose Properties are open (schedules spec 6.2).
+  final LocalDate? day;
+
+  /// Whether the Confirm worked days dialog is open (spec 6.3).
+  final bool confirming;
+
   WorkRouteState copyWith({
     WorkTemporalScope? Function()? scope,
     WorkRecordRef? Function()? record,
@@ -140,6 +156,8 @@ final class WorkRouteState {
     bool? showVoid,
     WorkAddKind? Function()? adding,
     bool? fromLast,
+    LocalDate? Function()? day,
+    bool? confirming,
   }) => WorkRouteState(
     employmentId: employmentId,
     scope: scope == null ? this.scope : scope(),
@@ -149,6 +167,8 @@ final class WorkRouteState {
     showVoid: showVoid ?? this.showVoid,
     adding: adding == null ? this.adding : adding(),
     fromLast: fromLast ?? this.fromLast,
+    day: day == null ? this.day : day(),
+    confirming: confirming ?? this.confirming,
   );
 }
 
@@ -165,12 +185,12 @@ Uri workRouteUri(WorkRouteState state) {
       parameters.add('to=$end');
     case null:
   }
-  if (state.sheet != WorkSheet.shifts) {
-    parameters.add('sheet=${state.sheet.name}');
-  }
+  if (state.sheet case final sheet?) parameters.add('sheet=${sheet.name}');
   if (state.showVoid) parameters.add('void=1');
   if (state.adding case final adding?) parameters.add('add=${adding.name}');
   if (state.fromLast) parameters.add('template=last');
+  if (state.day case final day?) parameters.add('day=$day');
+  if (state.confirming) parameters.add('confirm=1');
   if (state.record case final record?) {
     parameters.add('record=${record.kind.name}:${record.id.value}');
   }
@@ -226,15 +246,20 @@ WorkRouteParseResult parseWorkRoute(Uri uri) {
 
   final sheetText = uri.queryParameters['sheet'];
   final sheet = sheetText == null
-      ? WorkSheet.shifts
+      ? null
       : WorkSheet.values.where((value) => value.name == sheetText).firstOrNull;
+  final dayText = uri.queryParameters['day'];
+  final day = dayText == null ? null : LocalDate.tryParse(dayText);
+  final confirmText = uri.queryParameters['confirm'];
   final voidText = uri.queryParameters['void'];
   final addText = uri.queryParameters['add'];
   final adding = addText == null
       ? null
       : WorkAddKind.values.where((value) => value.name == addText).firstOrNull;
   final templateText = uri.queryParameters['template'];
-  if (sheet == null ||
+  if ((sheetText != null && sheet == null) ||
+      (dayText != null && day == null) ||
+      (confirmText != null && confirmText != '1') ||
       (voidText != null && voidText != '1') ||
       (addText != null && adding == null) ||
       (templateText != null && templateText != 'last')) {
@@ -256,6 +281,8 @@ WorkRouteParseResult parseWorkRoute(Uri uri) {
       showVoid: voidText == '1',
       adding: adding,
       fromLast: templateText == 'last',
+      day: day,
+      confirming: confirmText == '1',
     ),
   );
 }

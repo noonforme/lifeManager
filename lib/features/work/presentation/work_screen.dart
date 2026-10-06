@@ -555,7 +555,13 @@ extension on _WorkScreenState {
           onSubmit: (value) =>
               _saved(widget.onCreateAgreement(value), 'Pay agreement saved.'),
         );
-      case WorkAddKind.payPeriod || WorkAddKind.payslip || null:
+      // The schedule, extra shift and leave forms arrive with later tasks.
+      case WorkAddKind.payPeriod ||
+          WorkAddKind.payslip ||
+          WorkAddKind.schedule ||
+          WorkAddKind.extraShift ||
+          WorkAddKind.leave ||
+          null:
         return null;
     }
   }

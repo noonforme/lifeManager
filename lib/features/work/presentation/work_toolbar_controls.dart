@@ -365,11 +365,15 @@ LocalDate _addDays(LocalDate date, int days) {
 final class SheetPicker extends StatelessWidget {
   const SheetPicker({required this.sheet, required this.onSheet, super.key});
 
+  /// The sheet shown; the caller resolves the employment's default.
   final WorkSheet sheet;
   final ValueChanged<WorkSheet> onSheet;
 
   static const labels = {
+    WorkSheet.calendar: 'Calendar',
     WorkSheet.shifts: 'Shifts',
+    WorkSheet.leave: 'Leave',
+    WorkSheet.schedules: 'Schedules',
     WorkSheet.periods: 'Pay periods',
     WorkSheet.payslips: 'Payslips',
     WorkSheet.agreements: 'Agreements',

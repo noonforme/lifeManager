@@ -128,7 +128,8 @@ final class WorkRegister extends StatelessWidget {
     final selectedId = selectedRecord == null
         ? null
         : workRowId(selectedRecord!);
-    final Widget sheet = switch (route.sheet) {
+    final shown = route.sheet ?? WorkSheet.shifts;
+    final Widget sheet = switch (shown) {
       WorkSheet.shifts => ShiftsSheet(
         rows: value.shiftSheet,
         timezones: timezones ?? IanaTimezoneService(),
@@ -158,6 +159,13 @@ final class WorkRegister extends StatelessWidget {
         onOpen: onSelect,
         onProperties: onProperties,
       ),
+      WorkSheet.calendar ||
+      WorkSheet.leave ||
+      WorkSheet.schedules => const OperationalState(
+        kind: OperationalStateKind.empty,
+        title: 'Not built yet',
+        message: 'This sheet arrives with the schedule screens.',
+      ),
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -171,7 +179,7 @@ final class WorkRegister extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               SheetPicker(
-                sheet: route.sheet,
+                sheet: shown,
                 onSheet: (sheet) => change(route.copyWith(sheet: sheet)),
               ),
               EmploymentSwitcher(

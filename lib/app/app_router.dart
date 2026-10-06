@@ -9,6 +9,7 @@ import '../features/work/domain/ids.dart';
 import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_route_state.dart';
 import '../features/work/presentation/work_screen.dart';
+import '../features/work/presentation/work_toolbar_controls.dart';
 import '../features/work/presentation/work_views.dart';
 import '../shared/shell/name_dialog.dart';
 import '../shared/shell/shell_frame.dart';
@@ -98,13 +99,6 @@ Widget _workSurface(BuildContext routerContext, Uri uri) {
     child: ShellChromeHost(location: uri, child: const _WorkRouteHost()),
   );
 }
-
-const _sheetLabels = {
-  WorkSheet.shifts: 'Shifts',
-  WorkSheet.periods: 'Pay periods',
-  WorkSheet.payslips: 'Payslips',
-  WorkSheet.agreements: 'Agreements',
-};
 
 final class _WorkRouteHost extends ConsumerWidget {
   const _WorkRouteHost();
@@ -224,14 +218,17 @@ final class _WorkRouteHost extends ConsumerWidget {
         onSaveView: switch (ref.watch(savedViewRepositoryProvider)) {
           null => null,
           final views => (route) async {
+            final shape = workViewShape(route);
+            if (shape == null) return;
             final name = await askForName(
               context,
               title: 'Save view',
               action: 'Save',
-              initial: '${_sheetLabels[route.sheet]} view',
+              initial:
+                  '${SheetPicker.labels[route.sheet ?? WorkSheet.shifts]} view',
             );
             if (name != null && name.trim().isNotEmpty) {
-              await views.createView(name, workViewShape(route));
+              await views.createView(name, shape);
             }
           },
         },
