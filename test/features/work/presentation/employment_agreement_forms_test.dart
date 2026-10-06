@@ -19,6 +19,7 @@ import 'package:lifeos/shared/workbench/era_time_field.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/shared/workbench/property_sheet.dart';
 
 import '../../../support/era_pickers.dart';
 
@@ -131,43 +132,60 @@ void main() {
       );
     });
 
-    testWidgets('the same form edits an employment', (tester) async {
+    testWidgets('on its property sheet the form edits an employment', (
+      tester,
+    ) async {
       EmploymentDraft? submitted;
+      final sheet = PropertySheetController();
+      addTearDown(sheet.dispose);
       await tester.pumpWidget(
         _TestApp(
-          child: EmploymentForm(
-            initial: _employment,
-            onSubmit: (draft) async {
-              submitted = draft;
-              return Committed(_employment);
-            },
+          child: PropertySheetScope(
+            controller: sheet,
+            child: EmploymentForm(
+              initial: _employment,
+              onSubmit: (draft) async {
+                submitted = draft;
+                return Committed(_employment);
+              },
+            ),
           ),
         ),
       );
 
-      // The dialog caption names the form; the form is announced as such.
-      expect(find.bySemanticsLabel('Edit employment'), findsOneWidget);
-      expect(find.text('Studio'), findsOneWidget);
+      expect(find.text('Save employment'), findsNothing);
+      expect(sheet.dirty, isFalse);
       await tester.enterText(
         find.byKey(const ValueKey('employment-name')),
         'Warehouse',
       );
-      await tester.tap(find.text('Save employment'));
-      await tester.pumpAndSettle();
+      expect(sheet.dirty, isTrue);
+      expect(await sheet.apply(), isTrue);
       expect(submitted?.name, 'Warehouse');
     });
 
-    testWidgets('a stale save says to reload', (tester) async {
+    testWidgets('a stale save says to reload and keeps the sheet open', (
+      tester,
+    ) async {
+      final sheet = PropertySheetController();
+      addTearDown(sheet.dispose);
       await tester.pumpWidget(
         _TestApp(
-          child: EmploymentForm(
-            initial: _employment,
-            onSubmit: (_) async => const Stale<Employment>(),
+          child: PropertySheetScope(
+            controller: sheet,
+            child: EmploymentForm(
+              initial: _employment,
+              onSubmit: (_) async => const Stale<Employment>(),
+            ),
           ),
         ),
       );
-      await tester.tap(find.text('Save employment'));
-      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('employment-name')),
+        'Warehouse',
+      );
+      expect(await sheet.apply(), isFalse);
+      await tester.pump();
       expect(find.text(staleMessage), findsOneWidget);
     });
   });
@@ -424,41 +442,81 @@ void main() {
       expect(terms.holidayCalendar, HolidayCalendar.none);
     });
 
-    testWidgets('the same form edits an unused agreement', (tester) async {
+    Future<PropertySheetController> pumpSheet(
+      WidgetTester tester, {
+      MutationOutcome<PayAgreement>? outcome,
+      void Function(AgreementDraft draft)? onSubmit,
+    }) async {
+      final sheet = PropertySheetController();
+      addTearDown(sheet.dispose);
+      await tester.pumpWidget(
+        _TestApp(
+          child: PropertySheetScope(
+            controller: sheet,
+            child: AgreementForm(
+              employmentId: _employmentId,
+              initial: _agreement,
+              today: const LocalDate(2026, 10, 1),
+              onSubmit: (draft) async {
+                onSubmit?.call(draft);
+                return outcome ?? Committed(_agreement);
+              },
+            ),
+          ),
+        ),
+      );
+      return sheet;
+    }
+
+    testWidgets('on its sheet an unused agreement saves through the sheet', (
+      tester,
+    ) async {
       AgreementDraft? submitted;
-      await pumpAgreementForm(
+      final sheet = await pumpSheet(
         tester,
-        initial: _agreement,
         onSubmit: (draft) => submitted = draft,
       );
 
-      // The dialog caption names the form; the form is announced as such.
-      expect(find.bySemanticsLabel('Edit agreement'), findsOneWidget);
+      expect(find.byKey(const ValueKey('save-agreement')), findsNothing);
       expect(find.text('25.50'), findsOneWidget);
-      await submitAgreement(tester);
-      expect(submitted?.terms.hourlyRateMicroEur, 25500000);
+      expect(sheet.dirty, isFalse);
+      await enter(tester, 'agreement-hourly-rate', '26.00');
+      expect(sheet.dirty, isTrue);
+      expect(await sheet.apply(), isTrue);
+      expect(submitted?.terms.hourlyRateMicroEur, 26000000);
       expect(submitted?.terms.effectiveStart, const LocalDate(2026, 10, 1));
+    });
+
+    testWidgets('a refused sheet save stays open on the problem tab', (
+      tester,
+    ) async {
+      final sheet = await pumpSheet(tester);
+      await enter(tester, 'agreement-hourly-rate', '0');
+      await openTab(tester, 'Leave');
+      expect(await sheet.apply(), isFalse);
+      await tester.pumpAndSettle();
+      expect(find.text('Enter a rate above zero.'), findsOneWidget);
+      expect(sheet.dirty, isTrue);
     });
 
     testWidgets('in-use and stale outcomes use the section 9 copy', (
       tester,
     ) async {
-      await pumpAgreementForm(
+      var sheet = await pumpSheet(
         tester,
-        initial: _agreement,
         outcome: const Invalid<PayAgreement>({
           'agreement.inUse': [FieldIssue(FieldIssueCode.conflict)],
         }),
       );
-      await submitAgreement(tester);
+      await enter(tester, 'agreement-hourly-rate', '26.00');
+      expect(await sheet.apply(), isFalse);
+      await tester.pumpAndSettle();
       expect(find.text(agreementInUseMessage), findsOneWidget);
 
-      await pumpAgreementForm(
-        tester,
-        initial: _agreement,
-        outcome: const Stale<PayAgreement>(),
-      );
-      await submitAgreement(tester);
+      sheet = await pumpSheet(tester, outcome: const Stale<PayAgreement>());
+      await enter(tester, 'agreement-hourly-rate', '27.00');
+      expect(await sheet.apply(), isFalse);
+      await tester.pumpAndSettle();
       expect(find.text(staleMessage), findsOneWidget);
     });
 
@@ -483,71 +541,95 @@ void main() {
     });
   });
 
-  group('agreement view', () {
-    testWidgets('an agreement in use is read-only and says why', (
+  group('read-only agreement', () {
+    testWidgets('an agreement in use shows its terms greyed and says why', (
       tester,
     ) async {
+      var submitted = false;
+      final sheet = PropertySheetController();
+      addTearDown(sheet.dispose);
       await tester.pumpWidget(
         _TestApp(
-          child: AgreementView(
-            agreement: _agreement,
-            finishedShifts: 3,
-            onEdit: () {},
+          child: PropertySheetScope(
+            controller: sheet,
+            child: AgreementForm(
+              employmentId: _employmentId,
+              initial: _agreement,
+              readOnly: true,
+              lockedReason:
+                  'Used by 3 finished shifts, so these terms can '
+                  'no longer change.',
+              onSubmit: (_) async {
+                submitted = true;
+                return Committed(_agreement);
+              },
+            ),
           ),
         ),
       );
 
-      expect(find.text('Used by 3 finished shifts.'), findsOneWidget);
-      expect(find.text('Edit agreement'), findsNothing);
-      expect(find.text('22:00 to 06:00, ×1.5'), findsOneWidget);
+      expect(
+        find.text(
+          'Used by 3 finished shifts, so these terms can no longer change.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('agreement-hourly-rate')),
+            )
+            .enabled,
+        isFalse,
+      );
+      await tester.tap(find.text('Net'));
+      await tester.pump();
+      expect(sheet.dirty, isFalse);
+      expect(await sheet.apply(), isTrue);
+      expect(submitted, isFalse);
     });
   });
 
-  group('employment header', () {
-    Future<void> pumpHeader(
+  group('employment sheet', () {
+    Future<void> pumpSheet(
       WidgetTester tester, {
       bool canDelete = true,
       bool inUse = false,
       Future<MutationOutcome<Employment>> Function(Employment)? onDelete,
     }) => tester.pumpWidget(
       _TestApp(
-        child: EmploymentHeader(
+        child: EmploymentSheet(
           employment: _employment,
+          onSubmit: (_) async => Committed(_employment),
           canDelete: canDelete,
           agreementInUse: inUse,
-          onEdit: () {},
           onDelete: onDelete ?? (_) async => Committed(_employment),
-          onEditAgreement: () {},
           onViewAgreement: () {},
         ),
       ),
     );
 
-    testWidgets('offers edit, agreement edit and delete without history', (
+    testWidgets('shows the name to edit, the agreement and Delete', (
       tester,
     ) async {
-      await pumpHeader(tester);
+      await pumpSheet(tester);
 
-      expect(find.text('Studio'), findsOneWidget);
-      expect(find.text('Edit'), findsOneWidget);
-      expect(find.text('Edit agreement'), findsOneWidget);
-      expect(find.text('Delete'), findsOneWidget);
+      expect(find.text('Studio'), findsWidgets);
+      expect(find.byKey(const ValueKey('employment-name')), findsOneWidget);
+      expect(find.text('Agreement…'), findsOneWidget);
+      expect(find.text('Delete…'), findsOneWidget);
     });
 
-    testWidgets('history hides delete and an agreement in use is view-only', (
-      tester,
-    ) async {
-      await pumpHeader(tester, canDelete: false, inUse: true);
+    testWidgets('history hides Delete', (tester) async {
+      await pumpSheet(tester, canDelete: false, inUse: true);
 
-      expect(find.text('Delete'), findsNothing);
-      expect(find.text('Edit agreement'), findsNothing);
-      expect(find.text('View agreement'), findsOneWidget);
-      expect(find.textContaining('later update'), findsNothing);
+      expect(find.text('Delete…'), findsNothing);
+      expect(find.text('Agreement…'), findsOneWidget);
     });
 
     testWidgets('delete confirms inline before it runs', (tester) async {
       var deleted = false;
-      await pumpHeader(
+      await pumpSheet(
         tester,
         onDelete: (_) async {
           deleted = true;
@@ -555,7 +637,7 @@ void main() {
         },
       );
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Delete…'));
       await tester.pumpAndSettle();
       expect(
         find.text(
@@ -568,9 +650,9 @@ void main() {
 
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
-      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Delete…'), findsOneWidget);
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Delete…'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('confirm-delete-employment')));
       await tester.pumpAndSettle();
@@ -578,13 +660,13 @@ void main() {
     });
 
     testWidgets('a rejected delete explains the history', (tester) async {
-      await pumpHeader(
+      await pumpSheet(
         tester,
         onDelete: (_) async => const Invalid<Employment>({
           'employment.hasHistory': [FieldIssue(FieldIssueCode.conflict)],
         }),
       );
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Delete…'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('confirm-delete-employment')));
       await tester.pumpAndSettle();

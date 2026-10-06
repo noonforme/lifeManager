@@ -19,6 +19,29 @@ final class InspectorPane extends StatelessWidget {
       ListView(shrinkWrap: true, padding: inspectorInset, children: children);
 }
 
+/// A dialog form (XP-authentic shell spec 8.1): [fields] scroll on the
+/// inspector inset, and [keys] stay at the dialog's foot, bottom-right,
+/// as an era dialog's OK and Cancel did, however short the form.
+final class DialogForm extends StatelessWidget {
+  const DialogForm({required this.fields, required this.keys, super.key});
+
+  final List<Widget> fields;
+
+  /// The primary key first, then Cancel.
+  final List<Widget> keys;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Expanded(
+        child: ListView(padding: inspectorInset, children: fields),
+      ),
+      FormFooter(children: keys),
+    ],
+  );
+}
+
 /// The record's name at the top of a Properties page, as an era
 /// file-properties sheet opened: the name, an optional secondary line,
 /// then an etched separator (XP-authentic shell spec 4.3).

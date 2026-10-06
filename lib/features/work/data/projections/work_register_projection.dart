@@ -20,6 +20,13 @@ final class PayPeriodScope extends WorkTemporalScope {
   const PayPeriodScope(this.periodId);
 
   final PayPeriodId periodId;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PayPeriodScope && other.periodId == periodId;
+
+  @override
+  int get hashCode => periodId.hashCode;
 }
 
 final class DateRangeScope extends WorkTemporalScope {
@@ -27,6 +34,13 @@ final class DateRangeScope extends WorkTemporalScope {
 
   final LocalDate start;
   final LocalDate end;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DateRangeScope && other.start == start && other.end == end;
+
+  @override
+  int get hashCode => Object.hash(start, end);
 }
 
 /// The four Work sheets (shell spec 7.2).

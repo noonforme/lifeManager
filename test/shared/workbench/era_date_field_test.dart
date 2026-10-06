@@ -207,6 +207,55 @@ void main() {
     expect(_value(tester), _today);
   });
 
+  testWidgets('a click on another control keeps the focus it takes', (
+    tester,
+  ) async {
+    final other = FocusNode(debugLabel: 'Other');
+    addTearDown(other.dispose);
+    await _pump(
+      tester,
+      wrap: (field) => Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          field,
+          // Takes focus on press, as the time box's parts do.
+          Listener(
+            key: const ValueKey('other'),
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: (_) => other.requestFocus(),
+            child: Focus(
+              focusNode: other,
+              child: const SizedBox(width: 40, height: 24),
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.tap(find.byKey(_box));
+    await tester.pumpAndSettle();
+    expect(_calendar, findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('other')));
+    await tester.pumpAndSettle();
+    expect(_calendar, findsNothing);
+    expect(tester.binding.focusManager.primaryFocus, other);
+  });
+
+  testWidgets('a click on nothing focusable gives focus back to the box', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.byKey(_box));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(790, 590));
+    await tester.pumpAndSettle();
+    expect(_calendar, findsNothing);
+    expect(
+      tester.binding.focusManager.primaryFocus?.debugLabel,
+      'EraDateField',
+    );
+  });
+
   testWidgets('a held Tab keeps focus in the open calendar', (tester) async {
     await _pump(tester);
     await tester.tap(find.byKey(_box));

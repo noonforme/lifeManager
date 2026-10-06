@@ -61,6 +61,12 @@ abstract final class MillenniumColors {
   static const comboArrowBottom = Color(0xffb9cdf5);
   static const comboArrowInk = Color(0xff4d6185);
 
+  /// A tooltip's pale yellow face.
+  static const tooltip = Color(0xffffffe1);
+
+  /// The edge of a drop-down or right-click menu panel.
+  static const menuEdge = Color(0xffaca899);
+
   /// The dark edge of a sunken panel.
   static const sunkenEdge = Color(0xffa0a0a0);
   static const orbGreenLight = Color(0xffa6e88a);
@@ -99,6 +105,10 @@ abstract final class MillenniumColors {
 const _family = 'EraSans';
 const _fallback = ['NotoSans'];
 
+/// EraSans's bold face draws "fi" with its regular ligature; Tahoma joined
+/// no letters, so neither does LifeOS.
+const _noLigatures = FontFeature.disable('liga');
+
 /// The era's 8 pt system type: EraSans, Wine's Tahoma-metric font, at 11 px
 /// (XP-authentic shell spec 6.1). Noto Sans covers any glyph it lacks.
 const lifeOSTypography = LifeOSTypography(
@@ -108,6 +118,7 @@ const lifeOSTypography = LifeOSTypography(
     fontSize: 13,
     height: 16 / 13,
     fontWeight: FontWeight.w700,
+    fontFeatures: [_noLigatures],
   ),
   strong: TextStyle(
     fontFamily: _family,
@@ -115,6 +126,7 @@ const lifeOSTypography = LifeOSTypography(
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w700,
+    fontFeatures: [_noLigatures],
   ),
   label: TextStyle(
     fontFamily: _family,
@@ -122,6 +134,7 @@ const lifeOSTypography = LifeOSTypography(
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w400,
+    fontFeatures: [_noLigatures],
   ),
   body: TextStyle(
     fontFamily: _family,
@@ -129,6 +142,7 @@ const lifeOSTypography = LifeOSTypography(
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w400,
+    fontFeatures: [_noLigatures],
   ),
   small: TextStyle(
     fontFamily: _family,
@@ -136,6 +150,7 @@ const lifeOSTypography = LifeOSTypography(
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w400,
+    fontFeatures: [_noLigatures],
   ),
   // EraSans digits share one advance width (checked 2026-10-04: 1118 units
   // regular, 1304 bold), so figures line up; the feature is kept for the
@@ -146,7 +161,7 @@ const lifeOSTypography = LifeOSTypography(
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w400,
-    fontFeatures: [FontFeature.tabularFigures()],
+    fontFeatures: [FontFeature.tabularFigures(), _noLigatures],
   ),
   counter: TextStyle(
     fontFamily: _family,
@@ -154,7 +169,7 @@ const lifeOSTypography = LifeOSTypography(
     fontSize: 18,
     height: 20 / 18,
     fontWeight: FontWeight.w700,
-    fontFeatures: [FontFeature.tabularFigures()],
+    fontFeatures: [FontFeature.tabularFigures(), _noLigatures],
   ),
 );
 

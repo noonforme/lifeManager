@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/timezone_service.dart';
+import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_date_field.dart';
+import '../../../shared/workbench/era_field.dart';
+import '../../../shared/workbench/era_form.dart';
 import '../../../shared/workbench/era_icons.dart';
 import '../../../shared/workbench/inspector_parts.dart';
+import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../data/projections/work_record_projection.dart';
 import '../domain/facts.dart';
@@ -29,10 +34,15 @@ final class WorkInspector extends StatefulWidget {
     this.onFinalize,
     this.onCorrect,
     this.timezones,
+    this.shiftFields,
     super.key,
   });
 
   final WorkRecordProjection projection;
+
+  /// A shift's times as form fields, editable for a draft and greyed once
+  /// finalized; they stand in for the read-only Shift facts.
+  final Widget? shiftFields;
   final SetPayPeriodState? onSetPeriodState;
   final VoidCallback? onRecordPayslip;
   final List<ReconciliationGroup> reconciliation;
@@ -96,6 +106,7 @@ final class _WorkInspectorState extends State<WorkInspector> {
       ShiftState.draft when shift.endUtc != null && onFinalize != null =>
         FinalizeShiftInspector(
           shift: shift,
+          fields: widget.shiftFields,
           onFinalize: () async {
             final outcome = await onFinalize(shift);
             if (outcome is! Committed<WorkShift> &&
@@ -117,6 +128,7 @@ final class _WorkInspectorState extends State<WorkInspector> {
         label: 'Finalized shift',
         child: _FinalizedShift(
           shift: shift,
+          fields: widget.shiftFields,
           breaks: projection.breaks,
           timezones: widget.timezones,
           pay: projection.pay,
@@ -151,6 +163,7 @@ final class _FinalizedShift extends StatelessWidget {
   const _FinalizedShift({
     required this.shift,
     required this.breaks,
+    this.fields,
     this.timezones,
     this.pay,
     this.onCorrect,
@@ -158,6 +171,7 @@ final class _FinalizedShift extends StatelessWidget {
 
   final WorkShift shift;
   final List<ShiftBreak> breaks;
+  final Widget? fields;
   final TimezoneService? timezones;
   final ExpectedPay? pay;
   final VoidCallback? onCorrect;
@@ -177,22 +191,25 @@ final class _FinalizedShift extends StatelessWidget {
     return InspectorPane(
       children: [
         const InspectorTitle('Shift finalized', icon: EraIconKind.shift),
-        InspectorFacts([
-          Fact('Date', shift.localStartDate.toString()),
-          Fact(
-            'Time',
-            '${clock(shift.startUtc)}–'
-                '${shift.endUtc == null ? '' : clock(shift.endUtc!)}',
-          ),
-          breaks.isEmpty
-              ? const Fact.words('Breaks', 'None')
-              : Fact(
-                  'Breaks',
-                  '${breaks.length} · ${formatDuration(breakSeconds)}',
-                ),
-          Fact.words('Timezone', shift.timezoneId),
-          if (shift.note case final note?) Fact.words('Note', note),
-        ], legend: 'Shift'),
+        if (fields case final fields?)
+          fields
+        else
+          InspectorFacts([
+            Fact('Date', shift.localStartDate.toString()),
+            Fact(
+              'Time',
+              '${clock(shift.startUtc)}–'
+                  '${shift.endUtc == null ? '' : clock(shift.endUtc!)}',
+            ),
+            breaks.isEmpty
+                ? const Fact.words('Breaks', 'None')
+                : Fact(
+                    'Breaks',
+                    '${breaks.length} · ${formatDuration(breakSeconds)}',
+                  ),
+            Fact.words('Timezone', shift.timezoneId),
+            if (shift.note case final note?) Fact.words('Note', note),
+          ], legend: 'Shift'),
         if (pay case final pay?) ...[
           InspectorFacts(legend: 'Expected pay', [
             Fact('Expected pay', formatMoney(pay.amount)),
@@ -219,38 +236,114 @@ final class _FinalizedShift extends StatelessWidget {
   }
 }
 
-final class _PayslipDetail extends StatelessWidget {
+/// A payslip's General page: its recorded evidence in the payslip's own
+/// fields, greyed, since a payslip changes only through Correct.
+final class _PayslipDetail extends StatefulWidget {
   const _PayslipDetail({required this.payslip, this.onCorrect});
 
   final Payslip payslip;
   final VoidCallback? onCorrect;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    container: true,
-    explicitChildNodes: true,
-    label: 'Payslip',
-    child: InspectorPane(
-      children: [
-        const InspectorTitle('Paid evidence', icon: EraIconKind.payslip),
-        InspectorFacts([
-          Fact('Amount', _money(payslip.amount)),
-          Fact.words('Basis', _basis(payslip.basis)),
-          Fact('Issued', payslip.issuedDate.toString()),
-          if (payslip.paidDate != null)
-            Fact('Paid', payslip.paidDate.toString()),
-          if (payslip.reference != null)
-            Fact.words('Reference', payslip.reference!),
-        ], legend: 'Payslip details'),
-        if (onCorrect != null)
-          InspectorActions(
-            children: [
-              KeyButton(label: 'Correct payslip', onPressed: onCorrect),
-            ],
-          ),
-      ],
-    ),
+  State<_PayslipDetail> createState() => _PayslipDetailState();
+}
+
+final class _PayslipDetailState extends State<_PayslipDetail> {
+  late final _amount = TextEditingController(
+    text: _decimal(widget.payslip.amount.minorUnits),
   );
+  late final _reference = TextEditingController(
+    text: widget.payslip.reference ?? '',
+  );
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    _reference.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final payslip = widget.payslip;
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: 'Payslip',
+      child: InspectorPane(
+        children: [
+          const InspectorTitle('Paid evidence', icon: EraIconKind.payslip),
+          EraFormScope(
+            labelWidth: 100,
+            enabled: false,
+            child: GroupBox(
+              legend: 'Payslip details',
+              background: LifeOSSkinScope.of(context).tokens.chrome,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  EraDateField(
+                    label: 'Issued date',
+                    fieldKey: const ValueKey('payslip-issued-date'),
+                    value: payslip.issuedDate,
+                    today: payslip.issuedDate,
+                    onChanged: (_) {},
+                  ),
+                  EraDateField(
+                    label: 'Paid date',
+                    optional: true,
+                    fieldKey: const ValueKey('payslip-paid-date'),
+                    value: payslip.paidDate,
+                    today: payslip.issuedDate,
+                    onChanged: (_) {},
+                  ),
+                  EraField(
+                    controller: _amount,
+                    label: 'Paid amount',
+                    fieldKey: const ValueKey('payslip-amount'),
+                    width: EraFieldWidth.money,
+                  ),
+                  EraLabelled(
+                    label: 'Basis',
+                    field: EraRadioGroup<RateBasis>(
+                      direction: Axis.horizontal,
+                      options: const [
+                        EraRadioOption(GrossBasis(), 'Gross'),
+                        EraRadioOption(NetBasis(), 'Net'),
+                      ],
+                      groupValue: payslip.basis,
+                      onChanged: (_) {},
+                    ),
+                  ),
+                  EraField(
+                    controller: _reference,
+                    label: 'Reference',
+                    fieldKey: const ValueKey('payslip-reference'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (widget.onCorrect != null)
+            InspectorActions(
+              children: [
+                KeyButton(
+                  label: 'Correct payslip',
+                  onPressed: widget.onCorrect,
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 123456 minor units as "1234.56".
+String _decimal(int minorUnits) {
+  final absolute = minorUnits.abs();
+  final sign = minorUnits < 0 ? '-' : '';
+  return '$sign${absolute ~/ 100}.${(absolute % 100).toString().padLeft(2, '0')}';
 }
 
 final class _UnavailableRecord extends StatelessWidget {
@@ -262,17 +355,6 @@ final class _UnavailableRecord extends StatelessWidget {
       InspectorText('This Work record is not available in this inspector.'),
     ],
   );
-}
-
-String _basis(RateBasis basis) => switch (basis) {
-  GrossBasis() => 'Gross',
-  NetBasis() => 'Net',
-};
-
-String _money(Money money) {
-  final absolute = money.minorUnits.abs();
-  final sign = money.minorUnits < 0 ? '-' : '';
-  return '${money.currency.value} $sign${absolute ~/ 100}.${(absolute % 100).toString().padLeft(2, '0')}';
 }
 
 final class _UnavailableShift extends StatelessWidget {

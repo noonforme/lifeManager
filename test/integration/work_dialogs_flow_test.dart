@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_time.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 import '../support/era_pickers.dart';
 import '../support/synthetic_shell.dart';
@@ -157,5 +158,26 @@ void main() {
       tester.getSize(find.byKey(const ValueKey('shell-dialog'))).height,
       lessThan(220),
     );
+  });
+
+  testWidgets('a form keeps era keys of one size at the window foot', (
+    tester,
+  ) async {
+    await pumpSyntheticShell(
+      tester,
+      size: const Size(1280, 800),
+      screen: syntheticScreens['form']!,
+    );
+    final dialog = tester.getRect(find.byKey(const ValueKey('shell-dialog')));
+    final save = find.byKey(const ValueKey('save-manual-shift'));
+    final cancel = find.widgetWithText(KeyButton, 'Cancel');
+    expect(tester.widget(save), isA<KeyButton>());
+    final saveRect = tester.getRect(save);
+    final cancelRect = tester.getRect(cancel);
+    expect(saveRect.height, cancelRect.height);
+    expect(saveRect.top, cancelRect.top);
+    // Bottom-right, as the era's OK and Cancel sat, not under the fields.
+    expect(dialog.bottom - cancelRect.bottom, lessThanOrEqualTo(12));
+    expect(dialog.right - cancelRect.right, lessThanOrEqualTo(12));
   });
 }

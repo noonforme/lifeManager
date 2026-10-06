@@ -48,7 +48,11 @@ Future<void> main() async {
         return BootstrapProviders(scope: built.scope);
       },
       buildRouter: (providers) async => providers.scope(
-        LifeOsApp(router: createAppRouter(), onQuit: window.close),
+        LifeOsApp(
+          router: createAppRouter(),
+          onQuit: window.close,
+          onTitle: window.setTitle,
+        ),
       ),
       mountApp: (app) async => runApp(app),
       showWindow: window.show,

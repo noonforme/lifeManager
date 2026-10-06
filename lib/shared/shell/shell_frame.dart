@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' show Material, MaterialType;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../workbench/era_combo.dart';
 import '../workbench/era_controls.dart';
 import '../workbench/era_icons.dart';
 import '../workbench/lifeos_skin.dart';
@@ -146,6 +147,31 @@ final class ShellFrame extends StatefulWidget {
 
 final class _ShellFrameState extends State<ShellFrame> {
   bool _tasksOpen = false;
+  final _address = GlobalKey<EraComboState<int>>();
+
+  /// The era's window keys, live while no dialog is open: Alt+Left and
+  /// Alt+Right go back and forward, Alt+Home goes to Today, F5 reopens
+  /// the place, Alt+D puts focus in the Address box and F4 drops its list.
+  Map<ShortcutActivator, VoidCallback> _windowKeys(BuildContext context) {
+    final chrome = ShellChrome.maybeOf(context);
+    final history = NavigationHistoryScope.maybeOf(context);
+    final here = chrome?.crumbs.lastOrNull?.route;
+    return {
+      const SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true): () =>
+          history?.goBack(),
+      const SingleActivator(LogicalKeyboardKey.arrowRight, alt: true): () =>
+          history?.goForward(),
+      const SingleActivator(LogicalKeyboardKey.home, alt: true): () =>
+          chrome?.onNavigate('/today'),
+      const SingleActivator(LogicalKeyboardKey.f5): () {
+        if (here != null) chrome?.onNavigate(here);
+      },
+      const SingleActivator(LogicalKeyboardKey.keyD, alt: true): () =>
+          _address.currentState?.focus(),
+      const SingleActivator(LogicalKeyboardKey.f4): () =>
+          _address.currentState?.open(),
+    };
+  }
 
   void _toggleTasks() => setState(() => _tasksOpen = !_tasksOpen);
 
@@ -225,52 +251,56 @@ final class _ShellFrameState extends State<ShellFrame> {
 
             return ShellDialogLayer(
               dialog: widget.dialog,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _Landmark(
-                    label: 'Menu bar',
-                    // A minimum, so 200 % text grows the bar instead of
-                    // clipping it.
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        minHeight: ShellMetrics.menuBarHeight,
+              child: CallbackShortcuts(
+                bindings: _windowKeys(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _Landmark(
+                      label: 'Menu bar',
+                      // A minimum, so 200 % text grows the bar instead of
+                      // clipping it.
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minHeight: ShellMetrics.menuBarHeight,
+                        ),
+                        child: chrome?.menuBar ?? const SizedBox.shrink(),
                       ),
-                      child: chrome?.menuBar ?? const SizedBox.shrink(),
                     ),
-                  ),
-                  _Landmark(
-                    label: 'Toolbar',
-                    child: _Toolbar(
-                      showTasks: folded,
-                      tasksOpen: _tasksOpen,
-                      onTasks: _toggleTasks,
-                      quickAdd: chrome?.quickAdd ?? const [],
-                      fromLastTime: chrome?.fromLastTime ?? const [],
-                    ),
-                  ),
-                  AddressBar(
-                    crumbs: chrome?.crumbs ?? const [],
-                    tree: chrome?.addressTree ?? const [],
-                    icon: chrome?.addressIcon,
-                    onNavigate: (route) => chrome?.onNavigate(route),
-                    // Go reopens the current location (its last crumb).
-                    onGo: () {
-                      final here = chrome?.crumbs.lastOrNull?.route;
-                      if (here != null) chrome?.onNavigate(here);
-                    },
-                  ),
-                  Expanded(child: body),
-                  _Landmark(
-                    label: 'Status line',
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        minHeight: ShellMetrics.statusBarHeight,
+                    _Landmark(
+                      label: 'Toolbar',
+                      child: _Toolbar(
+                        showTasks: folded,
+                        tasksOpen: _tasksOpen,
+                        onTasks: _toggleTasks,
+                        quickAdd: chrome?.quickAdd ?? const [],
+                        fromLastTime: chrome?.fromLastTime ?? const [],
                       ),
-                      child: chrome?.status ?? const SizedBox.shrink(),
                     ),
-                  ),
-                ],
+                    AddressBar(
+                      comboKey: _address,
+                      crumbs: chrome?.crumbs ?? const [],
+                      tree: chrome?.addressTree ?? const [],
+                      icon: chrome?.addressIcon,
+                      onNavigate: (route) => chrome?.onNavigate(route),
+                      // Go reopens the current location (its last crumb).
+                      onGo: () {
+                        final here = chrome?.crumbs.lastOrNull?.route;
+                        if (here != null) chrome?.onNavigate(here);
+                      },
+                    ),
+                    Expanded(child: body),
+                    _Landmark(
+                      label: 'Status line',
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minHeight: ShellMetrics.statusBarHeight,
+                        ),
+                        child: chrome?.status ?? const SizedBox.shrink(),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -342,6 +372,7 @@ final class _Toolbar extends StatelessWidget {
             KeyButton(
               label: tasksOpen ? 'Close tasks' : 'Tasks',
               kind: KeyKind.toolbar,
+              tooltip: tasksOpen ? 'Hide the task pane' : 'Show the task pane',
               onPressed: onTasks,
             ),
           if (history != null) ...[
@@ -349,6 +380,7 @@ final class _Toolbar extends StatelessWidget {
             KeyButton(
               label: 'Back',
               kind: KeyKind.toolbar,
+              tooltip: 'Go back to the last place',
               leading: Orb(
                 glyph: OrbGlyph.back,
                 tone: history.canGoBack ? OrbTone.green : OrbTone.grey,
@@ -359,6 +391,7 @@ final class _Toolbar extends StatelessWidget {
             KeyButton(
               label: 'Forward',
               kind: KeyKind.toolbar,
+              tooltip: 'Go forward again',
               leading: Orb(
                 glyph: OrbGlyph.forward,
                 tone: history.canGoForward ? OrbTone.green : OrbTone.grey,

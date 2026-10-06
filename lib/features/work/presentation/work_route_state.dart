@@ -205,6 +205,11 @@ WorkRouteParseResult parseWorkRoute(Uri uri) {
   if (recordText != null && record == null) {
     return const InvalidWorkRoute(WorkRouteProblem.malformedId);
   }
+  // Records are edited on their property sheets now; an old edit link to a
+  // record opens that sheet.
+  final sheetMode = mode == WorkInspectorMode.edit && record != null
+      ? WorkInspectorMode.properties
+      : mode;
 
   final periodText = uri.queryParameters['period'];
   final period = PayPeriodId.tryParse(periodText);
@@ -246,7 +251,7 @@ WorkRouteParseResult parseWorkRoute(Uri uri) {
       employmentId: employment,
       scope: scope,
       record: record,
-      mode: mode,
+      mode: sheetMode,
       sheet: sheet,
       showVoid: voidText == '1',
       adding: adding,

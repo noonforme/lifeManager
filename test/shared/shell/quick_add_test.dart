@@ -83,8 +83,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(opened, isEmpty);
 
-    await tester.tap(find.byKey(const ValueKey('quick-add')));
-    await tester.pumpAndSettle();
+    // A greyed row leaves the menu open, as in the era.
     await tester.tap(find.text('Employment'));
     await tester.pumpAndSettle();
     expect(opened, ['Employment']);

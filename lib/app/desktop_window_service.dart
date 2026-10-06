@@ -13,7 +13,9 @@ final class WindowManagerDesktopWindowService implements DesktopWindowService {
     await windowManager.waitUntilReadyToShow(
       const WindowOptions(
         title: 'LifeOS',
-        minimumSize: Size(1280, 760),
+        // The shell lays out down to 800 × 600, so a 1366 × 768 laptop
+        // with a panel still fits it.
+        minimumSize: Size(800, 600),
         size: Size(1440, 900),
         center: true,
       ),
@@ -25,6 +27,9 @@ final class WindowManagerDesktopWindowService implements DesktopWindowService {
     await windowManager.show();
     await windowManager.focus();
   }
+
+  /// Names the window, "Shifts - LifeOS".
+  Future<void> setTitle(String title) => windowManager.setTitle(title);
 
   /// Closes the window, ending the app (File › Quit).
   Future<void> close() => windowManager.close();

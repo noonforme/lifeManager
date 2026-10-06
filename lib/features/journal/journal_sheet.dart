@@ -161,7 +161,7 @@ final class JournalSheet extends StatelessWidget {
           key: 'entry',
           label: 'Entry',
           kind: ColumnKind.text,
-          width: 320,
+          width: 280,
           value: (entry) => '${entry.kind.label} · ${entry.summary}',
         ),
         RegisterColumn(
@@ -178,6 +178,9 @@ final class JournalSheet extends StatelessWidget {
           kind: ColumnKind.state,
           width: 96,
           value: (entry) => entry.state,
+          // Hidden first in a desk tile, so the list fits without
+          // scrolling sideways.
+          optional: true,
         ),
       ],
     );

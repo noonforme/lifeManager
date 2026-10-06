@@ -50,6 +50,7 @@ Future<void> pumpSyntheticShell(
   WidgetTester tester, {
   required Size size,
   required String Function(String employment, String period) screen,
+  ValueChanged<String>? onTitle,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -115,7 +116,9 @@ Future<void> pumpSyntheticShell(
     initialLocation: screen(employment.id.value, period.id.value),
   );
   addTearDown(router.dispose);
-  await tester.pumpWidget(work.scope(LifeOsApp(router: router)));
+  await tester.pumpWidget(
+    work.scope(LifeOsApp(router: router, onTitle: onTitle)),
+  );
   await tester.pumpAndSettle();
 }
 

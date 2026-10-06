@@ -21,4 +21,19 @@ void main() {
     expect(type.strong.fontWeight, FontWeight.w700);
     expect(type.counter.fontSize, 18);
   });
+
+  test('no style joins letters into ligatures, as Tahoma never did', () {
+    const type = lifeOSTypography;
+    for (final style in [
+      type.caption,
+      type.strong,
+      type.label,
+      type.body,
+      type.small,
+      type.figure,
+      type.counter,
+    ]) {
+      expect(style.fontFeatures, contains(const FontFeature.disable('liga')));
+    }
+  });
 }

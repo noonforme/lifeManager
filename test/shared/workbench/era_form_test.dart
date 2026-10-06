@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/core/time/local_time.dart';
+import 'package:lifeos/shared/workbench/era_date_field.dart';
 import 'package:lifeos/shared/workbench/era_field.dart';
 import 'package:lifeos/shared/workbench/era_form.dart';
+import 'package:lifeos/shared/workbench/era_time_field.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
 
 Widget _host(Widget child) => MaterialApp(
@@ -152,5 +157,60 @@ void main() {
     await tester.pump();
     expect(after, 1);
     expect(value, 'a');
+  });
+
+  testWidgets('a disabled form scope greys and locks every era field', (
+    tester,
+  ) async {
+    final text = TextEditingController(text: 'Warehouse');
+    addTearDown(text.dispose);
+    var changed = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLifeOSTheme(),
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: EraFormScope(
+              enabled: false,
+              child: Column(
+                children: [
+                  EraField(
+                    controller: text,
+                    label: 'Name',
+                    fieldKey: const ValueKey('name'),
+                  ),
+                  EraDateField(
+                    label: 'Starts on',
+                    value: const LocalDate(2026, 10, 1),
+                    today: const LocalDate(2026, 10, 6),
+                    fieldKey: const ValueKey('date'),
+                    onChanged: (_) => changed++,
+                  ),
+                  EraTimeField(
+                    label: 'Start',
+                    value: const LocalTime(8, 0),
+                    fieldKey: const ValueKey('time'),
+                    onChanged: (_) => changed++,
+                  ),
+                  EraCheckBox(
+                    value: true,
+                    label: 'Night pay',
+                    onChanged: (_) => changed++,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
+    await tester.tap(find.byKey(const ValueKey('date')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('era-calendar-title')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('era-time-up')));
+    await tester.tap(find.text('Night pay'));
+    await tester.pump();
+    expect(changed, 0);
   });
 }

@@ -38,6 +38,8 @@ Or use the interactive launcher, which finds Flutter through `FLUTTER`, `PATH`, 
 ./app.sh
 ```
 
+Its **Start app** runs a release build. Debug builds draw several times slower, so pickers and menus feel laggy in them; option 4 starts one only for hot reload.
+
 LifeOS looks like a 2001 office PC, shaped like that era's file browser: an orb toolbar, an Address bar, a blue task pane that follows the selection, details lists, Properties dialogs and forms as dialog boxes, set in EraSans (Wine's Tahoma-metric font).
 
 What the shell holds:

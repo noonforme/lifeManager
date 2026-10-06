@@ -131,6 +131,7 @@ final class ShiftsSheet extends StatelessWidget {
           : (row) => [
               RowAction(
                 label: 'Properties',
+                isDefault: true,
                 onInvoke: () => onProperties!(_shiftRef(row)),
               ),
             ],
@@ -196,6 +197,7 @@ final class ShiftsSheet extends StatelessWidget {
         RegisterColumn(
           key: 'overtime',
           label: 'OT',
+          description: 'Overtime hours',
           kind: ColumnKind.derived,
           width: 64,
           value: (row) => premium(row, (pay) => pay.overtimePaidSeconds),
@@ -204,6 +206,7 @@ final class ShiftsSheet extends StatelessWidget {
         RegisterColumn(
           key: 'pay',
           label: 'Est. pay',
+          description: 'Estimated pay, until a payslip confirms it',
           kind: ColumnKind.money,
           width: 112,
           value: (row) => row.pay == null ? '' : formatMoney(row.pay!.amount),
@@ -281,6 +284,7 @@ final class PeriodsSheet extends StatelessWidget {
           : (row) => [
               RowAction(
                 label: 'Properties',
+                isDefault: true,
                 onInvoke: () => onProperties!(ref(row)),
               ),
             ],
@@ -401,6 +405,7 @@ final class PayslipsSheet extends StatelessWidget {
           : (value) => [
               RowAction(
                 label: 'Properties',
+                isDefault: true,
                 onInvoke: () => onProperties!(ref(value)),
               ),
             ],
@@ -505,6 +510,7 @@ final class AgreementsSheet extends StatelessWidget {
           : (row) => [
               RowAction(
                 label: 'Properties',
+                isDefault: true,
                 onInvoke: () => onProperties!(ref(row)),
               ),
             ],

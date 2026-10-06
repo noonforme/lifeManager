@@ -14,6 +14,7 @@ import '../../../shared/workbench/era_time_field.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
+import '../../../shared/workbench/property_sheet.dart';
 import '../application/work_templates.dart';
 import '../domain/ids.dart';
 import '../domain/shift.dart';
@@ -170,11 +171,15 @@ final class FinalizeShiftInspector extends StatefulWidget {
   const FinalizeShiftInspector({
     required this.shift,
     required this.onFinalize,
+    this.fields,
     super.key,
   });
 
   final WorkShift shift;
   final FinalizeAction onFinalize;
+
+  /// The draft's times to edit, above the Finalize key.
+  final Widget? fields;
 
   @override
   State<FinalizeShiftInspector> createState() => _FinalizeShiftInspectorState();
@@ -203,6 +208,7 @@ final class _FinalizeShiftInspectorState extends State<FinalizeShiftInspector> {
     child: InspectorPane(
       children: [
         const InspectorTitle('Finalize shift', icon: EraIconKind.shift),
+        ?widget.fields,
         const InspectorText(
           'Overtime, night and holiday pay are worked out from the '
           'agreement.',
@@ -231,11 +237,15 @@ final class ShiftEditInspector extends StatefulWidget {
     this.initialTimezoneId,
     this.prefill,
     this.title = 'Manual shift',
+    this.readOnly = false,
     super.key,
   });
 
   final EmploymentId employmentId;
   final SubmitManualShift onSubmit;
+
+  /// Shows a finalized shift's times greyed on its property sheet.
+  final bool readOnly;
 
   /// The date a new shift starts on, and the day circled in its calendars.
   final LocalDate today;
@@ -264,9 +274,39 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
   final _breaks = <_BreakValues>[];
   final _errors = <String, String>{};
 
+  /// The property sheet this form edits in place, if it is on one.
+  PropertySheetController? _sheet;
+
+  /// On a property sheet the sheet's keys save the form, so it has none.
+  bool _onSheet = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final scope = PropertySheetScope.maybeOf(context);
+    _onSheet = scope != null || widget.readOnly;
+    final sheet = widget.readOnly ? null : scope;
+    if (sheet != _sheet) {
+      _sheet?.detach(_applySheet);
+      _sheet = sheet?..attach(apply: _applySheet);
+    }
+  }
+
+  Future<bool> _applySheet() => _submit();
+
+  /// Changes a field and marks the sheet as changed.
+  void _edit(VoidCallback change) {
+    setState(change);
+    _sheet?.markDirty(true);
+  }
+
+  void _touched() => _sheet?.markDirty(true);
+
   @override
   void initState() {
     super.initState();
+    _timezone.addListener(_touched);
+    _note.addListener(_touched);
     _endOffset = _endDate.daysSince(_startDate);
     // Offsets are taken now, from the prefilled dates, so an untouched
     // draft saves exactly as given.
@@ -286,12 +326,13 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
 
   @override
   void dispose() {
+    _sheet?.detach(_applySheet);
     _timezone.dispose();
     _note.dispose();
     super.dispose();
   }
 
-  void _addBreak() => setState(
+  void _addBreak() => _edit(
     () => _breaks.add(
       _BreakValues(
         startOffset: 0,
@@ -302,7 +343,7 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     ),
   );
 
-  void _setStartDate(LocalDate value) => setState(() {
+  void _setStartDate(LocalDate value) => _edit(() {
     _startDate = value;
     if (!_endDatePicked) _endDate = value.addDays(_endOffset);
     for (final pause in _breaks) {
@@ -312,19 +353,20 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     }
   });
 
-  void _pickBreakStartDate(_BreakValues pause, LocalDate value) => setState(() {
+  void _pickBreakStartDate(_BreakValues pause, LocalDate value) => _edit(() {
     pause
       ..startDatePicked = true
       ..moveStartDate(value);
   });
 
-  void _pickBreakEndDate(_BreakValues pause, LocalDate value) => setState(() {
+  void _pickBreakEndDate(_BreakValues pause, LocalDate value) => _edit(() {
     pause
       ..endDate = value
       ..endDatePicked = true;
   });
 
-  Future<void> _submit() async {
+  /// Saves the shift; true when it went through.
+  Future<bool> _submit() async {
     final timezone = _timezone.text.trim();
     final breaks = <ManualBreakDraft>[];
     final errors = <String, String>{
@@ -371,7 +413,7 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
           ..clear()
           ..addAll(errors);
       });
-      return;
+      return false;
     }
 
     final outcome = await widget.onSubmit(
@@ -388,7 +430,7 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
         note: _trimOptional(_note.text),
       ),
     );
-    if (!mounted) return;
+    if (!mounted) return outcome is Committed<WorkShift>;
     if (outcome case Invalid<WorkShift>(:final fields)) {
       setState(() {
         _errors.clear();
@@ -399,6 +441,7 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
         }
       });
     }
+    return outcome is Committed<WorkShift>;
   }
 
   Widget _date(
@@ -430,6 +473,17 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     onChanged: onChanged,
   );
 
+  /// A dialog form with its own keys, or on a property sheet only the
+  /// fields.
+  Widget _layout({required List<Widget> fields, required List<Widget> keys}) =>
+      _onSheet
+      ? Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: fields,
+        )
+      : DialogForm(fields: fields, keys: keys);
+
   @override
   Widget build(BuildContext context) => Semantics(
     container: true,
@@ -437,9 +491,9 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
     label: widget.prefill == null ? 'Add manual shift' : widget.title,
     child: EraFormScope(
       labelWidth: 90,
-      child: ListView(
-        padding: inspectorInset,
-        children: [
+      enabled: !widget.readOnly,
+      child: _layout(
+        fields: [
           _group(context, 'Times', [
             _date('shift-start-date', 'Start date', _startDate, _setStartDate),
             _time(
@@ -448,13 +502,13 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
               _startTime,
               emptyStart: _firstShiftStep,
               error: _errors['startTime'],
-              onChanged: (value) => setState(() => _startTime = value),
+              onChanged: (value) => _edit(() => _startTime = value),
             ),
             _date(
               'shift-end-date',
               'End date',
               _endDate,
-              (value) => setState(() {
+              (value) => _edit(() {
                 _endDate = value;
                 _endDatePicked = true;
               }),
@@ -465,7 +519,7 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
               _endTime,
               emptyStart: _startTime ?? _firstShiftStep,
               error: _errors['endTime'],
-              onChanged: (value) => setState(() => _endTime = value),
+              onChanged: (value) => _edit(() => _endTime = value),
             ),
             _field(
               key: const ValueKey('shift-timezone'),
@@ -488,7 +542,7 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
                 value.start,
                 emptyStart: _startTime ?? _firstShiftStep,
                 error: _errors['break-$index'],
-                onChanged: (picked) => setState(() => value.start = picked),
+                onChanged: (picked) => _edit(() => value.start = picked),
               ),
               _date(
                 'shift-break-end-date-$index',
@@ -501,26 +555,30 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
                 'Break ${index + 1} end time',
                 value.end,
                 emptyStart: value.start ?? _startTime ?? _firstShiftStep,
-                onChanged: (picked) => setState(() => value.end = picked),
+                onChanged: (picked) => _edit(() => value.end = picked),
               ),
             ],
-            Align(
-              alignment: Alignment.centerLeft,
-              child: KeyButton(
-                label: 'Add break',
-                kind: KeyKind.small,
-                onPressed: _addBreak,
+            if (_breaks.isEmpty && widget.readOnly)
+              const Text('None')
+            else if (!widget.readOnly)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: KeyButton(
+                  label: 'Add break',
+                  kind: KeyKind.small,
+                  onPressed: _addBreak,
+                ),
               ),
-            ),
           ]),
-          _group(context, 'Note', [
-            _field(
-              key: const ValueKey('shift-note'),
-              label: 'Shift note',
-              controller: _note,
-              maxLines: 3,
-            ),
-          ]),
+          if (!widget.readOnly || _note.text.isNotEmpty)
+            _group(context, 'Note', [
+              _field(
+                key: const ValueKey('shift-note'),
+                label: 'Shift note',
+                controller: _note,
+                maxLines: 3,
+              ),
+            ]),
           if (_errors['shift'] case final error?) ...[
             Text(
               error,
@@ -528,16 +586,15 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
             ),
             const SizedBox(height: 8),
           ],
-          FormFooter(
-            children: [
-              FilledButton(
-                key: const ValueKey('save-manual-shift'),
-                onPressed: _submit,
-                child: const Text('Save manual shift'),
-              ),
-              const DialogCancelKey(),
-            ],
+        ],
+        keys: [
+          KeyButton(
+            key: const ValueKey('save-manual-shift'),
+            label: 'Save manual shift',
+            kind: KeyKind.primary,
+            onPressed: _submit,
           ),
+          const DialogCancelKey(),
         ],
       ),
     ),

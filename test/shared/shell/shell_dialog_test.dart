@@ -4,9 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/shared/shell/shell_dialog.dart';
 import 'package:lifeos/shared/workbench/era_date_field.dart';
+import 'package:lifeos/shared/workbench/era_dialog.dart';
 import 'package:lifeos/shared/workbench/era_icons.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/shared/workbench/property_sheet.dart';
 
 Widget _host(Widget child) => MaterialApp(
   home: LifeOSSkinScope(child: Scaffold(body: child)),
@@ -264,4 +267,192 @@ void main() {
     );
     expect(find.bySemanticsLabel('Pay period Properties'), findsOneWidget);
   });
+
+  testWidgets('dragging the caption moves the dialog, inside the window', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1000, 800);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      _host(
+        ShellDialogLayer(
+          dialog: ShellDialog(
+            title: 'Manual shift',
+            onClose: () {},
+            child: const Text('Times'),
+          ),
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+    final dialog = find.byKey(const ValueKey('shell-dialog'));
+    final start = tester.getRect(dialog);
+    await tester.drag(find.text('Manual shift'), const Offset(-120, 60));
+    await tester.pump();
+    expect(tester.getRect(dialog), start.shift(const Offset(-120, 60)));
+    expect(find.text('Times'), findsOneWidget);
+
+    // Dragged far past the corner, it stops at the window's edge.
+    await tester.drag(find.text('Manual shift'), const Offset(-2000, -2000));
+    await tester.pump();
+    expect(tester.getRect(dialog).topLeft, Offset.zero);
+  });
+
+  testWidgets('a small era dialog moves by its caption too', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1000, 800);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      _host(
+        Builder(
+          builder: (context) => KeyButton(
+            label: 'Open',
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) => EraDialog(
+                title: 'Date range',
+                body: const Text('From'),
+                actions: const [],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    final start = tester.getTopLeft(find.text('Date range'));
+    await tester.drag(find.text('Date range'), const Offset(80, -40));
+    await tester.pump();
+    expect(
+      tester.getTopLeft(find.text('Date range')),
+      start + const Offset(80, -40),
+    );
+  });
+
+  testWidgets('an era dialog leaves the window behind undimmed', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLifeOSTheme(),
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: Builder(
+              builder: (context) => KeyButton(
+                label: 'Open',
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => const EraDialog(
+                    title: 'About LifeOS',
+                    body: Text('LifeOS'),
+                    actions: [],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    final barriers = tester.widgetList<ModalBarrier>(find.byType(ModalBarrier));
+    expect(barriers.every((barrier) => (barrier.color?.a ?? 0) == 0), isTrue);
+  });
+
+  Future<(int Function(), int Function())> pumpSheet(
+    WidgetTester tester, {
+    required bool Function() result,
+  }) async {
+    var closed = 0;
+    var saves = 0;
+    await tester.pumpWidget(
+      _host(
+        ShellDialogLayer(
+          dialog: ShellDialog(
+            title: 'Synthetic depot Properties',
+            kind: ShellDialogKind.properties,
+            onClose: () => closed++,
+            child: _DirtyField(
+              onApply: () async {
+                saves++;
+                return result();
+              },
+            ),
+          ),
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+    return (() => saves, () => closed);
+  }
+
+  KeyButton key(WidgetTester tester, String label) =>
+      tester.widget<KeyButton>(find.widgetWithText(KeyButton, label));
+
+  testWidgets('Apply greys until a change; OK applies then closes; a failed '
+      'OK stays', (tester) async {
+    var result = true;
+    final (saves, closed) = await pumpSheet(tester, result: () => result);
+    expect(key(tester, 'Apply').onPressed, isNull);
+    await tester.enterText(find.byType(TextField), 'Changed');
+    await tester.pump();
+    expect(key(tester, 'Apply').onPressed, isNotNull);
+    result = false;
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect((saves(), closed()), (1, 0));
+    result = true;
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect((saves(), closed()), (2, 0));
+    expect(key(tester, 'Apply').onPressed, isNull);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect((saves(), closed()), (2, 1));
+  });
+
+  testWidgets('Cancel and Escape close a dirty sheet without saving', (
+    tester,
+  ) async {
+    final (saves, closed) = await pumpSheet(tester, result: () => true);
+    await tester.enterText(find.byType(TextField), 'Changed');
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect((saves(), closed()), (0, 1));
+    await tester.tap(find.text('Cancel'));
+    await tester.pump();
+    expect((saves(), closed()), (0, 2));
+  });
+}
+
+/// A text field that edits a property sheet, saving through [onApply].
+final class _DirtyField extends StatefulWidget {
+  const _DirtyField({required this.onApply});
+
+  final Future<bool> Function() onApply;
+
+  @override
+  State<_DirtyField> createState() => _DirtyFieldState();
+}
+
+final class _DirtyFieldState extends State<_DirtyField> {
+  PropertySheetController? _sheet;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final sheet = PropertySheetScope.maybeOf(context);
+    if (sheet != _sheet) {
+      _sheet?.detach(widget.onApply);
+      _sheet = sheet?..attach(apply: widget.onApply);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      TextField(onChanged: (_) => _sheet?.markDirty(true));
 }

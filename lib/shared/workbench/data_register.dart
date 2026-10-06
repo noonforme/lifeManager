@@ -8,10 +8,10 @@ import 'package:flutter/services.dart';
 import '../../core/explain/explanation.dart';
 import 'cell_selection.dart';
 import 'era_controls.dart';
+import 'era_menu.dart';
 import 'era_scrollbar.dart';
 import 'lifeos_skin.dart';
 import 'millennium_style.dart';
-import 'office_controls.dart';
 
 /// What a column holds. Numeric kinds are right-aligned in tabular figures.
 enum ColumnKind {
@@ -45,6 +45,7 @@ final class RegisterColumn<T> {
     this.explain,
     this.cell,
     this.optional = false,
+    this.description,
   });
 
   final String key;
@@ -57,6 +58,9 @@ final class RegisterColumn<T> {
   /// Draws the cell instead of [value] text, for example an area key.
   final Widget Function(T row)? cell;
   final bool optional;
+
+  /// The header's full name in a tooltip, for a short label such as "OT".
+  final String? description;
 }
 
 /// The state a row is drawn and announced in.
@@ -104,10 +108,17 @@ final class SubtotalLine<T> extends RegisterLine<T> {
 /// An action offered on a row's right-click menu. Null [onInvoke] shows the
 /// action disabled.
 final class RowAction {
-  const RowAction({required this.label, required this.onInvoke});
+  const RowAction({
+    required this.label,
+    required this.onInvoke,
+    this.isDefault = false,
+  });
 
   final String label;
   final VoidCallback? onInvoke;
+
+  /// Bold in the menu: the action a double-click or Enter runs.
+  final bool isDefault;
 }
 
 /// A cell position: the row's identity and the column key.
@@ -201,6 +212,10 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
   /// The last primary press: row index and event time, for double-clicks.
   (int, Duration)? _lastPress;
   bool _activatePending = false;
+  final _menu = GlobalKey<EraContextMenuState>();
+
+  /// The cursor row, where Shift+F10 opens its menu.
+  final _cursorRowKey = GlobalKey();
 
   /// The desktop's double-click time (GTK's default), longer than
   /// Flutter's touch-oriented double-tap timeout.
@@ -308,7 +323,30 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
     final rows = _rows;
     if (rows.isEmpty || visible.isEmpty) return KeyEventResult.ignored;
     final key = event.logicalKey;
+    // Alt chords are the window's (Alt+Left is Back), except Alt+Enter,
+    // which opens the row's Properties as in the era.
+    if (HardwareKeyboard.instance.isAltPressed &&
+        key != LogicalKeyboardKey.enter &&
+        key != LogicalKeyboardKey.numpadEnter) {
+      return KeyEventResult.ignored;
+    }
     final row = _cursorRow;
+    // Shift+F10 or the Menu key opens the cursor row's menu at the row, as
+    // a right-click does at the pointer.
+    if (row != null &&
+        (key == LogicalKeyboardKey.contextMenu ||
+            (key == LogicalKeyboardKey.f10 &&
+                HardwareKeyboard.instance.isShiftPressed))) {
+      final box =
+          _cursorRowKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box != null) {
+        _showActions(
+          rows[row].row,
+          box.localToGlobal(Offset(16, box.size.height)),
+        );
+      }
+      return KeyEventResult.handled;
+    }
     final columnIndex = math.max(
       0,
       visible.indexWhere((column) => column.key == _cursorColumn),
@@ -352,30 +390,12 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
     return KeyEventResult.ignored;
   }
 
-  Future<void> _showActions(T row, Offset position) async {
+  void _showActions(T row, Offset position) {
     final actions = widget.actions?.call(row) ?? const <RowAction>[];
-    if (actions.isEmpty) return;
-    final tokens = LifeOSSkinScope.of(context).tokens;
-    final chosen = await showMenu<int>(
-      context: context,
-      color: tokens.paper,
-      position: RelativeRect.fromLTRB(
-        position.dx,
-        position.dy,
-        position.dx,
-        position.dy,
-      ),
-      items: [
-        for (var index = 0; index < actions.length; index++)
-          PopupMenuItem<int>(
-            height: menuRowHeight,
-            value: index,
-            enabled: actions[index].onInvoke != null,
-            child: Text(actions[index].label),
-          ),
-      ],
-    );
-    if (chosen != null) actions[chosen].onInvoke?.call();
+    _menu.currentState?.show(position, [
+      for (final action in actions)
+        EraMenuItem(action.label, action.onInvoke, isDefault: action.isDefault),
+    ]);
   }
 
   /// Hides optional columns from the end until the table fits [available].
@@ -430,6 +450,7 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
                 final row = line.row;
                 final cursorHere = _cursorRow == index;
                 return _DataRow<T>(
+                  key: cursorHere ? _cursorRowKey : null,
                   rowId: widget.rowId(row),
                   focused: _hasFocus,
                   sortedColumn: widget.sortedColumn,
@@ -460,61 +481,66 @@ final class _DataRegisterState<T> extends State<DataRegister<T>> {
               }(),
             },
         ];
-        return Focus(
-          focusNode: _focus,
-          autofocus: true,
-          onKeyEvent: (_, event) => _handleKey(event, visible),
-          child: Semantics(
-            container: true,
-            explicitChildNodes: true,
-            label: widget.label,
+        return EraContextMenu(
+          key: _menu,
+          child: Focus(
+            focusNode: _focus,
+            autofocus: true,
+            onKeyEvent: (_, event) => _handleKey(event, visible),
             child: Semantics(
               container: true,
               explicitChildNodes: true,
-              label: '${widget.label}, horizontally scrollable',
-              child: EraScrollbar(
-                controller: _vertical,
-                axis: Axis.vertical,
-                depth: 1,
-                child: SingleChildScrollView(
-                  controller: _horizontal,
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: tableWidth,
-                    height: constraints.maxHeight.isFinite
-                        ? constraints.maxHeight
-                        : null,
-                    child: Column(
-                      mainAxisSize: constraints.maxHeight.isFinite
-                          ? MainAxisSize.max
-                          : MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _HeaderRow<T>(
-                          columns: visible,
-                          skin: skin,
-                          sortedColumn: widget.sortedColumn,
-                          sortDescending: widget.sortDescending,
-                        ),
-                        if (constraints.maxHeight.isFinite)
-                          Expanded(
-                            child:
-                                NotificationListener<ScrollMetricsNotification>(
-                                  onNotification: _onVerticalMetrics,
-                                  // Its bar is drawn outside the sideways scroll.
-                                  child: ScrollConfiguration(
-                                    behavior: ScrollConfiguration.of(context)
-                                        .copyWith(scrollbars: false),
-                                    child: ListView(
-                                      controller: _vertical,
-                                      children: body,
+              label: widget.label,
+              child: Semantics(
+                container: true,
+                explicitChildNodes: true,
+                label: '${widget.label}, horizontally scrollable',
+                child: EraScrollbar(
+                  controller: _vertical,
+                  axis: Axis.vertical,
+                  depth: 1,
+                  child: SingleChildScrollView(
+                    controller: _horizontal,
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
+                      height: constraints.maxHeight.isFinite
+                          ? constraints.maxHeight
+                          : null,
+                      child: Column(
+                        mainAxisSize: constraints.maxHeight.isFinite
+                            ? MainAxisSize.max
+                            : MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _HeaderRow<T>(
+                            columns: visible,
+                            skin: skin,
+                            sortedColumn: widget.sortedColumn,
+                            sortDescending: widget.sortDescending,
+                          ),
+                          if (constraints.maxHeight.isFinite)
+                            Expanded(
+                              child:
+                                  NotificationListener<
+                                    ScrollMetricsNotification
+                                  >(
+                                    onNotification: _onVerticalMetrics,
+                                    // Its bar is drawn outside the sideways scroll.
+                                    child: ScrollConfiguration(
+                                      behavior: ScrollConfiguration.of(context)
+                                          .copyWith(scrollbars: false),
+                                      child: ListView(
+                                        controller: _vertical,
+                                        children: body,
+                                      ),
                                     ),
                                   ),
-                                ),
-                          )
-                        else
-                          ...body,
-                      ],
+                            )
+                          else
+                            ...body,
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -610,7 +636,7 @@ final class _HeaderCellState<T> extends State<_HeaderCell<T>> {
     final skin = widget.skin;
     final tokens = skin.tokens;
     final column = widget.column;
-    return MouseRegion(
+    final cell = MouseRegion(
       onEnter: (_) => setState(() => _hot = true),
       onExit: (_) => setState(() => _hot = false),
       child: Container(
@@ -660,6 +686,14 @@ final class _HeaderCellState<T> extends State<_HeaderCell<T>> {
         ),
       ),
     );
+    final description = column.description;
+    return description == null
+        ? cell
+        : Tooltip(
+            message: description,
+            excludeFromSemantics: true,
+            child: cell,
+          );
   }
 }
 
@@ -777,6 +811,7 @@ final class _DataRow<T> extends StatelessWidget {
     required this.onPress,
     required this.onCellTap,
     required this.onSecondaryTap,
+    super.key,
   });
 
   final String rowId;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../workbench/era_icons.dart';
+import '../workbench/era_menu.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/lifeos_tokens.dart';
 import '../workbench/millennium_style.dart';
@@ -329,82 +330,59 @@ final class _TreeRowState extends State<_TreeRow> {
   bool _focused = false;
   bool _hovered = false;
 
-  Future<void> _showMenu(Offset position) async {
-    final tokens = LifeOSSkinScope.of(context).tokens;
-    final choice = await showMenu<int>(
-      context: context,
-      color: tokens.paper,
-      position: RelativeRect.fromLTRB(
-        position.dx,
-        position.dy,
-        position.dx,
-        position.dy,
-      ),
-      items: [
-        const PopupMenuItem(
-          height: menuRowHeight,
-          value: -1,
-          child: Text('Open'),
-        ),
-        for (final (index, action) in widget.actions.indexed)
-          PopupMenuItem(
-            height: menuRowHeight,
-            value: index,
-            child: Text(action.label),
-          ),
-      ],
-    );
-    switch (choice) {
-      case -1:
-        widget.onOpen(widget.route);
-      case final int index:
-        widget.actions[index].onSelected();
-      case null:
-    }
-  }
+  final _menu = GlobalKey<EraContextMenuState>();
+
+  void _showMenu(Offset position) => _menu.currentState?.show(position, [
+    EraMenuItem('Open', () => widget.onOpen(widget.route), isDefault: true),
+    for (final action in widget.actions)
+      EraMenuItem(action.label, action.onSelected),
+  ]);
 
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
-    return MergeSemantics(
-      child: Semantics(
-        button: true,
-        selected: widget.selected,
-        label: widget.label,
-        value: widget.semanticValue,
-        child: FocusableActionDetector(
-          mouseCursor: SystemMouseCursors.click,
-          onShowFocusHighlight: (value) => setState(() => _focused = value),
-          onShowHoverHighlight: (value) => setState(() => _hovered = value),
-          actions: {
-            ActivateIntent: CallbackAction<ActivateIntent>(
-              onInvoke: (_) {
-                widget.onOpen(widget.route);
-                return null;
-              },
-            ),
-          },
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => widget.onOpen(widget.route),
-            onSecondaryTapUp: (details) => _showMenu(details.globalPosition),
-            child: ExcludeSemantics(
-              child: Container(
-                constraints: const BoxConstraints(minHeight: 24),
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                foregroundDecoration: _focused
-                    ? DottedFocusRectangle(color: tokens.focus, inset: 0.5)
-                    : null,
-                alignment: Alignment.centerLeft,
-                child: DefaultTextStyle.merge(
-                  style: TextStyle(
-                    decoration: _hovered && !widget.selected
-                        ? TextDecoration.underline
-                        : null,
-                    decorationColor: MillenniumColors.link,
+    return EraContextMenu(
+      key: _menu,
+      child: MergeSemantics(
+        child: Semantics(
+          button: true,
+          selected: widget.selected,
+          label: widget.label,
+          value: widget.semanticValue,
+          child: FocusableActionDetector(
+            mouseCursor: SystemMouseCursors.click,
+            onShowFocusHighlight: (value) => setState(() => _focused = value),
+            onShowHoverHighlight: (value) => setState(() => _hovered = value),
+            actions: {
+              ActivateIntent: CallbackAction<ActivateIntent>(
+                onInvoke: (_) {
+                  widget.onOpen(widget.route);
+                  return null;
+                },
+              ),
+            },
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => widget.onOpen(widget.route),
+              onSecondaryTapUp: (details) => _showMenu(details.globalPosition),
+              child: ExcludeSemantics(
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  foregroundDecoration: _focused
+                      ? DottedFocusRectangle(color: tokens.focus, inset: 0.5)
+                      : null,
+                  alignment: Alignment.centerLeft,
+                  child: DefaultTextStyle.merge(
+                    style: TextStyle(
+                      decoration: _hovered && !widget.selected
+                          ? TextDecoration.underline
+                          : null,
+                      decorationColor: MillenniumColors.link,
+                    ),
+                    child: widget.child,
                   ),
-                  child: widget.child,
                 ),
               ),
             ),

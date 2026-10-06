@@ -69,9 +69,8 @@ final class _CorrectionConfirmationInspectorState<T>
     container: true,
     explicitChildNodes: true,
     label: 'Confirm correction',
-    child: ListView(
-      padding: inspectorInset,
-      children: [
+    child: DialogForm(
+      fields: [
         // Names the record itself, which the dialog caption does not.
         InspectorTitle('Correct ${widget.recordName}'),
         const InspectorText(
@@ -89,15 +88,6 @@ final class _CorrectionConfirmationInspectorState<T>
             error: _reasonError,
           ),
         ),
-        FormFooter(
-          children: [
-            KeyButton(label: 'Cancel', onPressed: widget.onCancel),
-            FilledButton(
-              onPressed: _submitting ? null : _confirm,
-              child: const Text('Void original and create replacement'),
-            ),
-          ],
-        ),
         if (_outcome case Stale<T>()) ...[
           const SizedBox(height: 16),
           StaleConflictInspector(
@@ -114,6 +104,14 @@ final class _CorrectionConfirmationInspectorState<T>
           const SizedBox(height: 16),
           const UncertainOutcomeInspector(),
         ],
+      ],
+      keys: [
+        KeyButton(
+          label: 'Void original and create replacement',
+          kind: KeyKind.primary,
+          onPressed: _submitting ? null : _confirm,
+        ),
+        KeyButton(label: 'Cancel', onPressed: widget.onCancel),
       ],
     ),
   );
@@ -142,7 +140,7 @@ final class StaleConflictInspector extends StatelessWidget {
           'Your record is out of date. Reload and review before trying again.',
         ),
         const SizedBox(height: 8),
-        OutlinedButton(onPressed: onReload, child: const Text('Reload record')),
+        KeyButton(label: 'Reload record', onPressed: onReload),
       ],
     ),
   );

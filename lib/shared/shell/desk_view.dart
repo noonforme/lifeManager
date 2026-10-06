@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/desks/desks.dart';
 import '../workbench/era_controls.dart';
 import '../workbench/era_dialog.dart';
+import '../workbench/era_menu.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/lifeos_tokens.dart';
 import '../workbench/millennium_style.dart';
@@ -228,38 +229,26 @@ final class _TileCard extends StatelessWidget {
               onClose: onRemove,
               closeLabel: 'Close ${content.title}',
               trailing: [
-                Material(
-                  type: MaterialType.transparency,
-                  child: PopupMenuButton<String>(
-                    tooltip: 'Tile menu',
-                    padding: EdgeInsets.zero,
-                    onSelected: (choice) => switch (choice) {
-                      'remove' => onRemove(),
-                      'open' => fullSize == null ? null : onOpen(fullSize),
-                      final sheet => onReplace(sheet),
-                    },
-                    itemBuilder: (context) => [
-                      for (final MapEntry(key: sheet, value: name)
-                          in sheetNames.entries)
-                        if (tile.viewId != null || sheet != tile.sheetRef)
-                          PopupMenuItem(
-                            height: menuRowHeight,
-                            value: sheet,
-                            child: Text('Replace with $name'),
-                          ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem(
-                        height: menuRowHeight,
-                        value: 'open',
-                        enabled: fullSize != null,
-                        child: const Text('Open full size'),
-                      ),
-                      const PopupMenuItem(
-                        height: menuRowHeight,
-                        value: 'remove',
-                        child: Text('Remove'),
-                      ),
-                    ],
+                EraMenuButton(
+                  tooltip: 'Tile menu',
+                  items: [
+                    for (final MapEntry(key: sheet, value: name)
+                        in sheetNames.entries)
+                      if (tile.viewId != null || sheet != tile.sheetRef)
+                        EraMenuItem(
+                          'Replace with $name',
+                          () => onReplace(sheet),
+                        ),
+                    const EraMenuItem.separator(),
+                    EraMenuItem(
+                      'Open full size',
+                      fullSize == null ? null : () => onOpen(fullSize),
+                    ),
+                    EraMenuItem('Remove', onRemove),
+                  ],
+                  builder: (context, toggle) => EraPressable(
+                    label: 'Tile menu',
+                    onPressed: toggle,
                     child: SizedBox(
                       width: 24,
                       height: 24,
@@ -320,75 +309,34 @@ final class _DeskMenu extends StatelessWidget {
       DeskLayout.twoColumns: 'Two columns',
       DeskLayout.mainAndSide: 'Main and side',
     };
-    return Material(
-      type: MaterialType.transparency,
-      child: PopupMenuButton<Object>(
-        tooltip: 'Desk menu',
-        onSelected: (choice) => switch (choice) {
-          final DeskLayout layout => onLayout(layout),
-          'rename' => onRename(),
-          'reset' => onReset?.call(),
-          'delete' => onDelete?.call(),
-          _AddView(:final id) => onAddView?.call(id),
-          final String sheet => onAddSheet(sheet),
-          _ => null,
-        },
-        itemBuilder: (context) => [
-          for (final MapEntry(key: sheet, value: name) in sheetNames.entries)
-            PopupMenuItem(
-              height: menuRowHeight,
-              value: sheet,
-              child: Text('Add $name'),
-            ),
-          for (final MapEntry(key: id, value: name) in views.entries)
-            PopupMenuItem(
-              height: menuRowHeight,
-              value: _AddView(id),
-              child: Text('Add view: $name'),
-            ),
-          const PopupMenuDivider(),
-          for (final MapEntry(key: layout, value: name) in layouts.entries)
-            CheckedPopupMenuItem(
-              height: menuRowHeight,
-              value: layout,
-              checked: desk.layout == layout,
-              child: Text('Layout: $name'),
-            ),
-          const PopupMenuDivider(),
-          const PopupMenuItem(
-            height: menuRowHeight,
-            value: 'rename',
-            child: Text('Rename desk…'),
+    return EraMenuButton(
+      tooltip: 'Desk menu',
+      items: [
+        for (final MapEntry(key: sheet, value: name) in sheetNames.entries)
+          EraMenuItem('Add $name', () => onAddSheet(sheet)),
+        for (final MapEntry(key: id, value: name) in views.entries)
+          EraMenuItem(
+            'Add view: $name',
+            onAddView == null ? null : () => onAddView!(id),
           ),
-          PopupMenuItem(
-            height: menuRowHeight,
-            value: 'reset',
-            enabled: onReset != null,
-            child: const Text('Reset starter desk'),
+        const EraMenuItem.separator(),
+        for (final MapEntry(key: layout, value: name) in layouts.entries)
+          EraMenuItem(
+            'Layout: $name',
+            () => onLayout(layout),
+            checked: desk.layout == layout,
           ),
-          PopupMenuItem(
-            height: menuRowHeight,
-            value: 'delete',
-            enabled: onDelete != null,
-            child: const Text('Delete desk'),
-          ),
-        ],
-        child: IgnorePointer(
-          child: KeyButton(
-            label: 'Desk',
-            kind: KeyKind.small,
-            trailing: EraGlyph(EraGlyphKind.dropDown, color: skin.tokens.ink),
-            onPressed: () {},
-          ),
-        ),
+        const EraMenuItem.separator(),
+        EraMenuItem('Rename desk…', onRename),
+        EraMenuItem('Reset starter desk', onReset),
+        EraMenuItem('Delete desk', onDelete),
+      ],
+      builder: (context, toggle) => KeyButton(
+        label: 'Desk',
+        kind: KeyKind.small,
+        trailing: EraGlyph(EraGlyphKind.dropDown, color: skin.tokens.ink),
+        onPressed: toggle,
       ),
     );
   }
-}
-
-/// The desk menu's choice to place a saved view.
-final class _AddView {
-  const _AddView(this.id);
-
-  final String id;
 }

@@ -26,7 +26,15 @@ readonly flutter
 start_app() {
     printf '\nPreparing LifeOS...\n'
     "$flutter" pub get
-    printf '\nStarting LifeOS (native Linux)...\n'
+    printf '\nStarting LifeOS (native Linux, release build)...\n'
+    "$flutter" run -d linux --release
+}
+
+# A debug build is several times slower to draw; use it only for hot reload.
+start_debug() {
+    printf '\nPreparing LifeOS...\n'
+    "$flutter" pub get
+    printf '\nStarting LifeOS (native Linux, debug build with hot reload)...\n'
     "$flutter" run -d linux
 }
 
@@ -48,7 +56,8 @@ while true; do
     printf '  1) Start app\n'
     printf '  2) Run tests\n'
     printf '  3) Run project checks\n'
-    printf '  4) Exit\n'
+    printf '  4) Start app in debug mode (hot reload)\n'
+    printf '  5) Exit\n'
     printf 'Choose an option: '
 
     if ! IFS= read -r choice; then
@@ -60,7 +69,8 @@ while true; do
         1) start_app ;;
         2) run_tests ;;
         3) run_checks ;;
-        4) exit 0 ;;
-        *) printf 'Invalid choice. Enter 1, 2, 3, or 4.\n' ;;
+        4) start_debug ;;
+        5) exit 0 ;;
+        *) printf 'Invalid choice. Enter 1, 2, 3, 4, or 5.\n' ;;
     esac
 done

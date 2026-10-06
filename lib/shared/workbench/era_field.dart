@@ -53,6 +53,7 @@ final class EraField extends StatelessWidget {
         field: TextField(
           key: fieldKey,
           controller: controller,
+          enabled: EraFormScope.enabledOf(context),
           autofocus: autofocus,
           keyboardType: keyboardType,
           maxLines: maxLines,

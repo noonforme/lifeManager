@@ -47,6 +47,29 @@ final class StatusNoticeScope
       context.getInheritedWidgetOfExactType<StatusNoticeScope>()?.notifier;
 }
 
+/// What the lit menu row or key does, shown in the status bar's first
+/// panel while it is lit, as the era described a command before you chose
+/// it. Null gives the panel back to the last notice.
+final class StatusHintController extends ValueNotifier<String?> {
+  StatusHintController() : super(null);
+}
+
+final class StatusHintScope extends InheritedNotifier<StatusHintController> {
+  const StatusHintScope({
+    required StatusHintController controller,
+    required super.child,
+    super.key,
+  }) : super(notifier: controller);
+
+  static String? valueOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<StatusHintScope>()
+      ?.notifier
+      ?.value;
+
+  static StatusHintController? read(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<StatusHintScope>()?.notifier;
+}
+
 /// The sunken status bar at the bottom of the shell.
 final class StatusLine extends StatelessWidget {
   const StatusLine({required this.snapshot, super.key});
@@ -58,7 +81,8 @@ final class StatusLine extends StatelessWidget {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
     final style = skin.typography.small.copyWith(color: tokens.ink);
-    final notice = StatusNoticeScope.valueOf(context);
+    final notice =
+        StatusHintScope.valueOf(context) ?? StatusNoticeScope.valueOf(context);
     final save = snapshot.lastSaveUncertain
         ? 'Last save uncertain. Reload to check'
         : snapshot.lastSave == null

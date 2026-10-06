@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -80,6 +81,9 @@ final class EraTimeField extends StatefulWidget {
 
 final class _EraTimeFieldState extends State<EraTimeField> {
   final _focus = FocusNode(debugLabel: 'EraTimeField');
+
+  /// Off for a disabled box or one in a read-only form.
+  bool get _enabled => widget.enabled && EraFormScope.enabledOf(context);
   TimePart _part = TimePart.hour;
   bool _focused = false;
 
@@ -104,7 +108,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
     super.didUpdateWidget(oldWidget);
     _sent = null;
     if ((widget.value?.second ?? 0) != 0) _withSeconds = true;
-    if (!widget.enabled) _stopRepeat();
+    if (!_enabled) _stopRepeat();
   }
 
   @override
@@ -115,7 +119,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
   }
 
   void _step(int delta) {
-    if (!widget.enabled || !mounted) return;
+    if (!_enabled || !mounted) return;
     final current = _sent ?? widget.value;
     final start = widget.emptyStart;
     final next = current == null
@@ -143,7 +147,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
   });
 
   void _startRepeat(int delta) {
-    if (!widget.enabled) return;
+    if (!_enabled) return;
     _focusKeepingPart();
     _step(delta);
     _repeat?.cancel();
@@ -177,13 +181,15 @@ final class _EraTimeFieldState extends State<EraTimeField> {
       _step(delta);
       return KeyEventResult.handled;
     }
+    // Left and Right stay in the box at its ends, as in the era: passed
+    // on, they would move focus and the next Up would step another box.
     final index = _parts.indexOf(_part);
-    if (key == LogicalKeyboardKey.arrowLeft && index > 0) {
-      setState(() => _part = _parts[index - 1]);
+    if (key == LogicalKeyboardKey.arrowLeft) {
+      if (index > 0) setState(() => _part = _parts[index - 1]);
       return KeyEventResult.handled;
     }
-    if (key == LogicalKeyboardKey.arrowRight && index < _parts.length - 1) {
-      setState(() => _part = _parts[index + 1]);
+    if (key == LogicalKeyboardKey.arrowRight) {
+      if (index < _parts.length - 1) setState(() => _part = _parts[index + 1]);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -197,7 +203,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
     final name = widget.semanticLabel ?? widget.label!;
     final spoken =
         '$name, ${value == null ? 'not set' : eraTimeText(value, withSeconds: _withSeconds)}';
-    final ink = widget.enabled ? t.ink : t.muted;
+    final ink = _enabled ? t.ink : t.muted;
 
     Widget part(TimePart part) {
       final digits = value == null
@@ -211,7 +217,11 @@ final class _EraTimeFieldState extends State<EraTimeField> {
       return Listener(
         key: ValueKey('era-time-${part.name}'),
         behavior: HitTestBehavior.opaque,
-        onPointerDown: widget.enabled ? (_) => _choose(part) : null,
+        onPointerDown: _enabled
+            ? (event) {
+                if (event.buttons == kPrimaryButton) _choose(part);
+              }
+            : null,
         child: Container(
           color: selected ? t.selWash : null,
           padding: const EdgeInsets.symmetric(horizontal: 1),
@@ -233,20 +243,20 @@ final class _EraTimeFieldState extends State<EraTimeField> {
         MergeSemantics(
           child: Focus(
             focusNode: _focus,
-            canRequestFocus: widget.enabled,
+            canRequestFocus: _enabled,
             onKeyEvent: _onKey,
             onFocusChange: _onFocusChange,
             child: Semantics(
-              enabled: widget.enabled,
+              enabled: _enabled,
               label: widget.error == null ? spoken : '$spoken, ${widget.error}',
-              onIncrease: widget.enabled ? () => _step(1) : null,
-              onDecrease: widget.enabled ? () => _step(-1) : null,
+              onIncrease: _enabled ? () => _step(1) : null,
+              onDecrease: _enabled ? () => _step(-1) : null,
               excludeSemantics: true,
               child: Container(
                 key: widget.fieldKey,
                 constraints: const BoxConstraints(minHeight: 24),
                 decoration: BoxDecoration(
-                  color: widget.enabled ? t.paper : t.chrome,
+                  color: _enabled ? t.paper : t.chrome,
                   border: Border.all(
                     color: widget.error == null
                         ? MillenniumColors.fieldLine
@@ -287,7 +297,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
                               child: _SpinKey(
                                 key: const ValueKey('era-time-up'),
                                 up: true,
-                                enabled: widget.enabled,
+                                enabled: _enabled,
                                 onDown: () => _startRepeat(1),
                                 onUp: _stopRepeat,
                               ),
@@ -296,7 +306,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
                               child: _SpinKey(
                                 key: const ValueKey('era-time-down'),
                                 up: false,
-                                enabled: widget.enabled,
+                                enabled: _enabled,
                                 onDown: () => _startRepeat(-1),
                                 onUp: _stopRepeat,
                               ),
@@ -337,8 +347,8 @@ final class _EraTimeFieldState extends State<EraTimeField> {
 }
 
 /// One of the stacked ▴▾ buttons. It reacts on pointer down so that holding
-/// it repeats, as in the era.
-final class _SpinKey extends StatelessWidget {
+/// it repeats, as in the era, and looks pressed while held.
+final class _SpinKey extends StatefulWidget {
   const _SpinKey({
     required this.up,
     required this.enabled,
@@ -353,34 +363,61 @@ final class _SpinKey extends StatelessWidget {
   final VoidCallback onUp;
 
   @override
+  State<_SpinKey> createState() => _SpinKeyState();
+}
+
+final class _SpinKeyState extends State<_SpinKey> {
+  bool _pressed = false;
+
+  void _press(PointerDownEvent event) {
+    // Only the main button spins; a right or middle press does nothing.
+    if (event.buttons != kPrimaryButton) return;
+    setState(() => _pressed = true);
+    widget.onDown();
+  }
+
+  void _release() {
+    if (_pressed) setState(() => _pressed = false);
+    widget.onUp();
+  }
+
+  @override
+  void didUpdateWidget(_SpinKey oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.enabled) _pressed = false;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = LifeOSSkinScope.of(context).tokens;
+    const resting = [
+      MillenniumColors.comboArrowTop,
+      MillenniumColors.comboArrowBottom,
+    ];
     return Listener(
       behavior: HitTestBehavior.opaque,
-      onPointerDown: enabled ? (_) => onDown() : null,
-      onPointerUp: (_) => onUp(),
-      onPointerCancel: (_) => onUp(),
+      onPointerDown: widget.enabled ? _press : null,
+      onPointerUp: (_) => _release(),
+      onPointerCancel: (_) => _release(),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: enabled ? null : t.chrome,
-          gradient: enabled
-              ? const LinearGradient(
+          color: widget.enabled ? null : t.chrome,
+          // Pressing inverts the gradient, as on the era's keys.
+          gradient: widget.enabled
+              ? LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    MillenniumColors.comboArrowTop,
-                    MillenniumColors.comboArrowBottom,
-                  ],
+                  colors: _pressed ? resting.reversed.toList() : resting,
                 )
               : null,
           border: Border(
-            top: up ? BorderSide.none : BorderSide(color: t.paper),
+            top: widget.up ? BorderSide.none : BorderSide(color: t.paper),
           ),
         ),
         child: Center(
           child: EraGlyph(
-            up ? EraGlyphKind.sortUp : EraGlyphKind.sortDown,
-            color: enabled ? MillenniumColors.comboArrowInk : t.muted,
+            widget.up ? EraGlyphKind.sortUp : EraGlyphKind.sortDown,
+            color: widget.enabled ? MillenniumColors.comboArrowInk : t.muted,
             size: 7,
           ),
         ),

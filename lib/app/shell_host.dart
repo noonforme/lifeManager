@@ -22,17 +22,60 @@ import '../shared/workbench/era_icons.dart';
 import '../shared/workbench/lifeos_tokens.dart';
 import 'desk_providers.dart';
 
-/// Closes the application window; provided by the app root.
+/// Closes and titles the application window; provided by the app root.
 final class AppQuit extends InheritedWidget {
-  const AppQuit({required this.onQuit, required super.child, super.key});
+  const AppQuit({
+    required this.onQuit,
+    required super.child,
+    this.onTitle,
+    super.key,
+  });
 
   final VoidCallback? onQuit;
+  final ValueChanged<String>? onTitle;
 
   static VoidCallback? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<AppQuit>()?.onQuit;
 
+  static ValueChanged<String>? titleOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<AppQuit>()?.onTitle;
+
   @override
-  bool updateShouldNotify(AppQuit oldWidget) => onQuit != oldWidget.onQuit;
+  bool updateShouldNotify(AppQuit oldWidget) =>
+      onQuit != oldWidget.onQuit || onTitle != oldWidget.onTitle;
+}
+
+/// Names the window after the place it shows, as an era window did:
+/// "Shifts - LifeOS".
+final class _WindowTitle extends StatefulWidget {
+  const _WindowTitle({required this.place, required this.child});
+
+  final String? place;
+  final Widget child;
+
+  @override
+  State<_WindowTitle> createState() => _WindowTitleState();
+}
+
+final class _WindowTitleState extends State<_WindowTitle> {
+  String? _sent;
+
+  void _send() {
+    final place = widget.place;
+    final title = place == null ? 'LifeOS' : '$place - LifeOS';
+    if (title == _sent) return;
+    _sent = title;
+    final onTitle = AppQuit.titleOf(context);
+    if (onTitle != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => onTitle(title));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _send();
+    return widget.child;
+  }
 }
 
 /// Active employments for the book tree, read from the Work projection.
@@ -141,35 +184,39 @@ final class ShellChromeHost extends ConsumerWidget {
               .map((value) => value.name)
               .firstOrNull;
 
-    return ShellChrome(
-      menuBar: LifeOSMenuBar(
-        onNavigate: context.go,
-        onQuit: AppQuit.maybeOf(context),
-      ),
-      tree: (onOpened) => BookTree(
-        nodes: nodes,
-        selectedRoute: selected,
-        onOpen: (route) {
-          onOpened();
-          context.go(route);
+    final crumbs = _crumbs(location, employmentName);
+    return _WindowTitle(
+      place: crumbs.lastOrNull?.label,
+      child: ShellChrome(
+        menuBar: LifeOSMenuBar(
+          onNavigate: context.go,
+          onQuit: AppQuit.maybeOf(context),
+        ),
+        tree: (onOpened) => BookTree(
+          nodes: nodes,
+          selectedRoute: selected,
+          onOpen: (route) {
+            onOpened();
+            context.go(route);
+          },
+        ),
+        status: const StatusLine(snapshot: StatusSnapshot()),
+        crumbs: crumbs,
+        addressTree: addressTreeFrom(nodes),
+        addressIcon: switch (location.path) {
+          '/work' => EraIconKind.work,
+          '/finance' => EraIconKind.finance,
+          '/tracking' => EraIconKind.tracking,
+          '/knowledge' => EraIconKind.knowledge,
+          '/today' => EraIconKind.payPeriod,
+          '/journal' => EraIconKind.properties,
+          _ => null,
         },
+        onNavigate: context.go,
+        quickAdd: _quickAdd(context, employments, employmentId),
+        fromLastTime: _fromLastTime(context, ref, employments, employmentId),
+        child: child,
       ),
-      status: const StatusLine(snapshot: StatusSnapshot()),
-      crumbs: _crumbs(location, employmentName),
-      addressTree: addressTreeFrom(nodes),
-      addressIcon: switch (location.path) {
-        '/work' => EraIconKind.work,
-        '/finance' => EraIconKind.finance,
-        '/tracking' => EraIconKind.tracking,
-        '/knowledge' => EraIconKind.knowledge,
-        '/today' => EraIconKind.payPeriod,
-        '/journal' => EraIconKind.properties,
-        _ => null,
-      },
-      onNavigate: context.go,
-      quickAdd: _quickAdd(context, employments, employmentId),
-      fromLastTime: _fromLastTime(context, ref, employments, employmentId),
-      child: child,
     );
   }
 
@@ -260,26 +307,31 @@ final class ShellChromeHost extends ConsumerWidget {
       QuickAddEntry(
         area: LifeOSArea.work,
         label: 'Manual shift',
+        icon: EraIconKind.shift,
         open: go(WorkInspectorMode.edit),
       ),
       QuickAddEntry(
         area: LifeOSArea.work,
         label: 'Pay period',
+        icon: EraIconKind.payPeriod,
         open: go(WorkInspectorMode.inspect, adding: WorkAddKind.payPeriod),
       ),
       QuickAddEntry(
         area: LifeOSArea.work,
         label: 'Payslip',
+        icon: EraIconKind.payslip,
         open: go(WorkInspectorMode.inspect, adding: WorkAddKind.payslip),
       ),
       QuickAddEntry(
         area: LifeOSArea.work,
         label: 'Employment',
+        icon: EraIconKind.employment,
         open: go(WorkInspectorMode.create, needsEmployment: false),
       ),
       QuickAddEntry(
         area: LifeOSArea.work,
         label: 'Agreement',
+        icon: EraIconKind.agreement,
         open: go(WorkInspectorMode.inspect, adding: WorkAddKind.agreement),
       ),
     ];
@@ -304,6 +356,7 @@ final class ShellChromeHost extends ConsumerWidget {
       QuickAddEntry(
         area: LifeOSArea.work,
         label: 'Manual shift from last time',
+        icon: EraIconKind.shift,
         open: () => context.go(
           workRouteUri(
             WorkRouteState(

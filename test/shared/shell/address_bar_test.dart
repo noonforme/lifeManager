@@ -88,7 +88,75 @@ void main() {
     ]);
     expect(
       [for (final entry in tree) '${entry.depth}:${entry.label}'],
-      ['0:Today', '0:Night shifts', '0:Work', '1:Synthetic depot', '0:Finance'],
+      [
+        '0:Today',
+        '0:Night shifts',
+        '0:Work',
+        '1:Synthetic depot',
+        '0:Finance (not built yet)',
+      ],
+    );
+    // An unbuilt area reads as it does in Books: greyed.
+    expect(
+      [for (final entry in tree) entry.unbuilt],
+      [false, false, false, false, true],
+    );
+  });
+
+  testWidgets('the list shows the current sheet under its parent, lit', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        AddressBar(
+          crumbs: const [
+            AddressCrumb('Work', '/work'),
+            AddressCrumb('Synthetic depot', '/work?employment=e'),
+            AddressCrumb('Shifts', '/work?employment=e&sheet=shifts'),
+          ],
+          tree: const [
+            AddressLocation('Today', '/today'),
+            AddressLocation('Work', '/work', icon: EraIconKind.work),
+            AddressLocation('Synthetic depot', '/work?employment=e', depth: 1),
+            AddressLocation('Finance', '/finance'),
+          ],
+          onNavigate: (_) {},
+          onGo: () {},
+        ),
+      ),
+    );
+    await tester.tap(find.bySemanticsLabel(RegExp('^Address, ')));
+    await tester.pump();
+    await tester.pump();
+    final rows = find.byType(MenuItemButton);
+    final labels = [
+      for (final row in rows.evaluate())
+        (row.widget as MenuItemButton).semanticsLabel ??
+            tester
+                .widgetList<Text>(
+                  find.descendant(
+                    of: find.byWidget(row.widget),
+                    matching: find.byType(Text),
+                  ),
+                )
+                .first
+                .data,
+    ];
+    expect(labels, ['Today', 'Work', 'Synthetic depot', 'Shifts', 'Finance']);
+    final shifts = find.descendant(
+      of: find.ancestor(
+        of: find.text('Shifts'),
+        matching: find.byType(MenuItemButton),
+      ),
+      matching: find.byType(Material),
+    );
+    expect(
+      tester.widget<Material>(shifts.first).color,
+      LifeOSSkinData.standard.tokens.selWash,
+    );
+    expect(
+      tester.getTopLeft(find.text('Shifts')).dx,
+      greaterThan(tester.getTopLeft(find.text('Synthetic depot')).dx),
     );
   });
 }

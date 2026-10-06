@@ -6,6 +6,7 @@ import '../../../shared/shell/task_pane.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/millennium_style.dart';
+import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/facts.dart';
@@ -87,13 +88,14 @@ final class WorkRegister extends StatelessWidget {
           alignment: WrapAlignment.center,
           children: [
             for (final employment in value.availableEmployments)
-              OutlinedButton(
+              KeyButton(
+                label: employment.name,
                 onPressed: () => open(employment.id),
-                child: Text(employment.name),
               ),
-            FilledButton(
+            KeyButton(
+              label: 'Create employment',
+              kind: KeyKind.primary,
               onPressed: create,
-              child: const Text('Create employment'),
             ),
           ],
         ),
@@ -106,9 +108,10 @@ final class WorkRegister extends StatelessWidget {
         message:
             'Track shifts, see what you should be paid, and compare it with '
             'your payslips. Start by adding where you work.',
-        action: FilledButton(
+        action: KeyButton(
+          label: 'Create employment',
+          kind: KeyKind.primary,
           onPressed: create,
-          child: const Text('Create employment'),
         ),
       );
     }

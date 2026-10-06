@@ -54,7 +54,8 @@ final class _EraDateFieldState extends State<EraDateField> {
   ScrollPosition? _scroll;
   bool _focused = false;
 
-  bool get _enabled => widget.value != null;
+  /// Off for a clear optional box, or one in a read-only form.
+  bool get _enabled => widget.value != null && EraFormScope.enabledOf(context);
 
   @override
   void initState() {
@@ -166,7 +167,14 @@ final class _EraDateFieldState extends State<EraDateField> {
         delegate: EraDropLayout(rect),
         child: TapRegion(
           groupId: this,
-          onTapOutside: (_) => _close(),
+          // Runs after a control taking focus on press has asked for it.
+          // That request is settled first, or the calendar going away would
+          // hand focus back to the box. With nothing focusable clicked, the
+          // calendar's focus returns to the box as it goes.
+          onTapOutside: (_) {
+            FocusManager.instance.applyFocusChangesIfNeeded();
+            _dismiss();
+          },
           child: EraMonthCalendar(
             focusNode: _calendarNode,
             selected: widget.value,
@@ -219,7 +227,8 @@ final class _EraDateFieldState extends State<EraDateField> {
                   key: widget.fieldKey,
                   constraints: const BoxConstraints(minHeight: 24),
                   decoration: BoxDecoration(
-                    color: t.paper,
+                    // A read-only form greys the box onto the face colour.
+                    color: EraFormScope.enabledOf(context) ? t.paper : t.chrome,
                     border: Border.all(
                       color: widget.error == null
                           ? MillenniumColors.fieldLine
@@ -235,7 +244,9 @@ final class _EraDateFieldState extends State<EraDateField> {
                             key: const ValueKey('era-date-check'),
                             label: widget.label,
                             checked: value != null,
-                            onToggle: _toggle,
+                            onToggle: EraFormScope.enabledOf(context)
+                                ? _toggle
+                                : null,
                           ),
                         Expanded(
                           child: ExcludeSemantics(
@@ -395,7 +406,9 @@ final class _EraCheck extends StatefulWidget {
 
   final String label;
   final bool checked;
-  final VoidCallback onToggle;
+
+  /// Null locks the check box, in a read-only form.
+  final VoidCallback? onToggle;
 
   @override
   State<_EraCheck> createState() => _EraCheckState();
@@ -414,8 +427,9 @@ final class _EraCheckState extends State<_EraCheck> {
   /// A click focuses the check box, as in the era, so unticking with the
   /// calendar open leaves focus on a control.
   void _tap() {
+    if (widget.onToggle == null) return;
     _node.requestFocus();
-    widget.onToggle();
+    widget.onToggle!();
   }
 
   @override
@@ -433,7 +447,7 @@ final class _EraCheckState extends State<_EraCheck> {
           actions: {
             ActivateIntent: CallbackAction<ActivateIntent>(
               onInvoke: (_) {
-                widget.onToggle();
+                widget.onToggle?.call();
                 return null;
               },
             ),

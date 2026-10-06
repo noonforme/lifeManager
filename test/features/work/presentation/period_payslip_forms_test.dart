@@ -200,7 +200,8 @@ void main() {
         ),
       );
       expect(find.bySemanticsLabel('Pay period'), findsOneWidget);
-      expect(find.text('October'), findsOneWidget);
+      // The title, and the label in its greyed field.
+      expect(find.text('October'), findsNWidgets(2));
 
       await tester.pumpWidget(
         _TestApp(
@@ -211,7 +212,7 @@ void main() {
       );
       expect(find.bySemanticsLabel('Payslip'), findsOneWidget);
       expect(find.text('Paid evidence'), findsOneWidget);
-      expect(find.text('EUR 1234.56'), findsOneWidget);
+      expect(find.text('1234.56'), findsOneWidget);
       expect(find.text('Gross'), findsOneWidget);
     },
   );

@@ -16,17 +16,30 @@ abstract final class EraFieldWidth {
 
 /// The width of a dialog's "Label:" column.
 final class EraFormScope extends InheritedWidget {
-  const EraFormScope({this.labelWidth = 110, required super.child, super.key});
+  const EraFormScope({
+    this.labelWidth = 110,
+    this.enabled = true,
+    required super.child,
+    super.key,
+  });
 
   final double labelWidth;
+
+  /// False greys and locks every era field inside, as a read-only
+  /// property sheet shows its values.
+  final bool enabled;
 
   static double labelWidthOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<EraFormScope>()?.labelWidth ??
       110;
 
+  static bool enabledOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<EraFormScope>()?.enabled ??
+      true;
+
   @override
   bool updateShouldNotify(EraFormScope oldWidget) =>
-      labelWidth != oldWidget.labelWidth;
+      labelWidth != oldWidget.labelWidth || enabled != oldWidget.enabled;
 }
 
 /// "Label:" in the label column, then the field, as an era dialog lays out
@@ -141,8 +154,13 @@ final class EraCheckBox extends StatelessWidget {
     label: label,
     checked: value,
     radio: false,
-    onPressed: onChanged == null ? null : () => onChanged!(!value),
-    mark: _Box(checked: value, enabled: onChanged != null),
+    onPressed: onChanged == null || !EraFormScope.enabledOf(context)
+        ? null
+        : () => onChanged!(!value),
+    mark: _Box(
+      checked: value,
+      enabled: onChanged != null && EraFormScope.enabledOf(context),
+    ),
   );
 }
 
@@ -181,8 +199,13 @@ final class EraRadio<T> extends StatelessWidget {
     highlighted: highlighted,
     checked: value == groupValue,
     radio: true,
-    onPressed: onChanged == null ? null : () => onChanged!(value),
-    mark: _Dot(selected: value == groupValue, enabled: onChanged != null),
+    onPressed: onChanged == null || !EraFormScope.enabledOf(context)
+        ? null
+        : () => onChanged!(value),
+    mark: _Dot(
+      selected: value == groupValue,
+      enabled: onChanged != null && EraFormScope.enabledOf(context),
+    ),
   );
 }
 
@@ -220,8 +243,12 @@ final class EraRadioGroup<T> extends StatefulWidget {
 final class _EraRadioGroupState<T> extends State<EraRadioGroup<T>> {
   bool _focused = false;
 
+  /// The group's change, or null while it or its form is locked.
+  ValueChanged<T>? get _change =>
+      EraFormScope.enabledOf(context) ? widget.onChanged : null;
+
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
-    final change = widget.onChanged;
+    final change = _change;
     if (change == null || widget.options.isEmpty) {
       return KeyEventResult.ignored;
     }
@@ -253,11 +280,11 @@ final class _EraRadioGroupState<T> extends State<EraRadioGroup<T>> {
           detail: option.detail,
           focusable: false,
           highlighted: _focused && option.value == widget.groupValue,
-          onChanged: widget.onChanged,
+          onChanged: _change,
         ),
     ];
     return Focus(
-      canRequestFocus: widget.onChanged != null,
+      canRequestFocus: _change != null,
       onFocusChange: (focused) => setState(() => _focused = focused),
       onKeyEvent: _onKey,
       child: widget.direction == Axis.vertical

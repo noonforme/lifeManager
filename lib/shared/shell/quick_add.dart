@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../workbench/era_controls.dart';
+import '../workbench/era_icons.dart';
+import '../workbench/era_menu.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/lifeos_tokens.dart';
 import '../workbench/office_controls.dart';
@@ -11,10 +13,16 @@ final class QuickAddEntry {
     required this.area,
     required this.label,
     required this.open,
+    this.icon,
   });
 
   final LifeOSArea area;
   final String label;
+
+  /// The record kind's icon; the area's when null.
+  final EraIconKind? icon;
+
+  EraIconKind get shownIcon => icon ?? areaIcon(area);
 
   /// Null while the entry cannot be used, for example before an
   /// employment exists.
@@ -31,38 +39,19 @@ final class QuickAddMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
-    // The toolbar sits outside any Scaffold; the menu button needs its own
-    // Material to anchor ink and the popup route.
-    return Material(
-      type: MaterialType.transparency,
-      child: PopupMenuButton<int>(
-        tooltip: 'Add a record',
-        onSelected: (index) => entries[index].open?.call(),
-        itemBuilder: (context) => [
-          for (final (index, entry) in entries.indexed)
-            PopupMenuItem(
-              height: menuRowHeight,
-              value: index,
-              enabled: entry.open != null,
-              child: Row(
-                children: [
-                  AreaKey(area: entry.area),
-                  const SizedBox(width: 8),
-                  Text(entry.label),
-                ],
-              ),
-            ),
-        ],
-        child: IgnorePointer(
-          child: KeyButton(
-            key: const ValueKey('quick-add'),
-            label: 'Add',
-            kind: KeyKind.toolbar,
-            leading: const Orb(glyph: OrbGlyph.add, tone: OrbTone.orange),
-            trailing: EraGlyph(EraGlyphKind.dropDown, color: skin.tokens.ink),
-            onPressed: () {},
-          ),
-        ),
+    return EraMenuButton(
+      tooltip: 'Add a record',
+      items: [
+        for (final entry in entries)
+          EraMenuItem(entry.label, entry.open, icon: entry.shownIcon),
+      ],
+      builder: (context, toggle) => KeyButton(
+        key: const ValueKey('quick-add'),
+        label: 'Add',
+        kind: KeyKind.toolbar,
+        leading: const Orb(glyph: OrbGlyph.add, tone: OrbTone.orange),
+        trailing: EraGlyph(EraGlyphKind.dropDown, color: skin.tokens.ink),
+        onPressed: toggle,
       ),
     );
   }

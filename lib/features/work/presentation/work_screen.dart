@@ -495,23 +495,12 @@ final class _WorkScreenState extends State<WorkScreen> {
       WorkInspectorRecord(:final record)
           when route.mode == WorkInspectorMode.correct =>
         _correction(record),
-      WorkInspectorRecord(record: EmploymentRecordProjection(:final employment))
-          when route.mode == WorkInspectorMode.properties =>
-        _employmentHeader(state.register, employment),
       WorkInspectorRecord(
         record: EmploymentRecordProjection(:final employment),
       ) =>
-        _employmentEditor(employment),
+        _employmentSheet(state.register, employment),
       WorkInspectorRecord(record: final AgreementRecordProjection record) =>
-        _agreement(record, edit: route.mode == WorkInspectorMode.edit),
-      WorkInspectorRecord(:final record)
-          when route.mode == WorkInspectorMode.edit &&
-              record is ShiftRecordProjection &&
-              record.shift.state == ShiftState.draft &&
-              record.shift.endUtc != null &&
-              widget.onReviseDraft != null &&
-              widget.timezones != null =>
-        _revision(record),
+        _agreement(record),
       WorkInspectorRecord(:final record) => _recordInspector(
         record,
         state.register,
@@ -619,8 +608,9 @@ extension on _WorkScreenState {
 
   Size _dialogSize(WorkReady state) {
     if (_failed()) return const Size(380, 260);
+    // As tall as a form: a sheet's General page holds the record's fields.
     if (state.route.mode == WorkInspectorMode.properties) {
-      return const Size(400, 480);
+      return const Size(440, 560);
     }
     final agreement =
         state.route.adding == WorkAddKind.agreement ||
@@ -645,15 +635,11 @@ extension on _WorkScreenState {
     return switch (route.mode) {
       WorkInspectorMode.create =>
         route.employmentId == null ? 'New employment' : 'Record work',
-      WorkInspectorMode.edit => switch (record) {
-        null =>
-          route.fromLast && widget.lastShiftTemplate != null
-              ? 'Manual shift from last time'
-              : 'Manual shift',
-        EmploymentRecordProjection() => 'Edit employment',
-        AgreementRecordProjection() => 'Edit pay agreement',
-        _ => 'Revise replacement shift',
-      },
+      // Only a new manual shift has an edit form; records open as sheets.
+      WorkInspectorMode.edit =>
+        route.fromLast && widget.lastShiftTemplate != null
+            ? 'Manual shift from last time'
+            : 'Manual shift',
       WorkInspectorMode.correct =>
         record is PayslipRecordProjection ? 'Correct payslip' : 'Correct shift',
       WorkInspectorMode.properties || WorkInspectorMode.inspect =>
@@ -664,100 +650,76 @@ extension on _WorkScreenState {
   void _go(WorkRouteState route) =>
       widget.onNavigate(workRouteUri(route).toString());
 
-  void _showEmployment(
-    EmploymentId id, {
-    WorkRecordRef? record,
-    bool edit = false,
-  }) => _go(
-    WorkRouteState(
-      employmentId: id,
-      scope: null,
-      record: record,
-      mode: edit ? WorkInspectorMode.edit : WorkInspectorMode.inspect,
-    ),
-  );
-
-  Widget _employmentHeader(
+  /// The employment's property sheet: General, edited in place, and
+  /// History.
+  Widget _employmentSheet(
     WorkRegisterProjection register,
     Employment employment,
   ) {
     final agreement = register.currentAgreement;
-    final agreementRef = agreement == null
-        ? null
-        : WorkRecordRef(kind: WorkRecordKind.agreement, id: agreement.id);
     final delete = widget.onDeleteEmployment;
-    return EmploymentHeader(
-      key: ValueKey(('employment', employment.id, employment.revision)),
-      employment: employment,
-      canDelete: register.canDeleteEmployment && delete != null,
-      agreementInUse: register.agreementInUse,
-      onEdit: () => _showEmployment(
-        employment.id,
-        record: WorkRecordRef(
-          kind: WorkRecordKind.employment,
-          id: employment.id,
-        ),
-        edit: true,
-      ),
-      onDelete: delete != null
-          ? (value) => _saved(delete(value), 'Employment deleted.')
-          : (_) async => const Unavailable<Employment>(
-              SafeFailureCode.storageUnavailable,
-            ),
-      onEditAgreement: agreementRef == null || widget.onUpdateAgreement == null
-          ? null
-          : () => _showEmployment(
-              employment.id,
-              record: agreementRef,
-              edit: true,
-            ),
-      onViewAgreement: agreementRef == null
-          ? null
-          : () => _showEmployment(employment.id, record: agreementRef),
-    );
-  }
-
-  Widget _employmentEditor(Employment employment) {
     final update = widget.onUpdateEmployment;
-    if (update == null) return const MissingRecordInspector();
-    return EmploymentForm(
-      key: ValueKey(('edit-employment', employment.id, employment.revision)),
-      initial: employment,
-      onSubmit: (value) =>
-          _saved(update(employment, value), 'Employment saved.'),
-    );
-  }
-
-  Widget _agreement(AgreementRecordProjection record, {required bool edit}) {
-    final agreement = record.agreement;
-    final update = widget.onUpdateAgreement;
-    if (edit && !record.inUse && update != null) {
-      return AgreementForm(
-        key: ValueKey(('edit-agreement', agreement.id, agreement.revision)),
-        employmentId: agreement.employmentId,
-        initial: agreement,
-        onSubmit: (value) =>
-            _saved(update(agreement, value), 'Pay agreement saved.'),
-      );
-    }
     return RecordTabs(
-      key: ValueKey(('tabs', agreement.id)),
-      record: WorkRecordRef(kind: WorkRecordKind.agreement, id: agreement.id),
-      details: AgreementView(
-        key: ValueKey(('agreement', agreement.id, agreement.revision)),
+      key: ValueKey(('tabs', employment.id)),
+      record: WorkRecordRef(kind: WorkRecordKind.employment, id: employment.id),
+      details: EmploymentSheet(
+        key: ValueKey(('employment', employment.id)),
+        employment: employment,
         agreement: agreement,
-        finishedShifts: record.finishedShifts,
-        onEdit: update == null
+        agreementInUse: register.agreementInUse,
+        canDelete: register.canDeleteEmployment && delete != null,
+        onSubmit: update == null
+            ? (_) async => const Unavailable<Employment>(
+                SafeFailureCode.storageUnavailable,
+              )
+            : (value) => _saved(update(employment, value), 'Employment saved.'),
+        onDelete: delete != null
+            ? (value) => _saved(delete(value), 'Employment deleted.')
+            : (_) async => const Unavailable<Employment>(
+                SafeFailureCode.storageUnavailable,
+              ),
+        // Opens the agreement's own property sheet.
+        onViewAgreement: agreement == null
             ? null
-            : () => _showEmployment(
-                agreement.employmentId,
-                record: WorkRecordRef(
-                  kind: WorkRecordKind.agreement,
-                  id: agreement.id,
+            : () => _go(
+                WorkRouteState(
+                  employmentId: employment.id,
+                  scope: null,
+                  record: WorkRecordRef(
+                    kind: WorkRecordKind.agreement,
+                    id: agreement.id,
+                  ),
+                  mode: WorkInspectorMode.properties,
                 ),
-                edit: true,
               ),
       ),
+    );
+  }
+
+  /// The agreement's property sheet: Rate, Premiums, Leave, Notes and
+  /// History, edited in place while no finished shift uses it.
+  Widget _agreement(AgreementRecordProjection record) {
+    final agreement = record.agreement;
+    final update = widget.onUpdateAgreement;
+    final shifts = record.finishedShifts;
+    return AgreementForm(
+      key: ValueKey(('agreement', agreement.id, agreement.revision)),
+      employmentId: agreement.employmentId,
+      initial: agreement,
+      readOnly: record.inUse || update == null,
+      lockedReason: record.inUse
+          ? 'Used by $shifts finished ${shifts == 1 ? 'shift' : 'shifts'}, '
+                'so these terms can no longer change.'
+          : null,
+      historyRecord: WorkRecordRef(
+        kind: WorkRecordKind.agreement,
+        id: agreement.id,
+      ),
+      onSubmit: update == null
+          ? (_) async => const Unavailable<PayAgreement>(
+              SafeFailureCode.storageUnavailable,
+            )
+          : (value) => _saved(update(agreement, value), 'Pay agreement saved.'),
     );
   }
 
@@ -798,40 +760,6 @@ extension on _WorkScreenState {
       Uncertain<PayPeriod>() => const UncertainOutcomeInspector(),
       Committed<PayPeriod>() => const SizedBox.shrink(),
     };
-  }
-
-  Widget _revision(ShiftRecordProjection record) {
-    final shift = record.shift;
-    final failure = _reviseFailure;
-    // A failed save explains itself above the form, which keeps what the
-    // owner typed; "Reload record" clears it and the form refreshes from
-    // the stored record.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (failure != null)
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 160),
-            child: _reviseOutcome(failure, dismiss: _clearReviseFailure),
-          ),
-        Expanded(child: _revisionForm(record, shift)),
-      ],
-    );
-  }
-
-  Widget _revisionForm(ShiftRecordProjection record, WorkShift shift) {
-    return ShiftEditInspector(
-      key: ValueKey(('revise', record.id, shift.revision)),
-      employmentId: shift.employmentId,
-      today: _today,
-      title: 'Revise replacement shift',
-      prefill: ShiftFormPrefill.fromShift(
-        shift,
-        record.breaks,
-        widget.timezones!,
-      ),
-      onSubmit: (value) => _reviseDraft(shift, value),
-    );
   }
 
   Widget _correction(WorkRecordProjection record) {
@@ -893,7 +821,7 @@ extension on _WorkScreenState {
         ),
       );
     }
-    return _tabs(
+    final details = _tabs(
       record is PayslipRecordProjection
           ? WorkRecordKind.payslip
           : WorkRecordKind.shift,
@@ -902,12 +830,61 @@ extension on _WorkScreenState {
         key: ValueKey(record.id),
         projection: record,
         timezones: widget.timezones,
+        shiftFields: record is ShiftRecordProjection
+            ? _shiftFields(record)
+            : null,
         onFinalize: widget.onFinalize == null
             ? null
             : (shift) => _saved(widget.onFinalize!(shift), 'Shift finalized.'),
         onCorrect: widget.onOpenCorrection,
       ),
     );
+    // A failed revision explains itself above the sheet, which keeps what
+    // the owner changed; "Reload record" clears it.
+    // The sheet keeps one place in the tree, so a failure appearing above
+    // it never rebuilds the form and loses what was typed.
+    final failure = _reviseFailure;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (failure != null)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 160),
+            child: _reviseOutcome(failure, dismiss: _clearReviseFailure),
+          ),
+        Expanded(key: const ValueKey('record-sheet'), child: details),
+      ],
+    );
+  }
+
+  /// A shift's times on its sheet: editable while it is a draft that can
+  /// be revised, greyed once finalized.
+  Widget? _shiftFields(ShiftRecordProjection record) {
+    final shift = record.shift;
+    final zones = widget.timezones;
+    if (zones == null || shift.endUtc == null) return null;
+    final prefill = ShiftFormPrefill.fromShift(shift, record.breaks, zones);
+    return switch (shift.state) {
+      ShiftState.draft when widget.onReviseDraft != null => ShiftEditInspector(
+        key: ValueKey(('revise', record.id, shift.revision)),
+        employmentId: shift.employmentId,
+        today: _today,
+        title: 'Shift',
+        prefill: prefill,
+        onSubmit: (value) => _reviseDraft(shift, value),
+      ),
+      ShiftState.finalized => ShiftEditInspector(
+        key: ValueKey(('shift-fields', record.id, shift.revision)),
+        employmentId: shift.employmentId,
+        today: _today,
+        title: 'Shift',
+        prefill: prefill,
+        readOnly: true,
+        onSubmit: (_) async =>
+            const Unavailable<WorkShift>(SafeFailureCode.storageUnavailable),
+      ),
+      _ => null,
+    };
   }
 
   Widget _tabs(

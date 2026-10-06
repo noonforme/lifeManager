@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../workbench/era_combo.dart';
 import '../workbench/era_controls.dart';
 import '../workbench/era_icons.dart';
 import '../workbench/lifeos_skin.dart';
@@ -25,12 +26,21 @@ final class AddressCrumb {
 /// One entry in the Address drop-down's location tree.
 @immutable
 final class AddressLocation {
-  const AddressLocation(this.label, this.route, {this.depth = 0, this.icon});
+  const AddressLocation(
+    this.label,
+    this.route, {
+    this.depth = 0,
+    this.icon,
+    this.unbuilt = false,
+  });
 
   final String label;
   final String route;
   final int depth;
   final EraIconKind? icon;
+
+  /// An area not built yet, greyed as Books shows it.
+  final bool unbuilt;
 
   @override
   bool operator ==(Object other) =>
@@ -38,10 +48,11 @@ final class AddressLocation {
       other.label == label &&
       other.route == route &&
       other.depth == depth &&
-      other.icon == icon;
+      other.icon == icon &&
+      other.unbuilt == unbuilt;
 
   @override
-  int get hashCode => Object.hash(label, route, depth, icon);
+  int get hashCode => Object.hash(label, route, depth, icon, unbuilt);
 }
 
 /// The Address drop-down's tree, from the same nodes as Books.
@@ -52,8 +63,13 @@ List<AddressLocation> addressTreeFrom(List<TreeNode> nodes) => [
       TreeGroup(:final children) => [
         for (final sheet in children) AddressLocation(sheet.label, sheet.route),
       ],
-      TreeArea(:final area, :final route, :final children) => [
-        AddressLocation(area.label, route, icon: areaIcon(area)),
+      TreeArea(:final area, :final route, :final built, :final children) => [
+        AddressLocation(
+          built ? area.label : '${area.label} (not built yet)',
+          route,
+          icon: areaIcon(area),
+          unbuilt: !built,
+        ),
         for (final sheet in children)
           AddressLocation(sheet.label, sheet.route, depth: 1),
       ],
@@ -69,8 +85,12 @@ final class AddressBar extends StatelessWidget {
     required this.onNavigate,
     required this.onGo,
     this.icon,
+    this.comboKey,
     super.key,
   });
+
+  /// Reaches the location combo, for F4 and Alt+D.
+  final GlobalKey<EraComboState<int>>? comboKey;
 
   final List<AddressCrumb> crumbs;
   final List<AddressLocation> tree;
@@ -80,45 +100,35 @@ final class AddressBar extends StatelessWidget {
   /// The current area's icon, shown before the path.
   final EraIconKind? icon;
 
-  Future<void> _openTree(BuildContext fieldContext) async {
-    final box = fieldContext.findRenderObject()! as RenderBox;
-    final origin = box.localToGlobal(Offset(0, box.size.height));
-    final here = crumbs.lastOrNull?.route;
-    final chosen = await showMenu<String>(
-      context: fieldContext,
-      position: RelativeRect.fromLTRB(
-        origin.dx,
-        origin.dy,
-        origin.dx + box.size.width,
-        origin.dy,
-      ),
-      constraints: BoxConstraints.tightFor(width: box.size.width),
-      items: [
-        for (final entry in tree)
-          PopupMenuItem<String>(
-            height: menuRowHeight,
-            value: entry.route,
-            child: Padding(
-              padding: EdgeInsets.only(left: entry.depth * 16.0),
-              child: Row(
-                children: [
-                  if (entry.icon case final icon?) ...[
-                    EraIcon(icon),
-                    const SizedBox(width: 4),
-                  ],
-                  Text(
-                    entry.label,
-                    style: entry.route == here
-                        ? const TextStyle(fontWeight: FontWeight.w700)
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
+  /// The tree with the current place in it, and that place's index. A
+  /// sheet the tree does not list (Shifts) sits one step under its parent
+  /// crumb, as the era's Address list opened down to where you are.
+  (List<AddressLocation>, int) get _locations {
+    final here = crumbs.lastOrNull;
+    if (here == null) return (tree, -1);
+    final exact = tree.indexWhere(
+      (entry) => entry.label == here.label && entry.route == here.route,
     );
-    if (chosen != null) onNavigate(chosen);
+    if (exact >= 0) return (tree, exact);
+    final parentCrumb = crumbs.length < 2 ? null : crumbs[crumbs.length - 2];
+    final parent = parentCrumb == null
+        ? -1
+        : tree.indexWhere((entry) => entry.label == parentCrumb.label);
+    if (parent >= 0 && here.route != null) {
+      return (
+        [
+          ...tree.take(parent + 1),
+          AddressLocation(
+            here.label,
+            here.route!,
+            depth: tree[parent].depth + 1,
+          ),
+          ...tree.skip(parent + 1),
+        ],
+        parent + 1,
+      );
+    }
+    return (tree, tree.indexWhere((entry) => entry.route == here.route));
   }
 
   @override
@@ -127,6 +137,7 @@ final class AddressBar extends StatelessWidget {
     final tokens = skin.tokens;
     final body = skin.typography.body.copyWith(color: tokens.ink);
     final path = crumbs.map((crumb) => crumb.label).join(r'\');
+    final (locations, current) = _locations;
     return Semantics(
       container: true,
       label: 'Address',
@@ -145,34 +156,48 @@ final class AddressBar extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Expanded(
-              child: Builder(
-                builder: (fieldContext) => EraPressable(
-                  label: 'Address, ${crumbs.map((c) => c.label).join(', ')}',
-                  onPressed: () => _openTree(fieldContext),
-                  child: Container(
-                    constraints: const BoxConstraints(minHeight: 22),
-                    padding: const EdgeInsets.only(left: 4),
-                    decoration: BoxDecoration(
-                      color: tokens.paper,
-                      border: Border.all(color: MillenniumColors.fieldLine),
+              child: EraCombo<int>(
+                key: comboKey,
+                semanticLabel: 'Address',
+                semanticValue: crumbs.map((c) => c.label).join(', '),
+                value: current,
+                items: [
+                  for (final (index, entry) in locations.indexed)
+                    EraComboItem(
+                      index,
+                      entry.label,
+                      icon: entry.icon,
+                      depth: entry.depth,
+                      muted: entry.unbuilt,
                     ),
-                    child: Row(
-                      children: [
-                        if (icon case final icon?) ...[
-                          EraIcon(icon),
-                          const SizedBox(width: 4),
-                        ],
-                        Expanded(
+                ],
+                onSelected: (index) => onNavigate(locations[index].route),
+                face: (context, focused) => Container(
+                  constraints: const BoxConstraints(minHeight: 22),
+                  padding: const EdgeInsets.only(left: 4),
+                  decoration: BoxDecoration(
+                    color: tokens.paper,
+                    border: Border.all(color: MillenniumColors.fieldLine),
+                  ),
+                  child: Row(
+                    children: [
+                      if (icon case final icon?) ...[
+                        EraIcon(icon),
+                        const SizedBox(width: 4),
+                      ],
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
                           child: Text(
                             path,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: body,
+                            style: eraComboText(skin, focused: focused),
                           ),
                         ),
-                        const ComboArrow(),
-                      ],
-                    ),
+                      ),
+                      const ComboArrow(),
+                    ],
                   ),
                 ),
               ),
@@ -181,6 +206,7 @@ final class AddressBar extends StatelessWidget {
             KeyButton(
               label: 'Go',
               kind: KeyKind.small,
+              tooltip: 'Open the place in the Address box again',
               leading: const Orb(
                 glyph: OrbGlyph.forward,
                 tone: OrbTone.green,

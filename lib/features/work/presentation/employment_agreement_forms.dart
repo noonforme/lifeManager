@@ -14,12 +14,15 @@ import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/millennium_style.dart';
 import '../../../shared/workbench/office_controls.dart';
+import '../../../shared/workbench/property_sheet.dart';
 import '../application/work_commands.dart';
 import '../domain/agreement.dart';
 import '../domain/employment.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
+import 'record_history_panel.dart';
 import 'work_formats.dart';
+import 'work_route_state.dart';
 
 final class EmploymentDraft {
   const EmploymentDraft({required this.name, required this.legalLabel});
@@ -80,14 +83,48 @@ final class _EmploymentFormState extends State<EmploymentForm> {
   String? _formError;
   bool _submitting = false;
 
+  /// The property sheet this form edits in place, if it is on one.
+  PropertySheetController? _sheet;
+
+  @override
+  void initState() {
+    super.initState();
+    _name.addListener(_changed);
+    _legalLabel.addListener(_changed);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final sheet = widget.initial == null
+        ? null
+        : PropertySheetScope.maybeOf(context);
+    if (sheet != _sheet) {
+      _sheet?.detach(_applySheet);
+      _sheet = sheet?..attach(apply: _applySheet);
+    }
+  }
+
+  void _changed() {
+    final initial = widget.initial;
+    if (initial == null) return;
+    _sheet?.markDirty(
+      _name.text != initial.name ||
+          (_optional(_legalLabel.text) ?? '') != (initial.legalLabel ?? ''),
+    );
+  }
+
+  Future<bool> _applySheet() async => await _submit() is Committed<Employment>;
+
   @override
   void dispose() {
+    _sheet?.detach(_applySheet);
     _name.dispose();
     _legalLabel.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<MutationOutcome<Employment>?> _submit() async {
     setState(() {
       _submitting = true;
       _nameError = null;
@@ -99,7 +136,7 @@ final class _EmploymentFormState extends State<EmploymentForm> {
         legalLabel: _optional(_legalLabel.text),
       ),
     );
-    if (!mounted) return;
+    if (!mounted) return outcome;
     setState(() {
       _submitting = false;
       switch (outcome) {
@@ -117,47 +154,59 @@ final class _EmploymentFormState extends State<EmploymentForm> {
           break;
       }
     });
+    return outcome;
   }
 
   @override
   Widget build(BuildContext context) {
     final editing = widget.initial != null;
+    final fields = [
+      _group(context, 'Employment', [
+        _Field(
+          controller: _name,
+          label: 'Name',
+          fieldKey: const ValueKey('employment-name'),
+          error: _nameError,
+          hint: 'What you call this job, e.g. Warehouse',
+          autofocus: _sheet == null,
+        ),
+        _Field(
+          controller: _legalLabel,
+          label: 'Legal name (optional)',
+          fieldKey: const ValueKey('employment-legal-name'),
+          hint: 'Employer name as it appears on payslips',
+        ),
+      ]),
+      if (_formError case final error?) _ErrorText(error),
+    ];
+    // An existing employment is edited on its property sheet, whose OK,
+    // Cancel and Apply save it.
+    if (editing) {
+      return EraFormScope(
+        labelWidth: 90,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: fields,
+        ),
+      );
+    }
     return Semantics(
       container: true,
       explicitChildNodes: true,
-      label: editing ? 'Edit employment' : 'Create employment',
+      label: editing ? 'Employment details' : 'Create employment',
       child: Form(
         child: EraFormScope(
           labelWidth: 90,
-          child: ListView(
-            padding: inspectorInset,
-            children: [
-              _group(context, 'Employment', [
-                _Field(
-                  controller: _name,
-                  label: 'Name',
-                  fieldKey: const ValueKey('employment-name'),
-                  error: _nameError,
-                  hint: 'What you call this job, e.g. Warehouse',
-                  autofocus: true,
-                ),
-                _Field(
-                  controller: _legalLabel,
-                  label: 'Legal name (optional)',
-                  fieldKey: const ValueKey('employment-legal-name'),
-                  hint: 'Employer name as it appears on payslips',
-                ),
-              ]),
-              if (_formError case final error?) _ErrorText(error),
-              FormFooter(
-                children: [
-                  FilledButton(
-                    onPressed: _submitting ? null : _submit,
-                    child: const Text('Save employment'),
-                  ),
-                  const DialogCancelKey(),
-                ],
+          child: DialogForm(
+            fields: fields,
+            keys: [
+              KeyButton(
+                label: 'Save employment',
+                kind: KeyKind.primary,
+                onPressed: _submitting ? null : _submit,
               ),
+              const DialogCancelKey(),
             ],
           ),
         ),
@@ -174,12 +223,24 @@ final class AgreementForm extends StatefulWidget {
     required this.onSubmit,
     this.initial,
     this.today,
+    this.readOnly = false,
+    this.lockedReason,
+    this.historyRecord,
     super.key,
   });
 
   final EmploymentId employmentId;
   final SubmitAgreement onSubmit;
   final PayAgreement? initial;
+
+  /// Shows the terms greyed: the agreement is evidence for finished shifts.
+  final bool readOnly;
+
+  /// Why a read-only agreement cannot change, at the top of Rate.
+  final String? lockedReason;
+
+  /// Adds a History tab after Notes, as the agreement's property sheet has.
+  final WorkRecordRef? historyRecord;
 
   /// The default start date for a new agreement; the local date when null.
   final LocalDate? today;
@@ -249,8 +310,66 @@ final class _AgreementFormState extends State<AgreementForm> {
   String? _formError;
   bool _submitting = false;
 
+  /// The property sheet this form edits in place, if it is on one.
+  PropertySheetController? _sheet;
+
+  List<TextEditingController> get _controllers => [
+    _hourlyRate,
+    _overtimeHours,
+    _overtimeMultiplier,
+    _nightMultiplier,
+    _holidayMultiplier,
+    _vacationPercent,
+    _sickPercent,
+    _sickDays,
+    _label,
+    _note,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    for (final controller in _controllers) {
+      controller.addListener(_touched);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final sheet = widget.initial == null || widget.readOnly
+        ? null
+        : PropertySheetScope.maybeOf(context);
+    if (sheet != _sheet) {
+      _sheet?.detach(_applySheet);
+      _sheet = sheet?..attach(apply: _applySheet);
+    }
+  }
+
+  @override
+  void didUpdateWidget(AgreementForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // An agreement that gains finished shifts while open stops saving.
+    if (widget.readOnly && !oldWidget.readOnly) {
+      _sheet?.detach(_applySheet);
+      _sheet = null;
+    }
+  }
+
+  void _touched() => _sheet?.markDirty(true);
+
+  /// Changes a field and marks the sheet as changed.
+  void _edit(VoidCallback change) {
+    setState(change);
+    _touched();
+  }
+
+  Future<bool> _applySheet() async =>
+      await _submit() is Committed<PayAgreement>;
+
   @override
   void dispose() {
+    _sheet?.detach(_applySheet);
     for (final controller in [
       _hourlyRate,
       _overtimeHours,
@@ -268,7 +387,7 @@ final class _AgreementFormState extends State<AgreementForm> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<MutationOutcome<PayAgreement>?> _submit() async {
     final start = _effectiveStart;
     final end = _effectiveEnd;
     final rate = _parseEurMicros(_hourlyRate.text.trim());
@@ -303,7 +422,7 @@ final class _AgreementFormState extends State<AgreementForm> {
             .map((key) => _tabOf[key] ?? 0)
             .reduce((best, tab) => tab < best ? tab : best);
       });
-      return;
+      return null;
     }
 
     setState(() {
@@ -338,7 +457,7 @@ final class _AgreementFormState extends State<AgreementForm> {
         ),
       ),
     );
-    if (!mounted) return;
+    if (!mounted) return outcome;
     setState(() {
       _submitting = false;
       switch (outcome) {
@@ -364,6 +483,7 @@ final class _AgreementFormState extends State<AgreementForm> {
           break;
       }
     });
+    return outcome;
   }
 
   /// The tab that holds each validated field, so a failed save brings the
@@ -387,10 +507,13 @@ final class _AgreementFormState extends State<AgreementForm> {
     final tokens = LifeOSSkinScope.of(context).tokens;
     final pages = <List<Widget>>[
       [
-        const InspectorText(
-          'Defaults follow the Lithuanian Labour Code minimums. They are '
-          'defaults, not legal advice.',
-        ),
+        if (widget.lockedReason case final reason?)
+          InspectorNote(reason)
+        else
+          const InspectorText(
+            'Defaults follow the Lithuanian Labour Code minimums. They are '
+            'defaults, not legal advice.',
+          ),
         const SizedBox(height: 8),
         _group(context, 'Rate', [
           EraDateField(
@@ -398,7 +521,7 @@ final class _AgreementFormState extends State<AgreementForm> {
             fieldKey: const ValueKey('agreement-effective-start'),
             value: _effectiveStart,
             today: _today,
-            onChanged: (value) => setState(() => _effectiveStart = value!),
+            onChanged: (value) => _edit(() => _effectiveStart = value!),
           ),
           EraDateField(
             label: 'Ends on',
@@ -407,7 +530,7 @@ final class _AgreementFormState extends State<AgreementForm> {
             value: _effectiveEnd,
             today: _today,
             error: _errors['effectiveEnd'],
-            onChanged: (value) => setState(() => _effectiveEnd = value),
+            onChanged: (value) => _edit(() => _effectiveEnd = value),
           ),
           _Field(
             controller: _hourlyRate,
@@ -428,7 +551,7 @@ final class _AgreementFormState extends State<AgreementForm> {
                 EraRadioOption(NetBasis(), 'Net'),
               ],
               groupValue: _basis,
-              onChanged: (next) => setState(() => _basis = next),
+              onChanged: (next) => _edit(() => _basis = next),
             ),
           ),
         ]),
@@ -460,7 +583,7 @@ final class _AgreementFormState extends State<AgreementForm> {
             key: const ValueKey('agreement-night-enabled'),
             value: _nightEnabled,
             label: 'Night pay',
-            onChanged: (value) => setState(() => _nightEnabled = value),
+            onChanged: (value) => _edit(() => _nightEnabled = value),
           ),
           const SizedBox(height: 4),
           _Sentence(
@@ -471,7 +594,7 @@ final class _AgreementFormState extends State<AgreementForm> {
                 semanticLabel: 'Night pay starts',
                 value: _nightStart,
                 enabled: _nightEnabled,
-                onChanged: (value) => setState(() => _nightStart = value),
+                onChanged: (value) => _edit(() => _nightStart = value),
               ),
               const Text('to'),
               _ClockBox(
@@ -480,7 +603,7 @@ final class _AgreementFormState extends State<AgreementForm> {
                 value: _nightEnd,
                 enabled: _nightEnabled,
                 error: _errors['nightEnd'],
-                onChanged: (value) => setState(() => _nightEnd = value),
+                onChanged: (value) => _edit(() => _nightEnd = value),
               ),
               const Text('pay'),
               _Short(
@@ -499,7 +622,7 @@ final class _AgreementFormState extends State<AgreementForm> {
             key: const ValueKey('agreement-holidays-enabled'),
             value: _holidays,
             label: 'Public holidays (Lithuania)',
-            onChanged: (value) => setState(() => _holidays = value),
+            onChanged: (value) => _edit(() => _holidays = value),
           ),
           const SizedBox(height: 4),
           _Sentence(
@@ -537,7 +660,7 @@ final class _AgreementFormState extends State<AgreementForm> {
               ),
             ],
             groupValue: _stacking,
-            onChanged: (next) => setState(() => _stacking = next),
+            onChanged: (next) => _edit(() => _stacking = next),
           ),
         ]),
       ],
@@ -585,17 +708,24 @@ final class _AgreementFormState extends State<AgreementForm> {
     return Semantics(
       container: true,
       explicitChildNodes: true,
-      label: editing ? 'Edit agreement' : 'Create agreement',
+      label: editing ? 'Agreement' : 'Create agreement',
       child: Material(
         type: MaterialType.transparency,
         child: Form(
           child: EraFormScope(
             labelWidth: 120,
+            enabled: !widget.readOnly,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 PropertySheetTabs(
-                  labels: const ['Rate', 'Premiums', 'Leave', 'Notes'],
+                  labels: [
+                    'Rate',
+                    'Premiums',
+                    'Leave',
+                    'Notes',
+                    if (widget.historyRecord != null) 'History',
+                  ],
                   selectedIndex: _tab,
                   onSelected: (index) => setState(() => _tab = index),
                 ),
@@ -615,21 +745,30 @@ final class _AgreementFormState extends State<AgreementForm> {
                       children: [
                         for (final page in pages)
                           ListView(padding: inspectorInset, children: page),
+                        // Read from the database only while it is shown.
+                        if (widget.historyRecord case final record?)
+                          _tab == pages.length
+                              ? RecordHistoryPanel(record: record)
+                              : const SizedBox.shrink(),
                       ],
                     ),
                   ),
                 ),
                 if (_formError case final error?) _ErrorText(error),
-                FormFooter(
-                  children: [
-                    FilledButton(
-                      key: const ValueKey('save-agreement'),
-                      onPressed: _submitting ? null : _submit,
-                      child: const Text('Save agreement'),
-                    ),
-                    const DialogCancelKey(),
-                  ],
-                ),
+                // An existing agreement is saved by its property sheet's
+                // OK, Cancel and Apply.
+                if (!editing)
+                  FormFooter(
+                    children: [
+                      KeyButton(
+                        key: const ValueKey('save-agreement'),
+                        label: 'Save agreement',
+                        kind: KeyKind.primary,
+                        onPressed: _submitting ? null : _submit,
+                      ),
+                      const DialogCancelKey(),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -639,109 +778,35 @@ final class _AgreementFormState extends State<AgreementForm> {
   }
 }
 
-/// An agreement's terms, read-only. An agreement in use is evidence for
-/// finished shifts and cannot change.
-final class AgreementView extends StatelessWidget {
-  const AgreementView({
-    required this.agreement,
-    required this.finishedShifts,
-    this.onEdit,
-    super.key,
-  });
-
-  final PayAgreement agreement;
-  final int finishedShifts;
-  final VoidCallback? onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    final a = agreement;
-    final holidays = a.holidayCalendar != HolidayCalendar.none;
-    return Semantics(
-      container: true,
-      explicitChildNodes: true,
-      label: 'Agreement',
-      child: InspectorPane(
-        children: [
-          InspectorTitle(
-            a.label ?? 'Agreement v${a.version}',
-            icon: EraIconKind.agreement,
-          ),
-          InspectorFacts(legend: 'Terms', [
-            Fact('Starts on', a.effectiveStart.toString()),
-            if (a.effectiveEnd case final end?) Fact('Ends on', end.toString()),
-            Fact(
-              'Hourly rate',
-              '${formatHourlyRate(a.hourlyRateMicroEur)} '
-                  '${a.basis is GrossBasis ? 'gross' : 'net'}',
-            ),
-            Fact(
-              'Overtime',
-              'after ${formatHours(a.overtimeThresholdMinutes)} h, '
-                  '×${formatMultiplier(a.overtimeMultiplier)}',
-            ),
-            Fact(
-              'Night pay',
-              a.nightEnabled
-                  ? '${formatClock(a.nightStartMinute)} to '
-                        '${formatClock(a.nightEndMinute)}, '
-                        '×${formatMultiplier(a.nightMultiplier)}'
-                  : 'Off',
-            ),
-            Fact(
-              'Public holidays',
-              holidays
-                  ? 'Lithuania, ×${formatMultiplier(a.holidayMultiplier)}'
-                  : 'Off',
-            ),
-            Fact.words('When several apply', switch (a.premiumStacking) {
-              PremiumStacking.highest => 'Highest wins',
-              PremiumStacking.additive => 'Add the extras',
-              PremiumStacking.multiplicative => 'Multiply',
-            }),
-            if (a.note case final note?) Fact.words('Note', note),
-          ]),
-          if (finishedShifts > 0)
-            InspectorNote(
-              'Used by $finishedShifts finished '
-              '${finishedShifts == 1 ? 'shift' : 'shifts'}.',
-            )
-          else if (onEdit != null)
-            InspectorActions(
-              children: [KeyButton(label: 'Edit agreement', onPressed: onEdit)],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// What the inspector shows for a selected employment with no record open.
-final class EmploymentHeader extends StatefulWidget {
-  const EmploymentHeader({
+/// An employment's General page: its name and legal name, edited in
+/// place on the property sheet, its current agreement, and Delete.
+final class EmploymentSheet extends StatefulWidget {
+  const EmploymentSheet({
     required this.employment,
+    required this.onSubmit,
     required this.canDelete,
-    required this.agreementInUse,
-    required this.onEdit,
     required this.onDelete,
-    this.onEditAgreement,
+    this.agreement,
+    this.agreementInUse = false,
     this.onViewAgreement,
     super.key,
   });
 
   final Employment employment;
+  final SubmitEmployment onSubmit;
   final bool canDelete;
-  final bool agreementInUse;
-  final VoidCallback onEdit;
   final DeleteEmployment onDelete;
-  final VoidCallback? onEditAgreement;
+
+  /// The agreement in force, if one is set up.
+  final PayAgreement? agreement;
+  final bool agreementInUse;
   final VoidCallback? onViewAgreement;
 
   @override
-  State<EmploymentHeader> createState() => _EmploymentHeaderState();
+  State<EmploymentSheet> createState() => _EmploymentSheetState();
 }
 
-final class _EmploymentHeaderState extends State<EmploymentHeader> {
+final class _EmploymentSheetState extends State<EmploymentSheet> {
   bool _confirming = false;
   bool _deleting = false;
   String? _error;
@@ -772,58 +837,74 @@ final class _EmploymentHeaderState extends State<EmploymentHeader> {
         container: true,
         explicitChildNodes: true,
         label: 'Confirm delete',
-        child: InspectorPane(
-          children: [
+        child: DialogForm(
+          fields: [
             InspectorText(
               'Delete ${employment.name}? Its unused agreement is removed '
               "too. This can't be undone.",
             ),
-            FormFooter(
-              children: [
-                KeyButton(
-                  label: 'Cancel',
-                  onPressed: _deleting
-                      ? null
-                      : () => setState(() => _confirming = false),
-                ),
-                FilledButton(
-                  key: const ValueKey('confirm-delete-employment'),
-                  onPressed: _deleting ? null : _delete,
-                  child: const Text('Delete'),
-                ),
-              ],
+          ],
+          keys: [
+            KeyButton(
+              key: const ValueKey('confirm-delete-employment'),
+              label: 'Delete',
+              kind: KeyKind.primary,
+              onPressed: _deleting ? null : _delete,
+            ),
+            KeyButton(
+              label: 'Cancel',
+              onPressed: _deleting
+                  ? null
+                  : () => setState(() => _confirming = false),
             ),
           ],
         ),
       );
     }
+    final agreement = widget.agreement;
     return Semantics(
       container: true,
       explicitChildNodes: true,
       label: 'Employment',
       child: InspectorPane(
         children: [
-          InspectorTitle(
-            employment.name,
-            meta: employment.legalLabel,
-            icon: EraIconKind.employment,
+          InspectorTitle(employment.name, icon: EraIconKind.employment),
+          EmploymentForm(
+            key: ValueKey((
+              'employment-sheet',
+              employment.id,
+              employment.revision,
+            )),
+            initial: employment,
+            onSubmit: widget.onSubmit,
           ),
+          InspectorFacts(legend: 'Agreement', [
+            if (agreement == null)
+              const Fact.words('Agreement', 'None set up')
+            else ...[
+              Fact.words(
+                'Agreement',
+                agreement.label ?? 'Version ${agreement.version}',
+              ),
+              Fact('Starts on', agreement.effectiveStart.toString()),
+              Fact(
+                'Hourly rate',
+                '${formatHourlyRate(agreement.hourlyRateMicroEur)} '
+                    '${agreement.basis is GrossBasis ? 'gross' : 'net'}',
+              ),
+              Fact.words('In use', widget.agreementInUse ? 'Yes' : 'No'),
+            ],
+          ]),
           InspectorActions(
             children: [
-              KeyButton(label: 'Edit', onPressed: widget.onEdit),
-              if (!widget.agreementInUse && widget.onEditAgreement != null)
+              if (widget.onViewAgreement != null)
                 KeyButton(
-                  label: 'Edit agreement',
-                  onPressed: widget.onEditAgreement,
-                ),
-              if (widget.agreementInUse && widget.onViewAgreement != null)
-                KeyButton(
-                  label: 'View agreement',
+                  label: 'Agreement…',
                   onPressed: widget.onViewAgreement,
                 ),
               if (widget.canDelete)
                 KeyButton(
-                  label: 'Delete',
+                  label: 'Delete…',
                   onPressed: () => setState(() {
                     _confirming = true;
                     _error = null;
@@ -925,7 +1006,7 @@ final class _Short extends StatelessWidget {
       child: TextFormField(
         key: fieldKey,
         controller: controller,
-        enabled: enabled,
+        enabled: enabled && EraFormScope.enabledOf(context),
         decoration: InputDecoration(
           isDense: true,
           errorText: error,

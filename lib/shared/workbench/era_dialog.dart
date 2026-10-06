@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'era_controls.dart';
@@ -26,48 +29,131 @@ final class EraDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
-    return Dialog(
-      backgroundColor: tokens.chrome,
-      elevation: 0,
-      shape: const RoundedRectangleBorder(
-        side: BorderSide(color: MillenniumColors.keyLine),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      // Named by its caption, which is not announced a second time.
-      child: Semantics(
-        scopesRoute: true,
-        namesRoute: true,
-        explicitChildNodes: true,
-        label: title,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      child: EraMovableDialog(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CaptionBar(
-                title: title,
-                large: true,
-                onClose: onClose ?? () => Navigator.of(context).maybePop(),
+          constraints: const BoxConstraints(minWidth: 280, maxWidth: 420),
+          child: Material(
+            color: tokens.chrome,
+            shape: const RoundedRectangleBorder(
+              side: BorderSide(color: MillenniumColors.keyLine),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            // Named by its caption, which is not announced a second time.
+            child: Semantics(
+              scopesRoute: true,
+              namesRoute: true,
+              explicitChildNodes: true,
+              label: title,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CaptionBar(
+                    title: title,
+                    large: true,
+                    onClose: onClose ?? () => Navigator.of(context).maybePop(),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                    child: DefaultTextStyle.merge(
+                      style: skin.typography.body.copyWith(color: tokens.ink),
+                      child: body,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: FormFooter(children: actions),
+                  ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                child: DefaultTextStyle.merge(
-                  style: skin.typography.body.copyWith(color: tokens.ink),
-                  child: body,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: FormFooter(children: actions),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+/// Centres a dialog [child] in the space it is given and lets the owner
+/// move it by dragging its caption, as an era window moved. It stays wholly
+/// inside that space, so its caption can always be reached again.
+final class EraMovableDialog extends StatefulWidget {
+  const EraMovableDialog({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  State<EraMovableDialog> createState() => _EraMovableDialogState();
+}
+
+final class _EraMovableDialogState extends State<EraMovableDialog> {
+  final _window = GlobalKey();
+  Offset _offset = Offset.zero;
+
+  void _move(Offset delta, Size bounds) {
+    final size = _window.currentContext?.size;
+    if (size == null) return;
+    setState(() => _offset = _inside(_offset + delta, bounds, size));
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => _EraMoveScope(
+      onMove: (delta) => _move(delta, constraints.biggest),
+      child: CustomSingleChildLayout(
+        delegate: _CentredAt(_offset),
+        child: KeyedSubtree(key: _window, child: widget.child),
+      ),
+    ),
+  );
+}
+
+/// [offset] from the centre, kept so a [size] window stays inside [bounds].
+Offset _inside(Offset offset, Size bounds, Size size) {
+  final x = math.max(0.0, (bounds.width - size.width) / 2);
+  final y = math.max(0.0, (bounds.height - size.height) / 2);
+  return Offset(offset.dx.clamp(-x, x), offset.dy.clamp(-y, y));
+}
+
+/// Lays the dialog out loosely and places it [offset] from the centre,
+/// clamped again at layout for a window made smaller.
+final class _CentredAt extends SingleChildLayoutDelegate {
+  const _CentredAt(this.offset);
+
+  final Offset offset;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      constraints.loosen();
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final centre = Offset(
+      (size.width - childSize.width) / 2,
+      (size.height - childSize.height) / 2,
+    );
+    return centre + _inside(offset, size, childSize);
+  }
+
+  @override
+  bool shouldRelayout(_CentredAt oldDelegate) => oldDelegate.offset != offset;
+}
+
+/// Tells a dialog's caption how to move its window.
+final class _EraMoveScope extends InheritedWidget {
+  const _EraMoveScope({required this.onMove, required super.child});
+
+  final ValueChanged<Offset> onMove;
+
+  static ValueChanged<Offset>? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_EraMoveScope>()?.onMove;
+
+  @override
+  bool updateShouldNotify(_EraMoveScope oldWidget) =>
+      onMove != oldWidget.onMove;
 }
 
 /// A blue gradient caption with a title and a red close key, shared by
@@ -98,7 +184,7 @@ final class CaptionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
-    return Container(
+    final bar = Container(
       constraints: BoxConstraints(minHeight: large ? 26 : 24),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -152,6 +238,16 @@ final class CaptionBar extends StatelessWidget {
                   ),
         ],
       ),
+    );
+    // A dialog's caption moves its window; a desk tile's stays put.
+    final move = large ? _EraMoveScope.of(context) : null;
+    if (move == null) return bar;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      // From the press, so the window keeps under the pointer.
+      dragStartBehavior: DragStartBehavior.down,
+      onPanUpdate: (details) => move(details.delta),
+      child: bar,
     );
   }
 }

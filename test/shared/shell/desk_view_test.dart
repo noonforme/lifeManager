@@ -127,19 +127,14 @@ void main() {
     await pump(tester, desks: [_today]);
     await tester.tap(find.byTooltip('Desk menu'));
     await tester.pumpAndSettle();
-    final delete = tester.widget<PopupMenuItem<Object>>(
+    final delete = tester.widget<MenuItemButton>(
       find.ancestor(
         of: find.text('Delete desk'),
-        matching: find.byType(PopupMenuItem<Object>),
+        matching: find.byType(MenuItemButton),
       ),
     );
-    expect(delete.enabled, isFalse);
-    await tester.tap(
-      find.ancestor(
-        of: find.text('Layout: Two columns'),
-        matching: find.byType(CheckedPopupMenuItem<Object>),
-      ),
-    );
+    expect(delete.onPressed, isNull);
+    await tester.tap(find.text('Layout: Two columns'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Desk menu'));
     await tester.pumpAndSettle();

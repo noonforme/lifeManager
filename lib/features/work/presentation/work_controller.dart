@@ -384,7 +384,7 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
         legalLabel: _trimOptional(value.legalLabel),
       ),
     );
-    if (outcome is Committed<Employment>) _showEmployment(current.id);
+    // The sheet stays where it is: Apply keeps it open, OK closes it.
     return outcome;
   }
 
@@ -425,9 +425,7 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
         terms: value.terms,
       ),
     );
-    if (outcome is Committed<PayAgreement>) {
-      _showEmployment(current.employmentId);
-    }
+    // The sheet stays where it is: Apply keeps it open, OK closes it.
     return outcome;
   }
 
@@ -522,6 +520,8 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
           note: _trimOptional(value.note),
         ),
       ),
+      // The sheet stays open on the saved shift: Apply keeps it, OK closes.
+      mode: WorkInspectorMode.properties,
     );
   }
 
@@ -600,7 +600,8 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
         voidReason: voidReason.trim(),
       ),
     ),
-    mode: WorkInspectorMode.edit,
+    // The replacement draft opens as its property sheet, ready to revise.
+    mode: WorkInspectorMode.properties,
   );
 
   Future<MutationOutcome<WorkShift>> correctShiftWithReason(

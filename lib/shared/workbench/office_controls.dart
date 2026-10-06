@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show Tooltip;
 import 'package:flutter/widgets.dart';
 
 import 'era_controls.dart';
@@ -20,10 +21,14 @@ final class KeyButton extends StatefulWidget {
     this.leading,
     this.trailing,
     this.semanticLabel,
+    this.tooltip,
     super.key,
   });
 
   final String label;
+
+  /// The era's pale yellow note on hover, for a toolbar key.
+  final String? tooltip;
 
   /// Announced instead of [label], for example "Back, unavailable".
   final String? semanticLabel;
@@ -114,7 +119,7 @@ final class _KeyButtonState extends State<KeyButton> {
       ),
     );
     // One merged node per key: label, button, enabled, focus and tap.
-    return MergeSemantics(
+    final key = MergeSemantics(
       child: Semantics(
         button: true,
         enabled: _enabled,
@@ -146,6 +151,10 @@ final class _KeyButtonState extends State<KeyButton> {
         ),
       ),
     );
+    final tooltip = widget.tooltip;
+    return tooltip == null
+        ? key
+        : Tooltip(message: tooltip, excludeFromSemantics: true, child: key);
   }
 }
 

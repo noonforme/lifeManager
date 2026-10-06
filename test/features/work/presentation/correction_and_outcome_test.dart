@@ -19,6 +19,7 @@ import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 void main() {
   testWidgets('stale save keeps register and draft visible and offers reload', (
@@ -80,10 +81,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.widgetWithText(
-          FilledButton,
-          'Void original and create replacement',
-        ),
+        find.widgetWithText(KeyButton, 'Void original and create replacement'),
         findsOneWidget,
       );
     },
@@ -268,7 +266,7 @@ void main() {
       expect(replaced[1].employmentId, employmentId);
       expect(replaced[1].mode, WorkInspectorMode.inspect);
       expect(replaced[2].record?.id, replacementShiftId);
-      expect(replaced[2].mode, WorkInspectorMode.edit);
+      expect(replaced[2].mode, WorkInspectorMode.properties);
     },
   );
 

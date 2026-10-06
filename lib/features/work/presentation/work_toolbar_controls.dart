@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/time/local_date.dart';
+import '../../../shared/workbench/era_combo.dart';
 import '../../../shared/workbench/era_controls.dart';
 import '../../../shared/workbench/era_date_field.dart';
 import '../../../shared/workbench/era_dialog.dart';
@@ -23,6 +24,12 @@ final class _OpenEmployment extends _SwitcherChoice {
   const _OpenEmployment(this.id);
 
   final EmploymentId id;
+
+  @override
+  bool operator ==(Object other) => other is _OpenEmployment && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 final class _AllEmployments extends _SwitcherChoice {
@@ -55,43 +62,34 @@ final class EmploymentSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<_SwitcherChoice>(
-      tooltip: 'Switch employment',
-      onSelected: (choice) => switch (choice) {
-        _OpenEmployment(:final id) => onOpen?.call(id),
-        _AllEmployments() => onAll?.call(),
-        _CreateEmployment() => onCreate(),
-      },
-      itemBuilder: (context) => [
-        for (final employment in employments)
-          PopupMenuItem(
-            height: menuRowHeight,
-            value: _OpenEmployment(employment.id),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 24,
-                  child: employment.id == current
-                      ? const Icon(Icons.check, size: 18)
-                      : null,
-                ),
-                Text(employment.name),
-              ],
-            ),
+    final open = current == null ? null : _OpenEmployment(current!);
+    return _Labelled(
+      label: 'Employment',
+      child: EraCombo<_SwitcherChoice>(
+        semanticLabel: 'Employment',
+        value: open,
+        minWidth: 100,
+        items: [
+          for (final employment in employments)
+            EraComboItem(_OpenEmployment(employment.id), employment.name),
+          const EraComboItem(_AllEmployments(), 'All employments'),
+          const EraComboItem(
+            _CreateEmployment(),
+            'Create employment…',
+            command: true,
           ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          height: menuRowHeight,
-          value: _AllEmployments(),
-          child: Text('All employments'),
+        ],
+        face: (context, focused) => EraComboFace(
+          value: currentName ?? 'All employments',
+          minWidth: 100,
+          focused: focused,
         ),
-        const PopupMenuItem(
-          height: menuRowHeight,
-          value: _CreateEmployment(),
-          child: Text('Create employment'),
-        ),
-      ],
-      child: _MenuFace(label: 'Employment', detail: currentName),
+        onSelected: (choice) => switch (choice) {
+          _OpenEmployment(:final id) => onOpen?.call(id),
+          _AllEmployments() => onAll?.call(),
+          _CreateEmployment() => onCreate(),
+        },
+      ),
     );
   }
 }
@@ -104,6 +102,12 @@ final class _Scope extends _ScopeChoice {
   const _Scope(this.scope);
 
   final WorkTemporalScope? scope;
+
+  @override
+  bool operator ==(Object other) => other is _Scope && other.scope == scope;
+
+  @override
+  int get hashCode => scope.hashCode;
 }
 
 final class _AskRange extends _ScopeChoice {
@@ -189,32 +193,27 @@ final class PeriodPicker extends StatelessWidget {
           onPressed: previous == null ? null : () => onScope(previous),
         ),
         const SizedBox(width: 4),
-        PopupMenuButton<_ScopeChoice>(
-          tooltip: 'Choose period',
-          onSelected: (choice) => switch (choice) {
-            _Scope(:final scope) => onScope(scope),
-            _AskRange() => _askRange(context),
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              height: menuRowHeight,
-              value: _Scope(null),
-              child: Text('All dates'),
-            ),
-            for (final period in periods.reversed)
-              PopupMenuItem(
-                height: menuRowHeight,
-                value: _Scope(PayPeriodScope(period.id)),
-                child: Text(periodName(period)),
-              ),
-            const PopupMenuDivider(),
-            const PopupMenuItem(
-              height: menuRowHeight,
-              value: _AskRange(),
-              child: Text('Date range…'),
-            ),
-          ],
-          child: _MenuFace(label: 'Period', detail: _label),
+        _Labelled(
+          label: 'Period',
+          child: EraCombo<_ScopeChoice>(
+            semanticLabel: 'Period',
+            value: _Scope(scope),
+            items: [
+              const EraComboItem(_Scope(null), 'All dates'),
+              for (final period in periods.reversed)
+                EraComboItem(
+                  _Scope(PayPeriodScope(period.id)),
+                  periodName(period),
+                ),
+              const EraComboItem(_AskRange(), 'Date range…', command: true),
+            ],
+            face: (context, focused) =>
+                EraComboFace(value: _label, focused: focused),
+            onSelected: (choice) => switch (choice) {
+              _Scope(:final scope) => onScope(scope),
+              _AskRange() => _askRange(context),
+            },
+          ),
         ),
         const SizedBox(width: 4),
         StepKey(
@@ -306,36 +305,26 @@ final class StateFilter extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) => PopupMenuButton<bool>(
-    tooltip: 'Filter by state',
-    onSelected: onChanged,
-    itemBuilder: (context) => [
-      CheckedPopupMenuItem(
-        height: menuRowHeight,
-        value: false,
-        checked: !showVoid,
-        child: const Text('Effective and drafts'),
-      ),
-      CheckedPopupMenuItem(
-        height: menuRowHeight,
-        value: true,
-        checked: showVoid,
-        child: const Text('Include void'),
-      ),
-    ],
-    child: _MenuFace(
-      label: 'Status',
-      detail: showVoid ? 'Including void' : 'Effective',
+  Widget build(BuildContext context) => _Labelled(
+    label: 'Status',
+    child: EraCombo<bool>(
+      semanticLabel: 'Status',
+      value: showVoid,
+      items: const [
+        EraComboItem(false, 'Effective'),
+        EraComboItem(true, 'Including void'),
+      ],
+      onSelected: onChanged,
     ),
   );
 }
 
-/// What a toolbar menu looks like closed: "Label: detail" and a drop arrow.
-final class _MenuFace extends StatelessWidget {
-  const _MenuFace({required this.label, this.detail});
+/// A toolbar combo after its "Label:", as the era's filter bars read.
+final class _Labelled extends StatelessWidget {
+  const _Labelled({required this.label, required this.child});
 
   final String label;
-  final String? detail;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -343,12 +332,14 @@ final class _MenuFace extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          '$label:',
-          style: skin.typography.body.copyWith(color: skin.tokens.ink),
+        ExcludeSemantics(
+          child: Text(
+            '$label:',
+            style: skin.typography.body.copyWith(color: skin.tokens.ink),
+          ),
         ),
         const SizedBox(width: 4),
-        EraComboFace(value: detail ?? 'All'),
+        child,
       ],
     );
   }
@@ -385,14 +376,17 @@ final class SheetPicker extends StatelessWidget {
   };
 
   @override
-  Widget build(BuildContext context) => PopupMenuButton<WorkSheet>(
-    key: const ValueKey('work-view-combo'),
-    tooltip: 'Choose what the list shows',
-    onSelected: onSheet,
-    itemBuilder: (context) => [
-      for (final MapEntry(key: value, value: label) in labels.entries)
-        PopupMenuItem(height: menuRowHeight, value: value, child: Text(label)),
-    ],
-    child: _MenuFace(label: 'View', detail: labels[sheet]),
+  Widget build(BuildContext context) => _Labelled(
+    label: 'View',
+    child: EraCombo<WorkSheet>(
+      key: const ValueKey('work-view-combo'),
+      semanticLabel: 'View',
+      value: sheet,
+      items: [
+        for (final MapEntry(key: value, value: label) in labels.entries)
+          EraComboItem(value, label),
+      ],
+      onSelected: onSheet,
+    ),
   );
 }

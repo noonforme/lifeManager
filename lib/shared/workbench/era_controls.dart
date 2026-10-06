@@ -109,10 +109,18 @@ final class _OrbPainter extends CustomPainter {
 /// What a dropdown looks like closed: a white field with a blue arrow
 /// button (spec 5.3). The surrounding menu button supplies the behaviour.
 final class EraComboFace extends StatelessWidget {
-  const EraComboFace({required this.value, this.minWidth = 60, super.key});
+  const EraComboFace({
+    required this.value,
+    this.minWidth = 60,
+    this.focused = false,
+    super.key,
+  });
 
   final String value;
   final double minWidth;
+
+  /// Lights the value in selection blue, as a focused era list box did.
+  final bool focused;
 
   @override
   Widget build(BuildContext context) {
@@ -128,12 +136,18 @@ final class EraComboFace extends StatelessWidget {
         children: [
           Flexible(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              child: Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: skin.typography.body.copyWith(color: skin.tokens.ink),
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+              child: Container(
+                color: focused ? skin.tokens.selWash : null,
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: skin.typography.body.copyWith(
+                    color: focused ? skin.tokens.selInk : skin.tokens.ink,
+                  ),
+                ),
               ),
             ),
           ),

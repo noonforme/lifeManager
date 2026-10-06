@@ -11,6 +11,7 @@ import 'package:lifeos/core/time/local_time.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/shared/workbench/inspector_parts.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 import '../support/era_pickers.dart';
 import '../support/work_dialogs.dart';
@@ -106,11 +107,15 @@ void main() {
     );
     await tester.tap(find.text('Void original and create replacement'));
     await tester.pumpAndSettle();
-    expect(location(), endsWith('mode=edit'));
-    expect(location(), isNot(shiftLocation.replaceFirst('inspect', 'edit')));
-    expect(find.text('Revise replacement shift'), findsWidgets);
+    // The replacement opens as its property sheet; OK revises it.
+    expect(location(), endsWith('mode=properties'));
+    expect(
+      location(),
+      isNot(shiftLocation.replaceFirst('inspect', 'properties')),
+    );
+    expect(find.text('General'), findsOneWidget);
     await setTime(tester, 'shift-end-time', const LocalTime(17, 0));
-    await tapInDialog(tester, find.byKey(const ValueKey('save-manual-shift')));
+    await tapInDialog(tester, find.text('OK'));
     expect(location(), endsWith('mode=inspect'));
     expect(find.text('Shift saved.'), findsOneWidget);
 
@@ -147,7 +152,7 @@ void main() {
 
     // First launch: one press opens the employment form.
     expect(find.text('Work'), findsWidgets);
-    await tester.tap(find.widgetWithText(FilledButton, 'Create employment'));
+    await tester.tap(find.widgetWithText(KeyButton, 'Create employment'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('employment-name')),

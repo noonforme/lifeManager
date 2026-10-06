@@ -17,6 +17,7 @@ import 'package:lifeos/features/work/presentation/work_toolbar_controls.dart';
 import 'package:lifeos/shared/workbench/era_month_calendar.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 import '../../../support/era_pickers.dart';
 import '../../../support/work_sheets.dart';
@@ -41,10 +42,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(
-      find.widgetWithText(FilledButton, 'Create employment'),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(KeyButton, 'Create employment'), findsOneWidget);
   });
 
   testWidgets('first launch Create employment opens the form in one press', (
@@ -60,7 +58,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Create employment'));
+    await tester.tap(find.widgetWithText(KeyButton, 'Create employment'));
     expect(created, 1);
   });
 
@@ -80,21 +78,25 @@ void main() {
     );
 
     Future<void> choose(String label) async {
-      await tester.tap(find.text('Employment:'));
+      await tester.tap(_combo('Employment'));
       await tester.pumpAndSettle();
       await tester.tap(find.text(label).last);
       await tester.pumpAndSettle();
     }
 
-    await tester.tap(find.text('Employment:'));
+    await tester.tap(_combo('Employment'));
     await tester.pumpAndSettle();
-    final current = find.ancestor(
-      of: find.text('Warehouse').last,
-      matching: find.byType(Row),
+    // The current employment is the lit row of the list.
+    final current = find.descendant(
+      of: find.ancestor(
+        of: find.text('Warehouse').last,
+        matching: find.byType(MenuItemButton),
+      ),
+      matching: find.byType(Material),
     );
     expect(
-      find.descendant(of: current.first, matching: find.byIcon(Icons.check)),
-      findsOneWidget,
+      tester.widget<Material>(current.first).color,
+      LifeOSSkinData.standard.tokens.selWash,
     );
     expect(find.text('All employments'), findsOneWidget);
     await tester.tapAt(Offset.zero);
@@ -102,7 +104,7 @@ void main() {
 
     await choose('Café');
     await choose('All employments');
-    await choose('Create employment');
+    await choose('Create employment…');
     expect(opened, [_otherEmploymentId]);
     expect(all, 1);
     expect(created, 1);
@@ -289,9 +291,9 @@ void main() {
       );
       expect(find.text('Void'), findsNothing);
 
-      await tester.tap(find.text('Status:'));
+      await tester.tap(_combo('Status'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Include void'));
+      await tester.tap(find.text('Including void'));
       await tester.pumpAndSettle();
       expect(routes.single.showVoid, isTrue);
 
@@ -384,7 +386,7 @@ void main() {
             ),
           ),
         );
-        await tester.tap(find.text('Period:'));
+        await tester.tap(_combo('Period'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Date range…'));
         await tester.pumpAndSettle();
@@ -417,7 +419,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.text('Period:'));
+      await tester.tap(_combo('Period'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Date range…'));
       await tester.pumpAndSettle();
@@ -453,7 +455,7 @@ void main() {
           onRoute: routes.add,
         ),
       );
-      await tester.tap(find.text('Period:'));
+      await tester.tap(_combo('Period'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Date range…'));
       await tester.pumpAndSettle();
@@ -493,6 +495,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 }
+
+/// The toolbar combo box named [label], by its announced name.
+Finder _combo(String label) => find.bySemanticsLabel(RegExp('^$label, '));
 
 final class _TestWorkRegister extends StatelessWidget {
   const _TestWorkRegister({

@@ -245,8 +245,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(KeyButton, 'Finalize shift'));
-    await tester.pumpAndSettle();
+    await tapInDialog(tester, find.widgetWithText(KeyButton, 'Finalize shift'));
 
     expect(
       router.routeInformationProvider.value.uri.toString(),
@@ -302,8 +301,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.bySemanticsLabel('Finalize shift'), findsWidgets);
-    await tester.tap(find.widgetWithText(KeyButton, 'Finalize shift'));
-    await tester.pumpAndSettle();
+    await tapInDialog(tester, find.widgetWithText(KeyButton, 'Finalize shift'));
 
     expect(issued?.id, _shiftId);
     expect(issued?.expectedRevision, const Revision(3));
@@ -616,8 +614,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Correct shift'));
-    await tester.pumpAndSettle();
+    await tapInDialog(tester, find.text('Correct shift'));
     expect(
       router.routeInformationProvider.value.uri.toString(),
       _finalizedLocation.replaceFirst('mode=inspect', 'mode=correct'),
@@ -637,7 +634,7 @@ void main() {
       router.routeInformationProvider.value.uri.toString(),
       '/work?employment=${_employmentId.value}'
       '&from=2026-09-29&to=2026-09-29'
-      '&record=shift:${_replacementShiftId.value}&mode=edit',
+      '&record=shift:${_replacementShiftId.value}&mode=properties',
     );
   });
 
@@ -855,14 +852,46 @@ void main() {
     expect(find.textContaining('private-marker'), findsNothing);
   });
 
-  testWidgets('replacement draft in edit mode is revised and finalized', (
+  testWidgets('an old edit link to a record opens its property sheet', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1400);
+    addTearDown(tester.view.reset);
+    final router = createAppRouter(initialLocation: _replacementEditLocation);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(
+            _DraftQueryRepository(),
+          ),
+          timezoneServiceProvider.overrideWithValue(IanaTimezoneService()),
+        ],
+        child: LifeOsApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('General'), findsOneWidget);
+    expect(find.widgetWithText(KeyButton, 'Apply'), findsOneWidget);
+    expect(find.text('Revise replacement shift'), findsNothing);
+  });
+
+  testWidgets('a replacement draft opens as a property sheet; OK revises it', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1280, 1400);
     addTearDown(tester.view.reset);
     ReviseShiftDraftCommand? issued;
-    final router = createAppRouter(initialLocation: _replacementEditLocation);
+    final router = createAppRouter(
+      initialLocation: _replacementEditLocation.replaceFirst(
+        'mode=edit',
+        'mode=properties',
+      ),
+    );
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
@@ -882,24 +911,23 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Revise replacement shift'), findsWidgets);
+    expect(find.text('General'), findsOneWidget);
+    expect(find.text('History'), findsOneWidget);
+    expect(find.byKey(const ValueKey('save-manual-shift')), findsNothing);
     expect(timeIn(tester, 'shift-start-time'), const LocalTime(10, 0));
     expect(timeIn(tester, 'shift-end-time'), const LocalTime(18, 0));
     await setTime(tester, 'shift-end-time', const LocalTime(17, 0));
-    await tester.tap(find.byKey(const ValueKey('save-manual-shift')));
+    await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
 
     expect(issued?.id, _replacementShiftId);
     expect(issued?.expectedRevision, const Revision(0));
     expect(issued?.localEndTime, const LocalTime(17, 0));
     expect(issued?.timezoneId, 'Europe/Amsterdam');
-    expect(
-      router.routeInformationProvider.value.uri.toString(),
-      _replacementEditLocation.replaceFirst('mode=edit', 'mode=inspect'),
-    );
+    expect(find.text('General'), findsNothing);
   });
 
-  testWidgets('stale draft revision keeps edit mode and explains', (
+  testWidgets('a stale revision keeps the sheet open and explains', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -926,8 +954,9 @@ void main() {
 
     // What the owner typed survives the stale outcome.
     await setTime(tester, 'shift-end-time', const LocalTime(17, 0));
-    await tapInDialog(tester, find.byKey(const ValueKey('save-manual-shift')));
+    await tapInDialog(tester, find.text('OK'));
 
+    expect(find.text('General'), findsOneWidget);
     expect(timeIn(tester, 'shift-end-time'), const LocalTime(17, 0));
     expect(
       router.routeInformationProvider.value.uri.toString(),

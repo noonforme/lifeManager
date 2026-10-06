@@ -139,7 +139,10 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: t.paper,
+      // A disabled box sits on the face colour, as the era greyed one.
+      fillColor: WidgetStateColor.resolveWith(
+        (states) => states.contains(WidgetState.disabled) ? t.chrome : t.paper,
+      ),
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
       floatingLabelBehavior: FloatingLabelBehavior.always,
@@ -227,6 +230,8 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
       ),
     ),
     dialogTheme: DialogThemeData(
+      // An era modal left the window behind as it was; nothing dims it.
+      barrierColor: Colors.transparent,
       backgroundColor: t.chrome,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
@@ -236,12 +241,20 @@ ThemeData lifeOSThemeFor(LifeOSSkinData skin) {
       titleTextStyle: type.strong.copyWith(color: t.ink),
       contentTextStyle: type.body.copyWith(color: t.ink),
     ),
+    // The era's tooltip: black text on pale yellow, a black edge, square
+    // corners, shown after a short rest and gone the moment the pointer
+    // leaves.
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
-        color: t.head,
-        borderRadius: const BorderRadius.all(Radius.circular(4)),
+        color: MillenniumColors.tooltip,
+        border: Border.all(color: t.ink),
       ),
-      textStyle: type.small.copyWith(color: t.headInk),
+      textStyle: type.body.copyWith(color: t.ink),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      margin: EdgeInsets.zero,
+      verticalOffset: 14,
+      waitDuration: const Duration(milliseconds: 500),
+      exitDuration: Duration.zero,
     ),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: t.head,

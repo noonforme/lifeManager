@@ -9,6 +9,7 @@ import '../workbench/era_icons.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/millennium_style.dart';
 import '../workbench/office_controls.dart';
+import '../workbench/property_sheet.dart';
 
 /// What a dialog is for (XP-authentic shell spec 4): a record's Properties
 /// sheet, which gets **OK** and **Cancel** at its foot; a form, which keeps
@@ -94,12 +95,32 @@ final class ShellDialogLayer extends StatefulWidget {
 final class _ShellDialogLayerState extends State<ShellDialogLayer> {
   FocusNode? _returnTo;
 
+  /// The open Properties sheet's edits; a new one for each sheet opened.
+  PropertySheetController _sheet = PropertySheetController();
+
+  @override
+  void dispose() {
+    _sheet.dispose();
+    super.dispose();
+  }
+
   @override
   void didUpdateWidget(covariant ShellDialogLayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     final opened = oldWidget.dialog == null && widget.dialog != null;
     final closed = oldWidget.dialog != null && widget.dialog == null;
     if (opened) _returnTo = FocusManager.instance.primaryFocus;
+    // A save can rename the record and its caption; only another kind of
+    // dialog starts a fresh sheet.
+    final reopened =
+        oldWidget.dialog != null &&
+        widget.dialog != null &&
+        oldWidget.dialog!.kind != widget.dialog!.kind;
+    if (opened || closed || reopened) {
+      final old = _sheet;
+      _sheet = PropertySheetController();
+      WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+    }
     if (closed) {
       final node = _returnTo;
       _returnTo = null;
@@ -127,7 +148,7 @@ final class _ShellDialogLayerState extends State<ShellDialogLayer> {
         ),
         if (dialog != null)
           LayoutBuilder(
-            builder: (context, constraints) => Center(
+            builder: (context, constraints) => EraMovableDialog(
               child: ConstrainedBox(
                 key: const ValueKey('shell-dialog'),
                 constraints: BoxConstraints(
@@ -150,7 +171,14 @@ final class _ShellDialogLayerState extends State<ShellDialogLayer> {
                     constraints.maxHeight * 0.9,
                   ),
                 ),
-                child: _DialogWindow(dialog: dialog),
+                // Only a Properties sheet edits through OK, Cancel and
+                // Apply; a form keeps its own keys.
+                child: dialog.kind == ShellDialogKind.properties
+                    ? PropertySheetScope(
+                        controller: _sheet,
+                        child: _DialogWindow(dialog: dialog, sheet: _sheet),
+                      )
+                    : _DialogWindow(dialog: dialog, sheet: _sheet),
               ),
             ),
           ),
@@ -160,9 +188,16 @@ final class _ShellDialogLayerState extends State<ShellDialogLayer> {
 }
 
 final class _DialogWindow extends StatelessWidget {
-  const _DialogWindow({required this.dialog});
+  const _DialogWindow({required this.dialog, required this.sheet});
 
   final ShellDialog dialog;
+  final PropertySheetController sheet;
+
+  /// OK: saves the sheet's edits, if any, and closes when they went
+  /// through; a failed save keeps the sheet open with its errors.
+  Future<void> _ok() async {
+    if (await sheet.apply()) dialog.onClose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -188,7 +223,7 @@ final class _DialogWindow extends StatelessWidget {
             if (enter &&
                 dialog.kind != ShellDialogKind.form &&
                 FocusManager.instance.primaryFocus == node) {
-              dialog.onClose();
+              _ok();
               return KeyEventResult.handled;
             }
             return KeyEventResult.ignored;
@@ -262,18 +297,32 @@ final class _DialogWindow extends StatelessWidget {
                         ],
                       ),
                     ),
+                  // OK saves and closes, Cancel discards, Apply saves and
+                  // stays; Apply greys until a field changes.
                   if (dialog.kind == ShellDialogKind.properties)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                      child: FormFooter(
-                        children: [
-                          KeyButton(
-                            label: 'OK',
-                            kind: KeyKind.primary,
-                            onPressed: dialog.onClose,
-                          ),
-                          KeyButton(label: 'Cancel', onPressed: dialog.onClose),
-                        ],
+                      child: ListenableBuilder(
+                        listenable: sheet,
+                        builder: (context, _) => FormFooter(
+                          children: [
+                            KeyButton(
+                              label: 'OK',
+                              kind: KeyKind.primary,
+                              onPressed: sheet.applying ? null : _ok,
+                            ),
+                            KeyButton(
+                              label: 'Cancel',
+                              onPressed: dialog.onClose,
+                            ),
+                            KeyButton(
+                              label: 'Apply',
+                              onPressed: sheet.dirty && !sheet.applying
+                                  ? sheet.apply
+                                  : null,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                 ],

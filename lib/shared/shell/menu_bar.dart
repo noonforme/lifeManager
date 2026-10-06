@@ -3,11 +3,14 @@ import 'package:flutter/services.dart';
 
 import '../workbench/cell_selection.dart';
 import '../workbench/era_dialog.dart';
+import '../workbench/era_icons.dart';
+import '../workbench/era_menu.dart';
 import '../workbench/lifeos_skin.dart';
 import '../workbench/office_controls.dart';
 import 'licenses_dialog.dart';
 import 'navigation_history.dart';
 import 'shell_frame.dart';
+import 'status_line.dart';
 
 /// The shell's menu bar (spec 5.3). Items whose feature has not shipped
 /// stay visible, disabled, with the reason as a tooltip.
@@ -28,52 +31,39 @@ final class LifeOSMenuBar extends StatelessWidget {
     final cell = CellSelectionScope.maybeOf(context)?.value;
     final quickAdd = ShellChrome.maybeOf(context)?.quickAdd ?? const [];
     final explanation = cell?.explanation;
-    final menuStyle = MenuStyle(
-      backgroundColor: WidgetStatePropertyAll(tokens.paper),
-      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-      elevation: const WidgetStatePropertyAll(0),
-      side: WidgetStatePropertyAll(BorderSide(color: tokens.muted)),
-      shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
-      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 2)),
-    );
-    final itemStyle = ButtonStyle(
-      textStyle: WidgetStatePropertyAll(skin.typography.body),
-      foregroundColor: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.disabled)
-            ? tokens.muted
-            : states.contains(WidgetState.hovered) ||
-                  states.contains(WidgetState.focused)
-            ? tokens.selInk
-            : tokens.ink,
-      ),
-      backgroundColor: WidgetStateProperty.resolveWith(
-        (states) =>
-            states.contains(WidgetState.hovered) ||
-                states.contains(WidgetState.focused)
-            ? tokens.selWash
-            : Colors.transparent,
-      ),
-      minimumSize: const WidgetStatePropertyAll(Size(0, menuRowHeight)),
-      // Era menus are dense: no padding up to a touch target.
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      visualDensity: VisualDensity.compact,
-      padding: const WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: 8),
-      ),
-      shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
+    final menuStyle = eraMenuStyle(skin);
+    final itemStyle = eraMenuItemStyle(skin);
+    // Titles on the bar keep a plain 8 px inset; drop-down rows have the
+    // gutter.
+    final barStyle = eraMenuItemStyle(
+      skin,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
     );
 
-    Widget item(String label, VoidCallback? onPressed) => MenuItemButton(
+    final hints = StatusHintScope.read(context);
+    // A lit row says what it does in the status bar, as the era's did.
+    void hint(String? text) => hints?.value = text;
+
+    Widget item(
+      String label,
+      VoidCallback? onPressed, {
+      required String hint,
+      EraIconKind? icon,
+    }) => MenuItemButton(
       style: itemStyle,
       onPressed: onPressed,
-      child: Text(label),
+      onHover: (lit) => lit ? hints?.value = hint : null,
+      onFocusChange: (lit) => lit ? hints?.value = hint : null,
+      child: EraMenuLabel(EraMenuItem(label, onPressed, icon: icon)),
     );
 
+    // [label] marks its Alt letter with "&", as "&File".
     Widget menu(String label, List<Widget> children) => SubmenuButton(
-      style: itemStyle,
+      style: barStyle,
       menuStyle: menuStyle,
       menuChildren: children,
-      child: Text(label),
+      onClose: () => hint(null),
+      child: MenuAcceleratorLabel(label),
     );
 
     Widget viewItem(
@@ -82,13 +72,18 @@ final class LifeOSMenuBar extends StatelessWidget {
       ShellView Function(ShellView, bool) write,
     ) {
       final current = view?.value ?? const ShellView();
-      return CheckboxMenuButton(
+      final onPressed = view == null
+          ? null
+          : () => view.value = write(view.value, !read(view.value));
+      const text = 'Shows or hides the task pane.';
+      return MenuItemButton(
         style: itemStyle,
-        value: read(current),
-        onChanged: view == null
-            ? null
-            : (checked) => view.value = write(view.value, checked ?? false),
-        child: Text(label),
+        onPressed: onPressed,
+        onHover: (lit) => lit ? hint(text) : null,
+        onFocusChange: (lit) => lit ? hint(text) : null,
+        child: EraMenuLabel(
+          EraMenuItem(label, onPressed, checked: read(current)),
+        ),
       );
     }
 
@@ -117,11 +112,15 @@ final class LifeOSMenuBar extends StatelessWidget {
                 padding: const WidgetStatePropertyAll(EdgeInsets.zero),
               ),
               children: [
-                menu('File', [
-                  item('Backup and export…', () => onNavigate('/system/files')),
-                  item('Quit', onQuit),
+                menu('&File', [
+                  item(
+                    'Backup and export…',
+                    () => onNavigate('/system/files'),
+                    hint: 'Saves a copy of your records to a file you choose.',
+                  ),
+                  item('Quit', onQuit, hint: 'Closes LifeOS.'),
                 ]),
-                menu('Edit', [
+                menu('&Edit', [
                   item(
                     'Copy cell',
                     cell == null
@@ -129,6 +128,7 @@ final class LifeOSMenuBar extends StatelessWidget {
                         : () => Clipboard.setData(
                             ClipboardData(text: cell.display),
                           ),
+                    hint: "Copies the selected cell's value.",
                   ),
                   item(
                     'Copy explanation',
@@ -137,37 +137,59 @@ final class LifeOSMenuBar extends StatelessWidget {
                         : () => Clipboard.setData(
                             ClipboardData(text: explanation.plainText),
                           ),
+                    hint: 'Copies how the selected figure was worked out.',
                   ),
                 ]),
-                menu('View', [
+                menu('&View', [
                   viewItem(
                     'Show task pane',
                     (v) => v.showTaskPane,
                     (v, on) => v.copyWith(showTaskPane: on),
                   ),
                 ]),
-                menu('Desk', [item('Open Today', () => onNavigate('/today'))]),
-                menu('Record', [
-                  for (final entry in quickAdd)
-                    item('+ ${entry.label}', entry.open),
+                menu('&Desk', [
+                  item(
+                    'Open Today',
+                    () => onNavigate('/today'),
+                    hint: 'Opens the Today desk.',
+                  ),
                 ]),
-                menu('Window', [
+                menu('&Record', [
+                  for (final entry in quickAdd)
+                    item(
+                      entry.label,
+                      entry.open,
+                      icon: entry.shownIcon,
+                      hint: 'Adds a new ${entry.label.toLowerCase()}.',
+                    ),
+                ]),
+                menu('&Window', [
                   item(
                     'Back',
                     history != null && history.canGoBack
                         ? history.goBack
                         : null,
+                    hint: 'Goes back to the last place.',
                   ),
                   item(
                     'Forward',
                     history != null && history.canGoForward
                         ? history.goForward
                         : null,
+                    hint: 'Goes forward again.',
                   ),
-                  item('Today', () => onNavigate('/today')),
-                  item('Journal', () => onNavigate('/journal')),
+                  item(
+                    'Today',
+                    () => onNavigate('/today'),
+                    hint: 'Opens the Today desk.',
+                  ),
+                  item(
+                    'Journal',
+                    () => onNavigate('/journal'),
+                    hint: 'Opens every record by the time it happened.',
+                  ),
                 ]),
-                menu('Help', [
+                menu('&Help', [
                   item(
                     'About LifeOS',
                     () => showDialog<void>(
@@ -193,6 +215,7 @@ final class LifeOSMenuBar extends StatelessWidget {
                         ],
                       ),
                     ),
+                    hint: 'Shows the version and licences.',
                   ),
                 ]),
               ],

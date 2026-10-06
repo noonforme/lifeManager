@@ -108,12 +108,18 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
   late LocalDate _start = widget.today!.firstOfMonth;
   late LocalDate _end = widget.today!.lastOfMonth;
   final _label = TextEditingController();
+
+  /// The stored label, shown greyed on the period's sheet.
+  late final _shownLabel = TextEditingController(
+    text: widget.period?.label ?? '',
+  );
   Map<String, String> _errors = const {};
   bool _submitting = false;
 
   @override
   void dispose() {
     _label.dispose();
+    _shownLabel.dispose();
     super.dispose();
   }
 
@@ -155,13 +161,42 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
               period.label ?? 'Pay period',
               icon: EraIconKind.payPeriod,
             ),
+            // The period's own fields, greyed: it changes only through
+            // Mark reviewed and Reopen.
+            EraFormScope(
+              labelWidth: 100,
+              enabled: false,
+              child: _FormGroup(
+                legend: 'Period',
+                children: [
+                  EraDateField(
+                    label: 'Start date',
+                    fieldKey: const ValueKey('period-start'),
+                    value: period.start,
+                    today: period.start,
+                    onChanged: (_) {},
+                  ),
+                  EraDateField(
+                    label: 'End date',
+                    fieldKey: const ValueKey('period-end'),
+                    value: period.end,
+                    today: period.start,
+                    onChanged: (_) {},
+                  ),
+                  _Field(
+                    controller: _shownLabel,
+                    label: 'Label',
+                    fieldKey: const ValueKey('period-label'),
+                  ),
+                ],
+              ),
+            ),
             InspectorFacts([
-              Fact('Dates', '${period.start} – ${period.end}'),
               Fact.words(
                 'State',
                 period.state == PayPeriodState.reviewed ? 'Reviewed' : 'Open',
               ),
-            ], legend: 'Period'),
+            ]),
             if (widget.onSetState != null || widget.onRecordPayslip != null)
               InspectorActions(
                 children: [
@@ -205,9 +240,8 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
       label: 'Create pay period',
       child: EraFormScope(
         labelWidth: 100,
-        child: ListView(
-          padding: inspectorInset,
-          children: [
+        child: DialogForm(
+          fields: [
             _FormGroup(
               legend: 'Dates',
               children: [
@@ -234,15 +268,14 @@ final class _PeriodInspectorState extends State<PeriodInspector> {
                 ),
               ],
             ),
-            FormFooter(
-              children: [
-                FilledButton(
-                  onPressed: _submitting ? null : _submit,
-                  child: const Text('Create period'),
-                ),
-                const DialogCancelKey(),
-              ],
+          ],
+          keys: [
+            KeyButton(
+              label: 'Create period',
+              kind: KeyKind.primary,
+              onPressed: _submitting ? null : _submit,
             ),
+            const DialogCancelKey(),
           ],
         ),
       ),
@@ -343,9 +376,8 @@ final class _PayslipInspectorState extends State<PayslipInspector> {
     child: Form(
       child: EraFormScope(
         labelWidth: 100,
-        child: ListView(
-          padding: inspectorInset,
-          children: [
+        child: DialogForm(
+          fields: [
             _FormGroup(
               legend: 'Payslip',
               children: [
@@ -410,15 +442,14 @@ final class _PayslipInspectorState extends State<PayslipInspector> {
                 _Field(controller: _note, label: 'Note', maxLines: 3),
               ],
             ),
-            FormFooter(
-              children: [
-                FilledButton(
-                  onPressed: _submitting ? null : _submit,
-                  child: const Text('Save payslip'),
-                ),
-                const DialogCancelKey(),
-              ],
+          ],
+          keys: [
+            KeyButton(
+              label: 'Save payslip',
+              kind: KeyKind.primary,
+              onPressed: _submitting ? null : _submit,
             ),
+            const DialogCancelKey(),
           ],
         ),
       ),

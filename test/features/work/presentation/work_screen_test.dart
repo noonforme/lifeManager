@@ -135,7 +135,9 @@ void main() {
   });
 
   group('employment setup', () {
-    testWidgets("an employment's Properties show its header", (tester) async {
+    testWidgets("an employment's Properties is its editable sheet", (
+      tester,
+    ) async {
       final routes = <String>[];
       await pumpScreen(
         tester,
@@ -154,20 +156,14 @@ void main() {
         onNavigate: routes.add,
       );
 
-      final header = find.bySemanticsLabel('Employment');
-      expect(header, findsOneWidget);
-      expect(
-        find.descendant(of: header, matching: find.text('Warehouse')),
-        findsOneWidget,
-      );
+      expect(find.text('Warehouse'), findsWidgets);
 
-      await tester.tap(find.text('Edit'));
-      await tester.tap(find.text('Edit agreement'));
+      expect(find.byKey(const ValueKey('employment-name')), findsOneWidget);
+      expect(find.text('Edit'), findsNothing);
+      await tester.tap(find.text('Agreement…'));
       expect(routes, [
         '/work?employment=${_employmentId.value}'
-            '&record=employment:${_employmentId.value}&mode=edit',
-        '/work?employment=${_employmentId.value}'
-            '&record=agreement:${_agreementId.value}&mode=edit',
+            '&record=agreement:${_agreementId.value}&mode=properties',
       ]);
     });
 
@@ -217,9 +213,22 @@ void main() {
         findsOneWidget,
       );
 
+      // Gaining finished shifts while open greys the same fields.
       await pumpScreen(tester, AsyncData(agreementState(2)));
-      expect(find.byKey(const ValueKey('agreement-hourly-rate')), findsNothing);
-      expect(find.text('Used by 2 finished shifts.'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('agreement-hourly-rate')),
+            )
+            .enabled,
+        isFalse,
+      );
+      expect(
+        find.text(
+          'Used by 2 finished shifts, so these terms can no longer change.',
+        ),
+        findsOneWidget,
+      );
     });
   });
 
@@ -342,9 +351,18 @@ void main() {
       find.descendant(of: inspector, matching: find.text('Paid evidence')),
       findsOneWidget,
     );
+    // The recorded evidence shows in the payslip's own fields, greyed.
+    final amount = tester.widget<TextField>(
+      find.byKey(const ValueKey('payslip-amount')),
+    );
+    expect(amount.enabled, isFalse);
+    expect(amount.controller?.text, '1234.56');
     expect(
-      find.descendant(of: inspector, matching: find.text('EUR 1234.56')),
-      findsOneWidget,
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('payslip-reference')))
+          .controller
+          ?.text,
+      'SYNTHETIC-10',
     );
     expect(find.text('Work record selected'), findsNothing);
   });

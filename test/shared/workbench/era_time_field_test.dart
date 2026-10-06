@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -46,22 +47,16 @@ Future<void> _pump(
   LocalTime emptyStart = const LocalTime(12, 30),
   bool enabled = true,
   double textScale = 1,
+  Widget Function(Widget field)? wrap,
 }) async {
+  final host = _Host(initial: value, emptyStart: emptyStart, enabled: enabled);
   await tester.pumpWidget(
     MaterialApp(
       theme: buildLifeOSTheme(),
       home: MediaQuery(
         data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
         child: LifeOSSkinScope(
-          child: Scaffold(
-            body: Center(
-              child: _Host(
-                initial: value,
-                emptyStart: emptyStart,
-                enabled: enabled,
-              ),
-            ),
-          ),
+          child: Scaffold(body: Center(child: wrap?.call(host) ?? host)),
         ),
       ),
     ),
@@ -151,6 +146,75 @@ void main() {
     await _press(tester, LogicalKeyboardKey.arrowRight);
     await _press(tester, LogicalKeyboardKey.arrowDown);
     expect(_value(tester), const LocalTime(8, 0));
+  });
+
+  testWidgets('left on the hours and right on the minutes stay in the box', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      wrap: (field) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Focus(child: SizedBox(width: 24, height: 24)),
+          field,
+          const Focus(child: SizedBox(width: 24, height: 24)),
+        ],
+      ),
+    );
+    await _select(tester, 'hour');
+    await _press(tester, LogicalKeyboardKey.arrowLeft);
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(8, 0));
+    await _select(tester, 'minute');
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(8, 1));
+  });
+
+  testWidgets('only the primary button steps or selects', (tester) async {
+    await _pump(tester);
+    for (final key in ['era-time-up', 'era-time-minute']) {
+      for (final buttons in [kSecondaryButton, kMiddleMouseButton]) {
+        final press = await tester.startGesture(
+          tester.getCenter(find.byKey(ValueKey(key))),
+          kind: PointerDeviceKind.mouse,
+          buttons: buttons,
+        );
+        await press.up();
+        await tester.pump();
+      }
+    }
+    expect(_value(tester), const LocalTime(7, 0));
+    expect(
+      tester.binding.focusManager.primaryFocus?.debugLabel,
+      isNot('EraTimeField'),
+    );
+  });
+
+  testWidgets('a spin button looks pressed while held', (tester) async {
+    await _pump(tester);
+    List<Color>? colors() =>
+        (tester
+                    .widget<DecoratedBox>(
+                      find.descendant(
+                        of: find.byKey(const ValueKey('era-time-up')),
+                        matching: find.byType(DecoratedBox),
+                      ),
+                    )
+                    .decoration
+                as BoxDecoration)
+            .gradient
+            ?.colors;
+    final resting = colors();
+    final hold = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('era-time-up'))),
+    );
+    await tester.pump();
+    expect(colors(), resting!.reversed.toList());
+    await hold.up();
+    await tester.pump();
+    expect(colors(), resting);
   });
 
   testWidgets('PageUp and PageDown step by ten and wrap', (tester) async {
