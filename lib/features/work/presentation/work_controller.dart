@@ -6,6 +6,7 @@ import '../../../core/history/record_events.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
+import '../../../core/time/wall_clock.dart';
 import '../application/day_plan_service.dart';
 import '../application/schedule_service.dart';
 import '../application/work_commands.dart';
@@ -17,8 +18,10 @@ import '../domain/agreement.dart';
 import '../domain/employment.dart';
 import '../domain/ids.dart';
 import '../domain/pay_period.dart';
+import '../domain/pay_premiums.dart';
 import '../domain/payslip.dart';
 import '../domain/planner.dart';
+import '../domain/schedule.dart';
 import '../domain/shift.dart';
 import 'employment_agreement_forms.dart';
 import 'period_payslip_forms.dart';
@@ -260,12 +263,30 @@ final workPlanProvider = StreamProvider.autoDispose
           .watchPlan(args.employment, args.from, args.to),
     );
 
-/// Past planned days of one employment not yet confirmed.
-final daysToConfirmProvider = FutureProvider.autoDispose
+/// Every schedule version of one employment, live.
+final employmentSchedulesProvider = StreamProvider.autoDispose
+    .family<List<WorkSchedule>, EmploymentId>(
+      (ref, id) => ref.watch(scheduleServiceProvider).watch(id),
+    );
+
+/// Schedules, exceptions, confirmed dates and agreements of one employment,
+/// live; a day's Properties read their date from it.
+final planInputsProvider = StreamProvider.autoDispose
+    .family<PlanInputs, EmploymentId>(
+      (ref, id) => ref.watch(dayPlanServiceProvider).watchInputs(id),
+    );
+
+/// Wall clocks for planned times and planned pay.
+final zoneClocksProvider = Provider<ZoneClocks>(
+  (ref) => zoneClocksOf(ref.watch(timezoneServiceProvider)),
+);
+
+/// Past planned days of one employment not yet confirmed, live.
+final daysToConfirmProvider = StreamProvider.autoDispose
     .family<List<PlannedDay>, EmploymentId>(
       (ref, id) => ref
           .watch(dayPlanServiceProvider)
-          .daysToConfirm(id, today: ref.watch(todayProvider)()),
+          .watchDaysToConfirm(id, today: ref.watch(todayProvider)()),
     );
 
 final workControllerProvider =

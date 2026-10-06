@@ -72,6 +72,10 @@ final class ScheduleService {
   final ScheduleIdFactory ids;
   final AppClock clock;
 
+  /// Every version of every schedule of the employment, live.
+  Stream<List<WorkSchedule>> watch(EmploymentId id) =>
+      repository.watchSchedules(id);
+
   Future<MutationOutcome<WorkSchedule>> create(ScheduleDraft draft) =>
       _guard(() async {
         final WorkSchedule value;

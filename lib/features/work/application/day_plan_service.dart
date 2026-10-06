@@ -119,13 +119,25 @@ final class DayPlanService {
     LocalDate to,
   ) => repository.watchPlanInputs(id).map((inputs) => _plan(inputs, from, to));
 
+  /// What the planner reads for one employment, live.
+  Stream<PlanInputs> watchInputs(EmploymentId id) =>
+      repository.watchPlanInputs(id);
+
   /// Past planned shifts and leave not yet confirmed, oldest first: from the
   /// first date any schedule is in use up to the day before [today].
   Future<List<PlannedDay>> daysToConfirm(
     EmploymentId id, {
     required LocalDate today,
-  }) async {
-    final inputs = await repository.planInputs(id);
+  }) async => _toConfirm(await repository.planInputs(id), today);
+
+  /// [daysToConfirm], live: a day leaves the list once it is confirmed.
+  Stream<List<PlannedDay>> watchDaysToConfirm(
+    EmploymentId id, {
+    required LocalDate today,
+  }) =>
+      repository.watchPlanInputs(id).map((inputs) => _toConfirm(inputs, today));
+
+  List<PlannedDay> _toConfirm(PlanInputs inputs, LocalDate today) {
     if (inputs.schedules.isEmpty) return const [];
     final from = inputs.schedules
         .map((value) => value.inUseFrom)
