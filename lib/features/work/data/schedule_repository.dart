@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 
 import '../../../core/database/app_database.dart' show AppDatabase;
@@ -158,21 +160,45 @@ final class DriftScheduleRepository
   );
 
   @override
-  Stream<PlanInputs> watchPlanInputs(EmploymentId id) async* {
-    yield await planInputs(id);
-    await for (final _ in _database.tableUpdates(
-      TableUpdateQuery.onAllTables([
-        _database.workSchedules,
-        _database.workScheduleShiftTypes,
-        _database.workScheduleBlocks,
-        _database.workDayExceptions,
-        _database.workShifts,
-        _database.workLeaveRecords,
-        _database.payAgreements,
-      ]),
-    )) {
-      yield await planInputs(id);
-    }
+  Stream<PlanInputs> watchPlanInputs(EmploymentId id) {
+    late StreamController<PlanInputs> controller;
+    late StreamSubscription<void> updates;
+
+    controller = StreamController<PlanInputs>(
+      onListen: () async {
+        // Emit initial value
+        final initial = await planInputs(id);
+        if (!controller.isClosed) {
+          controller.add(initial);
+        }
+        // Listen for updates
+        updates = _database.tableUpdates(
+          TableUpdateQuery.onAllTables([
+            _database.workSchedules,
+            _database.workScheduleShiftTypes,
+            _database.workScheduleBlocks,
+            _database.workDayExceptions,
+            _database.workShifts,
+            _database.workLeaveRecords,
+            _database.payAgreements,
+          ]),
+        ).listen(
+          (_) async {
+            final updated = await planInputs(id);
+            if (!controller.isClosed) {
+              controller.add(updated);
+            }
+          },
+          onError: controller.addError,
+          onDone: controller.close,
+        );
+      },
+      onCancel: () async {
+        await updates.cancel();
+      },
+    );
+
+    return controller.stream;
   }
 
   @override
