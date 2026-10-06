@@ -172,26 +172,28 @@ final class DriftScheduleRepository
           controller.add(initial);
         }
         // Listen for updates
-        updates = _database.tableUpdates(
-          TableUpdateQuery.onAllTables([
-            _database.workSchedules,
-            _database.workScheduleShiftTypes,
-            _database.workScheduleBlocks,
-            _database.workDayExceptions,
-            _database.workShifts,
-            _database.workLeaveRecords,
-            _database.payAgreements,
-          ]),
-        ).listen(
-          (_) async {
-            final updated = await planInputs(id);
-            if (!controller.isClosed) {
-              controller.add(updated);
-            }
-          },
-          onError: controller.addError,
-          onDone: controller.close,
-        );
+        updates = _database
+            .tableUpdates(
+              TableUpdateQuery.onAllTables([
+                _database.workSchedules,
+                _database.workScheduleShiftTypes,
+                _database.workScheduleBlocks,
+                _database.workDayExceptions,
+                _database.workShifts,
+                _database.workLeaveRecords,
+                _database.payAgreements,
+              ]),
+            )
+            .listen(
+              (_) async {
+                final updated = await planInputs(id);
+                if (!controller.isClosed) {
+                  controller.add(updated);
+                }
+              },
+              onError: controller.addError,
+              onDone: controller.close,
+            );
       },
       onCancel: () async {
         await updates.cancel();

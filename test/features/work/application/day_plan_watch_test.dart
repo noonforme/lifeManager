@@ -8,30 +8,23 @@ void main() {
     final fixture = await ScheduleFixture.create();
     addTearDown(fixture.dispose);
     await fixture.saveDepot();
-
-    // Get the first value from the stream
-    final firstValue = await fixture.plans
+    final lengths = <int>[];
+    final subscription = fixture.plans
         .watchDaysToConfirm(
           fixtureEmployment,
           today: const LocalDate(2026, 12, 1),
         )
-        .first;
+        .listen((days) => lengths.add(days.length));
+    addTearDown(subscription.cancel);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
     // 5 October to 30 November: four 12-day cycles and 9 days more.
-    expect(firstValue.length, 30);
-
+    expect(lengths.last, 30);
     await fixture.plans.confirm(
       fixtureEmployment,
       const LocalDate(2026, 10, 5),
     );
-
-    // Get the second value after confirming
-    final secondValue = await fixture.plans
-        .watchDaysToConfirm(
-          fixtureEmployment,
-          today: const LocalDate(2026, 12, 1),
-        )
-        .first;
-    expect(secondValue.length, 29);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(lengths.last, 29);
   });
 
   test('schedules are watched per employment', () async {
