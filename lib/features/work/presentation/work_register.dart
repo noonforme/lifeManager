@@ -14,6 +14,8 @@ import '../domain/ids.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart';
 import '../domain/shift.dart';
+import 'work_calendar_sheet.dart';
+import 'work_plan_view.dart';
 import 'work_route_state.dart';
 import 'work_sheets.dart';
 import 'work_toolbar_controls.dart';
@@ -32,6 +34,7 @@ final class WorkRegister extends StatelessWidget {
     this.route,
     this.onRoute,
     this.timezones,
+    this.defaultSheet = WorkSheet.shifts,
     super.key,
   });
 
@@ -61,6 +64,9 @@ final class WorkRegister extends StatelessWidget {
 
   /// Reads shift times on their own wall clock.
   final TimezoneService? timezones;
+
+  /// The sheet shown when the route names none (schedules spec 5).
+  final WorkSheet defaultSheet;
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +134,7 @@ final class WorkRegister extends StatelessWidget {
     final selectedId = selectedRecord == null
         ? null
         : workRowId(selectedRecord!);
-    final shown = route.sheet ?? WorkSheet.shifts;
+    final shown = route.sheet ?? defaultSheet;
     final Widget sheet = switch (shown) {
       WorkSheet.shifts => ShiftsSheet(
         rows: value.shiftSheet,
@@ -159,9 +165,27 @@ final class WorkRegister extends StatelessWidget {
         onOpen: onSelect,
         onProperties: onProperties,
       ),
-      WorkSheet.calendar ||
-      WorkSheet.leave ||
-      WorkSheet.schedules => const OperationalState(
+      WorkSheet.calendar => WorkCalendarSheet(
+        employmentId: value.scope.employmentId!,
+        month: switch (route.scope) {
+          DateRangeScope(:final start) => start.firstOfMonth,
+          _ => (today ?? _deviceToday()).firstOfMonth,
+        },
+        today: today ?? _deviceToday(),
+        register: value,
+        onMonth: (month) => change(
+          route.copyWith(
+            sheet: WorkSheet.calendar,
+            scope: () => DateRangeScope(
+              start: month.firstOfMonth,
+              end: month.lastOfMonth,
+            ),
+            record: () => null,
+          ),
+        ),
+        onOpenDay: (day) => _openDay(day, route, change),
+      ),
+      WorkSheet.leave || WorkSheet.schedules => const OperationalState(
         kind: OperationalStateKind.empty,
         title: 'Not built yet',
         message: 'This sheet arrives with the schedule screens.',
@@ -190,18 +214,21 @@ final class WorkRegister extends StatelessWidget {
                 onAll: onAllEmployments,
                 onCreate: create,
               ),
-              PeriodPicker(
-                scope: route.scope,
-                periods: [for (final row in value.periodSheet) row.period],
-                today: today,
-                onScope: (scope) => change(
-                  route.copyWith(scope: () => scope, record: () => null),
+              if (shown != WorkSheet.calendar &&
+                  shown != WorkSheet.schedules) ...[
+                PeriodPicker(
+                  scope: route.scope,
+                  periods: [for (final row in value.periodSheet) row.period],
+                  today: today,
+                  onScope: (scope) => change(
+                    route.copyWith(scope: () => scope, record: () => null),
+                  ),
                 ),
-              ),
-              StateFilter(
-                showVoid: route.showVoid,
-                onChanged: (show) => change(route.copyWith(showVoid: show)),
-              ),
+                StateFilter(
+                  showVoid: route.showVoid,
+                  onChanged: (show) => change(route.copyWith(showVoid: show)),
+                ),
+              ],
             ],
           ),
         ),
@@ -305,4 +332,33 @@ String _money(Money money) {
   final major = absolute ~/ 100;
   final minor = absolute.remainder(100).toString().padLeft(2, '0');
   return '${money.currency.value} ${negative ? '-' : ''}$major.$minor';
+}
+
+LocalDate _deviceToday() {
+  final now = DateTime.now();
+  return LocalDate(now.year, now.month, now.day);
+}
+
+/// A confirmed day opens what was recorded on it; any other day opens its
+/// own Properties.
+void _openDay(
+  DayView day,
+  WorkRouteState route,
+  ValueChanged<WorkRouteState> change,
+) {
+  final shift = day.shifts.firstOrNull;
+  final leave = day.leave;
+  final WorkRecordRef? record = shift != null
+      ? WorkRecordRef(kind: WorkRecordKind.shift, id: shift.shift.id)
+      : leave != null
+      ? WorkRecordRef(kind: WorkRecordKind.leave, id: leave.record.id)
+      : null;
+  change(
+    route.copyWith(
+      sheet: WorkSheet.calendar,
+      record: () => record,
+      day: () => record == null ? day.date : null,
+      mode: WorkInspectorMode.properties,
+    ),
+  );
 }

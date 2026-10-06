@@ -215,6 +215,14 @@ final class _WorkRouteHost extends ConsumerWidget {
             .read(workControllerProvider.notifier)
             .updateAgreement,
         today: ref.read(todayProvider)(),
+        schedules: switch (ref.watch(workRouteProvider)) {
+          ValidWorkRoute(state: WorkRouteState(:final employmentId?)) =>
+            switch (ref.watch(employmentSchedulesProvider(employmentId))) {
+              AsyncData(:final value) => value,
+              _ => const [],
+            },
+          _ => const [],
+        },
         onSaveView: switch (ref.watch(savedViewRepositoryProvider)) {
           null => null,
           final views => (route) async {

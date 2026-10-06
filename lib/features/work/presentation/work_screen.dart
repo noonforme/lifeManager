@@ -20,6 +20,7 @@ import '../domain/employment.dart';
 import '../domain/ids.dart';
 import '../domain/pay_period.dart';
 import '../domain/payslip.dart';
+import '../domain/schedule.dart';
 import '../domain/shift.dart';
 import 'correction_confirmation.dart';
 import 'employment_agreement_forms.dart';
@@ -28,6 +29,7 @@ import 'record_history_panel.dart';
 import 'shift_forms.dart';
 import 'work_controller.dart' hide SetPayPeriodState;
 import 'work_inspector.dart';
+import 'work_plan_view.dart';
 import 'work_record_names.dart';
 import 'work_register.dart';
 import 'work_route_state.dart';
@@ -60,6 +62,7 @@ final class WorkScreen extends StatefulWidget {
     this.today,
     this.lastShiftTemplate,
     this.onSaveView,
+    this.schedules = const [],
     this.onOpenProperties,
     this.onCloseDialog,
     super.key,
@@ -110,6 +113,10 @@ final class WorkScreen extends StatefulWidget {
 
   /// Today's local date for new agreements; the device date when null.
   final LocalDate? today;
+
+  /// The selected employment's schedule versions; they choose the default
+  /// sheet and name a schedule's dialog.
+  final List<WorkSchedule> schedules;
 
   /// The selected employment's last finalized shift, for "from last time".
   final ShiftTemplate? lastShiftTemplate;
@@ -282,7 +289,12 @@ final class _WorkScreenState extends State<WorkScreen> {
             : () => setState(() => _payslipPeriod = register.period!.id),
         onSaveView: widget.onSaveView == null
             ? null
-            : () => widget.onSaveView!(route),
+            : () => widget.onSaveView!(
+                route.copyWith(
+                  sheet:
+                      route.sheet ?? defaultSheetFor(widget.schedules, _today),
+                ),
+              ),
         onProperties: ref == null || open == null ? null : () => open(ref),
         onEmploymentProperties: employment == null || open == null
             ? null
@@ -365,6 +377,7 @@ final class _WorkScreenState extends State<WorkScreen> {
       ),
       WorkReady(:final register, :final route) => WorkRegister(
         today: _today,
+        defaultSheet: defaultSheetFor(widget.schedules, _today),
         projection: register,
         selectedRecord: route.record,
         onSelect: widget.onSelect,
