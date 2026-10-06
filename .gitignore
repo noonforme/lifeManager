@@ -53,3 +53,9 @@ playwright-report/
 
 # Golden-test failure images (generated)
 test/goldens/failures/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+.beads-credential-key
+.beads/proxieddb/
+*.gate.lock*

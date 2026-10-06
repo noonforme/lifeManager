@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "lifeManager",
+  "project_id": "577d35e0-23d7-4196-ae26-44992f76adc9"
+}
