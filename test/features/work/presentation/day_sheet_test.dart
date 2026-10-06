@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_time.dart';
 import 'package:lifeos/shared/workbench/era_dialog.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 import '../../../support/era_pickers.dart';
 import '../../../support/scheduled_app.dart';
@@ -111,5 +112,37 @@ void main() {
     expect(find.text('Marked as leave.'), findsOneWidget);
     expect(find.text('Sick'), findsWidgets);
     expect(find.text('Restore shift'), findsOneWidget);
+  });
+
+  testWidgets('Apply stays dark until a real change is made', (tester) async {
+    await pumpScheduledApp(tester, location: _day('2026-10-05'));
+    await tapInDialog(tester, find.text('Change…'));
+    Finder apply() => find.widgetWithText(KeyButton, 'Apply');
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('day-break-0-minutes')),
+    );
+    await tester.tap(find.byKey(const ValueKey('day-break-0-minutes')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<KeyButton>(apply()).onPressed, isNull);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('day-break-0-minutes')),
+        matching: find.byType(EditableText),
+      ),
+      '45',
+    );
+    await tester.pumpAndSettle();
+    expect(tester.widget<KeyButton>(apply()).onPressed, isNotNull);
+  });
+
+  testWidgets('Confirm is withheld while the times are being edited', (
+    tester,
+  ) async {
+    await pumpScheduledApp(tester, location: _day('2026-10-05'));
+    await tapInDialog(tester, find.text('Change…'));
+    // The keys sit below the form; reveal them so Confirm would be built.
+    await revealInDialog(tester, find.text('Cancel shift…'));
+    expect(find.text('Cancel shift…'), findsOneWidget);
+    expect(find.text('Confirm'), findsNothing);
   });
 }

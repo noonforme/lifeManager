@@ -322,7 +322,7 @@ final class _DaySheetState extends State<DaySheet> {
         ),
       InspectorActions(
         children: [
-          if (_past)
+          if (_past && !_editing)
             KeyButton(
               label: 'Confirm',
               onPressed: _busy
@@ -509,8 +509,16 @@ final class _Break {
   /// [onEdit] runs whenever the minutes are typed, so Apply lights.
   _Break(this.start, int minutes, VoidCallback onEdit)
     : minutes = TextEditingController(text: '$minutes') {
-    this.minutes.addListener(onEdit);
+    _seen = this.minutes.text;
+    this.minutes.addListener(() {
+      // Selection and focus changes notify too; only typing is an edit.
+      if (this.minutes.text == _seen) return;
+      _seen = this.minutes.text;
+      onEdit();
+    });
   }
+
+  late String _seen;
 
   LocalTime start;
   final TextEditingController minutes;
@@ -553,9 +561,19 @@ final class _DayTimesFormState extends State<DayTimesForm> {
 
   void _markDirty() => _sheet?.markDirty(true);
 
+  String _signature() => [
+    _type,
+    _start,
+    _end,
+    _nextDay,
+    _overtime,
+    for (final item in _breaks) '${item.start} ${item.minutes.text}',
+  ].join('|');
+
   void _changed(VoidCallback change) {
+    final before = _signature();
     setState(change);
-    _markDirty();
+    if (_signature() != before) _markDirty();
   }
 
   void _useType(ShiftTypeId? id) => _changed(() {
