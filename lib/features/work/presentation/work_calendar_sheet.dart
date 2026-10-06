@@ -103,7 +103,15 @@ final class WorkCalendarSheet extends ConsumerWidget {
                   days: days,
                   autofocus: true,
                   onMonth: onMonth,
-                  onOpen: (date) => onOpenDay(days[date]!),
+                  onOpen: (date) {
+                    // A greyed neighbouring day moves to its month.
+                    final day = days[date];
+                    if (day == null) {
+                      onMonth(date.firstOfMonth);
+                    } else {
+                      onOpenDay(day);
+                    }
+                  },
                 ),
               ),
             ),

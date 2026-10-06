@@ -53,4 +53,19 @@ void main() {
     expect(find.text('Day 07:00–19:00'), findsNothing);
     expect(find.byKey(const ValueKey('work-calendar-totals')), findsNothing);
   });
+
+  testWidgets('double-clicking a greyed neighbouring day moves to its month', (
+    tester,
+  ) async {
+    final app = await pumpScheduledApp(tester);
+    final cell = find.byKey(const ValueKey('work-calendar-day-2026-11-01'));
+    await tester.tap(cell);
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(cell);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    final location = locationOf(app);
+    expect(location, contains('from=2026-11-01'));
+    expect(location, isNot(contains('day=')));
+  });
 }
