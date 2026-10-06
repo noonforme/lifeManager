@@ -23,6 +23,7 @@ import '../domain/pay_period.dart';
 import '../domain/payslip.dart';
 import '../domain/schedule.dart';
 import '../domain/shift.dart';
+import 'confirm_days_dialog.dart';
 import 'correction_confirmation.dart';
 import 'day_sheet_host.dart';
 import 'employment_agreement_forms.dart';
@@ -281,6 +282,9 @@ final class _WorkScreenState extends State<WorkScreen> {
     return workTaskGroups(
       WorkTaskContext(
         selected: selected,
+        onConfirmDays: widget.schedules.isEmpty
+            ? null
+            : () => _go(route.copyWith(confirming: true)),
         onAddShift: widget.onPrimaryAction,
         onNewPeriod: widget.onCreatePayPeriod == null
             ? null
@@ -442,6 +446,9 @@ final class _WorkScreenState extends State<WorkScreen> {
         today: _today,
       );
     }
+    if (route.confirming && employmentId != null) {
+      return ConfirmDaysHost(employmentId: employmentId);
+    }
     if (route.record == null && employmentId != null) {
       final added = _added(route.adding, state.register, employmentId);
       if (added != null) return added;
@@ -593,6 +600,7 @@ extension on _WorkScreenState {
   bool _dialogOpen(WorkReady state) {
     final route = state.route;
     return route.mode != WorkInspectorMode.inspect ||
+        route.confirming ||
         route.adding != null ||
         _creatingPeriod ||
         _payslipPeriod != null ||
@@ -638,6 +646,7 @@ extension on _WorkScreenState {
 
   Size _dialogSize(WorkReady state) {
     if (_failed()) return const Size(380, 260);
+    if (state.route.confirming) return const Size(600, 480);
     // As tall as a form: a sheet's General page holds the record's fields.
     if (state.route.mode == WorkInspectorMode.properties) {
       return const Size(440, 560);
@@ -655,6 +664,7 @@ extension on _WorkScreenState {
     if (route.day case final day? when route.record == null) {
       return spokenDate(day);
     }
+    if (route.confirming) return 'Confirm worked days';
     if (_creatingPeriod || route.adding == WorkAddKind.payPeriod) {
       return 'New pay period';
     }

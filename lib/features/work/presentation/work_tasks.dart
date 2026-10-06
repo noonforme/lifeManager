@@ -15,6 +15,8 @@ import 'work_record_names.dart';
 final class WorkTaskContext {
   const WorkTaskContext({
     required this.selected,
+    this.onConfirmDays,
+    this.onNewSchedule,
     this.onAddShift,
     this.onNewPeriod,
     this.onRecordPayslip,
@@ -30,6 +32,12 @@ final class WorkTaskContext {
   });
 
   final WorkRecordProjection? selected;
+
+  /// Opens Confirm worked days; null without a schedule.
+  final VoidCallback? onConfirmDays;
+
+  /// Opens a new schedule; null without an agreement.
+  final VoidCallback? onNewSchedule;
   final VoidCallback? onAddShift;
   final VoidCallback? onNewPeriod;
   final VoidCallback? onRecordPayslip;
@@ -108,6 +116,8 @@ List<Widget> workTaskGroups(WorkTaskContext c) {
     ],
     null => [
       group('Work tasks', [
+        ('Confirm worked days…', EraIconKind.reviewed, c.onConfirmDays),
+        ('New schedule…', EraIconKind.add, c.onNewSchedule),
         ('Add a shift', EraIconKind.add, c.onAddShift),
         ('New pay period', EraIconKind.add, c.onNewPeriod),
         ('Record payslip', EraIconKind.recordPayslip, c.onRecordPayslip),
