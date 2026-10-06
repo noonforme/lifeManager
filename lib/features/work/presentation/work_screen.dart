@@ -9,6 +9,7 @@ import '../../../shared/shell/shell_frame.dart';
 import '../../../shared/shell/status_line.dart';
 import '../../../shared/shell/task_pane.dart';
 import '../../../shared/shell/working_group_box.dart';
+import '../../../shared/workbench/era_dates.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/operational_state.dart';
@@ -23,6 +24,7 @@ import '../domain/payslip.dart';
 import '../domain/schedule.dart';
 import '../domain/shift.dart';
 import 'correction_confirmation.dart';
+import 'day_sheet_host.dart';
 import 'employment_agreement_forms.dart';
 import 'period_payslip_forms.dart';
 import 'record_history_panel.dart';
@@ -431,6 +433,15 @@ final class _WorkScreenState extends State<WorkScreen> {
     }
     final route = state.route;
     final employmentId = route.employmentId;
+    if (route.day case final day?
+        when employmentId != null && route.record == null) {
+      return DaySheetHost(
+        key: ValueKey(('day-sheet', day)),
+        employmentId: employmentId,
+        date: day,
+        today: _today,
+      );
+    }
     if (route.record == null && employmentId != null) {
       final added = _added(route.adding, state.register, employmentId);
       if (added != null) return added;
@@ -641,6 +652,9 @@ extension on _WorkScreenState {
   String _dialogTitle(WorkReady state) {
     final route = state.route;
     if (_failed()) return 'Work';
+    if (route.day case final day? when route.record == null) {
+      return spokenDate(day);
+    }
     if (_creatingPeriod || route.adding == WorkAddKind.payPeriod) {
       return 'New pay period';
     }

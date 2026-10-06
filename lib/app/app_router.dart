@@ -191,6 +191,8 @@ final class _WorkRouteHost extends ConsumerWidget {
                 mode: WorkInspectorMode.inspect,
                 adding: () => null,
                 fromLast: false,
+                day: () => null,
+                confirming: false,
               ),
             );
           }
