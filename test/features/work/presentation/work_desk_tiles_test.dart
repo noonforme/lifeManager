@@ -10,6 +10,10 @@ import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_desk_tiles.dart';
 
+import '../../../support/schedule_fixture.dart';
+import '../../../support/schedule_views.dart';
+import '../../../support/zone_clocks.dart';
+
 void main() {
   group('Needs you', () {
     test('lists drafts and open periods that differ', () {
@@ -101,7 +105,7 @@ void main() {
 
       expect([for (final check in checks) check.done], [true, true, true]);
       expect(checks.map((check) => check.detail), [
-        'No drafts',
+        'All confirmed',
         'All recorded',
         'Nothing left to review',
       ]);
@@ -124,7 +128,7 @@ void main() {
 
       expect([for (final check in checks) check.done], [false, false, false]);
       expect(checks.map((check) => check.detail), [
-        '2 shifts still open',
+        '2 shifts still drafts',
         '1 period without one',
         '1 period to review',
       ]);
@@ -135,6 +139,55 @@ void main() {
       expect(checks[1].done, isFalse);
       expect(checks[1].detail, 'No pay period covers this month yet');
     });
+  });
+
+  test('Next shifts are the next five planned shifts in date order', () {
+    final plan = octoberPlan().where(
+      (day) => day.date.compareTo(const LocalDate(2026, 10, 7)) >= 0,
+    );
+    final rows = nextShifts(
+      [
+        (
+          employment: fixtureEmployment,
+          plan: plan.toList(),
+          agreements: const [],
+        ),
+      ],
+      zoneClocks: testZoneClocks,
+      timezones: testTimezones,
+    );
+    expect(rows.map((row) => row.date), const [
+      LocalDate(2026, 10, 7),
+      LocalDate(2026, 10, 11),
+      LocalDate(2026, 10, 12),
+      LocalDate(2026, 10, 13),
+      LocalDate(2026, 10, 17),
+    ]);
+    expect(rows.first.text, 'Wed 2026-10-07 Day 07:00–19:00');
+    expect(rows.first.route, contains('day=2026-10-07'));
+  });
+
+  test('Needs you says how many days wait to be confirmed', () {
+    final register = WorkRegisterProjection.empty(
+      const WorkScope(employmentId: fixtureEmployment, temporal: null),
+    );
+    final items = needsYou(
+      registers: [register],
+      daysToConfirm: {fixtureEmployment: 2},
+    );
+    expect(items.single.text, '2 days to confirm');
+    expect(items.single.route, contains('confirm=1'));
+  });
+
+  test('the month checklist counts past planned days not confirmed', () {
+    final checks = monthChecklist(
+      const [],
+      (start: const LocalDate(2026, 10, 1), end: const LocalDate(2026, 10, 31)),
+      unconfirmed: const [LocalDate(2026, 10, 5), LocalDate(2026, 10, 6)],
+    );
+    expect(checks.first.label, 'Every past planned day is confirmed');
+    expect(checks.first.done, isFalse);
+    expect(checks.first.detail, '2 days to confirm');
   });
 }
 

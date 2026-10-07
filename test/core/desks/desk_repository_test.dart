@@ -35,7 +35,7 @@ void main() {
     expect(today.tiles.map((tile) => tile.sheetRef), [
       DeskSheets.journalRecent,
       DeskSheets.needsYou,
-      DeskSheets.workThisPeriod,
+      DeskSheets.nextShifts,
     ]);
     expect(all[1].layout, DeskLayout.twoColumns);
     expect(all[2].tiles.map((tile) => tile.sheetRef), [
@@ -86,7 +86,7 @@ void main() {
     expect(reset.tiles.map((tile) => tile.sheetRef), [
       DeskSheets.journalRecent,
       DeskSheets.needsYou,
-      DeskSheets.workThisPeriod,
+      DeskSheets.nextShifts,
     ]);
   });
 

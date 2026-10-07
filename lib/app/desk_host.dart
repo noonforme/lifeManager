@@ -10,6 +10,7 @@ import '../features/journal/journal_controller.dart';
 import '../features/journal/journal_sheet.dart';
 import '../features/work/data/projections/work_register_projection.dart';
 import '../features/work/domain/employment.dart';
+import '../features/work/domain/planner.dart';
 import '../features/work/presentation/leave_sheet.dart';
 import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_desk_tiles.dart';
@@ -42,6 +43,7 @@ const _sheetNames = {
   DeskSheets.payPeriods: 'Pay periods',
   DeskSheets.monthPeriods: 'Pay periods this month',
   DeskSheets.monthChecklist: 'Month close checklist',
+  DeskSheets.nextShifts: 'Next shifts',
 };
 
 /// The desk at `/today?desk=<id>`, the first desk by default.
@@ -261,6 +263,15 @@ final class DeskHost extends ConsumerWidget {
         ))
           value,
     ];
+    final waiting = {
+      for (final employment in employments)
+        employment.id: switch (ref.watch(
+          daysToConfirmProvider(employment.id),
+        )) {
+          AsyncData(:final value) => [for (final day in value) day.date],
+          _ => const <LocalDate>[],
+        },
+    };
     final title = _sheetNames[sheet] ?? sheet;
     final firstEmployment = employments.firstOrNull?.id;
     String workRoute({WorkSheet sheet = WorkSheet.shifts}) => workRouteUri(
@@ -306,7 +317,13 @@ final class DeskHost extends ConsumerWidget {
           ),
         );
       case DeskSheets.needsYou:
-        final items = needsYou(registers: registers);
+        final items = needsYou(
+          registers: registers,
+          daysToConfirm: {
+            for (final MapEntry(:key, :value) in waiting.entries)
+              key: value.length,
+          },
+        );
         return (
           title: title,
           area: null,
@@ -400,7 +417,11 @@ final class DeskHost extends ConsumerWidget {
           ),
         );
       case DeskSheets.monthChecklist:
-        final checks = monthChecklist(registers, month);
+        final checks = monthChecklist(
+          registers,
+          month,
+          unconfirmed: [for (final dates in waiting.values) ...dates],
+        );
         return (
           title: title,
           area: null,
@@ -416,6 +437,45 @@ final class DeskHost extends ConsumerWidget {
                 ),
             ],
             empty: '',
+          ),
+        );
+      case DeskSheets.nextShifts:
+        final rows = nextShifts(
+          [
+            for (final employment in employments)
+              (
+                employment: employment.id,
+                plan: switch (ref.watch(
+                  workPlanProvider((
+                    employment: employment.id,
+                    from: today,
+                    to: _addDays(today, 62),
+                  )),
+                )) {
+                  AsyncData(:final value) => value,
+                  _ => const <PlannedDay>[],
+                },
+                agreements: [
+                  for (final register in registers)
+                    if (register.scope.employmentId == employment.id)
+                      for (final row in register.agreementSheet) row.agreement,
+                ],
+              ),
+          ],
+          zoneClocks: ref.watch(zoneClocksProvider),
+          timezones: ref.read(timezoneServiceProvider),
+        );
+        return (
+          title: title,
+          area: LifeOSArea.work,
+          fullSizeRoute: workRoute(sheet: WorkSheet.calendar),
+          body: TileList(
+            lines: [
+              for (final row in rows)
+                (text: row.text, detail: row.pay, route: row.route, done: null),
+            ],
+            empty: 'No shifts planned.',
+            onOpen: go,
           ),
         );
     }

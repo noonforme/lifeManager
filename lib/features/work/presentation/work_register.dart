@@ -294,6 +294,12 @@ final class WorkDetails extends StatelessWidget {
               ? '1 shift'
               : '${projection.shiftSheet.length} shifts',
         ),
+        if (projection.plannedNotConfirmed case final n when n > 0)
+          Text(
+            n == 1
+                ? '1 planned day not yet confirmed'
+                : '$n planned days not yet confirmed',
+          ),
         if (groups.isEmpty) ...[
           if (_estimatedTotal(projection) case final total?)
             pair('Estimated pay', _money(total)),

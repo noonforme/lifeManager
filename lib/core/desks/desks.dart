@@ -59,6 +59,7 @@ abstract final class DeskSheets {
   static const payPeriods = 'work.periods';
   static const monthPeriods = 'work.periods.month';
   static const monthChecklist = 'work.monthChecklist';
+  static const nextShifts = 'work.nextShifts';
 
   static const all = [
     journalRecent,
@@ -68,6 +69,7 @@ abstract final class DeskSheets {
     payPeriods,
     monthPeriods,
     monthChecklist,
+    nextShifts,
   ];
 }
 
@@ -81,7 +83,7 @@ abstract final class DeskSheets {
     sheets: const [
       DeskSheets.journalRecent,
       DeskSheets.needsYou,
-      DeskSheets.workThisPeriod,
+      DeskSheets.nextShifts,
     ],
   ),
   StarterDesk.weeklyReview => (

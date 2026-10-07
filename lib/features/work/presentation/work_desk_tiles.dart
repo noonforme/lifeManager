@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/time/local_date.dart';
+import '../../../core/time/timezone_service.dart';
 import '../../../shared/workbench/era_controls.dart';
+import '../../../shared/workbench/era_dates.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/millennium_style.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../data/projections/work_register_projection.dart';
+import '../domain/agreement.dart';
+import '../domain/ids.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart';
+import '../domain/pay_premiums.dart';
+import '../domain/planner.dart';
 import '../domain/reconciliation.dart';
 import '../domain/shift.dart';
 import 'work_formats.dart';
+import 'work_plan_view.dart';
 import 'work_route_state.dart';
 import 'work_sheets.dart' show periodName;
 
@@ -26,7 +33,10 @@ final class NeedsYouItem {
 }
 
 /// Drafts and open periods with a difference.
-List<NeedsYouItem> needsYou({required List<WorkRegisterProjection> registers}) {
+List<NeedsYouItem> needsYou({
+  required List<WorkRegisterProjection> registers,
+  Map<EmploymentId, int> daysToConfirm = const {},
+}) {
   String open(WorkRegisterProjection register, WorkRecordRef record) =>
       workRouteUri(
         WorkRouteState(
@@ -38,6 +48,19 @@ List<NeedsYouItem> needsYou({required List<WorkRegisterProjection> registers}) {
       ).toString();
   return [
     for (final register in registers) ...[
+      if (daysToConfirm[register.scope.employmentId] case final n? when n > 0)
+        NeedsYouItem(
+          text: n == 1 ? '1 day to confirm' : '$n days to confirm',
+          route: workRouteUri(
+            WorkRouteState(
+              employmentId: register.scope.employmentId,
+              scope: null,
+              record: null,
+              mode: WorkInspectorMode.inspect,
+              confirming: true,
+            ),
+          ).toString(),
+        ),
       for (final row in register.shiftSheet)
         if (row.shift.state == ShiftState.draft)
           NeedsYouItem(
@@ -63,6 +86,76 @@ List<NeedsYouItem> needsYou({required List<WorkRegisterProjection> registers}) {
           ),
     ],
   ];
+}
+
+/// One upcoming planned shift for the Next shifts tile.
+final class NextShift {
+  const NextShift({
+    required this.date,
+    required this.text,
+    required this.pay,
+    required this.route,
+  });
+
+  final LocalDate date;
+
+  /// "Wed 2026-10-07 Day 07:00–19:00".
+  final String text;
+
+  /// Planned pay, or null without an agreement on the date.
+  final String? pay;
+
+  /// The day's Properties.
+  final String route;
+}
+
+/// The next [count] planned shifts across employments, soonest first.
+List<NextShift> nextShifts(
+  List<
+    ({
+      EmploymentId employment,
+      List<PlannedDay> plan,
+      List<PayAgreement> agreements,
+    })
+  >
+  employments, {
+  required ZoneClocks zoneClocks,
+  required TimezoneService timezones,
+  int count = 5,
+}) {
+  final rows = [
+    for (final (:employment, :plan, :agreements) in employments)
+      for (final day in plan.whereType<PlannedShift>())
+        (
+          start: day.startUtc,
+          row: NextShift(
+            date: day.date,
+            text:
+                '${eraBoxDate(day.date)} ${plannedShiftName(day)} '
+                '${shiftTimes(day.startUtc, day.endUtc, day.timezoneId, timezones)}',
+            pay: switch (plannedPay(
+              day,
+              agreements: agreements,
+              employmentId: employment,
+              zoneClocks: zoneClocks,
+            )) {
+              final pay? => formatMoney(pay.amount),
+              null => null,
+            },
+            route: workRouteUri(
+              WorkRouteState(
+                employmentId: employment,
+                scope: null,
+                record: null,
+                mode: WorkInspectorMode.properties,
+                sheet: WorkSheet.calendar,
+                day: day.date,
+              ),
+            ).toString(),
+          ),
+        ),
+  ]..sort((a, b) => a.start.compareTo(b.start));
+  return [for (final item in rows.take(count)) item.row];
 }
 
 /// Paid time and expected pay so far in the period containing today.
@@ -128,8 +221,9 @@ final class ChecklistItem {
 /// data says so.
 List<ChecklistItem> monthChecklist(
   List<WorkRegisterProjection> registers,
-  ({LocalDate start, LocalDate end}) month,
-) {
+  ({LocalDate start, LocalDate end}) month, {
+  List<LocalDate> unconfirmed = const [],
+}) {
   bool inMonth(LocalDate date) =>
       date.compareTo(month.start) >= 0 && date.compareTo(month.end) <= 0;
   bool overlaps(PayPeriod period) =>
@@ -142,6 +236,7 @@ List<ChecklistItem> monthChecklist(
             row.shift.state == ShiftState.draft)
           row,
   ];
+  final waiting = unconfirmed.where(inMonth).length;
   final periods = [
     for (final register in registers)
       for (final row in register.periodSheet)
@@ -159,11 +254,13 @@ List<ChecklistItem> monthChecklist(
       n == 1 ? '1 $one' : '$n $many';
   return [
     ChecklistItem(
-      label: 'Every shift this month is finalized',
-      done: open.isEmpty,
-      detail: open.isEmpty
-          ? 'No drafts'
-          : '${count(open.length, 'shift', 'shifts')} still open',
+      label: 'Every past planned day is confirmed',
+      done: open.isEmpty && waiting == 0,
+      detail: waiting > 0
+          ? '${count(waiting, 'day', 'days')} to confirm'
+          : open.isNotEmpty
+          ? '${count(open.length, 'shift', 'shifts')} still drafts'
+          : 'All confirmed',
     ),
     ChecklistItem(
       label: 'Every pay period has a payslip',

@@ -120,4 +120,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('This day is already confirmed.'), findsOneWidget);
   });
+
+  testWidgets('Details count the planned days not yet confirmed', (
+    tester,
+  ) async {
+    await pumpScheduledApp(
+      tester,
+      location:
+          '/work?employment={employment}&from=2026-10-01&to=2026-10-31'
+          '&sheet=shifts',
+      size: const Size(1280, 1600),
+    );
+    expect(find.text('2 planned days not yet confirmed'), findsOneWidget);
+  });
 }

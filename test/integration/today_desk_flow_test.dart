@@ -82,17 +82,15 @@ void main() {
     }
     expect(find.text('Journal, today and yesterday'), findsOneWidget);
     expect(find.text('Needs you'), findsOneWidget);
-    expect(find.text('Work this period'), findsOneWidget);
+    expect(find.text('Next shifts'), findsOneWidget);
     expect(
       find.text('Nothing waiting. Work is ready when you add an employment.'),
       findsOneWidget,
     );
-    expect(find.text('Add an employment to see this period.'), findsOneWidget);
+    expect(find.text('No shifts planned.'), findsOneWidget);
   });
 
-  testWidgets('Work this period and the month checklist read the records', (
-    tester,
-  ) async {
+  testWidgets('the month checklist reads the records', (tester) async {
     await tester.runAsync(() async {
       final employment = (await work.employment.createEmployment(
         const CreateEmploymentCommand(name: 'Warehouse', legalLabel: null),
@@ -136,15 +134,12 @@ void main() {
     });
     final location = await launch(tester);
 
-    expect(find.textContaining('Warehouse: 8:00 paid'), findsOneWidget);
-    expect(find.text('October'), findsOneWidget);
-
     await tester.tap(find.text('Month close'));
     await tester.pumpAndSettle();
     expect(location(), startsWith('/today?desk='));
     expect(find.text('Month close checklist'), findsOneWidget);
-    expect(find.text('Every shift this month is finalized'), findsOneWidget);
-    expect(find.text('No drafts'), findsOneWidget);
+    expect(find.text('Every past planned day is confirmed'), findsOneWidget);
+    expect(find.text('All confirmed'), findsOneWidget);
     expect(find.text('1 period without one'), findsOneWidget);
   });
 
