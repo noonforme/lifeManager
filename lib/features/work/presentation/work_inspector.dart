@@ -143,7 +143,19 @@ final class _WorkInspectorState extends State<WorkInspector> {
           onRemove: widget.onRemove,
         ),
       ),
-      ShiftState.draft || ShiftState.voided => const _UnavailableShift(),
+      // Kept in history: its facts greyed, with why it is void.
+      ShiftState.voided => Semantics(
+        container: true,
+        explicitChildNodes: true,
+        label: 'Void shift',
+        child: _FinalizedShift(
+          shift: shift,
+          fields: widget.shiftFields,
+          breaks: projection.breaks,
+          timezones: widget.timezones,
+        ),
+      ),
+      ShiftState.draft => const _UnavailableShift(),
     };
   }
 
@@ -198,9 +210,13 @@ final class _FinalizedShift extends StatelessWidget {
           ? total
           : total + item.endUtc!.difference(item.startUtc).inSeconds,
     );
+    final isVoid = shift.state == ShiftState.voided;
     return InspectorPane(
       children: [
-        const InspectorTitle('Shift finalized', icon: EraIconKind.shift),
+        InspectorTitle(
+          isVoid ? 'Shift void' : 'Shift finalized',
+          icon: EraIconKind.shift,
+        ),
         if (fields case final fields?)
           fields
         else
@@ -220,7 +236,18 @@ final class _FinalizedShift extends StatelessWidget {
             Fact.words('Timezone', shift.timezoneId),
             if (shift.note case final note?) Fact.words('Note', note),
           ], legend: 'Shift'),
-        if (pay case final pay?) ...[
+        if (isVoid) ...[
+          InspectorFacts(legend: 'Void', [
+            const Fact.words('State', 'Void'),
+            Fact.words('Void reason', shift.voidReason ?? ''),
+            if (shift.replacementShiftId != null)
+              const Fact.words('Replaced by', 'A corrected shift'),
+          ]),
+          const InspectorNote(
+            'A void shift stays in history and no longer counts in the '
+            'totals.',
+          ),
+        ] else if (pay case final pay?) ...[
           InspectorFacts(legend: 'Expected pay', [
             Fact('Expected pay', formatMoney(pay.amount)),
             Fact('Paid time', formatDuration(pay.totalPaidSeconds)),

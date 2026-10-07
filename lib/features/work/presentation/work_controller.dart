@@ -655,8 +655,9 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     voidReason: reason,
   );
 
-  /// Voids [shift] with no replacement. It stays selected where it was,
-  /// with void records shown, so the owner sees it greyed as Void.
+  /// Voids [shift] with no replacement and clears the selection: the row
+  /// leaves the list while void rows are hidden, and reads Void when they
+  /// are shown. The view's own Status filter is left as it was.
   Future<MutationOutcome<WorkShift>> removeShift(
     WorkShift shift,
     String reason,
@@ -671,7 +672,7 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     if (outcome is Committed<WorkShift>) {
       if (ref.read(workRouteProvider) case ValidWorkRoute(:final state)) {
         ref.read(replaceWorkRouteProvider)(
-          state.copyWith(mode: WorkInspectorMode.inspect, showVoid: true),
+          state.copyWith(record: () => null, mode: WorkInspectorMode.inspect),
         );
       }
     }

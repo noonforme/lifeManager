@@ -1003,7 +1003,7 @@ extension on _WorkScreenState {
   }
 
   /// A shift's times on its sheet: editable while it is a draft that can
-  /// be revised, greyed once finalized.
+  /// be revised, greyed once finalized or void.
   Widget? _shiftFields(ShiftRecordProjection record) {
     final shift = record.shift;
     final zones = widget.timezones;
@@ -1018,7 +1018,7 @@ extension on _WorkScreenState {
         prefill: prefill,
         onSubmit: (value) => _reviseDraft(shift, value),
       ),
-      ShiftState.finalized => ShiftEditInspector(
+      ShiftState.finalized || ShiftState.voided => ShiftEditInspector(
         key: ValueKey(('shift-fields', record.id, shift.revision)),
         employmentId: shift.employmentId,
         today: _today,

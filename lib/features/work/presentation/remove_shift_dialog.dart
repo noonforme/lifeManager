@@ -126,9 +126,10 @@ final class _RemoveShiftDialogState extends State<_RemoveShiftDialog> {
         kind: KeyKind.primary,
         onPressed: _removing ? null : _remove,
       ),
+      // Closing mid-removal would hide its outcome.
       KeyButton(
         label: 'Cancel',
-        onPressed: () => Navigator.of(context).pop(false),
+        onPressed: _removing ? null : () => Navigator.of(context).pop(false),
       ),
     ],
   );

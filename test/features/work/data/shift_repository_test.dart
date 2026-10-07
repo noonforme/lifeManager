@@ -208,6 +208,27 @@ void main() {
     expect((result as Committed<WorkShift>).value.state, ShiftState.voided);
   });
 
+  test('removing a replacement draft never reactivates the original', () async {
+    final draft = await _replacementDraftWithCopiedBreak(repository, database);
+
+    final result = await repository.commitVoid(
+      draft.id,
+      expected: draft.revision,
+      voidReason: 'Not needed after all',
+      nowUtc: DateTime.utc(2026, 10, 7),
+    );
+
+    expect(result, isA<Committed<WorkShift>>());
+    final original = (await repository.shiftById(_shiftA))!;
+    expect(original.state, ShiftState.voided);
+    expect(original.voidReason, 'Synthetic correction');
+    expect(original.replacementShiftId, draft.id);
+    final removed = (await repository.shiftById(draft.id))!;
+    expect(removed.state, ShiftState.voided);
+    expect(removed.replacedShiftId, _shiftA);
+    expect(removed.replacementShiftId, isNull);
+  });
+
   test('removal reports missing, stale, void and blank reason', () async {
     await _insertEndedDraft(database);
     Future<MutationOutcome<WorkShift>> remove(
