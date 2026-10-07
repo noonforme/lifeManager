@@ -26,6 +26,7 @@ final class WorkTaskContext {
     this.onSetUpAgreement,
     this.onFinalize,
     this.onCorrect,
+    this.onRemove,
     this.onMarkReviewed,
     this.onReopen,
     this.onRecordPayslipForPeriod,
@@ -47,6 +48,9 @@ final class WorkTaskContext {
   final VoidCallback? onSetUpAgreement;
   final VoidCallback? onFinalize;
   final VoidCallback? onCorrect;
+
+  /// Asks a reason and voids the selected shift with no replacement.
+  final VoidCallback? onRemove;
   final VoidCallback? onMarkReviewed;
   final VoidCallback? onReopen;
   final VoidCallback? onRecordPayslipForPeriod;
@@ -80,6 +84,8 @@ List<Widget> workTaskGroups(WorkTaskContext c) {
           ('Finalize this shift', EraIconKind.reviewed, c.onFinalize),
         if (shift.state == ShiftState.finalized)
           ('Correct this shift…', EraIconKind.correct, c.onCorrect),
+        if (shift.state != ShiftState.voided)
+          ('Remove this shift…', EraIconKind.delete, c.onRemove),
         ('Properties', EraIconKind.properties, c.onProperties),
       ]),
     ],

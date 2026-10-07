@@ -203,6 +203,7 @@ final class _WorkRouteHost extends ConsumerWidget {
         onCorrectPayslip: ref
             .read(workControllerProvider.notifier)
             .correctPayslipWithReason,
+        onRemoveShift: ref.read(workControllerProvider.notifier).removeShift,
         onReviseDraft: ref
             .read(workControllerProvider.notifier)
             .reviseDraftShift,

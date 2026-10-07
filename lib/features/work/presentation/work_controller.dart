@@ -88,6 +88,9 @@ typedef CorrectPayslip = Future<MutationOutcome<Payslip>> Function(
 typedef CorrectShift = Future<MutationOutcome<WorkShift>> Function(
   CorrectShiftCommand command,
 );
+typedef RemoveShift = Future<MutationOutcome<WorkShift>> Function(
+  VoidShiftCommand command,
+);
 typedef ReviseShiftDraft = Future<MutationOutcome<WorkShift>> Function(
   ReviseShiftDraftCommand command,
 );
@@ -115,6 +118,9 @@ final correctPayslipProvider = Provider<CorrectPayslip>(
 );
 final correctShiftProvider = Provider<CorrectShift>(
   (ref) => throw StateError('CorrectShift has not been provided.'),
+);
+final removeShiftProvider = Provider<RemoveShift>(
+  (ref) => throw StateError('RemoveShift has not been provided.'),
 );
 
 /// Supplies the typed ID for a correction's replacement record.
@@ -648,6 +654,29 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     replacementId: ref.read(nextReplacementShiftIdProvider)(),
     voidReason: reason,
   );
+
+  /// Voids [shift] with no replacement. It stays selected where it was,
+  /// with void records shown, so the owner sees it greyed as Void.
+  Future<MutationOutcome<WorkShift>> removeShift(
+    WorkShift shift,
+    String reason,
+  ) async {
+    final outcome = await ref.read(removeShiftProvider)(
+      VoidShiftCommand(
+        id: shift.id,
+        expectedRevision: shift.revision,
+        voidReason: reason.trim(),
+      ),
+    );
+    if (outcome is Committed<WorkShift>) {
+      if (ref.read(workRouteProvider) case ValidWorkRoute(:final state)) {
+        ref.read(replaceWorkRouteProvider)(
+          state.copyWith(mode: WorkInspectorMode.inspect, showVoid: true),
+        );
+      }
+    }
+    return outcome;
+  }
 
   Future<MutationOutcome<Payslip>> correctPayslipWithReason(
     Payslip original,

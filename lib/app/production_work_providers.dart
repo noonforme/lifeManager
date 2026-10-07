@@ -185,6 +185,7 @@ final class ProductionWorkProviders {
     recordPayslipProvider.overrideWithValue(payslips.recordPayslip),
     correctPayslipProvider.overrideWithValue(payslips.correctPayslip),
     correctShiftProvider.overrideWithValue(shifts.correctShift),
+    removeShiftProvider.overrideWithValue(shifts.voidShift),
     reviseShiftDraftProvider.overrideWithValue(
       draftRevisions.reviseAndFinalize,
     ),

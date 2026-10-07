@@ -173,11 +173,15 @@ final class FinalizeShiftInspector extends StatefulWidget {
     required this.shift,
     required this.onFinalize,
     this.fields,
+    this.onRemove,
     super.key,
   });
 
   final WorkShift shift;
   final FinalizeAction onFinalize;
+
+  /// Asks a reason and voids the draft with no replacement.
+  final VoidCallback? onRemove;
 
   /// The draft's times to edit, above the Finalize key.
   final Widget? fields;
@@ -223,6 +227,8 @@ final class _FinalizeShiftInspectorState extends State<FinalizeShiftInspector> {
               kind: KeyKind.primary,
               onPressed: _submit,
             ),
+            if (widget.onRemove case final remove?)
+              KeyButton(label: 'Remove shift…', onPressed: remove),
           ],
         ),
       ],

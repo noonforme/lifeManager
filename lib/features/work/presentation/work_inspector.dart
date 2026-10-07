@@ -33,6 +33,7 @@ final class WorkInspector extends StatefulWidget {
     this.reconciliation = const [],
     this.onFinalize,
     this.onCorrect,
+    this.onRemove,
     this.timezones,
     this.shiftFields,
     super.key,
@@ -54,6 +55,10 @@ final class WorkInspector extends StatefulWidget {
   /// Opens void-and-replace confirmation for a finalized shift or an
   /// effective payslip.
   final VoidCallback? onCorrect;
+
+  /// Asks a reason and voids a draft or finalized shift with no
+  /// replacement.
+  final VoidCallback? onRemove;
 
   @override
   State<WorkInspector> createState() => _WorkInspectorState();
@@ -108,6 +113,7 @@ final class _WorkInspectorState extends State<WorkInspector> {
         FinalizeShiftInspector(
           shift: shift,
           fields: widget.shiftFields,
+          onRemove: widget.onRemove,
           onFinalize: () async {
             final outcome = await onFinalize(shift);
             if (outcome is! Committed<WorkShift> &&
@@ -134,6 +140,7 @@ final class _WorkInspectorState extends State<WorkInspector> {
           timezones: widget.timezones,
           pay: projection.pay,
           onCorrect: widget.onCorrect,
+          onRemove: widget.onRemove,
         ),
       ),
       ShiftState.draft || ShiftState.voided => const _UnavailableShift(),
@@ -168,6 +175,7 @@ final class _FinalizedShift extends StatelessWidget {
     this.timezones,
     this.pay,
     this.onCorrect,
+    this.onRemove,
   });
 
   final WorkShift shift;
@@ -176,6 +184,7 @@ final class _FinalizedShift extends StatelessWidget {
   final TimezoneService? timezones;
   final ExpectedPay? pay;
   final VoidCallback? onCorrect;
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -228,9 +237,14 @@ final class _FinalizedShift extends StatelessWidget {
           const InspectorNote(
             'The recorded agreement now determines the estimate.',
           ),
-        if (onCorrect != null)
+        if (onCorrect != null || onRemove != null)
           InspectorActions(
-            children: [KeyButton(label: 'Correct shift', onPressed: onCorrect)],
+            children: [
+              if (onCorrect != null)
+                KeyButton(label: 'Correct shift', onPressed: onCorrect),
+              if (onRemove != null)
+                KeyButton(label: 'Remove shift…', onPressed: onRemove),
+            ],
           ),
       ],
     );

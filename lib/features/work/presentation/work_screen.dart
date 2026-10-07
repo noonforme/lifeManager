@@ -30,6 +30,7 @@ import 'employment_agreement_forms.dart';
 import 'leave_sheet.dart';
 import 'period_payslip_forms.dart';
 import 'record_history_panel.dart';
+import 'remove_shift_dialog.dart';
 import 'schedule_sheet_host.dart';
 import 'shift_forms.dart';
 import 'work_controller.dart' hide SetPayPeriodState;
@@ -60,6 +61,7 @@ final class WorkScreen extends StatefulWidget {
     this.onCancelCorrection,
     this.onCorrectShift,
     this.onCorrectPayslip,
+    this.onRemoveShift,
     this.onReviseDraft,
     this.timezones,
     this.onUpdateEmployment,
@@ -99,6 +101,14 @@ final class WorkScreen extends StatefulWidget {
     String reason,
   )?
   onCorrectPayslip;
+
+  /// Voids a draft or finalized shift with the owner's reason and no
+  /// replacement ("Remove this shift…").
+  final Future<MutationOutcome<WorkShift>> Function(
+    WorkShift shift,
+    String reason,
+  )?
+  onRemoveShift;
   final Future<MutationOutcome<WorkShift>> Function(
     WorkShift draft,
     ManualShiftDraft value,
@@ -192,6 +202,18 @@ final class _WorkScreenState extends State<WorkScreen> {
   }
 
   void _clearPeriodFailure() => setState(() => _periodFailure = null);
+
+  /// "Remove this shift…", from the task pane or the shift's sheet; null
+  /// when [shift] is void or removal is not wired.
+  VoidCallback? _removal(WorkShift shift) {
+    final remove = widget.onRemoveShift;
+    if (remove == null || shift.state == ShiftState.voided) return null;
+    return () => askRemoveShift(
+      context,
+      shift: shift,
+      onRemove: (reason) => _saved(remove(shift, reason), 'Shift removed.'),
+    );
+  }
 
   void _openPayslip(PayPeriodId period) =>
       setState(() => _payslipPeriod = period);
@@ -323,6 +345,9 @@ final class _WorkScreenState extends State<WorkScreen> {
         // Finalizing happens on the shift's Properties sheet.
         onFinalize: ref == null || open == null ? null : () => open(ref),
         onCorrect: widget.onOpenCorrection,
+        onRemove: selected is ShiftRecordProjection
+            ? _removal(selected.shift)
+            : null,
         onMarkReviewed: period == null || widget.onSetPeriodState == null
             ? null
             : () => _setPeriodState(period, PayPeriodState.reviewed),
@@ -954,6 +979,9 @@ extension on _WorkScreenState {
             ? null
             : (shift) => _saved(widget.onFinalize!(shift), 'Shift finalized.'),
         onCorrect: widget.onOpenCorrection,
+        onRemove: record is ShiftRecordProjection
+            ? _removal(record.shift)
+            : null,
       ),
     );
     // A failed revision explains itself above the sheet, which keeps what

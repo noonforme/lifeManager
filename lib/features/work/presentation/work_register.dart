@@ -273,6 +273,10 @@ final class WorkDetails extends StatelessWidget {
     final figure = skin.typography.figure.copyWith(color: skin.tokens.ink);
     final period = projection.period;
     final groups = projection.reconciliation?.groups ?? const [];
+    // Void shifts stay in history but leave the count, as they leave pay.
+    final shifts = projection.shiftSheet
+        .where((row) => row.shift.state != ShiftState.voided)
+        .length;
     // Label and value share a line when they fit, otherwise the value
     // moves under its label (the property sheet's fact row).
     Widget pair(String label, String value) =>
@@ -288,11 +292,7 @@ final class WorkDetails extends StatelessWidget {
           Text('${period.start} – ${period.end}', style: figure),
           Text(period.state == PayPeriodState.reviewed ? 'Reviewed' : 'Open'),
         ],
-        Text(
-          projection.shiftSheet.length == 1
-              ? '1 shift'
-              : '${projection.shiftSheet.length} shifts',
-        ),
+        Text(shifts == 1 ? '1 shift' : '$shifts shifts'),
         if (projection.plannedNotConfirmed case final n when n > 0)
           Text(
             n == 1
