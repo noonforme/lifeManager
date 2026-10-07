@@ -39,6 +39,7 @@ import 'work_record_names.dart';
 import 'work_register.dart';
 import 'work_route_state.dart';
 import 'work_tasks.dart';
+import 'work_views.dart';
 
 final class WorkScreen extends StatefulWidget {
   const WorkScreen({
@@ -277,6 +278,9 @@ final class _WorkScreenState extends State<WorkScreen> {
     final employment = register.employment;
     final selected = _selected(state);
     final ref = route.record;
+    final shownRoute = route.copyWith(
+      sheet: route.sheet ?? defaultSheetFor(widget.schedules, _today),
+    );
     final open = widget.onOpenProperties;
     final period = selected is PayPeriodRecordProjection
         ? selected.period
@@ -295,14 +299,12 @@ final class _WorkScreenState extends State<WorkScreen> {
             widget.onRecordPayslip == null || register.period == null
             ? null
             : () => setState(() => _payslipPeriod = register.period!.id),
-        onSaveView: widget.onSaveView == null
+        // Calendar and Schedules are not saved as views; no link, not a dead
+        // one.
+        onSaveView:
+            widget.onSaveView == null || workViewShape(shownRoute) == null
             ? null
-            : () => widget.onSaveView!(
-                route.copyWith(
-                  sheet:
-                      route.sheet ?? defaultSheetFor(widget.schedules, _today),
-                ),
-              ),
+            : () => widget.onSaveView!(shownRoute),
         onProperties: ref == null || open == null ? null : () => open(ref),
         onEmploymentProperties: employment == null || open == null
             ? null
