@@ -109,7 +109,8 @@ final class NextShift {
   final String route;
 }
 
-/// The next [count] planned shifts across employments, soonest first.
+/// The next [count] planned shifts across employments, soonest first. A
+/// shift that has ended by [now] is no longer next.
 List<NextShift> nextShifts(
   List<
     ({
@@ -121,39 +122,41 @@ List<NextShift> nextShifts(
   employments, {
   required ZoneClocks zoneClocks,
   required TimezoneService timezones,
+  required DateTime now,
   int count = 5,
 }) {
   final rows = [
     for (final (:employment, :plan, :agreements) in employments)
       for (final day in plan.whereType<PlannedShift>())
-        (
-          start: day.startUtc,
-          row: NextShift(
-            date: day.date,
-            text:
-                '${eraBoxDate(day.date)} ${plannedShiftName(day)} '
-                '${shiftTimes(day.startUtc, day.endUtc, day.timezoneId, timezones)}',
-            pay: switch (plannedPay(
-              day,
-              agreements: agreements,
-              employmentId: employment,
-              zoneClocks: zoneClocks,
-            )) {
-              final pay? => formatMoney(pay.amount),
-              null => null,
-            },
-            route: workRouteUri(
-              WorkRouteState(
+        if (day.endUtc.isAfter(now))
+          (
+            start: day.startUtc,
+            row: NextShift(
+              date: day.date,
+              text:
+                  '${eraBoxDate(day.date)} ${plannedShiftName(day)} '
+                  '${shiftTimes(day.startUtc, day.endUtc, day.timezoneId, timezones)}',
+              pay: switch (plannedPay(
+                day,
+                agreements: agreements,
                 employmentId: employment,
-                scope: null,
-                record: null,
-                mode: WorkInspectorMode.properties,
-                sheet: WorkSheet.calendar,
-                day: day.date,
-              ),
-            ).toString(),
+                zoneClocks: zoneClocks,
+              )) {
+                final pay? => formatMoney(pay.amount),
+                null => null,
+              },
+              route: workRouteUri(
+                WorkRouteState(
+                  employmentId: employment,
+                  scope: null,
+                  record: null,
+                  mode: WorkInspectorMode.properties,
+                  sheet: WorkSheet.calendar,
+                  day: day.date,
+                ),
+              ).toString(),
+            ),
           ),
-        ),
   ]..sort((a, b) => a.start.compareTo(b.start));
   return [for (final item in rows.take(count)) item.row];
 }

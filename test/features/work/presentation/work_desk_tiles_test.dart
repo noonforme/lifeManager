@@ -155,6 +155,7 @@ void main() {
       ],
       zoneClocks: testZoneClocks,
       timezones: testTimezones,
+      now: DateTime.utc(2026, 10, 7, 3),
     );
     expect(rows.map((row) => row.date), const [
       LocalDate(2026, 10, 7),
@@ -165,6 +166,30 @@ void main() {
     ]);
     expect(rows.first.text, 'Wed 2026-10-07 Day 07:00–19:00');
     expect(rows.first.route, contains('day=2026-10-07'));
+  });
+
+  test('a shift that ended today is no longer next', () {
+    final plan = octoberPlan().where(
+      (day) => day.date.compareTo(const LocalDate(2026, 10, 7)) >= 0,
+    );
+    // 07:00–19:00 in Vilnius ends at 16:00 UTC; it is 16:30 UTC.
+    final rows = nextShifts(
+      [
+        (
+          employment: fixtureEmployment,
+          plan: plan.toList(),
+          agreements: const [],
+        ),
+      ],
+      zoneClocks: testZoneClocks,
+      timezones: testTimezones,
+      now: DateTime.utc(2026, 10, 7, 16, 30),
+    );
+    expect(rows.first.date, const LocalDate(2026, 10, 11));
+    expect(
+      rows.map((row) => row.date),
+      isNot(contains(const LocalDate(2026, 10, 7))),
+    );
   });
 
   test('Needs you says how many days wait to be confirmed', () {

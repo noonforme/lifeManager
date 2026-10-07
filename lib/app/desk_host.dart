@@ -464,6 +464,7 @@ final class DeskHost extends ConsumerWidget {
           ],
           zoneClocks: ref.watch(zoneClocksProvider),
           timezones: ref.read(timezoneServiceProvider),
+          now: DateTime.now().toUtc(),
         );
         return (
           title: title,

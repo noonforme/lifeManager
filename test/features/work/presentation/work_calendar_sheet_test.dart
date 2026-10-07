@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import '../../../support/scheduled_app.dart';
-
-import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/features/work/domain/ids.dart';
+
+import '../../../support/scheduled_app.dart';
 
 void main() {
   testWidgets('an employment with a schedule in use opens on its Calendar', (
