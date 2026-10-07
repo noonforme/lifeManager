@@ -216,7 +216,7 @@ final class _WorkRouteHost extends ConsumerWidget {
         onUpdateAgreement: ref
             .read(workControllerProvider.notifier)
             .updateAgreement,
-        today: ref.read(todayProvider)(),
+        today: ref.watch(currentDateProvider),
         schedules: switch (ref.watch(workRouteProvider)) {
           ValidWorkRoute(state: WorkRouteState(:final employmentId?)) =>
             switch (ref.watch(employmentSchedulesProvider(employmentId))) {

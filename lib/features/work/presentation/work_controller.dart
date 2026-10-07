@@ -197,6 +197,21 @@ final todayProvider = Provider<LocalDate Function()>(
   },
 );
 
+/// Today's local date as of now, recomputed at every local midnight so a
+/// screen left open overnight moves to the new day.
+final currentDateProvider = Provider.autoDispose<LocalDate>((ref) {
+  final today = ref.watch(todayProvider);
+  final now = DateTime.now();
+  final midnight = DateTime(now.year, now.month, now.day + 1);
+  // A second past, so the clock has certainly crossed into the new day.
+  final timer = Timer(
+    midnight.difference(now) + const Duration(seconds: 1),
+    ref.invalidateSelf,
+  );
+  ref.onDispose(timer.cancel);
+  return today();
+});
+
 /// Converts stored UTC facts into wall-clock values for prefilled forms.
 final timezoneServiceProvider = Provider<TimezoneService>(
   (ref) => IanaTimezoneService(),
@@ -286,7 +301,7 @@ final daysToConfirmProvider = StreamProvider.autoDispose
     .family<List<PlannedDay>, EmploymentId>(
       (ref, id) => ref
           .watch(dayPlanServiceProvider)
-          .watchDaysToConfirm(id, today: ref.watch(todayProvider)()),
+          .watchDaysToConfirm(id, today: ref.watch(currentDateProvider)),
     );
 
 final workControllerProvider =

@@ -22,6 +22,17 @@ void main() {
     );
   });
 
+  testWidgets('the days to confirm move on at midnight', (tester) async {
+    final app = await pumpScheduledApp(tester);
+    expect(find.text('2 days to confirm'), findsOneWidget);
+    // The app stays open overnight: the clock reaches 8 October.
+    app.clock.value = DateTime.utc(2026, 10, 8, 9);
+    await tester.pump(const Duration(hours: 25));
+    await tester.pumpAndSettle();
+    expect(find.text('2 days to confirm'), findsNothing);
+    expect(find.text('3 days to confirm'), findsOneWidget);
+  });
+
   testWidgets('Books lists the open employment\'s sheets', (tester) async {
     final app = await pumpScheduledApp(tester);
     for (final sheet in ['Shifts', 'Leave', 'Schedules', 'Pay periods']) {

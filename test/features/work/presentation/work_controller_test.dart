@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/application/work_query_service.dart';
 import 'package:lifeos/features/work/data/projections/work_record_projection.dart';
 import 'package:lifeos/features/work/data/projections/work_register_projection.dart';
@@ -10,6 +11,33 @@ import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 
 void main() {
+  testWidgets('the current date moves on at local midnight', (tester) async {
+    var today = const LocalDate(2026, 10, 7);
+    final container = ProviderContainer(
+      overrides: [todayProvider.overrideWithValue(() => today)],
+    );
+    addTearDown(container.dispose);
+    final seen = <LocalDate>[];
+    container.listen(
+      currentDateProvider,
+      (_, next) => seen.add(next),
+      fireImmediately: true,
+    );
+    expect(seen, [const LocalDate(2026, 10, 7)]);
+    // Before midnight nothing changes; after it the new day is read.
+    today = const LocalDate(2026, 10, 8);
+    await tester.pump(const Duration(hours: 1));
+    expect(seen, hasLength(1));
+    await tester.pump(const Duration(hours: 24));
+    expect(seen.last, const LocalDate(2026, 10, 8));
+    // The timer is re-armed for the following midnight.
+    today = const LocalDate(2026, 10, 9);
+    await tester.pump(const Duration(hours: 24));
+    expect(seen.last, const LocalDate(2026, 10, 9));
+    // Disposing the provider cancels the timer.
+    container.dispose();
+  });
+
   test(
     'controller preserves an invalid scope without substituting today',
     () async {

@@ -251,7 +251,7 @@ final class DeskHost extends ConsumerWidget {
   }
 
   DeskTileContent _tile(WidgetRef ref, String sheet, ValueChanged<String> go) {
-    final today = ref.read(todayProvider)();
+    final today = ref.watch(currentDateProvider);
     final employments = switch (ref.watch(shellEmploymentsProvider)) {
       AsyncData(:final value) => value,
       _ => const <Employment>[],
