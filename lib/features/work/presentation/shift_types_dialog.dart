@@ -133,30 +133,36 @@ final class _ShiftTypesDialogState extends State<_ShiftTypesDialog> {
                   child: ListView(
                     children: [
                       for (final (index, type) in _types.indexed)
-                        GestureDetector(
-                          key: ValueKey('shift-type-row-$index'),
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => setState(() => _selected = index),
-                          onDoubleTap: () => _edit(index),
-                          child: Container(
-                            height: 20,
-                            color: selected == index ? tokens.selWash : null,
-                            child: Row(
-                              children: [
-                                for (final (text, width) in [
-                                  (type.name, 90.0),
-                                  (typeTimes(type), 104.0),
-                                  (breakSummary(type), 90.0),
-                                  (formatDuration(type.paidMinutes * 60), 50.0),
-                                ])
-                                  cell(
-                                    text,
-                                    width,
-                                    ink: selected == index
-                                        ? tokens.selInk
-                                        : null,
-                                  ),
-                              ],
+                        Listener(
+                          onPointerDown: (_) =>
+                              setState(() => _selected = index),
+                          child: GestureDetector(
+                            key: ValueKey('shift-type-row-$index'),
+                            behavior: HitTestBehavior.opaque,
+                            onDoubleTap: () => _edit(index),
+                            child: Container(
+                              height: 20,
+                              color: selected == index ? tokens.selWash : null,
+                              child: Row(
+                                children: [
+                                  for (final (text, width) in [
+                                    (type.name, 90.0),
+                                    (typeTimes(type), 104.0),
+                                    (breakSummary(type), 90.0),
+                                    (
+                                      formatDuration(type.paidMinutes * 60),
+                                      50.0,
+                                    ),
+                                  ])
+                                    cell(
+                                      text,
+                                      width,
+                                      ink: selected == index
+                                          ? tokens.selInk
+                                          : null,
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
