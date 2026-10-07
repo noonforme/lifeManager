@@ -69,10 +69,10 @@ final class AgreementService {
           createdAtUtc: current.createdAtUtc,
           revision: current.revision.next(),
         );
+        // Terms that break the agreement's rules are invalid, in use or not.
+        if (revised == null) return _invalidTerms;
         if (current.usedByFinalizedShift) {
-          if (revised == null || !revised.hasSameTermsAs(current)) {
-            return _inUse;
-          }
+          if (!revised.hasSameTermsAs(current)) return _inUse;
           if (revised.effectiveStart.compareTo(current.effectiveStart) > 0) {
             return const Invalid<PayAgreement>({
               'effectiveStart': [FieldIssue(FieldIssueCode.conflict)],
@@ -84,7 +84,6 @@ final class AgreementService {
             });
           }
         }
-        if (revised == null) return _invalidTerms;
         final others = agreements.where((value) => value.id != current.id);
         if (!validateAgreementSet([...others, revised]).isValid) {
           return _overlap;

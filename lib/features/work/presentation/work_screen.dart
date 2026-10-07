@@ -189,6 +189,9 @@ final class _WorkScreenState extends State<WorkScreen> {
   /// from…"); it takes the dialog over whatever the route opened.
   PayAgreement? _changingTerms;
 
+  /// Who [_changingTerms] pays, so a refused From names them.
+  AgreementUse? _changingUse;
+
   void _clearReviseFailure() => setState(() => _reviseFailure = null);
 
   Future<MutationOutcome<WorkShift>> _reviseDraft(
@@ -253,19 +256,26 @@ final class _WorkScreenState extends State<WorkScreen> {
 
   /// "Change terms from…" for [agreement], from the task pane or its
   /// Properties; null when it is not wired.
-  VoidCallback? _changeAgreementTerms(PayAgreement agreement) =>
-      widget.onChangeAgreementTerms == null
+  VoidCallback? _changeAgreementTerms(
+    PayAgreement agreement, {
+    AgreementUse? usedBy,
+  }) => widget.onChangeAgreementTerms == null
       ? null
-      : () => setState(() => _changingTerms = agreement);
+      : () => setState(() {
+          _changingTerms = agreement;
+          _changingUse = usedBy;
+        });
 
-  /// "End agreement…" for [agreement]; null when it is not wired.
-  VoidCallback? _endAgreement(PayAgreement agreement) {
+  /// "End agreement…" for an [agreement] with no end yet; null when it
+  /// has one (its Properties move that end) or when it is not wired.
+  VoidCallback? _endAgreement(PayAgreement agreement, {AgreementUse? usedBy}) {
     final end = widget.onEndAgreement;
-    if (end == null) return null;
+    if (end == null || agreement.effectiveEnd != null) return null;
     return () => askEndAgreement(
       context,
       agreement: agreement,
       today: _today,
+      usedBy: usedBy,
       onEnd: (lastDay) => _saved(end(agreement, lastDay), 'Agreement ended.'),
     );
   }
@@ -439,10 +449,10 @@ final class _WorkScreenState extends State<WorkScreen> {
             ? _removal(selected.shift)
             : null,
         onChangeAgreementTerms: selected is AgreementRecordProjection
-            ? _changeAgreementTerms(selected.agreement)
+            ? _changeAgreementTerms(selected.agreement, usedBy: selected.use)
             : null,
         onEndAgreement: selected is AgreementRecordProjection
-            ? _endAgreement(selected.agreement)
+            ? _endAgreement(selected.agreement, usedBy: selected.use)
             : null,
         onRemoveAgreement: selected is AgreementRecordProjection
             ? _removeAgreement(selected.agreement, inUse: selected.inUse)
@@ -617,6 +627,7 @@ final class _WorkScreenState extends State<WorkScreen> {
         employmentId: current.employmentId,
         initial: current,
         changingTerms: true,
+        usedBy: _changingUse,
         today: _today,
         onSubmit: (value) => _changeTerms(current, value),
       );
@@ -981,22 +992,18 @@ extension on _WorkScreenState {
   Widget _agreement(AgreementRecordProjection record) {
     final agreement = record.agreement;
     final update = widget.onUpdateAgreement;
-    final shifts = record.finishedShifts;
     return AgreementForm(
       key: ValueKey(('agreement', agreement.id, agreement.revision)),
       employmentId: agreement.employmentId,
       initial: agreement,
       readOnly: update == null,
       datesOnly: record.inUse,
-      lockedReason: !record.inUse
-          ? null
-          : shifts == 0
-          ? 'Used by confirmed leave. Change terms from a date to keep its '
-                'pay.'
-          : 'Used by $shifts finished ${shifts == 1 ? 'shift' : 'shifts'}. '
-                'Change terms from a date to keep their pay.',
-      onChangeTerms: record.inUse ? _changeAgreementTerms(agreement) : null,
-      onEnd: _endAgreement(agreement),
+      usedBy: record.use,
+      lockedReason: record.inUse ? _lockedReason(record) : null,
+      onChangeTerms: record.inUse
+          ? _changeAgreementTerms(agreement, usedBy: record.use)
+          : null,
+      onEnd: _endAgreement(agreement, usedBy: record.use),
       onRemove: _removeAgreement(agreement, inUse: record.inUse),
       historyRecord: WorkRecordRef(
         kind: WorkRecordKind.agreement,
@@ -1008,6 +1015,24 @@ extension on _WorkScreenState {
             )
           : (value) => _saved(update(agreement, value), 'Pay agreement saved.'),
     );
+  }
+
+  /// Why an agreement in use shows its terms greyed, naming who it pays.
+  String _lockedReason(AgreementRecordProjection record) {
+    final count = record.finishedShifts;
+    final shifts = '$count finished ${count == 1 ? 'shift' : 'shifts'}';
+    return switch (record.use) {
+      AgreementUse.leave =>
+        'Used by confirmed leave. Change terms from a date to keep its pay.',
+      AgreementUse.both =>
+        'Used by $shifts and confirmed leave. Change terms from a date to '
+            'keep their pay.',
+      AgreementUse.shifts =>
+        'Used by $shifts. Change terms from a date to keep their pay.',
+      null =>
+        'Used by finished shifts or confirmed leave. Change terms from a '
+            'date to keep their pay.',
+    };
   }
 
   Widget _reviseOutcome(

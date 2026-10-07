@@ -3,10 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/features/work/data/projections/work_record_projection.dart'
+    show AgreementUse;
 import 'package:lifeos/features/work/domain/agreement.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/presentation/agreement_dialogs.dart';
+import 'package:lifeos/features/work/presentation/employment_agreement_forms.dart'
+    show agreementInUseMessage, agreementUsersPaid;
 import 'package:lifeos/shared/shell/task_pane.dart';
 import 'package:lifeos/shared/workbench/era_dialog.dart' show CaptionBar;
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
@@ -101,8 +105,8 @@ void main() {
     await tapInDialog(tester, _key('Change terms'));
     expect(
       find.text(
-        'Finished shifts or confirmed leave are paid under these terms on '
-        'or after this day. Pick a later day.',
+        'Finished shifts are paid under these terms on or after this day. '
+        'Pick a later day.',
       ),
       findsOneWidget,
     );
@@ -125,6 +129,17 @@ void main() {
     await _tapRow(tester, 'v2');
     expect(_link('Remove agreement…'), findsOneWidget);
     expect(_link('Change terms from…'), findsNothing);
+    expect(_link('End agreement…'), findsOneWidget);
+
+    // v1 has ended now: its end moves on its Properties, not by ending it
+    // again.
+    await _tapRow(tester, 'v1');
+    expect(_link('End agreement…'), findsNothing);
+    expect(_link('Change terms from…'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(_key('End agreement…'), findsNothing);
+    expect(_key('Change terms from…'), findsOneWidget);
   });
 
   testWidgets('Remove agreement… asks, then removes an unused version', (
@@ -178,8 +193,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        'Finished shifts or confirmed leave are paid under this agreement '
-        'after this day. Pick a later day.',
+        'Finished shifts are paid under this agreement after this day. '
+        'Pick a later day.',
       ),
       findsOneWidget,
     );
@@ -310,6 +325,60 @@ void main() {
     expect(
       find.text('This agreement is no longer available. Reload the register.'),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('End agreement… names confirmed leave when only leave uses it', (
+    tester,
+  ) async {
+    await _openDialog(
+      tester,
+      (context) => askEndAgreement(
+        context,
+        agreement: _agreement,
+        today: const LocalDate(2026, 10, 3),
+        usedBy: AgreementUse.leave,
+        onEnd: (_) async => const Invalid<PayAgreement>({
+          'effectiveEnd': [FieldIssue(FieldIssueCode.conflict)],
+        }),
+      ),
+    );
+
+    await tester.tap(_key('End agreement'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Confirmed leave is paid under this agreement after this day. Pick '
+        'a later day.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  test('refusals name who the agreement pays', () {
+    expect(
+      agreementInUseMessage(AgreementUse.leave),
+      "This agreement is used by confirmed leave and can't be edited. Use "
+      'Change terms from… for new terms from a date.',
+    );
+    expect(
+      agreementUsersPaid(AgreementUse.both),
+      'Finished shifts and confirmed leave are paid',
+    );
+    expect(agreementUsersPaid(AgreementUse.shifts), 'Finished shifts are paid');
+    expect(
+      agreementUsersPaid(null),
+      'Finished shifts or confirmed leave are paid',
+    );
+  });
+
+  test('a committed outcome is never explained as a problem', () {
+    expect(() => agreementProblem(Committed(_agreement)), throwsStateError);
+    expect(
+      agreementProblem(
+        const Unavailable<PayAgreement>(SafeFailureCode.storageUnavailable),
+      ),
+      'Local storage is unavailable. Nothing was changed.',
     );
   });
 

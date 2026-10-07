@@ -831,6 +831,7 @@ final class DriftWorkRepository
           : AgreementRecordProjection(
               value,
               finishedShifts: await _agreements.finishedShiftCount(id),
+              usedByLeave: await _agreements.usedByLeave(id),
             );
     }
     if (id is LeaveRecordId) {

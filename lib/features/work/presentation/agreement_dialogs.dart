@@ -8,24 +8,31 @@ import '../../../shared/workbench/era_form.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart' show KeyKind;
 import '../../../shared/workbench/office_controls.dart';
+import '../data/projections/work_record_projection.dart' show AgreementUse;
 import '../domain/agreement.dart';
 import 'employment_agreement_forms.dart'
-    show agreementOverlapMessage, staleMessage;
+    show agreementOverlapMessage, agreementUsersPaid, staleMessage;
 
 /// "End agreement…": asks for [agreement]'s last day and ends it there
-/// through [onEnd] (premiums spec 7, added 2026-10-07). The dialog stays
-/// open and says what went wrong until the end commits; true once it has.
+/// through [onEnd] (premiums spec 7, added 2026-10-07). [usedBy] names who
+/// it pays in a refusal; null when unknown. The dialog stays open and says
+/// what went wrong until the end commits; true once it has.
 Future<bool> askEndAgreement(
   BuildContext context, {
   required PayAgreement agreement,
   required LocalDate today,
   required Future<MutationOutcome<PayAgreement>> Function(LocalDate lastDay)
   onEnd,
+  AgreementUse? usedBy,
 }) async =>
     await showDialog<bool>(
       context: context,
-      builder: (_) =>
-          _EndAgreementDialog(agreement: agreement, today: today, onEnd: onEnd),
+      builder: (_) => _EndAgreementDialog(
+        agreement: agreement,
+        today: today,
+        usedBy: usedBy,
+        onEnd: onEnd,
+      ),
     ) ??
     false;
 
@@ -53,19 +60,22 @@ String agreementProblem(MutationOutcome<PayAgreement> outcome) =>
         "LifeOS can't tell whether this was saved. Reload to check before "
             'trying again.',
       Invalid() => 'Check the agreement and try again.',
-      Unavailable() ||
-      Committed() => 'Local storage is unavailable. Nothing was changed.',
+      Unavailable() => 'Local storage is unavailable. Nothing was changed.',
+      // A committed command closes its dialog and has nothing to explain.
+      Committed() => throw StateError('A committed outcome is no problem.'),
     };
 
 final class _EndAgreementDialog extends StatefulWidget {
   const _EndAgreementDialog({
     required this.agreement,
     required this.today,
+    required this.usedBy,
     required this.onEnd,
   });
 
   final PayAgreement agreement;
   final LocalDate today;
+  final AgreementUse? usedBy;
   final Future<MutationOutcome<PayAgreement>> Function(LocalDate lastDay) onEnd;
 
   @override
@@ -105,8 +115,8 @@ final class _EndAgreementDialogState extends State<_EndAgreementDialog> {
               fields['effectiveEnd']!.first.code == FieldIssueCode.outOfRange
               ? 'The last day must be on or after its start, '
                     '${widget.agreement.effectiveStart}.'
-              : 'Finished shifts or confirmed leave are paid under this '
-                    'agreement after this day. Pick a later day.';
+              : '${agreementUsersPaid(widget.usedBy)} under this agreement '
+                    'after this day. Pick a later day.';
         case _:
           _problem = agreementProblem(outcome);
       }

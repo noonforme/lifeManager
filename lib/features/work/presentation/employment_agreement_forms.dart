@@ -16,6 +16,7 @@ import '../../../shared/workbench/millennium_style.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/property_sheet.dart';
 import '../application/work_commands.dart';
+import '../data/projections/work_record_projection.dart' show AgreementUse;
 import '../domain/agreement.dart';
 import '../domain/employment.dart';
 import '../domain/facts.dart';
@@ -51,9 +52,26 @@ typedef DeleteEmployment = Future<MutationOutcome<Employment>> Function(
 /// Section 9 messages for outcomes that are not about one field.
 const staleMessage =
     'This changed since you opened it. Reload to see the latest.';
-const agreementInUseMessage =
-    "This agreement is used by finished shifts and can't be edited. Use "
-    'Change terms from… for new terms from a date.';
+
+/// Who an agreement in use pays, as messages name them; [use] is null when
+/// it is not known, such as when the state moved since the form opened.
+String agreementUsers(AgreementUse? use) => switch (use) {
+  AgreementUse.shifts => 'finished shifts',
+  AgreementUse.leave => 'confirmed leave',
+  AgreementUse.both => 'finished shifts and confirmed leave',
+  null => 'finished shifts or confirmed leave',
+};
+
+/// "Finished shifts are paid", "Confirmed leave is paid", and so on.
+String agreementUsersPaid(AgreementUse? use) {
+  final users = agreementUsers(use);
+  return '${users[0].toUpperCase()}${users.substring(1)} '
+      '${use == AgreementUse.leave ? 'is' : 'are'} paid';
+}
+
+String agreementInUseMessage(AgreementUse? use) =>
+    "This agreement is used by ${agreementUsers(use)} and can't be edited. "
+    'Use Change terms from… for new terms from a date.';
 const agreementOverlapMessage = 'These dates overlap another agreement.';
 const employmentHistoryMessage =
     "This employment has work history and can't be deleted.";
@@ -229,6 +247,7 @@ final class AgreementForm extends StatefulWidget {
     this.today,
     this.readOnly = false,
     this.datesOnly = false,
+    this.usedBy,
     this.changingTerms = false,
     this.lockedReason,
     this.historyRecord,
@@ -247,6 +266,9 @@ final class AgreementForm extends StatefulWidget {
 
   /// Greys every term but the dates, which an agreement in use may widen.
   final bool datesOnly;
+
+  /// Who [initial] pays while in use, for refusals; null when unknown.
+  final AgreementUse? usedBy;
 
   /// "Change terms from…": [initial]'s terms to start from, with a From
   /// date in place of its dates. The draft's start is that date and its end
@@ -497,21 +519,22 @@ final class _AgreementFormState extends State<AgreementForm> {
           final start = fields['effectiveStart']?.first.code;
           final end = fields['effectiveEnd']?.first.code;
           if (fields.containsKey('agreement.inUse')) {
-            _formError = agreementInUseMessage;
+            _formError = agreementInUseMessage(widget.usedBy);
           } else if (from != null) {
             _errors = {'from': _fromMessage(from)};
             _tab = 0;
           } else if (start == FieldIssueCode.conflict) {
             _errors = {
               'effectiveStart':
-                  'Used by finished shifts, so it can only start earlier.',
+                  'Used by ${agreementUsers(widget.usedBy)}, so it can only '
+                  'start earlier.',
             };
             _tab = 0;
           } else if (end == FieldIssueCode.conflict) {
             _errors = {
               'effectiveEnd':
-                  'Used by finished shifts, so it can only end later. Use '
-                  'End agreement… to end it sooner.',
+                  'Used by ${agreementUsers(widget.usedBy)}, so it can only '
+                  'end later. Use End agreement… to end it sooner.',
             };
             _tab = 0;
           } else if (fields.containsKey('effectiveRange')) {
@@ -538,8 +561,8 @@ final class _AgreementFormState extends State<AgreementForm> {
   String _fromMessage(FieldIssueCode code) {
     final initial = _initial!;
     if (code == FieldIssueCode.conflict) {
-      return 'Finished shifts or confirmed leave are paid under these terms '
-          'on or after this day. Pick a later day.';
+      return '${agreementUsersPaid(widget.usedBy)} under these terms on or '
+          'after this day. Pick a later day.';
     }
     final end = initial.effectiveEnd;
     return end == null

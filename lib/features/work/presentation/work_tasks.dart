@@ -70,7 +70,8 @@ final class WorkTaskContext {
   /// in use, since an unused one is edited in place.
   final VoidCallback? onChangeAgreementTerms;
 
-  /// "End agreement…": asks the selected agreement's last day.
+  /// "End agreement…": asks the selected agreement's last day; offered
+  /// while it has none.
   final VoidCallback? onEndAgreement;
 
   /// "Remove agreement…": offered only while nothing uses it.
@@ -161,11 +162,13 @@ List<Widget> workTaskGroups(WorkTaskContext c) {
         ('Properties', EraIconKind.properties, c.onProperties),
       ]),
     ],
-    AgreementRecordProjection(:final inUse) => [
+    AgreementRecordProjection(:final inUse, :final agreement) => [
       group('Agreement tasks', [
         if (inUse)
           ('Change terms from…', EraIconKind.correct, c.onChangeAgreementTerms),
-        ('End agreement…', EraIconKind.agreement, c.onEndAgreement),
+        // An ended agreement's end moves on its Properties instead.
+        if (agreement.effectiveEnd == null)
+          ('End agreement…', EraIconKind.agreement, c.onEndAgreement),
         if (!inUse)
           ('Remove agreement…', EraIconKind.delete, c.onRemoveAgreement),
         ('Properties', EraIconKind.properties, c.onProperties),

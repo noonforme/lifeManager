@@ -139,7 +139,7 @@ final class AgreementDao {
     return agreementFromRow(
       row,
       usedByFinalizedShift:
-          await finishedShiftCount(id) > 0 || await _usedByLeave(id),
+          await finishedShiftCount(id) > 0 || await usedByLeave(id),
     );
   }
 
@@ -159,7 +159,7 @@ final class AgreementDao {
 
   /// Leave records are evidence too: confirmed leave was priced by this
   /// agreement, and voided leave was replaced against it.
-  Future<bool> _usedByLeave(AgreementId id) async {
+  Future<bool> usedByLeave(AgreementId id) async {
     final row = await database
         .customSelect(
           'SELECT EXISTS (SELECT 1 FROM work_leave_records '

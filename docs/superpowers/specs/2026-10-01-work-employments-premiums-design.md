@@ -222,7 +222,7 @@ The register's empty state with no employments shows:
 - Hours accept decimals and are stored as minutes.
 - The same form edits an unused agreement. For an agreement in use, the inspector shows the values read-only with "Used by N finished shifts. New versions arrive in a later update."
 
-*Added 2026-10-07 at the owner's request:* an agreement in use keeps its dates live and greys the rest, under "Used by N finished shifts. Change terms from a date to keep their pay." (or "Used by confirmed leave…"); Apply saves a wider range. The "Agreement tasks" group and the foot of Rate offer **Change terms from…** (in use only), **End agreement…** and **Remove agreement…** (unused only). Change terms opens this form in the dialog with the agreement's terms and a required **From** date in place of its dates; its keys are **Change terms** and **Cancel**, and Cancel goes back to where it was opened. End agreement asks for the **Last day** in an era date box (keys **End agreement**, **Cancel**). Remove agreement asks "Remove pay agreement vN?" (keys **Remove**, **Cancel**). The status bar says "Agreement changed.", "Agreement ended." or "Agreement removed."
+*Added 2026-10-07 at the owner's request:* an agreement in use keeps its dates live and greys the rest, under "Used by N finished shifts. Change terms from a date to keep their pay." (or "Used by confirmed leave…", or "Used by N finished shifts and confirmed leave…"); Apply saves a wider range. The "Agreement tasks" group and the foot of Rate offer **Change terms from…** (in use only), **End agreement…** (only while it has no end; an ended agreement's end moves on Properties, the widening path) and **Remove agreement…** (unused only). Change terms opens this form in the dialog with the agreement's terms and a required **From** date in place of its dates; its keys are **Change terms** and **Cancel**, and Cancel goes back to where it was opened. End agreement asks for the **Last day** in an era date box (keys **End agreement**, **Cancel**). Remove agreement asks "Remove pay agreement vN?" (keys **Remove**, **Cancel**). The status bar says "Agreement changed.", "Agreement ended." or "Agreement removed."
 
 ### 8.4 Employment switcher
 
@@ -263,11 +263,13 @@ Shift forms drop the overtime minutes field.
 
 | Situation | Message |
 |---|---|
-| `agreement.inUse` (any edit but widening) | "This agreement is used by finished shifts and can't be edited. Use Change terms from… for new terms from a date." |
-| Change terms, `from` on or before the last used day | On From: "Finished shifts or confirmed leave are paid under these terms on or after this day. Pick a later day." |
+| `agreement.inUse` (any edit but widening) | "This agreement is used by ‹who› and can't be edited. Use Change terms from… for new terms from a date." |
+| Change terms, `from` on or before the last used day | On From: "‹Who› are paid under these terms on or after this day. Pick a later day." |
 | Change terms, `from` outside the range | On From: "Pick a day after the agreement starts, ‹start›[, and on or before it ends, ‹end›]." |
-| Widening that starts later / ends sooner | On Starts on: "Used by finished shifts, so it can only start earlier." On Ends on: "Used by finished shifts, so it can only end later. Use End agreement… to end it sooner." |
-| End agreement before the last used day | On Last day: "Finished shifts or confirmed leave are paid under this agreement after this day. Pick a later day." |
+| Widening that starts later / ends sooner | On Starts on: "Used by ‹who›, so it can only start earlier." On Ends on: "Used by ‹who›, so it can only end later. Use End agreement… to end it sooner." |
+| End agreement before the last used day | On Last day: "‹Who› are paid under this agreement after this day. Pick a later day." |
+
+‹Who› names what uses the agreement: "finished shifts", "confirmed leave" (with "is paid"), "finished shifts and confirmed leave", or "finished shifts or confirmed leave" when the form cannot know.
 | End agreement before the start | On Last day: "The last day must be on or after its start, ‹start›." |
 | Remove refused because it came into use | "Finished shifts or confirmed leave now use this agreement, so it can't be removed." |
 

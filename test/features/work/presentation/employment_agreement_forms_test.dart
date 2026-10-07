@@ -511,7 +511,7 @@ void main() {
       await enter(tester, 'agreement-hourly-rate', '26.00');
       expect(await sheet.apply(), isFalse);
       await tester.pumpAndSettle();
-      expect(find.text(agreementInUseMessage), findsOneWidget);
+      expect(find.text(agreementInUseMessage(null)), findsOneWidget);
 
       sheet = await pumpSheet(tester, outcome: const Stale<PayAgreement>());
       await enter(tester, 'agreement-hourly-rate', '27.00');

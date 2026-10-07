@@ -336,6 +336,23 @@ void main() {
       expect((await agreement()).effectiveStart, const LocalDate(2026, 9, 1));
     });
 
+    test('invalid dates are invalid terms, not a change in use', () async {
+      final current = await used();
+
+      final outcome = await service.updateAgreement(
+        update(
+          current,
+          start: const LocalDate(2026, 8, 1),
+          end: const LocalDate(2026, 7, 31),
+        ),
+      );
+
+      final fields = (outcome as Invalid<PayAgreement>).fields;
+      expect(fields.keys, contains('agreement'));
+      expect(fields.keys, isNot(contains('agreement.inUse')));
+      expect((await agreement()).effectiveStart, const LocalDate(2026, 9, 1));
+    });
+
     test('narrowing in place is refused on the date moved', () async {
       final current = await used(end: const LocalDate(2026, 12, 31));
 
@@ -473,6 +490,10 @@ void main() {
     test('confirmed leave keeps it', () async {
       await fixture.saveDepot();
       await confirmLeave(const LocalDate(2026, 10, 6));
+      final record =
+          (await work.watchRecord(fixtureAgreement).first)!
+              as AgreementRecordProjection;
+      expect(record.use, AgreementUse.leave);
 
       final outcome = await service.deleteAgreement(remove(await agreement()));
 

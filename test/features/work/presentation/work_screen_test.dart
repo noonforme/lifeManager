@@ -235,6 +235,59 @@ void main() {
         find.text('Only the dates widen here: start earlier or end later.'),
         findsOneWidget,
       );
+
+      // Leave alone, or leave as well, is named as such.
+      await pumpScreen(
+        tester,
+        AsyncData(
+          setupState(
+            record: const WorkRecordRef(
+              kind: WorkRecordKind.agreement,
+              id: _agreementId,
+            ),
+            mode: WorkInspectorMode.edit,
+            inspector: WorkInspectorRecord(
+              AgreementRecordProjection(
+                _agreement(used: true),
+                finishedShifts: 0,
+                usedByLeave: true,
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(
+        find.text(
+          'Used by confirmed leave. Change terms from a date to keep its pay.',
+        ),
+        findsOneWidget,
+      );
+      await pumpScreen(
+        tester,
+        AsyncData(
+          setupState(
+            record: const WorkRecordRef(
+              kind: WorkRecordKind.agreement,
+              id: _agreementId,
+            ),
+            mode: WorkInspectorMode.edit,
+            inspector: WorkInspectorRecord(
+              AgreementRecordProjection(
+                _agreement(used: true),
+                finishedShifts: 1,
+                usedByLeave: true,
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(
+        find.text(
+          'Used by 1 finished shift and confirmed leave. Change terms from a '
+          'date to keep their pay.',
+        ),
+        findsOneWidget,
+      );
     });
   });
 

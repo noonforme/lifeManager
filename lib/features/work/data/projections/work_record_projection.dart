@@ -19,17 +19,34 @@ final class EmploymentRecordProjection extends WorkRecordProjection {
   final Employment employment;
 }
 
+/// What an agreement in use is evidence for.
+enum AgreementUse { shifts, leave, both }
+
 final class AgreementRecordProjection extends WorkRecordProjection {
-  AgreementRecordProjection(this.agreement, {required this.finishedShifts})
-    : super(agreement.id);
+  AgreementRecordProjection(
+    this.agreement, {
+    required this.finishedShifts,
+    this.usedByLeave = false,
+  }) : super(agreement.id);
 
   final PayAgreement agreement;
 
   /// Finished shifts paid under this agreement; any makes it evidence.
   final int finishedShifts;
 
+  /// Whether leave was priced under it, which makes it evidence too.
+  final bool usedByLeave;
+
   /// Evidence for finished shifts or for leave priced under it.
   bool get inUse => finishedShifts > 0 || agreement.usedByFinalizedShift;
+
+  /// Who it pays, while in use; null when unused or not known.
+  AgreementUse? get use => switch ((finishedShifts > 0, usedByLeave)) {
+    (true, true) => AgreementUse.both,
+    (true, false) => AgreementUse.shifts,
+    (false, true) => AgreementUse.leave,
+    (false, false) => null,
+  };
 }
 
 final class ShiftRecordProjection extends WorkRecordProjection {
