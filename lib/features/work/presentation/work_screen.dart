@@ -27,6 +27,7 @@ import 'confirm_days_dialog.dart';
 import 'correction_confirmation.dart';
 import 'day_sheet_host.dart';
 import 'employment_agreement_forms.dart';
+import 'leave_sheet.dart';
 import 'period_payslip_forms.dart';
 import 'record_history_panel.dart';
 import 'shift_forms.dart';
@@ -530,6 +531,16 @@ final class _WorkScreenState extends State<WorkScreen> {
         record: EmploymentRecordProjection(:final employment),
       ) =>
         _employmentSheet(state.register, employment),
+      WorkInspectorRecord(record: LeaveRecordProjection(:final leave)) =>
+        LeavePropertiesHost(
+          key: ValueKey(('leave', leave.id, leave.revision)),
+          leave: leave,
+          pay: state.register.leaveSheet
+              .where((row) => row.record.id == leave.id)
+              .firstOrNull
+              ?.pay,
+          today: _today,
+        ),
       WorkInspectorRecord(record: final AgreementRecordProjection record) =>
         _agreement(record),
       WorkInspectorRecord(:final record) => _recordInspector(

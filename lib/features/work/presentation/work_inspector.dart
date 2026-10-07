@@ -92,6 +92,7 @@ final class _WorkInspectorState extends State<WorkInspector> {
       ),
       EmploymentRecordProjection() ||
       AgreementRecordProjection() => const _UnavailableRecord(),
+      LeaveRecordProjection() => const SizedBox.shrink(),
     };
   }
 

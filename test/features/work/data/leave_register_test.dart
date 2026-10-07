@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/features/work/application/day_plan_service.dart';
+import 'package:lifeos/features/work/data/projections/work_record_projection.dart';
 import 'package:lifeos/features/work/data/projections/work_register_projection.dart';
 import 'package:lifeos/features/work/data/work_repository.dart';
 import 'package:lifeos/features/work/domain/day_exception.dart';
@@ -58,4 +61,26 @@ void main() {
       expect(register.plannedNotConfirmed, 2);
     },
   );
+
+  test('a leave record loads as its own record', () async {
+    final fixture = await ScheduleFixture.create();
+    addTearDown(fixture.dispose);
+    await fixture.saveDepot();
+    await fixture.plans.markLeave(
+      fixtureEmployment,
+      const LocalDate(2026, 10, 6),
+      leaveType: LeaveType.vacation,
+      illnessStartedOn: null,
+    );
+    final confirmed = await fixture.plans.confirm(
+      fixtureEmployment,
+      const LocalDate(2026, 10, 6),
+    );
+    final leave =
+        ((confirmed as Committed<ConfirmedDay>).value as ConfirmedLeave).leave;
+    final work = DriftWorkRepository(fixture.database, clock: fixture.clock);
+    final record = await work.watchRecord(leave.id).first;
+    expect(record, isA<LeaveRecordProjection>());
+    expect((record! as LeaveRecordProjection).leave.date, leave.date);
+  });
 }

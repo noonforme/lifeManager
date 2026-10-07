@@ -674,6 +674,10 @@ final class DriftWorkRepository
               finishedShifts: await _agreements.finishedShiftCount(id),
             );
     }
+    if (id is LeaveRecordId) {
+      final value = await _leave.byId(id);
+      return value == null ? null : LeaveRecordProjection(value);
+    }
     return null;
   }
 

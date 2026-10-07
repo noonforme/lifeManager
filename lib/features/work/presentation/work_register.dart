@@ -14,6 +14,7 @@ import '../domain/ids.dart';
 import '../domain/pay.dart';
 import '../domain/pay_period.dart';
 import '../domain/shift.dart';
+import 'leave_sheet.dart';
 import 'work_calendar_sheet.dart';
 import 'work_plan_view.dart';
 import 'work_route_state.dart';
@@ -185,7 +186,14 @@ final class WorkRegister extends StatelessWidget {
         ),
         onOpenDay: (day) => _openDay(day, route, change),
       ),
-      WorkSheet.leave || WorkSheet.schedules => const OperationalState(
+      WorkSheet.leave => LeaveSheet(
+        rows: value.leaveSheet,
+        selectedId: selectedId,
+        onOpen: onSelect,
+        onProperties: onProperties,
+        showVoid: route.showVoid,
+      ),
+      WorkSheet.schedules => const OperationalState(
         kind: OperationalStateKind.empty,
         title: 'Not built yet',
         message: 'This sheet arrives with the schedule screens.',

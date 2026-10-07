@@ -10,6 +10,7 @@ import '../features/journal/journal_controller.dart';
 import '../features/journal/journal_sheet.dart';
 import '../features/work/data/projections/work_register_projection.dart';
 import '../features/work/domain/employment.dart';
+import '../features/work/presentation/leave_sheet.dart';
 import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_desk_tiles.dart';
 import '../features/work/presentation/work_formats.dart';
@@ -480,9 +481,17 @@ DeskTileContent _viewTile(
         selectedId: null,
         onOpen: open,
       ),
+      WorkSheet.leave => LeaveSheet(
+        rows: register.leaveSheet,
+        selectedId: null,
+        onOpen: open,
+        showVoid: state.showVoid,
+      ),
       // Never saved as views (work_views.dart).
-      WorkSheet.calendar || WorkSheet.leave || WorkSheet.schedules =>
-        const TileList(lines: [], empty: 'This view is not available.'),
+      WorkSheet.calendar || WorkSheet.schedules => const TileList(
+        lines: [],
+        empty: 'This view is not available.',
+      ),
     },
   };
   return (

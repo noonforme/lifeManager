@@ -7,6 +7,7 @@ const _sheets = {
   WorkSheet.periods: ViewSheets.workPeriods,
   WorkSheet.payslips: ViewSheets.workPayslips,
   WorkSheet.agreements: ViewSheets.workAgreements,
+  WorkSheet.leave: ViewSheets.workLeave,
 };
 
 /// What Save as view stores for a Work route: the sheet and its structural

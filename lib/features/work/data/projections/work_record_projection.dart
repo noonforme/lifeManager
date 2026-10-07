@@ -1,6 +1,7 @@
 import '../../domain/agreement.dart';
 import '../../domain/employment.dart';
 import '../../domain/ids.dart';
+import '../../domain/leave.dart';
 import '../../domain/pay.dart';
 import '../../domain/pay_period.dart';
 import '../../domain/payslip.dart';
@@ -58,4 +59,10 @@ final class PayslipRecordProjection extends WorkRecordProjection {
   PayslipRecordProjection(this.payslip) : super(payslip.id);
 
   final Payslip payslip;
+}
+
+final class LeaveRecordProjection extends WorkRecordProjection {
+  LeaveRecordProjection(this.leave) : super(leave.id);
+
+  final LeaveRecord leave;
 }

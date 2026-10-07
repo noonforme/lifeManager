@@ -114,6 +114,13 @@ List<Widget> workTaskGroups(WorkTaskContext c) {
         ('Properties', EraIconKind.properties, c.onProperties),
       ]),
     ],
+    LeaveRecordProjection(:final leave) => [
+      group('Leave tasks', [
+        if (leave.isEffective)
+          ('Correct this leave…', EraIconKind.correct, c.onProperties),
+        ('Properties', EraIconKind.properties, c.onProperties),
+      ]),
+    ],
     null => [
       group('Work tasks', [
         ('Confirm worked days…', EraIconKind.reviewed, c.onConfirmDays),
@@ -178,6 +185,14 @@ final class RecordSummary extends StatelessWidget {
         ],
       ),
       EmploymentRecordProjection() => ('Employment', <(String, String)>[]),
+      LeaveRecordProjection(:final leave) => (
+        'Leave',
+        [
+          ('Date', '${leave.date}'),
+          ('Hours', formatDuration(leave.paidMinutes * 60)),
+          ('State', leave.isEffective ? 'Confirmed' : 'Void'),
+        ],
+      ),
       AgreementRecordProjection(:final finishedShifts) => (
         'Pay agreement',
         [('Finished shifts', '$finishedShifts')],

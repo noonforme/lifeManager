@@ -14,6 +14,7 @@ abstract final class ViewSheets {
   static const workPeriods = 'work.periods';
   static const workPayslips = 'work.payslips';
   static const workAgreements = 'work.agreements';
+  static const workLeave = 'work.leave';
 
   static const _workFilters = {
     'employment': ViewValue.id,
@@ -61,6 +62,18 @@ abstract final class ViewSheets {
             'basis',
             'amount',
             'reference',
+            'state',
+          ],
+        ),
+        workLeave: (
+          filters: _workFilters,
+          columns: [
+            'date',
+            'type',
+            'hours',
+            'average',
+            'percent',
+            'pay',
             'state',
           ],
         ),
