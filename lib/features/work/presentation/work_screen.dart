@@ -638,12 +638,16 @@ extension on _WorkScreenState {
           ),
           onDeleted: () {},
         );
-      // The extra shift and leave forms arrive with a later task.
-      case WorkAddKind.payPeriod ||
-          WorkAddKind.payslip ||
-          WorkAddKind.extraShift ||
-          WorkAddKind.leave ||
-          null:
+      case WorkAddKind.extraShift || WorkAddKind.leave:
+        return AddDayHost(
+          key: ValueKey(('add-day', adding, employmentId)),
+          employmentId: employmentId,
+          kind: adding == WorkAddKind.extraShift
+              ? AddDayKind.extraShift
+              : AddDayKind.leave,
+          today: _today,
+        );
+      case WorkAddKind.payPeriod || WorkAddKind.payslip || null:
         return null;
     }
   }
@@ -730,6 +734,8 @@ extension on _WorkScreenState {
       return 'Pay agreement';
     }
     if (route.adding == WorkAddKind.schedule) return 'New schedule';
+    if (route.adding == WorkAddKind.extraShift) return 'Extra shift';
+    if (route.adding == WorkAddKind.leave) return 'Leave';
     if (route.record case WorkRecordRef(
       kind: WorkRecordKind.schedule,
       :final id,

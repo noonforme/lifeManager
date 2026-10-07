@@ -55,6 +55,7 @@ final class TreeSheet extends TreeNode {
     this.needsYou = 0,
     this.built = true,
     this.actions = const [],
+    this.children = const [],
   });
 
   final String label;
@@ -68,6 +69,10 @@ final class TreeSheet extends TreeNode {
 
   /// Offered after Open when the row is right-clicked.
   final List<TreeAction> actions;
+
+  /// The sheet's own sheets, such as an employment's Calendar and Shifts,
+  /// drawn one level deeper.
+  final List<TreeSheet> children;
 }
 
 /// The Books group: every area and sheet with its live value, drawn as
@@ -96,20 +101,28 @@ final class BookTree extends StatelessWidget {
               selected: node.route == selectedRoute,
               onOpen: onOpen,
             ),
-            for (final child in node.children)
+            for (final child in node.children) ...[
               _SheetRow(
                 node: child,
-                indent: true,
+                depth: 1,
                 selected: child.route == selectedRoute,
                 onOpen: onOpen,
               ),
+              for (final sheet in child.children)
+                _SheetRow(
+                  node: sheet,
+                  depth: 2,
+                  selected: sheet.route == selectedRoute,
+                  onOpen: onOpen,
+                ),
+            ],
           ],
           TreeGroup() => [
             _GroupRow(node: node),
             for (final child in node.children)
               _SheetRow(
                 node: child,
-                indent: true,
+                depth: 1,
                 selected: child.route == selectedRoute,
                 onOpen: onOpen,
               ),
@@ -117,7 +130,7 @@ final class BookTree extends StatelessWidget {
           TreeSheet() => [
             _SheetRow(
               node: node,
-              indent: false,
+              depth: 0,
               selected: node.route == selectedRoute,
               onOpen: onOpen,
             ),
@@ -227,13 +240,13 @@ final class _GroupRow extends StatelessWidget {
 final class _SheetRow extends StatelessWidget {
   const _SheetRow({
     required this.node,
-    required this.indent,
+    required this.depth,
     required this.selected,
     required this.onOpen,
   });
 
   final TreeSheet node;
-  final bool indent;
+  final int depth;
   final bool selected;
   final ValueChanged<String> onOpen;
 
@@ -253,7 +266,7 @@ final class _SheetRow extends StatelessWidget {
       actions: node.actions,
       child: Row(
         children: [
-          if (indent) const SizedBox(width: 20),
+          if (depth > 0) SizedBox(width: 20.0 * depth),
           Expanded(
             child: Text(
               name,

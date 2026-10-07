@@ -9,12 +9,16 @@ import '../workbench/millennium_style.dart';
 final class StatusSnapshot {
   const StatusSnapshot({
     this.needsYou = 0,
+    this.daysToConfirm = 0,
     this.openDrafts = 0,
     this.lastSave,
     this.lastSaveUncertain = false,
   });
 
   final int needsYou;
+
+  /// Past planned days not yet confirmed (schedules spec 5).
+  final int daysToConfirm;
   final int openDrafts;
 
   /// Local time of the last committed change, when known.
@@ -109,6 +113,15 @@ final class StatusLine extends StatelessWidget {
                       child: _Panel(child: Text(notice, style: style)),
                     ),
             ),
+            if (snapshot.daysToConfirm > 0)
+              _Panel(
+                child: Text(
+                  snapshot.daysToConfirm == 1
+                      ? '1 day to confirm'
+                      : '${snapshot.daysToConfirm} days to confirm',
+                  style: style,
+                ),
+              ),
             if (snapshot.needsYou > 0)
               _Panel(
                 child: Text('Needs you: ${snapshot.needsYou}', style: style),

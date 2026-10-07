@@ -3,7 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
+import '../../../shared/shell/shell_dialog.dart';
 import '../../../shared/shell/status_line.dart';
+import '../../../shared/workbench/era_date_field.dart';
+import '../../../shared/workbench/era_form.dart';
+import '../../../shared/workbench/inspector_parts.dart';
+import '../../../shared/workbench/lifeos_skin.dart' show KeyKind;
+import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/operational_state.dart';
 import '../domain/day_exception.dart';
 import '../domain/ids.dart';
@@ -159,5 +165,162 @@ final class DaySheetHost extends ConsumerWidget {
         message: 'Planning this date from its schedule.',
       ),
     };
+  }
+}
+
+enum AddDayKind { extraShift, leave }
+
+/// + Add › Extra shift… and Leave…: a date, then the day's times or leave
+/// type (schedules spec 5).
+final class AddDayHost extends ConsumerStatefulWidget {
+  const AddDayHost({
+    required this.employmentId,
+    required this.kind,
+    required this.today,
+    super.key,
+  });
+
+  final EmploymentId employmentId;
+  final AddDayKind kind;
+  final LocalDate today;
+
+  @override
+  ConsumerState<AddDayHost> createState() => _AddDayHostState();
+}
+
+final class _AddDayHostState extends ConsumerState<AddDayHost> {
+  late LocalDate _date = widget.today;
+  var _type = LeaveType.vacation;
+  LocalDate? _illness;
+  String? _error;
+  bool _busy = false;
+
+  String? _words(MutationOutcome<DayException> outcome) => switch (outcome) {
+    Invalid(:final fields) when fields.containsKey('date') =>
+      widget.kind == AddDayKind.extraShift
+          ? 'The schedule plans a shift on this date. Open the day to '
+                'change it instead.'
+          : 'The schedule plans no shift on this date.',
+    _ => dayProblem(outcome),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final inputs = switch (ref.watch(planInputsProvider(widget.employmentId))) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
+    final schedule = inputs?.schedules
+        .where((value) => value.isInUseOn(_date))
+        .firstOrNull;
+    final exception = inputs?.exceptions
+        .where((value) => value.date == _date)
+        .firstOrNull;
+    final service = ref.read(dayPlanServiceProvider);
+    final date = EraFormScope(
+      labelWidth: 110,
+      child: EraDateField(
+        fieldKey: const ValueKey('add-day-date'),
+        label: 'Date',
+        value: _date,
+        today: widget.today,
+        onChanged: (value) => setState(() {
+          _date = value ?? _date;
+          _error = null;
+        }),
+      ),
+    );
+    final noSchedule = inputs != null && schedule == null
+        ? const InspectorNote('No schedule is in use on this date.')
+        : null;
+    if (widget.kind == AddDayKind.extraShift) {
+      return DayTimesForm(
+        key: ValueKey(('add-extra', _date, schedule?.version)),
+        types: schedule?.shiftTypes ?? const [],
+        initial: dayTimesOfType(schedule?.shiftTypes.firstOrNull),
+        extra: true,
+        submitLabel: 'Add extra shift',
+        leading: [date, const SizedBox(height: 7), ?noSchedule],
+        describe: _words,
+        onSubmit: (times) async {
+          final outcome = await service.addExtra(
+            widget.employmentId,
+            _date,
+            start: times.start,
+            end: times.end,
+            endDayOffset: times.endDayOffset,
+            breaks: times.breaks,
+            shiftTypeId: times.shiftTypeId,
+            countsAsOvertime: times.countsAsOvertime,
+            expected: exception?.revision,
+          );
+          if (outcome is Committed<DayException> && mounted) {
+            StatusNoticeScope.read(this.context)?.value = 'Extra shift added.';
+          }
+          return outcome;
+        },
+      );
+    }
+    Future<void> mark() async {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+      final outcome = await service.markLeave(
+        widget.employmentId,
+        _date,
+        leaveType: _type,
+        illnessStartedOn: _type == LeaveType.sick ? _illness : null,
+        expected: exception?.revision,
+      );
+      if (!mounted) return;
+      if (outcome is Committed<DayException>) {
+        StatusNoticeScope.read(this.context)?.value = 'Marked as leave.';
+        ShellDialogScope.closeOf(this.context)?.call();
+        return;
+      }
+      setState(() {
+        _busy = false;
+        _error = _words(outcome);
+      });
+    }
+
+    return DialogForm(
+      fields: [
+        date,
+        const SizedBox(height: 7),
+        ?noSchedule,
+        EraRadioGroup<LeaveType>(
+          options: const [
+            EraRadioOption(LeaveType.vacation, 'Vacation'),
+            EraRadioOption(LeaveType.sick, 'Sick'),
+          ],
+          groupValue: _type,
+          onChanged: (value) => setState(() => _type = value),
+        ),
+        if (_type == LeaveType.sick)
+          EraFormScope(
+            labelWidth: 110,
+            child: EraDateField(
+              fieldKey: const ValueKey('add-day-illness'),
+              label: 'Illness started on',
+              value: _illness,
+              optional: true,
+              today: widget.today,
+              onChanged: (value) => setState(() => _illness = value),
+            ),
+          ),
+        if (_error case final error?)
+          InspectorNote(error, tone: FactTone.negative),
+      ],
+      keys: [
+        KeyButton(
+          label: 'Mark as leave',
+          kind: KeyKind.primary,
+          onPressed: _busy ? null : mark,
+        ),
+        const DialogCancelKey(),
+      ],
+    );
   }
 }

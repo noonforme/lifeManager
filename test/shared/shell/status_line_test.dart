@@ -101,4 +101,9 @@ void main() {
     await tester.pump();
     expect(find.text('Shift saved.'), findsOneWidget);
   });
+
+  testWidgets('days to confirm have a panel of their own', (tester) async {
+    await _pump(tester, const StatusSnapshot(daysToConfirm: 3));
+    expect(find.text('3 days to confirm'), findsOneWidget);
+  });
 }

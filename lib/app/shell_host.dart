@@ -10,6 +10,7 @@ import '../features/work/domain/employment.dart';
 import '../features/work/domain/ids.dart';
 import '../features/work/presentation/work_controller.dart';
 import '../features/work/presentation/work_route_state.dart';
+import '../features/work/presentation/work_toolbar_controls.dart';
 import '../features/work/presentation/work_views.dart';
 import '../shared/shell/address_bar.dart';
 import '../shared/shell/book_tree.dart';
@@ -125,6 +126,21 @@ final class ShellChromeHost extends ConsumerWidget {
       ),
     ).toString();
 
+    int toConfirm(Employment value) =>
+        switch (ref.watch(daysToConfirmProvider(value.id))) {
+          AsyncData(:final value) => value.length,
+          _ => 0,
+        };
+    String sheetRoute(Employment value, WorkSheet sheet) => workRouteUri(
+      WorkRouteState(
+        employmentId: value.id,
+        scope: null,
+        record: null,
+        mode: WorkInspectorMode.inspect,
+        sheet: sheet,
+      ),
+    ).toString();
+
     final nodes = <TreeNode>[
       const TreeSheet(label: 'Today', route: '/today'),
       const TreeSheet(label: 'Journal', route: '/journal'),
@@ -150,6 +166,17 @@ final class ShellChromeHost extends ConsumerWidget {
             TreeSheet(
               label: employment.name,
               route: employmentRoute(employment),
+              needsYou: toConfirm(employment),
+              children: employment.id.value == employmentId
+                  ? [
+                      for (final MapEntry(key: sheet, value: label)
+                          in SheetPicker.labels.entries)
+                        TreeSheet(
+                          label: label,
+                          route: sheetRoute(employment, sheet),
+                        ),
+                    ]
+                  : const [],
             ),
         ],
       ),
@@ -167,12 +194,22 @@ final class ShellChromeHost extends ConsumerWidget {
     ];
 
     final viewRoutes = {for (final view in views) ?workViewRoute(view.shape)};
+    final sheetText = location.path == '/work'
+        ? location.queryParameters['sheet']
+        : null;
+    final openSheet = WorkSheet.values
+        .where((value) => value.name == sheetText)
+        .firstOrNull;
     final selected = switch (location.path) {
       _ when viewRoutes.contains(location.toString()) => location.toString(),
       '/work' when employmentId != null =>
         employments
             .where((value) => value.id.value == employmentId)
-            .map(employmentRoute)
+            .map(
+              (value) => openSheet == null
+                  ? employmentRoute(value)
+                  : sheetRoute(value, openSheet),
+            )
             .firstOrNull,
       final path => path,
     };
@@ -200,7 +237,14 @@ final class ShellChromeHost extends ConsumerWidget {
             context.go(route);
           },
         ),
-        status: const StatusLine(snapshot: StatusSnapshot()),
+        status: StatusLine(
+          snapshot: StatusSnapshot(
+            daysToConfirm: employments.fold(
+              0,
+              (sum, value) => sum + toConfirm(value),
+            ),
+          ),
+        ),
         crumbs: crumbs,
         addressTree: addressTreeFrom(nodes),
         addressIcon: switch (location.path) {
@@ -312,6 +356,18 @@ final class ShellChromeHost extends ConsumerWidget {
       ),
       QuickAddEntry(
         area: LifeOSArea.work,
+        label: 'Extra shift…',
+        icon: EraIconKind.shift,
+        open: go(WorkInspectorMode.inspect, adding: WorkAddKind.extraShift),
+      ),
+      QuickAddEntry(
+        area: LifeOSArea.work,
+        label: 'Leave…',
+        icon: EraIconKind.payPeriod,
+        open: go(WorkInspectorMode.inspect, adding: WorkAddKind.leave),
+      ),
+      QuickAddEntry(
+        area: LifeOSArea.work,
         label: 'Pay period',
         icon: EraIconKind.payPeriod,
         open: go(WorkInspectorMode.inspect, adding: WorkAddKind.payPeriod),
@@ -333,6 +389,12 @@ final class ShellChromeHost extends ConsumerWidget {
         label: 'Agreement',
         icon: EraIconKind.agreement,
         open: go(WorkInspectorMode.inspect, adding: WorkAddKind.agreement),
+      ),
+      QuickAddEntry(
+        area: LifeOSArea.work,
+        label: 'Schedule',
+        icon: EraIconKind.payPeriod,
+        open: go(WorkInspectorMode.inspect, adding: WorkAddKind.schedule),
       ),
     ];
   }

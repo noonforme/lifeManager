@@ -187,4 +187,55 @@ void main() {
     expect(chosen, ['add', 'delete']);
     expect(opened, ['/work?x']);
   });
+
+  testWidgets('an open sheet lists its own sheets one level deeper', (
+    tester,
+  ) async {
+    String? opened;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: SizedBox(
+              width: 228,
+              child: BookTree(
+                nodes: const [
+                  TreeArea(
+                    area: LifeOSArea.work,
+                    route: '/work',
+                    built: true,
+                    children: [
+                      TreeSheet(
+                        label: 'Synthetic depot',
+                        route: '/work?employment=e',
+                        needsYou: 2,
+                        children: [
+                          TreeSheet(
+                            label: 'Calendar',
+                            route: '/work?employment=e&sheet=calendar',
+                          ),
+                          TreeSheet(
+                            label: 'Leave',
+                            route: '/work?employment=e&sheet=leave',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+                selectedRoute: null,
+                onOpen: (route) => opened = route,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final depot = tester.getTopLeft(find.text('Synthetic depot'));
+    final calendar = tester.getTopLeft(find.text('Calendar'));
+    expect(calendar.dx, greaterThan(depot.dx));
+    expect(calendar.dy, greaterThan(depot.dy));
+    await tester.tap(find.text('Leave'));
+    expect(opened, '/work?employment=e&sheet=leave');
+  });
 }
