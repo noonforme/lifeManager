@@ -587,11 +587,7 @@ final class _HeaderRow<T> extends StatelessWidget {
     final tokens = skin.tokens;
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [tokens.paper, tokens.band],
-        ),
+        gradient: skin.painters.columnHead(tokens),
         border: Border(bottom: BorderSide(color: tokens.chromeLine)),
       ),
       child: Row(

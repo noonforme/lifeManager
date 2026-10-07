@@ -253,6 +253,13 @@ final class LifeOSPainters {
   Decoration focusRing(LifeOSTokens tokens) =>
       DottedFocusRectangle(color: tokens.focus);
 
+  /// The face of a column head in a details list: paper fading to the band.
+  Gradient columnHead(LifeOSTokens tokens) => LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [tokens.paper, tokens.band],
+  );
+
   Decoration toolbar(LifeOSTokens tokens) => BoxDecoration(
     gradient: LinearGradient(
       begin: Alignment.topCenter,

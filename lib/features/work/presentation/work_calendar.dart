@@ -148,7 +148,7 @@ final class _WorkCalendarState extends State<WorkCalendar> {
                         height: 20,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: tokens.chrome,
+                          gradient: skin.painters.columnHead(tokens),
                           border: Border(
                             right: BorderSide(color: tokens.chromeLine),
                             bottom: BorderSide(color: tokens.chromeLine),
