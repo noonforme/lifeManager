@@ -210,7 +210,10 @@ its dates are past and unconfirmed.
   covers can be neither priced nor confirmed, so it is not a day to
   confirm: the status bar, the Books badge, Needs you, the desk tiles and
   Details' "N planned days not yet confirmed" leave it out. Details counts
-  them on their own line, "N days without a pay agreement". Once an
+  them on their own line, "N days without a pay agreement". The month
+  close checklist's "Every past planned day is confirmed" stays open while
+  the month has any: "16 days without a pay agreement", or "2 days to
+  confirm · 16 without a pay agreement". Once an
   agreement covers the date (set up, widened, a new version) the day
   becomes a day to confirm at once.
 - **Books count badge** on the employment: days to confirm.
@@ -291,9 +294,10 @@ never smaller than 11 px.
 - Confirm runs one transaction per day and reports each failure in the list
   (with its outcome wording); committed days leave the list.
 - Added 2026-10-07 at the owner's request: past days no agreement covers
-  are listed among the others, unticked and unavailable, with "No pay
+  are listed after the days to confirm, by date, under a group heading
+  "Without a pay agreement", unticked and unavailable, with "No pay
   agreement covers this day." under each; they are not counted in the
-  footer. Above it, "N days without a pay agreement" and **Set up pay
+  footer. Both lists come from one plan, so a day is never in both. Above it, "N days without a pay agreement" and **Set up pay
   agreement…** (the employment has none) or **Extend pay agreement…**,
   which widens the agreement nearest the earliest such day to cover it.
 
