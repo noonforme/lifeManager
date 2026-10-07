@@ -1,10 +1,13 @@
 import '../../../core/time/local_date.dart';
+import '../application/agreement_correction.dart';
 import '../domain/agreement.dart';
 import '../domain/employment.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
 
-abstract interface class WorkWriteStore {
+/// The preview is part of the store so a correction can check, inside its
+/// own transaction, that it reprices what the owner confirmed.
+abstract interface class WorkWriteStore implements AgreementCorrectionPreview {
   Future<int> insertEmployment(Employment value);
 
   Future<Employment?> employmentById(EmploymentId id);

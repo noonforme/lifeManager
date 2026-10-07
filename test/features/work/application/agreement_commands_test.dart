@@ -5,6 +5,7 @@ import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/core/time/wall_clock.dart';
+import 'package:lifeos/features/work/application/agreement_correction.dart';
 import 'package:lifeos/features/work/application/agreement_service.dart';
 import 'package:lifeos/features/work/application/day_plan_service.dart';
 import 'package:lifeos/features/work/application/pay_period_service.dart';
@@ -474,12 +475,23 @@ void main() {
       int? rate,
       String? label,
       Revision? expected,
+      AgreementCorrectionImpact? confirmed,
     }) => UpdateAgreementCommand(
       agreementId: current.id,
       employmentId: employment,
       expectedRevision: expected ?? current.revision,
       terms: _retyped(current, rate: rate, label: label),
+      confirmedImpact: confirmed,
     );
+
+    /// What the owner is shown before correcting [current] to [rate].
+    Future<AgreementCorrectionImpact> preview(
+      PayAgreement current,
+      int rate,
+    ) async => (await work.previewAgreementCorrection(
+      current.id,
+      _retyped(current, rate: rate),
+    ))!;
 
     Future<List<RecordEvent>> history() =>
         RecordEventDao(fixture.database)
@@ -520,7 +532,11 @@ void main() {
       expect(await _payOf(work, shift.id), 21160);
 
       final outcome = await service.updateAgreement(
-        correct(current, rate: 25000000),
+        correct(
+          current,
+          rate: 25000000,
+          confirmed: await preview(current, 25000000),
+        ),
       );
 
       final corrected = (outcome as Committed<PayAgreement>).value;
@@ -541,12 +557,68 @@ void main() {
       final current = await used();
 
       final outcome = await service.updateAgreement(
-        correct(current, rate: 25000000, expected: const Revision(9)),
+        correct(
+          current,
+          rate: 25000000,
+          expected: const Revision(9),
+          confirmed: await preview(current, 25000000),
+        ),
       );
 
       expect(outcome, isA<Stale<PayAgreement>>());
       expect((await agreement()).hourlyRateMicroEur, 18400000);
       expect((await history()).length, 1);
+    });
+
+    test('a change to pay nobody confirmed is stale: the agreement came into '
+        'use after the sheet opened', () async {
+      // Opened while unused, so the sheet asked nothing.
+      final opened = await agreement();
+      expect(opened.usedByFinalizedShift, isFalse);
+      await used();
+
+      final outcome = await service.updateAgreement(
+        correct(opened, rate: 25000000),
+      );
+
+      expect(outcome, isA<Stale<PayAgreement>>());
+      expect((await agreement()).hourlyRateMicroEur, 18400000);
+      expect((await history()).length, 1);
+      // Asked again, with what it reprices now, it commits.
+      expect(
+        await service.updateAgreement(
+          correct(
+            opened,
+            rate: 25000000,
+            confirmed: await preview(opened, 25000000),
+          ),
+        ),
+        isA<Committed<PayAgreement>>(),
+      );
+    });
+
+    test('records that change after the preview make the confirmation '
+        'stale', () async {
+      final current = await used();
+      final shown = await preview(current, 25000000);
+      expect(shown.shifts, 1);
+      // Another day is confirmed while the dialog is open.
+      await confirmShift(const LocalDate(2026, 10, 6));
+
+      final outcome = await service.updateAgreement(
+        correct(current, rate: 25000000, confirmed: shown),
+      );
+
+      expect(outcome, isA<Stale<PayAgreement>>());
+      expect((await agreement()).hourlyRateMicroEur, 18400000);
+      final now = await preview(current, 25000000);
+      expect(now.shifts, 2);
+      expect(
+        await service.updateAgreement(
+          correct(current, rate: 25000000, confirmed: now),
+        ),
+        isA<Committed<PayAgreement>>(),
+      );
     });
   });
 
@@ -608,6 +680,7 @@ void main() {
 
       expect(impact.shifts, 2);
       expect(impact.leaveDays, 1);
+      expect(impact.otherLeaveDays, 0);
       expect(impact.inReviewedPeriods, 0);
       expect(impact.before.minorUnits, paidBefore);
       // The preview prices exactly what the correction then pays.
@@ -617,6 +690,7 @@ void main() {
           employmentId: employment,
           expectedRevision: current.revision,
           terms: terms,
+          confirmedImpact: impact,
         ),
       );
       expect(impact.after.minorUnits, await _paidUnder(work));
@@ -634,6 +708,76 @@ void main() {
       expect(reviewed.inReviewedPeriods, 3);
       expect(reviewed.after.minorUnits, paidBefore);
     });
+
+    test('counts leave under another agreement apart, when its 3-month '
+        'average moves with the shifts repriced', () async {
+      await fixture.saveDepot();
+      await confirmShift(const LocalDate(2026, 10, 5));
+      await confirmShift(const LocalDate(2026, 10, 7));
+      final first = await agreement();
+      await service.closeAgreement(
+        CloseAgreementCommand(
+          agreementId: first.id,
+          employmentId: employment,
+          end: const LocalDate(2026, 10, 31),
+          expectedRevision: first.revision,
+        ),
+      );
+      await createSecond(start: const LocalDate(2026, 11, 1));
+      // A November Day on leave, paid by v2 from the October average.
+      await confirmLeave(const LocalDate(2026, 11, 10));
+      final current = await agreement();
+      final paidBefore = await _paidUnder(work);
+
+      final impact = (await work.previewAgreementCorrection(
+        current.id,
+        _retyped(current, rate: 25000000),
+      ))!;
+
+      expect(impact.shifts, 2);
+      expect(impact.leaveDays, 0);
+      expect(impact.otherLeaveDays, 1);
+      expect(impact.before.minorUnits, paidBefore);
+    });
+
+    test(
+      'is null when nothing would be repriced: voided records alone',
+      () async {
+        await fixture.saveDepot();
+        final shift = await confirmShift(const LocalDate(2026, 10, 5));
+        expect(
+          await fixture.shifts.commitVoid(
+            shift.id,
+            expected: shift.revision,
+            voidReason: 'Not worked',
+            nowUtc: fixture.clock.value,
+          ),
+          isA<Committed<WorkShift>>(),
+        );
+        final current = await agreement();
+        expect(current.usedByFinalizedShift, isTrue);
+
+        expect(
+          await work.previewAgreementCorrection(
+            current.id,
+            _retyped(current, rate: 25000000),
+          ),
+          isNull,
+        );
+        // Nothing to confirm, so it saves as is.
+        expect(
+          await service.updateAgreement(
+            UpdateAgreementCommand(
+              agreementId: current.id,
+              employmentId: employment,
+              expectedRevision: current.revision,
+              terms: _retyped(current, rate: 25000000),
+            ),
+          ),
+          isA<Committed<PayAgreement>>(),
+        );
+      },
+    );
 
     test('is null when no pay changes or nothing uses the agreement', () async {
       final unused = await agreement();

@@ -7,6 +7,7 @@ import '../domain/facts.dart';
 import '../domain/ids.dart';
 import '../domain/pay_period.dart';
 import '../domain/schedule.dart';
+import 'agreement_correction.dart';
 
 abstract interface class WorkCommandRepository {
   Future<T> transaction<T>(Future<T> Function(WorkWriteStore store) body);
@@ -152,12 +153,17 @@ final class UpdateAgreementCommand {
     required this.employmentId,
     required this.expectedRevision,
     required this.terms,
+    this.confirmedImpact,
   });
 
   final AgreementId agreementId;
   final EmploymentId employmentId;
   final Revision expectedRevision;
   final AgreementTerms terms;
+
+  /// The repricing the owner confirmed; null when none was shown. A
+  /// correction whose impact differs when it saves is Stale.
+  final AgreementCorrectionImpact? confirmedImpact;
 }
 
 /// "Change terms from…": the agreement ends the day before [from] and a

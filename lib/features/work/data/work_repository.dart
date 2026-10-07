@@ -49,8 +49,7 @@ final class DriftWorkRepository
         PayPeriodRepository,
         PayslipRepository,
         WorkQueryRepository,
-        PlannedShiftSource,
-        AgreementCorrectionPreview {
+        PlannedShiftSource {
   /// Expected pay reads each shift on its own wall clock through
   /// [timezones]; history entries are stamped by [clock].
   DriftWorkRepository(
@@ -316,6 +315,7 @@ final class DriftWorkRepository
     var after = 0;
     var shiftCount = 0;
     var leaveCount = 0;
+    var otherLeaveCount = 0;
     final dates = <LocalDate>[];
     for (var index = 0; index < shifts.length; index++) {
       final shift = shifts[index];
@@ -337,12 +337,19 @@ final class DriftWorkRepository
       if (!record.isEffective) continue;
       final was = leaveBefore[record.id]?.pay.amount.minorUnits ?? 0;
       final will = leaveAfter[record.id]?.pay.amount.minorUnits ?? 0;
-      if (record.agreementId != id && was == will) continue;
+      final own = record.agreementId == id;
+      if (!own && was == will) continue;
       before += was;
       after += will;
-      leaveCount++;
+      if (own) {
+        leaveCount++;
+      } else {
+        otherLeaveCount++;
+      }
       dates.add(record.date);
     }
+    // Voided records alone: nothing is repriced, so nothing to confirm.
+    if (dates.isEmpty) return null;
     bool settled(PayPeriod period) =>
         period.state == PayPeriodState.reviewed ||
         payslips.any(
@@ -351,6 +358,7 @@ final class DriftWorkRepository
     return AgreementCorrectionImpact(
       shifts: shiftCount,
       leaveDays: leaveCount,
+      otherLeaveDays: otherLeaveCount,
       before: Money(minorUnits: before),
       after: Money(minorUnits: after),
       inReviewedPeriods: dates

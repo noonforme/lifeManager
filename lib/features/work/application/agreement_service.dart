@@ -83,6 +83,16 @@ final class AgreementService {
         if (!validateAgreementSet([...others, revised]).isValid) {
           return _overlap;
         }
+        // A correction reprices only what the owner confirmed: records
+        // that changed since, or a repricing never shown (it came into use
+        // after the sheet opened), are Stale, and the sheet asks again.
+        final repricing = await store.previewAgreementCorrection(
+          current.id,
+          command.terms,
+        );
+        if (repricing != command.confirmedImpact) {
+          return const Stale<PayAgreement>();
+        }
         final changed = current.usedByFinalizedShift
             ? await store.correctAgreement(
                 revised,

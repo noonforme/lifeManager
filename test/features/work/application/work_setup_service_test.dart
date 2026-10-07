@@ -4,6 +4,7 @@ import 'package:lifeos/core/database/app_database.dart' show AppDatabase;
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/app_clock.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/features/work/application/agreement_correction.dart';
 import 'package:lifeos/features/work/application/agreement_service.dart';
 import 'package:lifeos/features/work/application/employment_service.dart';
 import 'package:lifeos/features/work/application/work_commands.dart';
@@ -186,11 +187,13 @@ void main() {
       PayAgreement agreement, {
       AgreementTerms? terms,
       Revision? expected,
+      AgreementCorrectionImpact? confirmed,
     }) => UpdateAgreementCommand(
       agreementId: agreement.id,
       employmentId: _employmentId,
       expectedRevision: expected ?? agreement.revision,
       terms: terms ?? _terms(),
+      confirmedImpact: confirmed,
     );
 
     test('rewrites every term of an unused agreement', () async {
@@ -225,8 +228,21 @@ void main() {
             .into(database.workShifts)
             .insert(shiftToCompanion(_finalizedShift(agreement.id)));
 
+        final terms = _terms(rate: 25000000);
+        // Not confirmed, a repricing is stale; confirmed, it commits.
+        expect(
+          await agreements.updateAgreement(update(agreement, terms: terms)),
+          isA<Stale<PayAgreement>>(),
+        );
         final outcome = await agreements.updateAgreement(
-          update(agreement, terms: _terms(rate: 25000000)),
+          update(
+            agreement,
+            terms: terms,
+            confirmed: await repository.previewAgreementCorrection(
+              agreement.id,
+              terms,
+            ),
+          ),
         );
 
         expect(outcome, isA<Committed<PayAgreement>>());
