@@ -39,11 +39,33 @@ String eraTimeText(LocalTime time, {required bool withSeconds}) {
   return withSeconds ? text : text.substring(0, 5);
 }
 
+/// The digit a key types, from the main row or the numpad; null for others.
+int? _digitOf(LogicalKeyboardKey key) {
+  const rows = [
+    [LogicalKeyboardKey.digit0, LogicalKeyboardKey.numpad0],
+    [LogicalKeyboardKey.digit1, LogicalKeyboardKey.numpad1],
+    [LogicalKeyboardKey.digit2, LogicalKeyboardKey.numpad2],
+    [LogicalKeyboardKey.digit3, LogicalKeyboardKey.numpad3],
+    [LogicalKeyboardKey.digit4, LogicalKeyboardKey.numpad4],
+    [LogicalKeyboardKey.digit5, LogicalKeyboardKey.numpad5],
+    [LogicalKeyboardKey.digit6, LogicalKeyboardKey.numpad6],
+    [LogicalKeyboardKey.digit7, LogicalKeyboardKey.numpad7],
+    [LogicalKeyboardKey.digit8, LogicalKeyboardKey.numpad8],
+    [LogicalKeyboardKey.digit9, LogicalKeyboardKey.numpad9],
+  ];
+  for (final (digit, keys) in rows.indexed) {
+    if (keys.contains(key)) return digit;
+  }
+  return null;
+}
+
 String _two(int value) => value.toString().padLeft(2, '0');
 
 /// A time box in the era's Date/Time Picker shape (era pickers spec 3.3):
 /// hours and minutes, and seconds only for a value that has them, beside
-/// stacked spin arrows. Times are stepped, never typed.
+/// stacked spin arrows. Times are stepped with the arrows or typed into the
+/// selected part, as the era's Date/Time Picker took them (amended
+/// 2026-10-07 at the owner's request); dates stay pick-only.
 final class EraTimeField extends StatefulWidget {
   const EraTimeField({
     required this.value,
@@ -97,6 +119,10 @@ final class _EraTimeFieldState extends State<EraTimeField> {
   LocalTime? _sent;
   Timer? _repeat;
 
+  /// The first digit typed into the selected part, while a second may
+  /// still follow; null when none waits.
+  int? _pending;
+
   List<TimePart> get _parts => [
     TimePart.hour,
     TimePart.minute,
@@ -120,6 +146,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
 
   void _step(int delta) {
     if (!_enabled || !mounted) return;
+    _pending = null;
     final current = _sent ?? widget.value;
     final start = widget.emptyStart;
     final next = current == null
@@ -137,11 +164,15 @@ final class _EraTimeFieldState extends State<EraTimeField> {
 
   void _choose(TimePart part) {
     _focusKeepingPart();
-    setState(() => _part = part);
+    setState(() {
+      _part = part;
+      _pending = null;
+    });
   }
 
   void _onFocusChange(bool focused) => setState(() {
     _focused = focused;
+    _pending = null;
     if (focused && !_pointerChosePart) _part = TimePart.hour;
     _pointerChosePart = false;
   });
@@ -165,6 +196,37 @@ final class _EraTimeFieldState extends State<EraTimeField> {
     _repeat = null;
   }
 
+  /// Types [digit] into the selected part. A first digit that could begin
+  /// a two-digit value waits for its second; any other commits at once, and
+  /// either way a finished part passes the selection on.
+  void _type(int digit) {
+    final first = _part == TimePart.hour ? 2 : 5;
+    final limit = _part == TimePart.hour ? 24 : 60;
+    final pending = _pending;
+    final joined = pending == null ? null : pending * 10 + digit;
+    final value = joined != null && joined < limit ? joined : digit;
+    final done = value == joined || digit > first;
+    final current =
+        _sent ??
+        widget.value ??
+        LocalTime(widget.emptyStart.hour, widget.emptyStart.minute);
+    final next = switch (_part) {
+      TimePart.hour => LocalTime(value, current.minute, current.second),
+      TimePart.minute => LocalTime(current.hour, value, current.second),
+      TimePart.second => LocalTime(current.hour, current.minute, value),
+    };
+    _sent = next;
+    widget.onChanged(next);
+    _pending = done ? null : digit;
+    if (done) _nextPart();
+    setState(() {});
+  }
+
+  void _nextPart() {
+    final index = _parts.indexOf(_part);
+    if (index < _parts.length - 1) _part = _parts[index + 1];
+  }
+
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is KeyUpEvent) return KeyEventResult.ignored;
     final key = event.logicalKey;
@@ -185,11 +247,48 @@ final class _EraTimeFieldState extends State<EraTimeField> {
     // on, they would move focus and the next Up would step another box.
     final index = _parts.indexOf(_part);
     if (key == LogicalKeyboardKey.arrowLeft) {
-      if (index > 0) setState(() => _part = _parts[index - 1]);
+      setState(() {
+        _pending = null;
+        if (index > 0) _part = _parts[index - 1];
+      });
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.arrowRight) {
-      if (index < _parts.length - 1) setState(() => _part = _parts[index + 1]);
+      setState(() {
+        _pending = null;
+        _nextPart();
+      });
+      return KeyEventResult.handled;
+    }
+    if (!_enabled) return KeyEventResult.ignored;
+    // Typed digits, as in the era's picker. A shortcut is not typing.
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isControlPressed ||
+        keyboard.isAltPressed ||
+        keyboard.isMetaPressed) {
+      return KeyEventResult.ignored;
+    }
+    final digit = _digitOf(key);
+    if (digit != null && !keyboard.isShiftPressed) {
+      _type(digit);
+      return KeyEventResult.handled;
+    }
+    final character = event.character;
+    if (key == LogicalKeyboardKey.colon ||
+        key == LogicalKeyboardKey.period ||
+        key == LogicalKeyboardKey.numpadDecimal ||
+        character == ':' ||
+        character == '.') {
+      setState(() {
+        _pending = null;
+        _nextPart();
+      });
+      return KeyEventResult.handled;
+    }
+    // Backspace drops the digit waiting for a second; the part keeps its
+    // value, as a box never goes empty once set.
+    if (key == LogicalKeyboardKey.backspace) {
+      setState(() => _pending = null);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;

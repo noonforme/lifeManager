@@ -15,7 +15,7 @@ controls.
 | Question | Decision |
 |---|---|
 | Scope | Every date and time field in the app (section 4). |
-| Input | Pick only: the boxes are not typed into. Dates come from the month calendar; times from spin buttons or arrow keys. |
+| Input | Dates are pick only: they come from the month calendar. Times: spin buttons, arrow keys, or digits typed into the selected part (amended 2026-10-07 at the owner's request; the era's picker took typed digits). |
 | Approach | Own era controls painted from LifeOS tokens (not Material pickers, not a calendar dialog). |
 | Date format in the box | `Mon 2026-10-05`: weekday, then the app's ISO date. |
 | Week start | Monday. |

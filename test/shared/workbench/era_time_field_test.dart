@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_time.dart';
+import 'package:lifeos/shared/workbench/era_form.dart';
 import 'package:lifeos/shared/workbench/era_time_field.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
@@ -321,6 +322,173 @@ void main() {
     await _pump(tester, enabled: false);
     await tester.tap(find.byKey(const ValueKey('era-time-up')));
     await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(7, 0));
+  });
+
+  Future<void> type(WidgetTester tester, String digits) async {
+    const keys = {
+      '0': LogicalKeyboardKey.digit0,
+      '1': LogicalKeyboardKey.digit1,
+      '2': LogicalKeyboardKey.digit2,
+      '3': LogicalKeyboardKey.digit3,
+      '4': LogicalKeyboardKey.digit4,
+      '5': LogicalKeyboardKey.digit5,
+      '6': LogicalKeyboardKey.digit6,
+      '7': LogicalKeyboardKey.digit7,
+      '8': LogicalKeyboardKey.digit8,
+      '9': LogicalKeyboardKey.digit9,
+      // The harness has no physical key for a colon; the period moves on too.
+      ':': LogicalKeyboardKey.period,
+    };
+    for (final digit in digits.split('')) {
+      await _press(tester, keys[digit]!);
+    }
+  }
+
+  testWidgets('typing 1930 into the focused box sets 19:30', (tester) async {
+    await _pump(tester);
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '1930');
+    expect(_value(tester), const LocalTime(19, 30));
+  });
+
+  testWidgets('730 sets 07:30: a 7 commits and moves on at once', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '730');
+    expect(_value(tester), const LocalTime(7, 30));
+  });
+
+  testWidgets('a first digit shows at once and the numpad types too', (
+    tester,
+  ) async {
+    await _pump(tester, value: const LocalTime(7, 15));
+    await _press(tester, LogicalKeyboardKey.tab);
+    await _press(tester, LogicalKeyboardKey.numpad1);
+    expect(_value(tester), const LocalTime(1, 15));
+    await _press(tester, LogicalKeyboardKey.numpad9);
+    expect(_value(tester), const LocalTime(19, 15));
+  });
+
+  testWidgets('25 in the hours is no hour: the 5 starts again', (tester) async {
+    await _pump(tester, value: const LocalTime(7, 15));
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '25');
+    expect(_value(tester), const LocalTime(5, 15));
+    // The 5 committed and moved on: the next digit is the minutes'.
+    await type(tester, '4');
+    expect(_value(tester), const LocalTime(5, 4));
+  });
+
+  testWidgets('a minute of 60 or more starts again, as 7 does', (tester) async {
+    await _pump(tester, value: const LocalTime(7, 0));
+    await _select(tester, 'minute');
+    await type(tester, '6');
+    expect(_value(tester), const LocalTime(7, 6));
+    await _select(tester, 'minute');
+    await type(tester, '59');
+    expect(_value(tester), const LocalTime(7, 59));
+  });
+
+  testWidgets('a colon moves to the next part and stays on the last', (
+    tester,
+  ) async {
+    await _pump(tester, value: const LocalTime(7, 0));
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '1:');
+    await type(tester, '2');
+    expect(_value(tester), const LocalTime(1, 2));
+    await type(tester, '::');
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(1, 3));
+  });
+
+  testWidgets('backspace drops the pending digit and keeps the value', (
+    tester,
+  ) async {
+    await _pump(tester, value: const LocalTime(7, 0));
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '1');
+    await _press(tester, LogicalKeyboardKey.backspace);
+    expect(_value(tester), const LocalTime(1, 0));
+    // No first digit pends now: this 3 is a first digit and moves on.
+    await type(tester, '3');
+    expect(_value(tester), const LocalTime(3, 0));
+  });
+
+  testWidgets('an arrow after a pending digit clears it', (tester) async {
+    await _pump(tester, value: const LocalTime(7, 0));
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '1');
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_value(tester), const LocalTime(2, 0));
+    // 2 is pending no more: this 3 starts afresh, not as 23.
+    await type(tester, '3');
+    expect(_value(tester), const LocalTime(3, 0));
+  });
+
+  testWidgets('choosing another part clears the pending digit', (tester) async {
+    await _pump(tester, value: const LocalTime(7, 0));
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '1');
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    await _press(tester, LogicalKeyboardKey.arrowLeft);
+    await type(tester, '2');
+    expect(_value(tester), const LocalTime(2, 0));
+  });
+
+  testWidgets('losing focus clears the pending digit', (tester) async {
+    await _pump(tester, value: const LocalTime(7, 0));
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '1');
+    FocusManager.instance.primaryFocus!.unfocus();
+    await tester.pump();
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '2');
+    expect(_value(tester), const LocalTime(2, 0));
+  });
+
+  testWidgets('a digit into an empty box starts from emptyStart', (
+    tester,
+  ) async {
+    await _pump(tester, value: null, emptyStart: const LocalTime(0, 0));
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '8');
+    expect(_value(tester), const LocalTime(8, 0));
+  });
+
+  testWidgets('an empty box takes its other parts from emptyStart', (
+    tester,
+  ) async {
+    await _pump(tester, value: null, emptyStart: const LocalTime(12, 30));
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '8');
+    expect(_value(tester), const LocalTime(8, 30));
+  });
+
+  testWidgets('a disabled box ignores digits', (tester) async {
+    await _pump(tester, enabled: false);
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '19');
+    expect(_value(tester), const LocalTime(7, 0));
+  });
+
+  testWidgets('a read-only form ignores digits', (tester) async {
+    await _pump(
+      tester,
+      wrap: (field) => EraFormScope(enabled: false, child: field),
+    );
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '19');
+    expect(_value(tester), const LocalTime(7, 0));
+  });
+
+  testWidgets('Tab and letters stay with the focus system', (tester) async {
+    await _pump(tester);
+    await _press(tester, LogicalKeyboardKey.tab);
+    await _press(tester, LogicalKeyboardKey.keyA);
     expect(_value(tester), const LocalTime(7, 0));
   });
 

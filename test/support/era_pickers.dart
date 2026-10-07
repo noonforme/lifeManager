@@ -7,8 +7,9 @@ import 'package:lifeos/shared/workbench/era_date_field.dart';
 import 'package:lifeos/shared/workbench/era_dates.dart';
 import 'package:lifeos/shared/workbench/era_time_field.dart';
 
-/// Drive the era date and time boxes the way the owner does. Dates and
-/// times are never typed (era pickers spec 5).
+/// Drive the era date and time boxes the way the owner does. Dates are
+/// never typed; times are stepped here, though the box also takes typed
+/// digits (era pickers spec 5; amended 2026-10-07).
 
 Finder _dateField(String key) => find.ancestor(
   of: find.byKey(ValueKey(key)),
