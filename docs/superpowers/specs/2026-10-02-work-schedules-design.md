@@ -306,6 +306,24 @@ never smaller than 11 px.
 A list of leave records (date, type, hours, average used, percent, pay,
 state) with property sheet detail and History.
 
+### 6.6 Planned shifts in the Shifts list
+
+Added 2026-10-07 at the owner's request (planned shifts did not appear in
+the Shifts list). The Shifts view lists the planned, changed and extra work
+days of its scope that no confirmed day covers yet, by date among the
+recorded shifts, in muted ink: Date, Type, Start, End, Break, Paid, Night,
+Holiday and planned pay in Est. pay (never overtime), with State "Planned",
+"Planned (changed)" or "Extra, planned", and "To confirm" once the day is
+past. Off, cancelled and leave days are not listed; a confirmed day shows
+only its real shift. A pay period or date range lists its own days; the
+open-ended view lists from the first schedule date through the end of next
+month. These rows are derived, never stored (section 2), and no Status
+filter hides them. Selecting one offers **Confirm this day…** (today or
+past) or **Open day…** in the task pane; Enter, a double-click or
+Properties opens the day's property sheet (6.2), not a shift's. Shift
+counts and pay totals stay recorded only; Details adds "N planned shifts"
+on its own line.
+
 ## 7. Outcomes and Errors
 
 Every command reports the existing outcomes (committed, invalid, stale,
