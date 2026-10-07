@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
 
 import '../support/era_pickers.dart';
@@ -97,5 +98,26 @@ void main() {
       for (final label in labels) tester.getTopLeft(find.text(label).last).dy,
     ];
     expect(tops, [...tops]..sort());
+  });
+
+  testWidgets('+ Add › Leave… on a confirmed day says it is confirmed', (
+    tester,
+  ) async {
+    final app = await pumpScheduledApp(tester);
+    await tester.runAsync(
+      () => app.work.plans.confirm(
+        EmploymentId(app.employment),
+        const LocalDate(2026, 10, 5),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('quick-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Leave…').last);
+    await tester.pumpAndSettle();
+    await pickDate(tester, 'add-day-date', const LocalDate(2026, 10, 5));
+    await tester.tap(find.text('Mark as leave'));
+    await tester.pumpAndSettle();
+    expect(find.text('This day is already confirmed.'), findsOneWidget);
   });
 }

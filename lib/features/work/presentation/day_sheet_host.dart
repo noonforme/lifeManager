@@ -196,6 +196,12 @@ final class _AddDayHostState extends ConsumerState<AddDayHost> {
   bool _busy = false;
 
   String? _words(MutationOutcome<DayException> outcome) => switch (outcome) {
+    Invalid(:final fields)
+        when fields['date']?.any(
+              (issue) => issue.code == FieldIssueCode.conflict,
+            ) ??
+            false =>
+      'This day is already confirmed.',
     Invalid(:final fields) when fields.containsKey('date') =>
       widget.kind == AddDayKind.extraShift
           ? 'The schedule plans a shift on this date. Open the day to '
