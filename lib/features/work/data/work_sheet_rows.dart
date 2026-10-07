@@ -12,8 +12,9 @@ ShiftSheetRow shiftSheetRow(
   List<ShiftBreak> breaks,
   Map<AgreementId, PayAgreement> agreements,
   PayPeriod? period,
-  ZoneClocks zoneClocks,
-) {
+  ZoneClocks zoneClocks, {
+  String? typeName,
+}) {
   int second(DateTime utc) => utc.microsecondsSinceEpoch ~/ 1000000;
   final breakSeconds = breaks.fold(
     0,
@@ -43,6 +44,7 @@ ShiftSheetRow shiftSheetRow(
     breakSeconds: breakSeconds,
     paidSeconds: paidSeconds,
     period: period,
+    typeName: typeName,
     facts: facts,
     pay: facts?.expectedPay(
       toLocal: clock.toLocal,

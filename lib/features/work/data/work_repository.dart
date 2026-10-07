@@ -23,6 +23,7 @@ import '../domain/pay_premiums.dart';
 import '../domain/payslip.dart';
 import '../domain/planner.dart';
 import '../domain/reconciliation.dart';
+import '../domain/schedule.dart';
 import '../domain/shift.dart';
 import 'daos/agreement_dao.dart';
 import 'daos/day_exception_dao.dart';
@@ -385,6 +386,7 @@ final class DriftWorkRepository
     final payslips = await _payslips.forEmployment(employmentId);
     final agreementsById = {for (final a in agreements) a.id: a};
     final leave = await _leave.forEmployment(employmentId);
+    final schedules = await _schedules.forEmployment(employmentId);
 
     PayPeriod? periodOf(WorkShift shift) => periods
         .where((period) => period.contains(shift.localStartDate))
@@ -412,6 +414,24 @@ final class DriftWorkRepository
     for (final item in breaks) {
       breaksByShift.putIfAbsent(item.shiftId, () => []).add(item);
     }
+    // A confirmed day is named as its schedule planned it, as on the
+    // Calendar.
+    String? typeNameOf(WorkShift shift) {
+      final link = shift.schedule;
+      if (link == null) return null;
+      if (link.isExtra) return 'Extra';
+      return schedules
+              .where(
+                (value) =>
+                    value.id == link.scheduleId &&
+                    value.version == link.scheduleVersion,
+              )
+              .firstOrNull
+              ?.shiftTypeOn(link.plannedDate)
+              ?.name ??
+          'Shift';
+    }
+
     final rows = [
       for (final shift in shifts)
         shiftSheetRow(
@@ -420,6 +440,7 @@ final class DriftWorkRepository
           agreementsById,
           periodOf(shift),
           _zoneClocks,
+          typeName: typeNameOf(shift),
         ),
     ];
     final shiftSheet = [
@@ -471,6 +492,30 @@ final class DriftWorkRepository
                     value.periodId == selectedPeriod.id && value.isEffective,
               )
               .toList();
+    final plannedShiftSheet = await _plannedShiftSheet(
+      employmentId,
+      schedules: schedules,
+      agreements: agreements,
+      periods: periods,
+      range: switch (temporal) {
+        null when schedules.isNotEmpty => (
+          start: schedules
+              .map((value) => value.inUseFrom)
+              .reduce((a, b) => a.compareTo(b) <= 0 ? a : b),
+          end: _timezones
+              .localDateAt(_clock.nowUtc(), schedules.first.timezoneId)
+              .addMonthsClamped(1)
+              .lastOfMonth,
+        ),
+        null => null,
+        DateRangeScope(:final start, :final end) => (start: start, end: end),
+        PayPeriodScope() when selectedPeriod != null => (
+          start: selectedPeriod.start,
+          end: selectedPeriod.end,
+        ),
+        PayPeriodScope() => null,
+      },
+    );
     final scopedFinalized = [
       for (final row in shiftSheet)
         if (row.shift.state == ShiftState.finalized) row.shift,
@@ -557,7 +602,53 @@ final class DriftWorkRepository
           PayPeriodScope() => null,
         },
       ),
+      plannedShiftSheet: plannedShiftSheet,
     );
+  }
+
+  /// The planned, changed and extra work days in [range] that no confirmed
+  /// day covers yet, priced as planned (schedules spec 4.1). Off days,
+  /// cancelled days and leave are not shifts. An open-ended scope passes
+  /// the first schedule date through the end of next month, so every day
+  /// still to confirm is listed with the weeks ahead.
+  Future<List<PlannedShiftRow>> _plannedShiftSheet(
+    EmploymentId employmentId, {
+    required List<WorkSchedule> schedules,
+    required List<PayAgreement> agreements,
+    required List<PayPeriod> periods,
+    required ({LocalDate start, LocalDate end})? range,
+  }) async {
+    if (range == null || schedules.isEmpty) return const [];
+    final days = planDays(
+      from: range.start,
+      to: range.end,
+      schedules: schedules,
+      exceptions: await _exceptions.forEmployment(employmentId),
+      confirmedDates: await _schedules.confirmedDates(employmentId),
+      zoneClocks: _zoneClocks,
+    );
+    final now = _clock.nowUtc();
+    return [
+      for (final day in days)
+        if (day is PlannedShift)
+          PlannedShiftRow(
+            day: day,
+            toConfirm:
+                day.date.compareTo(
+                  _timezones.localDateAt(now, day.timezoneId),
+                ) <
+                0,
+            period: periods
+                .where((period) => period.contains(day.date))
+                .firstOrNull,
+            pay: plannedPay(
+              day,
+              agreements: agreements,
+              employmentId: employmentId,
+              zoneClocks: _zoneClocks,
+            ),
+          ),
+    ];
   }
 
   /// Every effective leave record priced against the confirmed shifts and

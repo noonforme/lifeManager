@@ -6,6 +6,7 @@ import '../../domain/leave.dart';
 import '../../domain/pay.dart';
 import '../../domain/pay_period.dart';
 import '../../domain/payslip.dart';
+import '../../domain/planner.dart';
 import '../../domain/reconciliation.dart';
 import '../../domain/shift.dart';
 import '../daos/payslip_dao.dart';
@@ -66,11 +67,16 @@ final class ShiftSheetRow {
     this.breaks = const [],
     this.facts,
     this.pay,
+    this.typeName,
   });
 
   final WorkShift shift;
   final List<ShiftBreak> breaks;
   final int breakSeconds;
+
+  /// The shift type a schedule planned it as, or "Extra"; null for a
+  /// manual shift.
+  final String? typeName;
 
   /// Null while the shift has no end yet.
   final int? paidSeconds;
@@ -78,6 +84,30 @@ final class ShiftSheetRow {
   /// The pay period whose dates contain the shift, if any.
   final PayPeriod? period;
   final FinalizationFacts? facts;
+  final ExpectedPay? pay;
+}
+
+/// A planned, changed or extra work day in the Shifts sheet's scope that
+/// no confirmed record covers yet. Derived from the plan and never stored
+/// (schedules spec 2): confirming the day records its real shift.
+final class PlannedShiftRow {
+  const PlannedShiftRow({
+    required this.day,
+    required this.toConfirm,
+    required this.period,
+    required this.pay,
+  });
+
+  final PlannedShift day;
+
+  /// The day is past on its schedule's clock and waits to be confirmed.
+  final bool toConfirm;
+
+  /// The pay period whose dates contain the day, if any.
+  final PayPeriod? period;
+
+  /// Planned pay, night and holiday premiums but never overtime (spec
+  /// 4.1); null when no agreement covers the date.
   final ExpectedPay? pay;
 }
 
@@ -143,6 +173,7 @@ final class WorkRegisterProjection {
     this.agreementSheet = const [],
     this.leaveSheet = const [],
     this.plannedNotConfirmed = 0,
+    this.plannedShiftSheet = const [],
   });
 
   final WorkScope scope;
@@ -190,6 +221,11 @@ final class WorkRegisterProjection {
   /// Planned days in the temporal scope that are past and not confirmed
   /// (spec 4.4).
   final int plannedNotConfirmed;
+
+  /// Planned work days in the Shifts sheet's scope, by date; never mixed
+  /// into [shiftSheet] or its totals. An open-ended scope plans from the
+  /// first schedule date through the end of next month.
+  final List<PlannedShiftRow> plannedShiftSheet;
 
   factory WorkRegisterProjection.empty(
     WorkScope scope, {
