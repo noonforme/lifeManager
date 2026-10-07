@@ -15,6 +15,7 @@ Future<void> _pump(
   LocalDate month = const LocalDate(2026, 10, 1),
   ValueChanged<LocalDate>? onOpen,
   ValueChanged<LocalDate>? onMonth,
+  ValueChanged<LocalDate>? onCursor,
   bool readOnly = false,
 }) async {
   tester.view.physicalSize = const Size(1000, 700);
@@ -34,6 +35,7 @@ Future<void> _pump(
               days: days ?? octoberViews(octoberPlan()),
               onOpen: onOpen,
               onMonth: onMonth,
+              onCursor: onCursor,
               readOnly: readOnly,
               autofocus: true,
             ),
@@ -121,6 +123,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(opened, const LocalDate(2026, 10, 12));
   });
+
+  testWidgets(
+    'a single click selects at once, not after the double-click wait',
+    (tester) async {
+      LocalDate? cursor;
+      await _pump(tester, onCursor: (day) => cursor = day);
+      final cell = find.byKey(const ValueKey('work-calendar-day-2026-10-12'));
+      final gesture = await tester.startGesture(tester.getCenter(cell));
+      await tester.pump();
+      expect(cursor, const LocalDate(2026, 10, 12));
+      await gesture.up();
+      await tester.pumpAndSettle();
+    },
+  );
 
   testWidgets('a cell is announced with its date and entries', (tester) async {
     final handle = tester.ensureSemantics();

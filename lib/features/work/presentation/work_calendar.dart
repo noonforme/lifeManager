@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/time/local_date.dart';
@@ -264,18 +265,19 @@ final class _WorkCalendarState extends State<WorkCalendar> {
       onTap: widget.readOnly ? null : () => _move(day),
       child: widget.readOnly
           ? cell
-          : GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
+          // Selects on pointer down: a tap that also listens for a double
+          // tap would wait out the double-tap timeout before moving.
+          : Listener(
+              onPointerDown: (event) {
+                if (event.buttons != kPrimaryButton) return;
                 _node.requestFocus();
                 _move(day);
               },
-              onDoubleTap: () {
-                _node.requestFocus();
-                _move(day);
-                widget.onOpen?.call(day);
-              },
-              child: cell,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onDoubleTap: () => widget.onOpen?.call(day),
+                child: cell,
+              ),
             ),
     );
   }
