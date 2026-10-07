@@ -431,6 +431,8 @@ A finalized shift cannot be edited or hard-deleted. Correction is one transactio
 
 Canceling a replacement draft does not reactivate or delete the original automatically. The confirmation flow must explain this before voiding. If the owner needs to abandon a replacement, the application provides an explicit resolution action rather than silently restoring history.
 
+**Remove (void without replacement)** — added 2026-10-07 at the owner's request. "Remove this shift…" (on a selected shift and on its Properties) asks for a required reason and, in one revision-checked transaction, marks a draft or finalized shift `void` with that reason and no replacement. It is still never hard-deleted: the void record keeps its breaks and agreement reference, stays inspectable in history (shown greyed as Void when void records are shown) and leaves every active total. A shift confirmed from a schedule no longer confirms its planned day, so that day is to confirm again. Removing an already void shift, a blank reason or a moved revision is refused with its outcome; removing a replacement draft is the explicit way to abandon it, and never reactivates the original. As with correction, a reviewed pay period does not block removal.
+
 ## 11. Pay Periods and Payslips
 
 ### 11.1 Pay period
