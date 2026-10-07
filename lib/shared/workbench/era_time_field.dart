@@ -132,6 +132,10 @@ final class _EraTimeFieldState extends State<EraTimeField> {
   @override
   void didUpdateWidget(EraTimeField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // A value from outside discards a half-typed digit.
+    if (widget.value != oldWidget.value && widget.value != _sent) {
+      _pending = null;
+    }
     _sent = null;
     if ((widget.value?.second ?? 0) != 0) _withSeconds = true;
     if (!_enabled) _stopRepeat();
@@ -209,7 +213,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
     final current =
         _sent ??
         widget.value ??
-        LocalTime(widget.emptyStart.hour, widget.emptyStart.minute);
+        const LocalTime(0, 0); // only a step starts from emptyStart
     final next = switch (_part) {
       TimePart.hour => LocalTime(value, current.minute, current.second),
       TimePart.minute => LocalTime(current.hour, value, current.second),
@@ -260,7 +264,8 @@ final class _EraTimeFieldState extends State<EraTimeField> {
       });
       return KeyEventResult.handled;
     }
-    if (!_enabled) return KeyEventResult.ignored;
+    // Typing acts once per press; a held key does not repeat.
+    if (!_enabled || event is! KeyDownEvent) return KeyEventResult.ignored;
     // Typed digits, as in the era's picker. A shortcut is not typing.
     final keyboard = HardwareKeyboard.instance;
     if (keyboard.isControlPressed ||

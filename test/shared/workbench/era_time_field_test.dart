@@ -459,13 +459,54 @@ void main() {
     expect(_value(tester), const LocalTime(8, 0));
   });
 
-  testWidgets('an empty box takes its other parts from emptyStart', (
+  testWidgets('a digit into an empty box leaves the other parts at 00', (
     tester,
   ) async {
-    await _pump(tester, value: null, emptyStart: const LocalTime(12, 30));
+    await _pump(tester, value: null, emptyStart: const LocalTime(19, 30));
     await _press(tester, LogicalKeyboardKey.tab);
-    await type(tester, '8');
-    expect(_value(tester), const LocalTime(8, 30));
+    await type(tester, '7');
+    expect(_value(tester), const LocalTime(7, 0));
+  });
+
+  testWidgets('a held digit key types once', (tester) async {
+    await _pump(tester, value: const LocalTime(7, 0));
+    await _press(tester, LogicalKeyboardKey.tab);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.digit1);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.digit1);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.digit1);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.digit1);
+    await tester.pump();
+    expect(_value(tester), const LocalTime(1, 0));
+    // The 1 still waits for its second digit.
+    await type(tester, '9');
+    expect(_value(tester), const LocalTime(19, 0));
+  });
+
+  testWidgets('a value set from outside clears the pending digit', (
+    tester,
+  ) async {
+    LocalTime? sent;
+    Future<void> show(LocalTime value) => tester.pumpWidget(
+      MaterialApp(
+        theme: buildLifeOSTheme(),
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: EraTimeField(
+              label: 'Start time',
+              value: value,
+              onChanged: (next) => sent = next,
+            ),
+          ),
+        ),
+      ),
+    );
+    await show(const LocalTime(7, 0));
+    await _press(tester, LogicalKeyboardKey.tab);
+    await type(tester, '1');
+    expect(sent, const LocalTime(1, 0));
+    await show(const LocalTime(9, 0));
+    await type(tester, '2');
+    expect(sent, const LocalTime(2, 0));
   });
 
   testWidgets('a disabled box ignores digits', (tester) async {
