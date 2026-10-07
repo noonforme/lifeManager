@@ -333,6 +333,8 @@ Invariants:
 - closing an unused agreement range is permitted only if it creates no overlap and invalidates no finalized shift;
 - correction of a used agreement creates a new effective-dated version.
 
+*Added 2026-10-08 at the owner's request:* correcting a used agreement in place is allowed, so a typo does not need a new version. A change to anything that pays first shows an explicit repricing confirmation naming the finished shifts and leave repriced and their totals before and after; the correction is recorded in the agreement's history, field by field, old → new. Its dates still cover every day it paid. "Change terms from…" (a new effective-dated version) is for real changes from a date (premiums spec 7, 8.3, 9).
+
 ### 10.3 Work shift
 
 A shift contains:

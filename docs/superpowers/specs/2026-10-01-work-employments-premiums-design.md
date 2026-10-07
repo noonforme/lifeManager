@@ -191,6 +191,17 @@ The screen hides actions the services would reject, and the services still enfor
 | `DeleteAgreementCommand(agreementId, expectedRevision)` | Deletes an agreement no shift and no leave refers to, with its history, in one revision-checked transaction; otherwise `agreement.inUse`. Draft shifts hold no agreement until they finalize, so they never block it and resolve again then. Void shifts and void leave keep their agreement for history and do block it |
 | `CloseAgreementCommand(agreementId, end, expectedRevision)` ("End agreement…") | Works on agreements in use too. `Invalid` on `effectiveEnd` with `outOfRange` before its start and with `conflict` before its last used day; overlap as before |
 
+**Correcting an agreement in use (added 2026-10-08 at the owner's request).** A typo is a correction of the same agreement, not a new version, so `UpdateAgreementCommand` rewrites every field of an agreement in use in place; the widen-only rule and its `agreement.inUse` refusal above no longer apply to it. Pay for finished shifts and leave is worked out from the stored agreement by id (nothing is stored or cached), so a correction reprices everything it pays the moment it commits, as if the agreement had always said this. "Change terms from…" stays the command for real changes from a date.
+
+| Rule | Detail |
+|---|---|
+| Label and note | Pay nothing; saved directly |
+| Any other term (rate, basis, overtime, night, holidays, stacking, vacation and sick pay) | Saved in place after the owner confirms the repricing (section 8.3). The history row's reason is "Corrected in place; the shifts and leave it pays were repriced." |
+| Dates | Still widen freely. They narrow only while every finished shift and confirmed leave day paid under it stays inside: a start after its *first used day* is `Invalid` on `effectiveStart`, an end before its last used day on `effectiveEnd`, both `conflict`; overlap as before |
+| Outcome | One revision-checked transaction that writes the agreement and its history row (the changed fields, old → new); `Stale`, `Missing` and `Invalid` as before |
+
+`AgreementCorrectionPreview.previewAgreementCorrection(agreementId, terms)` is the read the confirmation shows. It prices every finished shift and confirmed leave day of the employment as it stands and again with the corrected agreement, as the register does, and returns the finished shifts paid under it, the leave paid under it plus any leave elsewhere whose 3-month average moves with them, their totals before and after, and how many of them fall in a reviewed pay period or one with an effective payslip. It returns nothing when the agreement is unused, the terms are invalid or change no pay, or the new dates leave out a shift it pays; the save then goes straight to the command, which refuses or saves without repricing.
+
 ## 8. Presentation
 
 ### 8.1 First launch
@@ -223,6 +234,8 @@ The register's empty state with no employments shows:
 - The same form edits an unused agreement. For an agreement in use, the inspector shows the values read-only with "Used by N finished shifts. New versions arrive in a later update."
 
 *Added 2026-10-07 at the owner's request:* an agreement in use keeps its dates live and greys the rest, under "Used by N finished shifts. Change terms from a date to keep their pay." (or "Used by confirmed leave…", or "Used by N finished shifts and confirmed leave…"); Apply saves a wider range. The "Agreement tasks" group and the foot of Rate offer **Change terms from…** (in use only), **End agreement…** (only while it has no end; an ended agreement's end moves on Properties, the widening path) and **Remove agreement…** (unused only). Change terms opens this form in the dialog with the agreement's terms and a required **From** date in place of its dates; its keys are **Change terms** and **Cancel**, and Cancel goes back to where it was opened. End agreement asks for the **Last day** in an era date box (keys **End agreement**, **Cancel**). Remove agreement asks "Remove pay agreement vN?" (keys **Remove**, **Cancel**). The status bar says "Agreement changed.", "Agreement ended." or "Agreement removed."
+
+*Added 2026-10-08 at the owner's request (supersedes the greyed terms above):* an agreement in use edits like an unused one: every term on Rate, Premiums, Leave and Notes is live, under "Used by N finished shifts. Corrections reprice them; for new terms from a date use Change terms from…" (or "Used by confirmed leave. Corrections reprice it; …", or "Used by N finished shifts and confirmed leave. …"). OK or Apply saves a label or note directly ("Pay agreement saved."). A change to anything that pays first asks in the era dialog **Correct agreement**: "Correct pay agreement vN?", "It is corrected as if it had always said this. Its history keeps the old terms.", the impact ("3 finished shifts and 1 leave day are repriced: EUR 600.00 → EUR 652.00 (difference EUR +52.00)." or "No finished shift or leave day is repriced."), when any fall in reviewed pay periods "K of them are in reviewed pay periods; their reconciliation changes.", and "For new terms from a date, use Change terms from… instead." Its keys are **Correct**, then **Cancel**; Cancel saves nothing and leaves the edits on the sheet, Correct saves and the status bar says "Agreement corrected." The History tab shows the change, its reason and each field old → new.
 
 ### 8.4 Employment switcher
 
@@ -272,6 +285,13 @@ Shift forms drop the overtime minutes field.
 ‹Who› names what uses the agreement: "finished shifts", "confirmed leave" (with "is paid"), "finished shifts and confirmed leave", or "finished shifts or confirmed leave" when the form cannot know.
 | End agreement before the start | On Last day: "The last day must be on or after its start, ‹start›." |
 | Remove refused because it came into use | "Finished shifts or confirmed leave now use this agreement, so it can't be removed." |
+
+*Added 2026-10-08 at the owner's request:* an edit to an agreement in use is no longer refused as `agreement.inUse`, so its message above applies only to Remove; the widening rows are replaced by:
+
+| Situation | Message |
+|---|---|
+| A start after the first used day | On Starts on: "Used by ‹who› on ‹first used day›, so it must start on or before that day." |
+| An end before the last used day | On Ends on: "Used by ‹who› on ‹last used day›, so it must end on or after that day." |
 
 ## 10. Testing
 
