@@ -1,6 +1,7 @@
 import '../../../core/database/database_identity.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/app_clock.dart';
+import '../../../core/time/local_date.dart';
 import '../domain/agreement.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
@@ -43,7 +44,9 @@ final class AgreementService {
   }
 
   /// Rewrites an agreement's terms. An agreement used by a finalized shift
-  /// is evidence and stays as it is.
+  /// is evidence: it only widens, to an earlier start, a later end or no
+  /// end, and every other change is refused ("Change terms from…" sets new
+  /// terms from a date).
   Future<MutationOutcome<PayAgreement>> updateAgreement(
     UpdateAgreementCommand command,
   ) {
@@ -58,11 +61,6 @@ final class AgreementService {
         if (current.revision != command.expectedRevision) {
           return const Stale<PayAgreement>();
         }
-        if (current.usedByFinalizedShift) {
-          return const Invalid<PayAgreement>({
-            'agreement.inUse': [FieldIssue(FieldIssueCode.conflict)],
-          });
-        }
         final revised = _build(
           id: current.id,
           employmentId: current.employmentId,
@@ -71,15 +69,35 @@ final class AgreementService {
           createdAtUtc: current.createdAtUtc,
           revision: current.revision.next(),
         );
+        if (current.usedByFinalizedShift) {
+          if (revised == null || !revised.hasSameTermsAs(current)) {
+            return _inUse;
+          }
+          if (revised.effectiveStart.compareTo(current.effectiveStart) > 0) {
+            return const Invalid<PayAgreement>({
+              'effectiveStart': [FieldIssue(FieldIssueCode.conflict)],
+            });
+          }
+          if (_endsSooner(revised.effectiveEnd, current.effectiveEnd)) {
+            return const Invalid<PayAgreement>({
+              'effectiveEnd': [FieldIssue(FieldIssueCode.conflict)],
+            });
+          }
+        }
         if (revised == null) return _invalidTerms;
         final others = agreements.where((value) => value.id != current.id);
         if (!validateAgreementSet([...others, revised]).isValid) {
           return _overlap;
         }
-        final changed = await store.updateUnusedAgreement(
-          revised,
-          expected: command.expectedRevision,
-        );
+        final changed = current.usedByFinalizedShift
+            ? await store.updateAgreementRange(
+                revised,
+                expected: command.expectedRevision,
+              )
+            : await store.updateUnusedAgreement(
+                revised,
+                expected: command.expectedRevision,
+              );
         return changed == 0
             ? const Stale<PayAgreement>()
             : Committed<PayAgreement>(revised);
@@ -87,11 +105,15 @@ final class AgreementService {
     );
   }
 
-  Future<MutationOutcome<PayAgreement>> closeAgreement(
-    CloseAgreementCommand command,
-  ) async {
-    try {
-      return await _repository.transaction((store) async {
+  /// "Change terms from…" in one transaction: the agreement ends the day
+  /// before `from` and the next version starts on it. Shifts and leave
+  /// already confirmed keep the agreement they were paid under, so `from`
+  /// falls after the last of them (foundation spec 10.2).
+  Future<MutationOutcome<PayAgreement>> changeAgreementTerms(
+    ChangeAgreementTermsCommand command,
+  ) {
+    return _guard(
+      () => _repository.transaction((store) async {
         final agreements = await store.agreementsFor(command.employmentId);
         final matches = agreements.where(
           (value) => value.id == command.agreementId,
@@ -101,43 +123,155 @@ final class AgreementService {
         if (current.revision != command.expectedRevision) {
           return const Stale<PayAgreement>();
         }
-        late final PayAgreement closed;
-        try {
-          closed = current.withRangeEnd(command.end);
-        } on ArgumentError {
+        final from = command.from;
+        final end = current.effectiveEnd;
+        if (from.compareTo(current.effectiveStart) <= 0 ||
+            (end != null && from.compareTo(end) > 0)) {
           return const Invalid<PayAgreement>({
-            'effectiveEnd': [FieldIssue(FieldIssueCode.invalid)],
-          });
-        } on StateError {
-          return const Invalid<PayAgreement>({
-            'effectiveEnd': [FieldIssue(FieldIssueCode.invalid)],
+            'from': [FieldIssue(FieldIssueCode.outOfRange)],
           });
         }
+        final lastUse = await store.lastAgreementUse(current.id);
+        if (lastUse != null && from.compareTo(lastUse) <= 0) {
+          return const Invalid<PayAgreement>({
+            'from': [FieldIssue(FieldIssueCode.conflict)],
+          });
+        }
+        final terms = command.terms;
+        final next = _build(
+          id: _idFactory.agreementId(),
+          employmentId: current.employmentId,
+          // One past the highest, so no two versions share a name.
+          version: agreements.map((value) => value.version).reduce(_max) + 1,
+          terms: AgreementTerms(
+            effectiveStart: from,
+            effectiveEnd: end,
+            hourlyRateMicroEur: terms.hourlyRateMicroEur,
+            basis: terms.basis,
+            label: terms.label,
+            note: terms.note,
+            overtimeThresholdMinutes: terms.overtimeThresholdMinutes,
+            overtimeMultiplier: terms.overtimeMultiplier,
+            nightEnabled: terms.nightEnabled,
+            nightStartMinute: terms.nightStartMinute,
+            nightEndMinute: terms.nightEndMinute,
+            nightMultiplier: terms.nightMultiplier,
+            holidayCalendar: terms.holidayCalendar,
+            holidayMultiplier: terms.holidayMultiplier,
+            premiumStacking: terms.premiumStacking,
+            vacationPay: terms.vacationPay,
+            sickPay: terms.sickPay,
+            sickEmployerDays: terms.sickEmployerDays,
+          ),
+          createdAtUtc: _clock.nowUtc(),
+          revision: const Revision(0),
+        );
+        if (next == null) return _invalidTerms;
+        final ended = current.withRange(
+          start: current.effectiveStart,
+          end: from.addDays(-1),
+        );
+        final others = agreements.where((value) => value.id != current.id);
+        if (!validateAgreementSet([...others, ended, next]).isValid) {
+          return _overlap;
+        }
+        final changed = await store.updateAgreementRange(
+          ended,
+          expected: command.expectedRevision,
+        );
+        if (changed == 0) return const Stale<PayAgreement>();
+        await store.insertAgreement(next);
+        return Committed<PayAgreement>(next);
+      }),
+    );
+  }
+
+  /// "Remove agreement…": deletes an agreement no finalized or void shift
+  /// and no leave refers to. Draft shifts hold no agreement; they find
+  /// one when they finalize.
+  Future<MutationOutcome<PayAgreement>> deleteAgreement(
+    DeleteAgreementCommand command,
+  ) {
+    return _guard(
+      () => _repository.transaction((store) async {
+        final agreements = await store.agreementsFor(command.employmentId);
+        final matches = agreements.where(
+          (value) => value.id == command.agreementId,
+        );
+        if (matches.isEmpty) return const Missing<PayAgreement>();
+        final current = matches.single;
+        if (current.revision != command.expectedRevision) {
+          return const Stale<PayAgreement>();
+        }
+        if (current.usedByFinalizedShift) return _inUse;
+        final deleted = await store.deleteUnusedAgreement(
+          current.id,
+          expected: command.expectedRevision,
+        );
+        // The revision matched, so a shift still refers to it.
+        return deleted == 0 ? _inUse : Committed<PayAgreement>(current);
+      }),
+    );
+  }
+
+  /// "End agreement…": [CloseAgreementCommand.end] becomes its last day,
+  /// never before its start or a day it was used on.
+  Future<MutationOutcome<PayAgreement>> closeAgreement(
+    CloseAgreementCommand command,
+  ) {
+    return _guard(
+      () => _repository.transaction((store) async {
+        final agreements = await store.agreementsFor(command.employmentId);
+        final matches = agreements.where(
+          (value) => value.id == command.agreementId,
+        );
+        if (matches.isEmpty) return const Missing<PayAgreement>();
+        final current = matches.single;
+        if (current.revision != command.expectedRevision) {
+          return const Stale<PayAgreement>();
+        }
+        if (command.end.compareTo(current.effectiveStart) < 0) {
+          return const Invalid<PayAgreement>({
+            'effectiveEnd': [FieldIssue(FieldIssueCode.outOfRange)],
+          });
+        }
+        final lastUse = await store.lastAgreementUse(current.id);
+        if (lastUse != null && command.end.compareTo(lastUse) < 0) {
+          return const Invalid<PayAgreement>({
+            'effectiveEnd': [FieldIssue(FieldIssueCode.conflict)],
+          });
+        }
+        final closed = current.withRange(
+          start: current.effectiveStart,
+          end: command.end,
+        );
         final withoutCurrent = agreements.where(
           (value) => value.id != current.id,
         );
         if (!validateAgreementSet([...withoutCurrent, closed]).isValid) {
           return _overlap;
         }
-        final changed = await store.updateUnusedAgreement(
+        final changed = await store.updateAgreementRange(
           closed,
           expected: command.expectedRevision,
         );
         return changed == 0
             ? const Stale<PayAgreement>()
             : Committed<PayAgreement>(closed);
-      });
-    } on DatabaseOpenFailure {
-      return const Unavailable<PayAgreement>(
-        SafeFailureCode.storageUnavailable,
-      );
-    } on DatabaseValidationFailure {
-      return const Unavailable<PayAgreement>(
-        SafeFailureCode.storageUnavailable,
-      );
-    }
+      }),
+    );
   }
 }
+
+/// Whether [revised] ends before [current] does; no end is the latest.
+bool _endsSooner(LocalDate? revised, LocalDate? current) =>
+    revised != null && (current == null || revised.compareTo(current) < 0);
+
+int _max(int a, int b) => a > b ? a : b;
+
+const _inUse = Invalid<PayAgreement>({
+  'agreement.inUse': [FieldIssue(FieldIssueCode.conflict)],
+});
 
 const _invalidTerms = Invalid<PayAgreement>({
   'agreement': [FieldIssue(FieldIssueCode.invalid)],

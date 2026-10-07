@@ -189,37 +189,56 @@ final class PayAgreement {
       effectiveStart.compareTo(date) <= 0 &&
       (effectiveEnd == null || effectiveEnd!.compareTo(date) >= 0);
 
-  PayAgreement withRangeEnd(LocalDate end) {
-    if (usedByFinalizedShift) {
-      throw StateError('Used agreements are immutable.');
-    }
-    return PayAgreement(
-      id: id,
-      employmentId: employmentId,
-      version: version,
-      effectiveStart: effectiveStart,
-      effectiveEnd: end,
-      hourlyRateMicroEur: hourlyRateMicroEur,
-      basis: basis,
-      overtimeThresholdMinutes: overtimeThresholdMinutes,
-      overtimeMultiplier: overtimeMultiplier,
-      label: label,
-      note: note,
-      createdAtUtc: createdAtUtc,
-      revision: revision.next(),
-      usedByFinalizedShift: false,
-      nightEnabled: nightEnabled,
-      nightStartMinute: nightStartMinute,
-      nightEndMinute: nightEndMinute,
-      nightMultiplier: nightMultiplier,
-      holidayCalendar: holidayCalendar,
-      holidayMultiplier: holidayMultiplier,
-      premiumStacking: premiumStacking,
-      vacationPay: vacationPay,
-      sickPay: sickPay,
-      sickEmployerDays: sickEmployerDays,
-    );
-  }
+  /// The same agreement over [start] to [end]. Its terms never change
+  /// here; the caller keeps every date a finished shift or confirmed leave
+  /// was paid on inside the new range.
+  PayAgreement withRange({required LocalDate start, required LocalDate? end}) =>
+      PayAgreement(
+        id: id,
+        employmentId: employmentId,
+        version: version,
+        effectiveStart: start,
+        effectiveEnd: end,
+        hourlyRateMicroEur: hourlyRateMicroEur,
+        basis: basis,
+        overtimeThresholdMinutes: overtimeThresholdMinutes,
+        overtimeMultiplier: overtimeMultiplier,
+        label: label,
+        note: note,
+        createdAtUtc: createdAtUtc,
+        revision: revision.next(),
+        usedByFinalizedShift: usedByFinalizedShift,
+        nightEnabled: nightEnabled,
+        nightStartMinute: nightStartMinute,
+        nightEndMinute: nightEndMinute,
+        nightMultiplier: nightMultiplier,
+        holidayCalendar: holidayCalendar,
+        holidayMultiplier: holidayMultiplier,
+        premiumStacking: premiumStacking,
+        vacationPay: vacationPay,
+        sickPay: sickPay,
+        sickEmployerDays: sickEmployerDays,
+      );
+
+  /// Whether [other] pays as this agreement does: every fact but its
+  /// identity, version, dates and revision.
+  bool hasSameTermsAs(PayAgreement other) =>
+      hourlyRateMicroEur == other.hourlyRateMicroEur &&
+      basis == other.basis &&
+      overtimeThresholdMinutes == other.overtimeThresholdMinutes &&
+      overtimeMultiplier == other.overtimeMultiplier &&
+      label == other.label &&
+      note == other.note &&
+      nightEnabled == other.nightEnabled &&
+      nightStartMinute == other.nightStartMinute &&
+      nightEndMinute == other.nightEndMinute &&
+      nightMultiplier == other.nightMultiplier &&
+      holidayCalendar == other.holidayCalendar &&
+      holidayMultiplier == other.holidayMultiplier &&
+      premiumStacking == other.premiumStacking &&
+      vacationPay == other.vacationPay &&
+      sickPay == other.sickPay &&
+      sickEmployerDays == other.sickEmployerDays;
 }
 
 sealed class AgreementResolution {

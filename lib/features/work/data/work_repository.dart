@@ -208,6 +208,42 @@ final class DriftWorkRepository
     });
   }
 
+  @override
+  Future<int> updateAgreementRange(
+    PayAgreement value, {
+    required Revision expected,
+  }) => _database.transaction(() async {
+    final before = await _agreements.byId(value.id);
+    final changed = await _agreements.updateRange(value, expected);
+    if (changed == 0 || before == null) return changed;
+    await _history.record(
+      WorkRecordKinds.agreement,
+      value.id.value,
+      kind: RecordEventKind.changed,
+      before: agreementFacts(before),
+      after: agreementFacts(value),
+      revisionAfter: expected.next(),
+    );
+    return changed;
+  });
+
+  @override
+  Future<int> deleteUnusedAgreement(
+    AgreementId id, {
+    required Revision expected,
+  }) => _database.transaction(() async {
+    final deleted = await _agreements.deleteUnused(id, expected);
+    // A deleted record takes its history with it.
+    if (deleted > 0) {
+      await _history.events.deleteFor(WorkRecordKinds.agreement, id.value);
+    }
+    return deleted;
+  });
+
+  @override
+  Future<LocalDate?> lastAgreementUse(AgreementId id) =>
+      _agreements.lastUse(id);
+
   Future<List<PayPeriod>> periodsFor(EmploymentId id) =>
       _periods.forEmployment(id);
 

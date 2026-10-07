@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/app_clock.dart';
+import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/application/employment_service.dart';
 import 'package:lifeos/features/work/application/work_commands.dart';
 import 'package:lifeos/features/work/data/work_write_store.dart';
@@ -128,6 +129,21 @@ final class _FakeStore implements WorkWriteStore {
     PayAgreement value, {
     required Revision expected,
   }) async => 1;
+
+  @override
+  Future<int> updateAgreementRange(
+    PayAgreement value, {
+    required Revision expected,
+  }) async => 1;
+
+  @override
+  Future<int> deleteUnusedAgreement(
+    AgreementId id, {
+    required Revision expected,
+  }) async => 1;
+
+  @override
+  Future<LocalDate?> lastAgreementUse(AgreementId id) async => null;
 }
 
 final class _Ids implements WorkIdFactory {

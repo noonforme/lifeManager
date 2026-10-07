@@ -85,6 +85,33 @@ final class AgreementTerms {
     this.sickEmployerDays = AgreementDefaults.sickEmployerDays,
   });
 
+  /// [value]'s terms, over its own dates unless [effectiveStart] or
+  /// [effectiveEnd] moves them; widening an agreement in place starts here.
+  factory AgreementTerms.of(
+    PayAgreement value, {
+    LocalDate? effectiveStart,
+    LocalDate? Function()? effectiveEnd,
+  }) => AgreementTerms(
+    effectiveStart: effectiveStart ?? value.effectiveStart,
+    effectiveEnd: effectiveEnd == null ? value.effectiveEnd : effectiveEnd(),
+    hourlyRateMicroEur: value.hourlyRateMicroEur,
+    basis: value.basis,
+    label: value.label,
+    note: value.note,
+    overtimeThresholdMinutes: value.overtimeThresholdMinutes,
+    overtimeMultiplier: value.overtimeMultiplier,
+    nightEnabled: value.nightEnabled,
+    nightStartMinute: value.nightStartMinute,
+    nightEndMinute: value.nightEndMinute,
+    nightMultiplier: value.nightMultiplier,
+    holidayCalendar: value.holidayCalendar,
+    holidayMultiplier: value.holidayMultiplier,
+    premiumStacking: value.premiumStacking,
+    vacationPay: value.vacationPay,
+    sickPay: value.sickPay,
+    sickEmployerDays: value.sickEmployerDays,
+  );
+
   final LocalDate effectiveStart;
   final LocalDate? effectiveEnd;
   final int hourlyRateMicroEur;
@@ -117,7 +144,8 @@ final class CreateAgreementCommand {
   final AgreementTerms terms;
 }
 
-/// Rewrites an agreement that no finalized shift uses.
+/// Rewrites an agreement that no finalized shift uses. One in use takes
+/// only wider dates: an earlier start, a later end or no end.
 final class UpdateAgreementCommand {
   const UpdateAgreementCommand({
     required this.agreementId,
@@ -132,6 +160,40 @@ final class UpdateAgreementCommand {
   final AgreementTerms terms;
 }
 
+/// "Change terms from…": the agreement ends the day before [from] and a
+/// new version with [terms] starts on [from], running to the agreement's
+/// own end. The dates in [terms] are not read.
+final class ChangeAgreementTermsCommand {
+  const ChangeAgreementTermsCommand({
+    required this.agreementId,
+    required this.employmentId,
+    required this.expectedRevision,
+    required this.from,
+    required this.terms,
+  });
+
+  final AgreementId agreementId;
+  final EmploymentId employmentId;
+  final Revision expectedRevision;
+  final LocalDate from;
+  final AgreementTerms terms;
+}
+
+/// "Remove agreement…": deletes an agreement no shift or leave refers to.
+final class DeleteAgreementCommand {
+  const DeleteAgreementCommand({
+    required this.agreementId,
+    required this.employmentId,
+    required this.expectedRevision,
+  });
+
+  final AgreementId agreementId;
+  final EmploymentId employmentId;
+  final Revision expectedRevision;
+}
+
+/// "End agreement…": [end] is the last day it pays, never before a day a
+/// finalized shift or confirmed leave was paid under it.
 final class CloseAgreementCommand {
   const CloseAgreementCommand({
     required this.agreementId,

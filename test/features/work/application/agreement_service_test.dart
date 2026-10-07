@@ -161,6 +161,21 @@ final class _FakeStore implements WorkWriteStore {
   }
 
   @override
+  Future<int> updateAgreementRange(
+    PayAgreement value, {
+    required Revision expected,
+  }) => updateUnusedAgreement(value, expected: expected);
+
+  @override
+  Future<int> deleteUnusedAgreement(
+    AgreementId id, {
+    required Revision expected,
+  }) async => nextAgreementUpdateCount;
+
+  @override
+  Future<LocalDate?> lastAgreementUse(AgreementId id) async => null;
+
+  @override
   Future<Employment?> employmentById(EmploymentId id) async => null;
 
   @override

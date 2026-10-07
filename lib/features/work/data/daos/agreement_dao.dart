@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../../../core/database/app_database.dart' as db;
+import '../../../../core/time/local_date.dart';
 import '../../domain/agreement.dart' as domain;
 import '../../domain/facts.dart';
 import '../../domain/ids.dart';
@@ -73,6 +74,61 @@ final class AgreementDao {
       ],
       updates: {database.payAgreements},
     );
+  }
+
+  /// Moves only the dates; whether the move keeps every used date inside
+  /// is the caller's rule.
+  Future<int> updateRange(domain.PayAgreement value, Revision expected) =>
+      database.customUpdate(
+        'UPDATE pay_agreements '
+        'SET effective_start = ?, effective_end = ?, revision = revision + 1 '
+        'WHERE id = ? AND revision = ?',
+        variables: [
+          Variable(value.effectiveStart.toString()),
+          Variable(value.effectiveEnd?.toString()),
+          Variable(value.id.value),
+          Variable(expected.value),
+        ],
+        updates: {database.payAgreements},
+      );
+
+  /// Deletes the agreement while no shift (a draft included) and no leave
+  /// refers to it.
+  Future<int> deleteUnused(AgreementId id, Revision expected) =>
+      database.customUpdate(
+        '''
+      DELETE FROM pay_agreements
+      WHERE id = ? AND revision = ?
+        AND NOT EXISTS (
+          SELECT 1 FROM work_shifts WHERE agreement_id = pay_agreements.id
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM work_leave_records
+          WHERE agreement_id = pay_agreements.id
+        )
+      ''',
+        variables: [Variable(id.value), Variable(expected.value)],
+        updates: {database.payAgreements},
+        updateKind: UpdateKind.delete,
+      );
+
+  /// The latest local date a finalized shift or confirmed leave was paid
+  /// under the agreement. Dates are ISO text, so the greatest sorts last.
+  Future<LocalDate?> lastUse(AgreementId id) async {
+    final row = await database
+        .customSelect(
+          'SELECT MAX(day) AS last FROM ('
+          'SELECT local_start_date AS day FROM work_shifts '
+          "WHERE agreement_id = ? AND state = 'finalized' "
+          'UNION ALL '
+          'SELECT date AS day FROM work_leave_records '
+          "WHERE agreement_id = ? AND state = 'confirmed')",
+          variables: [Variable(id.value), Variable(id.value)],
+          readsFrom: {database.workShifts, database.workLeaveRecords},
+        )
+        .getSingle();
+    final last = row.readNullable<String>('last');
+    return last == null ? null : LocalDate.parse(last);
   }
 
   Future<domain.PayAgreement?> byId(AgreementId id) async {

@@ -77,15 +77,24 @@ void main() {
     );
   });
 
-  test('used agreement cannot be edited but unused can close safely', () {
+  test('a new range keeps the terms and whether the agreement is used', () {
     final used = agreement(usedByFinalizedShift: true);
-    expect(
-      () => used.withRangeEnd(LocalDate.parse('2026-09-15')),
-      throwsStateError,
+    final moved = used.withRange(
+      start: LocalDate.parse('2026-08-01'),
+      end: LocalDate.parse('2026-09-15'),
     );
+    expect(moved.effectiveStart, LocalDate.parse('2026-08-01'));
+    expect(moved.effectiveEnd, LocalDate.parse('2026-09-15'));
+    expect(moved.usedByFinalizedShift, isTrue);
+    expect(moved.revision, used.revision.next());
+    expect(moved.hasSameTermsAs(used), isTrue);
+    expect(agreement(rate: 1).hasSameTermsAs(used), isFalse);
     expect(
-      agreement().withRangeEnd(LocalDate.parse('2026-09-15')).effectiveEnd,
-      LocalDate.parse('2026-09-15'),
+      () => used.withRange(
+        start: LocalDate.parse('2026-09-15'),
+        end: LocalDate.parse('2026-09-14'),
+      ),
+      throwsArgumentError,
     );
   });
 
@@ -165,7 +174,10 @@ void main() {
         nightStart: 1260,
         night: const RationalMultiplier(numerator: 5, denominator: 4),
       );
-      final closed = value.withRangeEnd(LocalDate.parse('2026-12-31'));
+      final closed = value.withRange(
+        start: value.effectiveStart,
+        end: LocalDate.parse('2026-12-31'),
+      );
       expect(closed.nightEnabled, isFalse);
       expect(closed.nightStartMinute, 1260);
       expect(closed.nightMultiplier, value.nightMultiplier);
