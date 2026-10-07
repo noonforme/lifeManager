@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import 'era_controls.dart';
 import 'millennium_style.dart';
@@ -79,7 +80,18 @@ final class _EraScrollbarState extends State<EraScrollbar> {
         old.viewportDimension == metrics.viewportDimension) {
       return;
     }
-    setState(() => _metrics = metrics.copyWith());
+    final copy = metrics.copyWith();
+    // A position clamped during layout (its content just shrank) reports
+    // mid-frame, when a rebuild can no longer be asked for; the bar then
+    // catches up right after the frame.
+    final scheduler = SchedulerBinding.instance;
+    if (scheduler.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      scheduler.addPostFrameCallback((_) {
+        if (mounted) setState(() => _metrics = copy);
+      });
+      return;
+    }
+    setState(() => _metrics = copy);
   }
 
   void _scrollBy(double delta) {
