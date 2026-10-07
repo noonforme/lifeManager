@@ -758,6 +758,94 @@ void main() {
     expect(deleteCommand?.employmentId, _employmentId);
     expect(routes.last.employmentId, isNull);
   });
+
+  test(
+    'agreement commands carry the revision, the date and the route',
+    () async {
+      UpdateAgreementCommand? widen;
+      ChangeAgreementTermsCommand? change;
+      CloseAgreementCommand? end;
+      DeleteAgreementCommand? remove;
+      final routes = <WorkRouteState>[];
+      final container = ProviderContainer(
+        overrides: [
+          workQueryRepositoryProvider.overrideWithValue(_QueryRepository()),
+          workRouteProvider.overrideWithValue(
+            const ValidWorkRoute(
+              WorkRouteState(
+                employmentId: _employmentId,
+                scope: null,
+                record: WorkRecordRef(
+                  kind: WorkRecordKind.agreement,
+                  id: _agreementId,
+                ),
+                mode: WorkInspectorMode.properties,
+              ),
+            ),
+          ),
+          replaceWorkRouteProvider.overrideWithValue(routes.add),
+          updateAgreementProvider.overrideWithValue((command) async {
+            widen = command;
+            return Committed(_agreement);
+          }),
+          changeAgreementTermsProvider.overrideWithValue((command) async {
+            change = command;
+            return Committed(_agreement);
+          }),
+          endAgreementProvider.overrideWithValue((command) async {
+            end = command;
+            return Committed(_agreement);
+          }),
+          removeAgreementProvider.overrideWithValue((command) async {
+            remove = command;
+            return Committed(_agreement);
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(workControllerProvider, (_, _) {});
+      addTearDown(subscription.close);
+      await container.read(workControllerProvider.future);
+      final controller = container.read(workControllerProvider.notifier);
+
+      // A day before the agreement moves only its start, terms unchanged.
+      await controller.widenAgreementToCover(
+        _agreement,
+        const LocalDate(2026, 9, 20),
+      );
+      expect(widen?.terms.effectiveStart, const LocalDate(2026, 9, 20));
+      expect(widen?.terms.effectiveEnd, isNull);
+      expect(widen?.terms.hourlyRateMicroEur, _agreement.hourlyRateMicroEur);
+      expect(widen?.expectedRevision, _agreement.revision);
+
+      await controller.changeAgreementTerms(
+        _agreement,
+        const AgreementDraft(
+          employmentId: _employmentId,
+          terms: AgreementTerms(
+            effectiveStart: LocalDate(2026, 11, 1),
+            effectiveEnd: null,
+            hourlyRateMicroEur: 27000000,
+            basis: GrossBasis(),
+            label: null,
+            note: null,
+          ),
+        ),
+      );
+      expect(change?.from, const LocalDate(2026, 11, 1));
+      expect(change?.terms.hourlyRateMicroEur, 27000000);
+
+      await controller.endAgreement(_agreement, const LocalDate(2026, 12, 31));
+      expect(end?.end, const LocalDate(2026, 12, 31));
+      expect(routes, isEmpty);
+
+      // Removing the open agreement leaves the employment's register.
+      await controller.removeAgreement(_agreement);
+      expect(remove?.agreementId, _agreementId);
+      expect(routes.single.record, isNull);
+      expect(routes.single.mode, WorkInspectorMode.inspect);
+    },
+  );
 }
 
 RationalMultiplier _r(int numerator, int denominator) =>

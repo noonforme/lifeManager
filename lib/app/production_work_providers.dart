@@ -179,6 +179,11 @@ final class ProductionWorkProviders {
     updateEmploymentProvider.overrideWithValue(employment.updateEmployment),
     deleteEmploymentProvider.overrideWithValue(employment.deleteEmployment),
     updateAgreementProvider.overrideWithValue(agreement.updateAgreement),
+    changeAgreementTermsProvider.overrideWithValue(
+      agreement.changeAgreementTerms,
+    ),
+    endAgreementProvider.overrideWithValue(agreement.closeAgreement),
+    removeAgreementProvider.overrideWithValue(agreement.deleteAgreement),
     finalizeShiftProvider.overrideWithValue(shifts.finalizeShift),
     saveManualShiftProvider.overrideWithValue(manualShifts.createAndFinalize),
     createPayPeriodProvider.overrideWithValue(periods.createPeriod),

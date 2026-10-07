@@ -28,7 +28,8 @@ final class AgreementRecordProjection extends WorkRecordProjection {
   /// Finished shifts paid under this agreement; any makes it evidence.
   final int finishedShifts;
 
-  bool get inUse => finishedShifts > 0;
+  /// Evidence for finished shifts or for leave priced under it.
+  bool get inUse => finishedShifts > 0 || agreement.usedByFinalizedShift;
 }
 
 final class ShiftRecordProjection extends WorkRecordProjection {

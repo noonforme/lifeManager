@@ -30,6 +30,9 @@ final class WorkTaskContext {
     this.onFinalize,
     this.onCorrect,
     this.onRemove,
+    this.onChangeAgreementTerms,
+    this.onEndAgreement,
+    this.onRemoveAgreement,
     this.onMarkReviewed,
     this.onReopen,
     this.onRecordPayslipForPeriod,
@@ -62,6 +65,16 @@ final class WorkTaskContext {
 
   /// Asks a reason and voids the selected shift with no replacement.
   final VoidCallback? onRemove;
+
+  /// "Change terms from…" on the selected agreement; offered while it is
+  /// in use, since an unused one is edited in place.
+  final VoidCallback? onChangeAgreementTerms;
+
+  /// "End agreement…": asks the selected agreement's last day.
+  final VoidCallback? onEndAgreement;
+
+  /// "Remove agreement…": offered only while nothing uses it.
+  final VoidCallback? onRemoveAgreement;
   final VoidCallback? onMarkReviewed;
   final VoidCallback? onReopen;
   final VoidCallback? onRecordPayslipForPeriod;
@@ -148,8 +161,13 @@ List<Widget> workTaskGroups(WorkTaskContext c) {
         ('Properties', EraIconKind.properties, c.onProperties),
       ]),
     ],
-    AgreementRecordProjection() => [
+    AgreementRecordProjection(:final inUse) => [
       group('Agreement tasks', [
+        if (inUse)
+          ('Change terms from…', EraIconKind.correct, c.onChangeAgreementTerms),
+        ('End agreement…', EraIconKind.agreement, c.onEndAgreement),
+        if (!inUse)
+          ('Remove agreement…', EraIconKind.delete, c.onRemoveAgreement),
         ('Properties', EraIconKind.properties, c.onProperties),
       ]),
     ],

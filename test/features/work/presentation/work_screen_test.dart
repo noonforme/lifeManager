@@ -190,7 +190,7 @@ void main() {
       expect(find.text('Warehouse'), findsWidgets);
     });
 
-    testWidgets('an unused agreement edits; one in use stays read-only', (
+    testWidgets('an unused agreement edits; one in use only widens', (
       tester,
     ) async {
       WorkReady agreementState(int finished) => setupState(
@@ -213,7 +213,8 @@ void main() {
         findsOneWidget,
       );
 
-      // Gaining finished shifts while open greys the same fields.
+      // Gaining finished shifts while open greys the terms; the dates stay
+      // live, since an agreement in use may still widen.
       await pumpScreen(tester, AsyncData(agreementState(2)));
       expect(
         tester
@@ -225,8 +226,13 @@ void main() {
       );
       expect(
         find.text(
-          'Used by 2 finished shifts, so these terms can no longer change.',
+          'Used by 2 finished shifts. Change terms from a date to keep '
+          'their pay.',
         ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Only the dates widen here: start earlier or end later.'),
         findsOneWidget,
       );
     });

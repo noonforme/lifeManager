@@ -250,6 +250,13 @@ final class _WorkRouteHost extends ConsumerWidget {
         onUpdateAgreement: ref
             .read(workControllerProvider.notifier)
             .updateAgreement,
+        onChangeAgreementTerms: ref
+            .read(workControllerProvider.notifier)
+            .changeAgreementTerms,
+        onEndAgreement: ref.read(workControllerProvider.notifier).endAgreement,
+        onRemoveAgreement: ref
+            .read(workControllerProvider.notifier)
+            .removeAgreement,
         today: today,
         schedules: schedules ?? const [],
         onSaveView: switch (ref.watch(savedViewRepositoryProvider)) {

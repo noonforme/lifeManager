@@ -23,6 +23,7 @@ import '../domain/pay_period.dart';
 import '../domain/payslip.dart';
 import '../domain/schedule.dart';
 import '../domain/shift.dart';
+import 'agreement_dialogs.dart';
 import 'confirm_days_dialog.dart';
 import 'correction_confirmation.dart';
 import 'day_sheet_host.dart';
@@ -67,6 +68,9 @@ final class WorkScreen extends StatefulWidget {
     this.onUpdateEmployment,
     this.onDeleteEmployment,
     this.onUpdateAgreement,
+    this.onChangeAgreementTerms,
+    this.onEndAgreement,
+    this.onRemoveAgreement,
     this.today,
     this.lastShiftTemplate,
     this.plannedShifts = const [],
@@ -128,6 +132,24 @@ final class WorkScreen extends StatefulWidget {
   )?
   onUpdateAgreement;
 
+  /// "Change terms from…": the draft's start is the From date.
+  final Future<MutationOutcome<PayAgreement>> Function(
+    PayAgreement current,
+    AgreementDraft value,
+  )?
+  onChangeAgreementTerms;
+
+  /// "End agreement…" on the given last day.
+  final Future<MutationOutcome<PayAgreement>> Function(
+    PayAgreement current,
+    LocalDate lastDay,
+  )?
+  onEndAgreement;
+
+  /// "Remove agreement…" for an agreement nothing uses.
+  final Future<MutationOutcome<PayAgreement>> Function(PayAgreement current)?
+  onRemoveAgreement;
+
   /// Today's local date for new agreements; the device date when null.
   final LocalDate? today;
 
@@ -163,6 +185,10 @@ final class _WorkScreenState extends State<WorkScreen> {
   PayPeriodId? _payslipPeriod;
   MutationOutcome<WorkShift>? _reviseFailure;
 
+  /// The agreement whose next terms the dialog is setting ("Change terms
+  /// from…"); it takes the dialog over whatever the route opened.
+  PayAgreement? _changingTerms;
+
   void _clearReviseFailure() => setState(() => _reviseFailure = null);
 
   Future<MutationOutcome<WorkShift>> _reviseDraft(
@@ -184,6 +210,11 @@ final class _WorkScreenState extends State<WorkScreen> {
   }
 
   void _closeDialog() {
+    // Cancelling a change of terms goes back to where it was opened.
+    if (_changingTerms != null) {
+      setState(() => _changingTerms = null);
+      return;
+    }
     setState(() {
       _creatingPeriod = false;
       _payslipPeriod = null;
@@ -218,6 +249,54 @@ final class _WorkScreenState extends State<WorkScreen> {
       shift: shift,
       onRemove: (reason) => _saved(remove(shift, reason), 'Shift removed.'),
     );
+  }
+
+  /// "Change terms from…" for [agreement], from the task pane or its
+  /// Properties; null when it is not wired.
+  VoidCallback? _changeAgreementTerms(PayAgreement agreement) =>
+      widget.onChangeAgreementTerms == null
+      ? null
+      : () => setState(() => _changingTerms = agreement);
+
+  /// "End agreement…" for [agreement]; null when it is not wired.
+  VoidCallback? _endAgreement(PayAgreement agreement) {
+    final end = widget.onEndAgreement;
+    if (end == null) return null;
+    return () => askEndAgreement(
+      context,
+      agreement: agreement,
+      today: _today,
+      onEnd: (lastDay) => _saved(end(agreement, lastDay), 'Agreement ended.'),
+    );
+  }
+
+  /// "Remove agreement…" for [agreement]; null while it is in use or when
+  /// removal is not wired.
+  VoidCallback? _removeAgreement(
+    PayAgreement agreement, {
+    required bool inUse,
+  }) {
+    final remove = widget.onRemoveAgreement;
+    if (remove == null || inUse) return null;
+    return () => askRemoveAgreement(
+      context,
+      agreement: agreement,
+      onRemove: () => _saved(remove(agreement), 'Agreement removed.'),
+    );
+  }
+
+  Future<MutationOutcome<PayAgreement>> _changeTerms(
+    PayAgreement current,
+    AgreementDraft value,
+  ) async {
+    final outcome = await _saved(
+      widget.onChangeAgreementTerms!(current, value),
+      'Agreement changed.',
+    );
+    if (mounted && outcome is Committed<PayAgreement>) {
+      setState(() => _changingTerms = null);
+    }
+    return outcome;
   }
 
   void _openPayslip(PayPeriodId period) =>
@@ -257,6 +336,7 @@ final class _WorkScreenState extends State<WorkScreen> {
     final oldRecord = _selectedRecord(oldWidget.state);
     final newRecord = _selectedRecord(widget.state);
     if (oldRecord?.id != newRecord?.id) {
+      _changingTerms = null;
       _periodFailure = null;
       _creatingPeriod = false;
       _payslipPeriod = null;
@@ -271,6 +351,7 @@ final class _WorkScreenState extends State<WorkScreen> {
     final oldRoute = _routeUri(oldWidget.state);
     final newRoute = _routeUri(widget.state);
     if (oldRoute != null && newRoute != null && oldRoute != newRoute) {
+      _changingTerms = null;
       _creatingPeriod = false;
       _payslipPeriod = null;
       _periodFailure = null;
@@ -356,6 +437,15 @@ final class _WorkScreenState extends State<WorkScreen> {
         onCorrect: widget.onOpenCorrection,
         onRemove: selected is ShiftRecordProjection
             ? _removal(selected.shift)
+            : null,
+        onChangeAgreementTerms: selected is AgreementRecordProjection
+            ? _changeAgreementTerms(selected.agreement)
+            : null,
+        onEndAgreement: selected is AgreementRecordProjection
+            ? _endAgreement(selected.agreement)
+            : null,
+        onRemoveAgreement: selected is AgreementRecordProjection
+            ? _removeAgreement(selected.agreement, inUse: selected.inUse)
             : null,
         onMarkReviewed: period == null || widget.onSetPeriodState == null
             ? null
@@ -520,6 +610,16 @@ final class _WorkScreenState extends State<WorkScreen> {
     if (route.record == null && employmentId != null) {
       final added = _added(route.adding, state.register, employmentId);
       if (added != null) return added;
+    }
+    if (_changingTerms case final current?) {
+      return AgreementForm(
+        key: ValueKey(('change-terms', current.id, current.revision)),
+        employmentId: current.employmentId,
+        initial: current,
+        changingTerms: true,
+        today: _today,
+        onSubmit: (value) => _changeTerms(current, value),
+      );
     }
     if (_creatingPeriod && employmentId != null) {
       return PeriodInspector.create(
@@ -700,6 +800,7 @@ extension on _WorkScreenState {
   bool _dialogOpen(WorkReady state) {
     final route = state.route;
     return route.mode != WorkInspectorMode.inspect ||
+        _changingTerms != null ||
         route.confirming ||
         route.adding != null ||
         _creatingPeriod ||
@@ -740,6 +841,8 @@ extension on _WorkScreenState {
 
   ShellDialogKind _dialogKind(WorkReady state) => _failed()
       ? ShellDialogKind.message
+      : _changingTerms != null
+      ? ShellDialogKind.form
       : state.route.mode == WorkInspectorMode.properties
       ? ShellDialogKind.properties
       : ShellDialogKind.form;
@@ -760,6 +863,7 @@ extension on _WorkScreenState {
 
   Size _dialogSize(WorkReady state) {
     if (_failed()) return const Size(380, 260);
+    if (_changingTerms != null) return const Size(480, 600);
     if (state.route.confirming) return const Size(600, 480);
     if (state.route.adding == WorkAddKind.schedule ||
         state.route.record?.kind == WorkRecordKind.schedule) {
@@ -779,6 +883,7 @@ extension on _WorkScreenState {
   String _dialogTitle(WorkReady state) {
     final route = state.route;
     if (_failed()) return 'Work';
+    if (_changingTerms != null) return 'Change terms';
     if (route.day case final day? when route.record == null) {
       return spokenDate(day);
     }
@@ -871,7 +976,8 @@ extension on _WorkScreenState {
   }
 
   /// The agreement's property sheet: Rate, Premiums, Leave, Notes and
-  /// History, edited in place while no finished shift uses it.
+  /// History, edited in place while no finished shift uses it. One in use
+  /// only widens its dates; new terms start from a date instead.
   Widget _agreement(AgreementRecordProjection record) {
     final agreement = record.agreement;
     final update = widget.onUpdateAgreement;
@@ -880,11 +986,18 @@ extension on _WorkScreenState {
       key: ValueKey(('agreement', agreement.id, agreement.revision)),
       employmentId: agreement.employmentId,
       initial: agreement,
-      readOnly: record.inUse || update == null,
-      lockedReason: record.inUse
-          ? 'Used by $shifts finished ${shifts == 1 ? 'shift' : 'shifts'}, '
-                'so these terms can no longer change.'
-          : null,
+      readOnly: update == null,
+      datesOnly: record.inUse,
+      lockedReason: !record.inUse
+          ? null
+          : shifts == 0
+          ? 'Used by confirmed leave. Change terms from a date to keep its '
+                'pay.'
+          : 'Used by $shifts finished ${shifts == 1 ? 'shift' : 'shifts'}. '
+                'Change terms from a date to keep their pay.',
+      onChangeTerms: record.inUse ? _changeAgreementTerms(agreement) : null,
+      onEnd: _endAgreement(agreement),
+      onRemove: _removeAgreement(agreement, inUse: record.inUse),
       historyRecord: WorkRecordRef(
         kind: WorkRecordKind.agreement,
         id: agreement.id,

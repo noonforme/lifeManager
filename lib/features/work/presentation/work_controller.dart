@@ -67,6 +67,26 @@ final updateAgreementProvider = Provider<UpdateAgreement>(
   (ref) => throw StateError('UpdateAgreement has not been provided.'),
 );
 
+typedef ChangeAgreementTerms = Future<MutationOutcome<PayAgreement>> Function(
+  ChangeAgreementTermsCommand command,
+);
+typedef EndAgreement = Future<MutationOutcome<PayAgreement>> Function(
+  CloseAgreementCommand command,
+);
+typedef RemoveAgreement = Future<MutationOutcome<PayAgreement>> Function(
+  DeleteAgreementCommand command,
+);
+
+final changeAgreementTermsProvider = Provider<ChangeAgreementTerms>(
+  (ref) => throw StateError('ChangeAgreementTerms has not been provided.'),
+);
+final endAgreementProvider = Provider<EndAgreement>(
+  (ref) => throw StateError('EndAgreement has not been provided.'),
+);
+final removeAgreementProvider = Provider<RemoveAgreement>(
+  (ref) => throw StateError('RemoveAgreement has not been provided.'),
+);
+
 typedef FinalizeShift = Future<MutationOutcome<WorkShift>> Function(
   FinalizeShiftCommand command,
 );
@@ -485,6 +505,84 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
       ),
     );
     // The sheet stays where it is: Apply keeps it open, OK closes it.
+    return outcome;
+  }
+
+  /// "Change terms from…": [value]'s start is the From date; [current]
+  /// ends the day before and the new version runs to its end.
+  Future<MutationOutcome<PayAgreement>> changeAgreementTerms(
+    PayAgreement current,
+    AgreementDraft value,
+  ) {
+    draft = value;
+    return ref.read(changeAgreementTermsProvider)(
+      ChangeAgreementTermsCommand(
+        agreementId: current.id,
+        employmentId: current.employmentId,
+        expectedRevision: current.revision,
+        from: value.terms.effectiveStart,
+        terms: value.terms,
+      ),
+    );
+  }
+
+  /// Widens [current] just enough to pay [date]: an earlier start or a
+  /// later end, its terms unchanged. Allowed even while it is in use.
+  Future<MutationOutcome<PayAgreement>> widenAgreementToCover(
+    PayAgreement current,
+    LocalDate date,
+  ) {
+    final end = current.effectiveEnd;
+    return updateAgreement(
+      current,
+      AgreementDraft(
+        employmentId: current.employmentId,
+        terms: AgreementTerms.of(
+          current,
+          effectiveStart: date.compareTo(current.effectiveStart) < 0
+              ? date
+              : null,
+          effectiveEnd: end != null && date.compareTo(end) > 0
+              ? () => date
+              : null,
+        ),
+      ),
+    );
+  }
+
+  /// "End agreement…": [lastDay] becomes [current]'s last day.
+  Future<MutationOutcome<PayAgreement>> endAgreement(
+    PayAgreement current,
+    LocalDate lastDay,
+  ) => ref.read(endAgreementProvider)(
+    CloseAgreementCommand(
+      agreementId: current.id,
+      employmentId: current.employmentId,
+      end: lastDay,
+      expectedRevision: current.revision,
+    ),
+  );
+
+  /// "Remove agreement…": deletes an unused agreement and, when it was the
+  /// open record, returns to the employment's register.
+  Future<MutationOutcome<PayAgreement>> removeAgreement(
+    PayAgreement current,
+  ) async {
+    final outcome = await ref.read(removeAgreementProvider)(
+      DeleteAgreementCommand(
+        agreementId: current.id,
+        employmentId: current.employmentId,
+        expectedRevision: current.revision,
+      ),
+    );
+    if (outcome is Committed<PayAgreement>) {
+      if (ref.read(workRouteProvider) case ValidWorkRoute(:final state)
+          when state.record?.id == current.id) {
+        ref.read(replaceWorkRouteProvider)(
+          state.copyWith(record: () => null, mode: WorkInspectorMode.inspect),
+        );
+      }
+    }
     return outcome;
   }
 

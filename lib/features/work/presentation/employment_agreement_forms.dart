@@ -52,7 +52,9 @@ typedef DeleteEmployment = Future<MutationOutcome<Employment>> Function(
 const staleMessage =
     'This changed since you opened it. Reload to see the latest.';
 const agreementInUseMessage =
-    "This agreement is used by finished shifts and can't be edited.";
+    "This agreement is used by finished shifts and can't be edited. Use "
+    'Change terms from… for new terms from a date.';
+const agreementOverlapMessage = 'These dates overlap another agreement.';
 const employmentHistoryMessage =
     "This employment has work history and can't be deleted.";
 const multiplierMessage = 'Enter a multiplier of 1 or more, e.g. 1.5';
@@ -216,7 +218,9 @@ final class _EmploymentFormState extends State<EmploymentForm> {
 }
 
 /// Creates an agreement with the Labour Code defaults filled in, or edits
-/// an unused [initial] agreement with the same fields.
+/// an unused [initial] agreement with the same fields. One in use edits
+/// only its dates ([datesOnly]); [changingTerms] sets [initial]'s next
+/// terms from a date instead.
 final class AgreementForm extends StatefulWidget {
   const AgreementForm({
     required this.employmentId,
@@ -224,10 +228,15 @@ final class AgreementForm extends StatefulWidget {
     this.initial,
     this.today,
     this.readOnly = false,
+    this.datesOnly = false,
+    this.changingTerms = false,
     this.lockedReason,
     this.historyRecord,
+    this.onChangeTerms,
+    this.onEnd,
+    this.onRemove,
     super.key,
-  });
+  }) : assert(!changingTerms || initial != null);
 
   final EmploymentId employmentId;
   final SubmitAgreement onSubmit;
@@ -235,6 +244,20 @@ final class AgreementForm extends StatefulWidget {
 
   /// Shows the terms greyed: the agreement is evidence for finished shifts.
   final bool readOnly;
+
+  /// Greys every term but the dates, which an agreement in use may widen.
+  final bool datesOnly;
+
+  /// "Change terms from…": [initial]'s terms to start from, with a From
+  /// date in place of its dates. The draft's start is that date and its end
+  /// is [initial]'s.
+  final bool changingTerms;
+
+  /// Keys at the foot of Rate for the agreement's commands; null leaves a
+  /// key out.
+  final VoidCallback? onChangeTerms;
+  final VoidCallback? onEnd;
+  final VoidCallback? onRemove;
 
   /// Why a read-only agreement cannot change, at the top of Rate.
   final String? lockedReason;
@@ -255,8 +278,13 @@ final class _AgreementFormState extends State<AgreementForm> {
   /// The open tab: Rate, Premiums, Leave or Notes.
   int _tab = 0;
   late final LocalDate _today = widget.today ?? _localToday();
-  late LocalDate _effectiveStart = _initial?.effectiveStart ?? _today;
+  late LocalDate _effectiveStart = widget.changingTerms
+      ? _firstFrom(_initial!, _today)
+      : _initial?.effectiveStart ?? _today;
   late LocalDate? _effectiveEnd = _initial?.effectiveEnd;
+
+  /// Edited in place on the agreement's property sheet, which saves it.
+  bool get _onSheet => widget.initial != null && !widget.changingTerms;
   late final _hourlyRate = TextEditingController(
     text: _initial == null ? '' : _eurText(_initial.hourlyRateMicroEur),
   );
@@ -337,7 +365,7 @@ final class _AgreementFormState extends State<AgreementForm> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final sheet = widget.initial == null || widget.readOnly
+    final sheet = !_onSheet || widget.readOnly
         ? null
         : PropertySheetScope.maybeOf(context);
     if (sheet != _sheet) {
@@ -402,7 +430,10 @@ final class _AgreementFormState extends State<AgreementForm> {
     final sickDays = int.tryParse(_sickDays.text.trim());
     final errors = <String, String>{
       if (end != null && end.compareTo(start) < 0)
-        'effectiveEnd': agreementRangeMessage,
+        if (widget.changingTerms)
+          'from': _fromMessage(FieldIssueCode.outOfRange)
+        else
+          'effectiveEnd': agreementRangeMessage,
       if (rate == null || rate <= 0) 'hourlyRate': 'Enter a rate above zero.',
       if (threshold == null) 'overtimeHours': 'Enter hours above zero.',
       if (overtime == null) 'overtimeMultiplier': multiplierMessage,
@@ -462,12 +493,29 @@ final class _AgreementFormState extends State<AgreementForm> {
       _submitting = false;
       switch (outcome) {
         case Invalid<PayAgreement>(:final fields):
+          final from = fields['from']?.first.code;
+          final start = fields['effectiveStart']?.first.code;
+          final end = fields['effectiveEnd']?.first.code;
           if (fields.containsKey('agreement.inUse')) {
             _formError = agreementInUseMessage;
-          } else if (fields.containsKey('effectiveRange')) {
+          } else if (from != null) {
+            _errors = {'from': _fromMessage(from)};
+            _tab = 0;
+          } else if (start == FieldIssueCode.conflict) {
             _errors = {
-              'effectiveEnd': 'These dates overlap another agreement.',
+              'effectiveStart':
+                  'Used by finished shifts, so it can only start earlier.',
             };
+            _tab = 0;
+          } else if (end == FieldIssueCode.conflict) {
+            _errors = {
+              'effectiveEnd':
+                  'Used by finished shifts, so it can only end later. Use '
+                  'End agreement… to end it sooner.',
+            };
+            _tab = 0;
+          } else if (fields.containsKey('effectiveRange')) {
+            _errors = {'effectiveEnd': agreementOverlapMessage};
             // The dates are on Rate; bring it forward to show the problem.
             _tab = _tabOf['effectiveEnd']!;
           } else {
@@ -486,9 +534,25 @@ final class _AgreementFormState extends State<AgreementForm> {
     return outcome;
   }
 
+  /// Why the service refused "Change terms from…" on its From date.
+  String _fromMessage(FieldIssueCode code) {
+    final initial = _initial!;
+    if (code == FieldIssueCode.conflict) {
+      return 'Finished shifts or confirmed leave are paid under these terms '
+          'on or after this day. Pick a later day.';
+    }
+    final end = initial.effectiveEnd;
+    return end == null
+        ? 'Pick a day after the agreement starts, ${initial.effectiveStart}.'
+        : 'Pick a day after the agreement starts, '
+              '${initial.effectiveStart}, and on or before it ends, $end.';
+  }
+
   /// The tab that holds each validated field, so a failed save brings the
   /// first problem forward (XP-authentic shell spec 4.4).
   static const _tabOf = {
+    'from': 0,
+    'effectiveStart': 0,
     'effectiveEnd': 0,
     'hourlyRate': 0,
     'overtimeHours': 1,
@@ -503,8 +567,69 @@ final class _AgreementFormState extends State<AgreementForm> {
 
   @override
   Widget build(BuildContext context) {
-    final editing = widget.initial != null;
+    final editing = _onSheet;
+    final changing = widget.changingTerms;
     final tokens = LifeOSSkinScope.of(context).tokens;
+    final commands = [
+      if (widget.onChangeTerms case final change?)
+        KeyButton(label: 'Change terms from…', onPressed: change),
+      if (widget.onEnd case final end?)
+        KeyButton(label: 'End agreement…', onPressed: end),
+      if (widget.onRemove case final remove?)
+        KeyButton(label: 'Remove agreement…', onPressed: remove),
+    ];
+    final Widget dates = changing
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              EraDateField(
+                label: 'From',
+                fieldKey: const ValueKey('agreement-change-from'),
+                value: _effectiveStart,
+                today: _today,
+                error: _errors['from'],
+                onChanged: (value) => _edit(() => _effectiveStart = value!),
+              ),
+              InspectorNote(
+                'Version ${_initial!.version} ends the day before. The new '
+                'terms run ${switch (_initial.effectiveEnd) {
+                  final end? => 'to $end',
+                  null => 'with no end',
+                }}.',
+              ),
+            ],
+          )
+        // An agreement in use still widens: its dates stay live.
+        : EraFormScope(
+            labelWidth: 120,
+            enabled: !widget.readOnly,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                EraDateField(
+                  label: 'Starts on',
+                  fieldKey: const ValueKey('agreement-effective-start'),
+                  value: _effectiveStart,
+                  today: _today,
+                  error: _errors['effectiveStart'],
+                  onChanged: (value) => _edit(() => _effectiveStart = value!),
+                ),
+                EraDateField(
+                  label: 'Ends on',
+                  optional: true,
+                  fieldKey: const ValueKey('agreement-effective-end'),
+                  value: _effectiveEnd,
+                  today: _today,
+                  error: _errors['effectiveEnd'],
+                  onChanged: (value) => _edit(() => _effectiveEnd = value),
+                ),
+                if (widget.datesOnly)
+                  const InspectorNote(
+                    'Only the dates widen here: start earlier or end later.',
+                  ),
+              ],
+            ),
+          );
     final pages = <List<Widget>>[
       [
         if (widget.lockedReason case final reason?)
@@ -516,22 +641,7 @@ final class _AgreementFormState extends State<AgreementForm> {
           ),
         const SizedBox(height: 8),
         _group(context, 'Rate', [
-          EraDateField(
-            label: 'Starts on',
-            fieldKey: const ValueKey('agreement-effective-start'),
-            value: _effectiveStart,
-            today: _today,
-            onChanged: (value) => _edit(() => _effectiveStart = value!),
-          ),
-          EraDateField(
-            label: 'Ends on',
-            optional: true,
-            fieldKey: const ValueKey('agreement-effective-end'),
-            value: _effectiveEnd,
-            today: _today,
-            error: _errors['effectiveEnd'],
-            onChanged: (value) => _edit(() => _effectiveEnd = value),
-          ),
+          dates,
           _Field(
             controller: _hourlyRate,
             label: 'Hourly rate (€)',
@@ -555,6 +665,7 @@ final class _AgreementFormState extends State<AgreementForm> {
             ),
           ),
         ]),
+        if (commands.isNotEmpty) InspectorActions(children: commands),
       ],
       [
         _group(context, 'Overtime', [
@@ -708,13 +819,17 @@ final class _AgreementFormState extends State<AgreementForm> {
     return Semantics(
       container: true,
       explicitChildNodes: true,
-      label: editing ? 'Agreement' : 'Create agreement',
+      label: changing
+          ? 'Change terms'
+          : editing
+          ? 'Agreement'
+          : 'Create agreement',
       child: Material(
         type: MaterialType.transparency,
         child: Form(
           child: EraFormScope(
             labelWidth: 120,
-            enabled: !widget.readOnly,
+            enabled: !widget.readOnly && !widget.datesOnly,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -762,7 +877,7 @@ final class _AgreementFormState extends State<AgreementForm> {
                     children: [
                       KeyButton(
                         key: const ValueKey('save-agreement'),
-                        label: 'Save agreement',
+                        label: changing ? 'Change terms' : 'Save agreement',
                         kind: KeyKind.primary,
                         onPressed: _submitting ? null : _submit,
                       ),
@@ -917,6 +1032,16 @@ final class _EmploymentSheetState extends State<EmploymentSheet> {
       ),
     );
   }
+}
+
+/// The first From a change of terms offers: today, kept inside
+/// [agreement]'s dates and after its first day.
+LocalDate _firstFrom(PayAgreement agreement, LocalDate today) {
+  final earliest = agreement.effectiveStart.addDays(1);
+  final end = agreement.effectiveEnd;
+  if (today.compareTo(earliest) < 0) return earliest;
+  if (end != null && today.compareTo(end) > 0) return end;
+  return today;
 }
 
 /// A row of short fields read as one sentence, e.g. "after [8] hours".
