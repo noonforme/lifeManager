@@ -34,7 +34,6 @@ final class ConfirmRow {
     required this.times,
     required this.paidSeconds,
     required this.pay,
-    this.withoutAgreement = false,
   });
 
   final LocalDate date;
@@ -48,10 +47,6 @@ final class ConfirmRow {
 
   /// Null when no agreement covers the date.
   final Money? pay;
-
-  /// No pay agreement covers the date, so the day is listed unavailable:
-  /// never ticked, never counted.
-  final bool withoutAgreement;
 }
 
 List<ConfirmRow> confirmRows(
@@ -59,7 +54,6 @@ List<ConfirmRow> confirmRows(
   required ExpectedPay? Function(PlannedShift shift) shiftPay,
   required LeavePay? Function(PlannedLeave leave) leavePay,
   required TimezoneService timezones,
-  bool Function(PlannedDay day)? withoutAgreement,
 }) => [
   for (final day in days)
     switch (day) {
@@ -69,7 +63,6 @@ List<ConfirmRow> confirmRows(
         times: shiftTimes(day.startUtc, day.endUtc, day.timezoneId, timezones),
         paidSeconds: day.paidSeconds,
         pay: shiftPay(day)?.amount,
-        withoutAgreement: withoutAgreement?.call(day) ?? false,
       ),
       PlannedLeave() => ConfirmRow(
         date: day.date,
@@ -77,7 +70,6 @@ List<ConfirmRow> confirmRows(
         times: '',
         paidSeconds: day.paidMinutes * 60,
         pay: leavePay(day)?.amount,
-        withoutAgreement: withoutAgreement?.call(day) ?? false,
       ),
       _ => null,
     },
@@ -97,12 +89,17 @@ final class ConfirmDaysDialog extends StatefulWidget {
   const ConfirmDaysDialog({
     required this.rows,
     required this.onConfirm,
+    this.unavailable = const [],
     this.agreementFor,
     super.key,
   });
 
-  /// The days by date, those no agreement covers among them.
+  /// The days to confirm, by date.
   final List<ConfirmRow> rows;
+
+  /// Past days no pay agreement covers, by date: listed after [rows] in a
+  /// group of their own, never ticked, never counted (added 2026-10-07).
+  final List<ConfirmRow> unavailable;
 
   /// The way to pay an unavailable day; null offers none.
   final AgreementLink? Function(LocalDate date)? agreementFor;
@@ -126,7 +123,7 @@ final class _ConfirmDaysDialogState extends State<ConfirmDaysDialog> {
 
   List<ConfirmRow> get _ticked => [
     for (final row in widget.rows)
-      if (!row.withoutAgreement && !_unticked.contains(row.date)) row,
+      if (!_unticked.contains(row.date)) row,
   ];
 
   Future<void> _confirm() async {
@@ -163,7 +160,8 @@ final class _ConfirmDaysDialogState extends State<ConfirmDaysDialog> {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
     final close = ShellDialogScope.closeOf(context);
-    if (widget.rows.isEmpty) {
+    final unpaid = widget.unavailable;
+    if (widget.rows.isEmpty && unpaid.isEmpty) {
       return DialogForm(
         fields: const [InspectorText('Every past planned day is confirmed.')],
         keys: [
@@ -172,10 +170,6 @@ final class _ConfirmDaysDialogState extends State<ConfirmDaysDialog> {
       );
     }
     final style = skin.typography.body.copyWith(color: tokens.ink);
-    final unpaid = [
-      for (final row in widget.rows)
-        if (row.withoutAgreement) row,
-    ];
     Widget head(String text, double width, {bool end = false}) => Container(
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
@@ -201,6 +195,49 @@ final class _ConfirmDaysDialogState extends State<ConfirmDaysDialog> {
             style: ink == null ? style : style.copyWith(color: ink),
           ),
         );
+    Widget note(String text, Color ink) => Padding(
+      padding: const EdgeInsets.fromLTRB(184, 0, 4, 4),
+      child: Text(text, style: style.copyWith(color: ink)),
+    );
+    // An unavailable day is listed with its reason, never ticked.
+    Widget line(ConfirmRow row, {required bool available}) => Column(
+      key: ValueKey('confirm-row-${row.date}'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 24,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 180,
+                child: EraCheckBox(
+                  label: eraBoxDate(row.date),
+                  value: available && !_unticked.contains(row.date),
+                  onChanged: _busy || !available
+                      ? null
+                      : (ticked) => setState(
+                          () => ticked
+                              ? _unticked.remove(row.date)
+                              : _unticked.add(row.date),
+                        ),
+                ),
+              ),
+              cell(row.what, 70),
+              cell(row.times, 90),
+              cell(formatDuration(row.paidSeconds), 52, end: true),
+              cell(
+                row.pay == null ? '—' : formatMoney(row.pay!),
+                82,
+                end: true,
+              ),
+            ],
+          ),
+        ),
+        if (!available) note('No pay agreement covers this day.', tokens.muted),
+        if (_problems[row.date] case final problem?)
+          note(problem, tokens.negative),
+      ],
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -229,76 +266,30 @@ final class _ConfirmDaysDialogState extends State<ConfirmDaysDialog> {
                   child: ListView(
                     key: const ValueKey('confirm-days-list'),
                     children: [
-                      for (final row in widget.rows)
-                        Column(
-                          key: ValueKey('confirm-row-${row.date}'),
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            SizedBox(
-                              height: 24,
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    width: 180,
-                                    child: EraCheckBox(
-                                      label: eraBoxDate(row.date),
-                                      value:
-                                          !row.withoutAgreement &&
-                                          !_unticked.contains(row.date),
-                                      onChanged: _busy || row.withoutAgreement
-                                          ? null
-                                          : (ticked) => setState(
-                                              () => ticked
-                                                  ? _unticked.remove(row.date)
-                                                  : _unticked.add(row.date),
-                                            ),
-                                    ),
-                                  ),
-                                  cell(row.what, 70),
-                                  cell(row.times, 90),
-                                  cell(
-                                    formatDuration(row.paidSeconds),
-                                    52,
-                                    end: true,
-                                  ),
-                                  cell(
-                                    row.pay == null
-                                        ? '—'
-                                        : formatMoney(row.pay!),
-                                    82,
-                                    end: true,
-                                  ),
-                                ],
+                      for (final row in widget.rows) line(row, available: true),
+                      if (unpaid.isNotEmpty)
+                        Semantics(
+                          header: true,
+                          child: Container(
+                            constraints: const BoxConstraints(minHeight: 22),
+                            padding: const EdgeInsets.fromLTRB(5, 9, 5, 1),
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: MillenniumColors.groupRowRule,
+                                ),
                               ),
                             ),
-                            if (row.withoutAgreement)
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  184,
-                                  0,
-                                  4,
-                                  4,
-                                ),
-                                child: Text(
-                                  'No pay agreement covers this day.',
-                                  style: style.copyWith(color: tokens.muted),
-                                ),
+                            child: Text(
+                              'Without a pay agreement',
+                              style: style.copyWith(
+                                color: tokens.head,
+                                fontWeight: FontWeight.w700,
                               ),
-                            if (_problems[row.date] case final problem?)
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  184,
-                                  0,
-                                  4,
-                                  4,
-                                ),
-                                child: Text(
-                                  problem,
-                                  style: style.copyWith(color: tokens.negative),
-                                ),
-                              ),
-                          ],
+                            ),
+                          ),
                         ),
+                      for (final row in unpaid) line(row, available: false),
                     ],
                   ),
                 ),
@@ -373,36 +364,37 @@ final class ConfirmDaysHost extends ConsumerWidget {
       AsyncData(:final value) => value.agreements,
       _ => const <PayAgreement>[],
     };
-    // Listed among the days by date, unavailable until an agreement pays
-    // them (spec 6.3, added 2026-10-07).
-    final unpaid = switch (ref.watch(
-      daysWithoutAgreementProvider(employmentId),
-    )) {
-      AsyncData(:final value) => value,
-      _ => const <PlannedDay>[],
-    };
-    return switch (ref.watch(daysToConfirmProvider(employmentId))) {
+    ExpectedPay? shiftPay(PlannedShift shift) => plannedPay(
+      shift,
+      agreements: agreements,
+      employmentId: employmentId,
+      zoneClocks: zones,
+    );
+    LeavePay? leavePay(PlannedLeave leave) => register == null
+        ? null
+        : plannedLeavePay(
+            leave,
+            employmentId: employmentId,
+            agreements: agreements,
+            shifts: register.shiftSheet,
+            leave: register.leaveSheet,
+          );
+    // One plan gives both lists, so a day widened into pay moves between
+    // them in one step and is never listed twice.
+    return switch (ref.watch(pastPlannedDaysProvider(employmentId))) {
       AsyncData(:final value) => ConfirmDaysDialog(
         agreementFor: agreementFor,
         rows: confirmRows(
-          [...value, ...unpaid]..sort((a, b) => a.date.compareTo(b.date)),
+          value.toConfirm,
           timezones: timezones,
-          withoutAgreement: unpaid.contains,
-          shiftPay: (shift) => plannedPay(
-            shift,
-            agreements: agreements,
-            employmentId: employmentId,
-            zoneClocks: zones,
-          ),
-          leavePay: (leave) => register == null
-              ? null
-              : plannedLeavePay(
-                  leave,
-                  employmentId: employmentId,
-                  agreements: agreements,
-                  shifts: register.shiftSheet,
-                  leave: register.leaveSheet,
-                ),
+          shiftPay: shiftPay,
+          leavePay: leavePay,
+        ),
+        unavailable: confirmRows(
+          value.withoutAgreement,
+          timezones: timezones,
+          shiftPay: shiftPay,
+          leavePay: leavePay,
         ),
         onConfirm: (dates) async {
           final service = ref.read(dayPlanServiceProvider);

@@ -127,8 +127,8 @@ final class ShellChromeHost extends ConsumerWidget {
     ).toString();
 
     int toConfirm(Employment value) =>
-        switch (ref.watch(daysToConfirmProvider(value.id))) {
-          AsyncData(:final value) => value.length,
+        switch (ref.watch(pastPlannedDaysProvider(value.id))) {
+          AsyncData(:final value) => value.toConfirm.length,
           _ => 0,
         };
     String sheetRoute(Employment value, WorkSheet sheet) => workRouteUri(

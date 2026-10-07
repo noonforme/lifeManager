@@ -33,6 +33,13 @@ final class ConfirmedLeave extends ConfirmedDay {
   final LeaveRecord leave;
 }
 
+/// Past planned work not yet confirmed: the days to confirm, and those no
+/// pay agreement covers, which can't be until one does.
+typedef PastPlannedDays = ({
+  List<PlannedDay> toConfirm,
+  List<PlannedDay> withoutAgreement,
+});
+
 /// Everything the planner reads for one employment, read together.
 final class PlanInputs {
   const PlanInputs({
@@ -126,42 +133,35 @@ final class DayPlanService {
   /// Past planned shifts and leave not yet confirmed, oldest first: from the
   /// first date any schedule is in use up to the day before [today]. A day
   /// no pay agreement covers can't be confirmed, so it is left out
-  /// ([daysWithoutAgreement] lists it).
+  /// ([pastDays] lists it apart).
   Future<List<PlannedDay>> daysToConfirm(
     EmploymentId id, {
     required LocalDate today,
-  }) async => _past(await repository.planInputs(id), id, today).toConfirm;
+  }) async => (await pastDays(id, today: today)).toConfirm;
 
   /// [daysToConfirm], live: a day leaves the list once it is confirmed.
   Stream<List<PlannedDay>> watchDaysToConfirm(
     EmploymentId id, {
     required LocalDate today,
-  }) => repository
-      .watchPlanInputs(id)
-      .map((inputs) => _past(inputs, id, today).toConfirm);
+  }) => watchPastDays(id, today: today).map((days) => days.toConfirm);
 
-  /// The past planned days [daysToConfirm] leaves out because no pay
-  /// agreement covers them, oldest first (spec 5, added 2026-10-07).
-  Future<List<PlannedDay>> daysWithoutAgreement(
+  /// The past planned days not yet confirmed, split by whether a pay
+  /// agreement covers them (spec 5, added 2026-10-07). Both lists come
+  /// from one plan, so a day is in exactly one of them.
+  Future<PastPlannedDays> pastDays(
     EmploymentId id, {
     required LocalDate today,
-  }) async =>
-      _past(await repository.planInputs(id), id, today).withoutAgreement;
+  }) async => _past(await repository.planInputs(id), id, today);
 
-  /// [daysWithoutAgreement], live: a day joins the days to confirm once an
-  /// agreement covers it.
-  Stream<List<PlannedDay>> watchDaysWithoutAgreement(
+  /// [pastDays], live: a day moves to the days to confirm once an
+  /// agreement covers it, and leaves both once it is confirmed.
+  Stream<PastPlannedDays> watchPastDays(
     EmploymentId id, {
     required LocalDate today,
-  }) => repository
-      .watchPlanInputs(id)
-      .map((inputs) => _past(inputs, id, today).withoutAgreement);
+  }) =>
+      repository.watchPlanInputs(id).map((inputs) => _past(inputs, id, today));
 
-  ({List<PlannedDay> toConfirm, List<PlannedDay> withoutAgreement}) _past(
-    PlanInputs inputs,
-    EmploymentId id,
-    LocalDate today,
-  ) {
+  PastPlannedDays _past(PlanInputs inputs, EmploymentId id, LocalDate today) {
     const none = (toConfirm: <PlannedDay>[], withoutAgreement: <PlannedDay>[]);
     if (inputs.schedules.isEmpty) return none;
     final from = inputs.schedules
@@ -177,7 +177,10 @@ final class DayPlanService {
           ? withoutAgreement.add(day)
           : toConfirm.add(day);
     }
-    return (toConfirm: toConfirm, withoutAgreement: withoutAgreement);
+    return (
+      toConfirm: List.unmodifiable(toConfirm),
+      withoutAgreement: List.unmodifiable(withoutAgreement),
+    );
   }
 
   Future<MutationOutcome<DayException>> changeDay(

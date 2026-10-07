@@ -263,15 +263,27 @@ final class DeskHost extends ConsumerWidget {
         ))
           value,
     ];
-    final waiting = {
+    final past = {
       for (final employment in employments)
         employment.id: switch (ref.watch(
-          daysToConfirmProvider(employment.id),
+          pastPlannedDaysProvider(employment.id),
         )) {
-          AsyncData(:final value) => [for (final day in value) day.date],
-          _ => const <LocalDate>[],
+          AsyncData(:final value) => value,
+          _ => null,
         },
     };
+    final waiting = {
+      for (final MapEntry(:key, :value) in past.entries)
+        key: [
+          for (final day in value?.toConfirm ?? const <PlannedDay>[]) day.date,
+        ],
+    };
+    // Not confirmable until an agreement covers them, so apart.
+    final unpaid = [
+      for (final value in past.values)
+        for (final day in value?.withoutAgreement ?? const <PlannedDay>[])
+          day.date,
+    ];
     final title = _sheetNames[sheet] ?? sheet;
     final firstEmployment = employments.firstOrNull?.id;
     String workRoute({WorkSheet sheet = WorkSheet.shifts}) => workRouteUri(
@@ -421,6 +433,7 @@ final class DeskHost extends ConsumerWidget {
           registers,
           month,
           unconfirmed: [for (final dates in waiting.values) ...dates],
+          withoutAgreement: unpaid,
         );
         return (
           title: title,

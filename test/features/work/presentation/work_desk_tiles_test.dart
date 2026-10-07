@@ -214,6 +214,38 @@ void main() {
     expect(checks.first.done, isFalse);
     expect(checks.first.detail, '2 days to confirm');
   });
+
+  test('a month whose only open days have no pay agreement is not done', () {
+    const august = (start: LocalDate(2026, 8, 1), end: LocalDate(2026, 8, 31));
+    final unpaid = [
+      for (var day = 1; day <= 16; day++) LocalDate(2026, 8, day),
+      // Outside the month: not counted.
+      const LocalDate(2026, 7, 31),
+    ];
+    final only = monthChecklist(
+      const [],
+      august,
+      withoutAgreement: unpaid,
+    ).first;
+    expect(only.done, isFalse);
+    expect(only.detail, '16 days without a pay agreement');
+
+    final both = monthChecklist(
+      const [],
+      august,
+      unconfirmed: const [LocalDate(2026, 8, 20), LocalDate(2026, 8, 21)],
+      withoutAgreement: unpaid,
+    ).first;
+    expect(both.done, isFalse);
+    expect(both.detail, '2 days to confirm · 16 without a pay agreement');
+
+    final one = monthChecklist(
+      const [],
+      august,
+      withoutAgreement: const [LocalDate(2026, 8, 3)],
+    ).first;
+    expect(one.detail, '1 day without a pay agreement');
+  });
 }
 
 const _employmentId = EmploymentId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c11');

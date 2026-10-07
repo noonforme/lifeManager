@@ -343,21 +343,14 @@ final zoneClocksProvider = Provider<ZoneClocks>(
   (ref) => zoneClocksOf(ref.watch(timezoneServiceProvider)),
 );
 
-/// Past planned days of one employment not yet confirmed, live.
-final daysToConfirmProvider = StreamProvider.autoDispose
-    .family<List<PlannedDay>, EmploymentId>(
+/// Past planned days of one employment not yet confirmed, live: the days
+/// to confirm and those no pay agreement covers, from one plan so a day is
+/// never in both.
+final pastPlannedDaysProvider = StreamProvider.autoDispose
+    .family<PastPlannedDays, EmploymentId>(
       (ref, id) => ref
           .watch(dayPlanServiceProvider)
-          .watchDaysToConfirm(id, today: ref.watch(currentDateProvider)),
-    );
-
-/// Past planned days of one employment that no pay agreement covers, so
-/// they can't be confirmed yet, live.
-final daysWithoutAgreementProvider = StreamProvider.autoDispose
-    .family<List<PlannedDay>, EmploymentId>(
-      (ref, id) => ref
-          .watch(dayPlanServiceProvider)
-          .watchDaysWithoutAgreement(id, today: ref.watch(currentDateProvider)),
+          .watchPastDays(id, today: ref.watch(currentDateProvider)),
     );
 
 final workControllerProvider =

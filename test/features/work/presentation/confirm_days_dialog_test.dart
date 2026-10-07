@@ -126,6 +126,56 @@ void main() {
     return () => closed;
   }
 
+  testWidgets('days to confirm come first; unavailable ones follow apart', (
+    tester,
+  ) async {
+    ConfirmRow row(LocalDate date) => ConfirmRow(
+      date: date,
+      what: 'Day',
+      times: '07:00–19:00',
+      paidSeconds: 41400,
+      pay: null,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLifeOSTheme(),
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: SizedBox(
+              width: 600,
+              height: 480,
+              child: ShellDialogScope(
+                onClose: () {},
+                child: ConfirmDaysDialog(
+                  rows: [
+                    row(const LocalDate(2026, 9, 1)),
+                    row(const LocalDate(2026, 9, 2)),
+                  ],
+                  // Older than every day to confirm.
+                  unavailable: [
+                    row(const LocalDate(2026, 7, 6)),
+                    row(const LocalDate(2026, 7, 7)),
+                  ],
+                  onConfirm: (dates) async => const {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    double top(Finder finder) => tester.getTopLeft(finder).dy;
+    Finder date(String value) => find.byKey(ValueKey('confirm-row-$value'));
+    final group = find.text('Without a pay agreement');
+    expect(top(date('2026-09-01')), lessThan(top(date('2026-09-02'))));
+    expect(top(date('2026-09-02')), lessThan(top(group)));
+    expect(top(group), lessThan(top(date('2026-07-06'))));
+    expect(top(date('2026-07-06')), lessThan(top(date('2026-07-07'))));
+    // Only the days to confirm are ticked and counted.
+    expect(find.textContaining('2 days · 23:00 paid'), findsOneWidget);
+    expect(find.text('2 days without a pay agreement'), findsOneWidget);
+  });
+
   final committed6 = Committed<ConfirmedDay>(
     ConfirmedShift(confirmedDayRow(const LocalDate(2026, 10, 6)).shift),
   );

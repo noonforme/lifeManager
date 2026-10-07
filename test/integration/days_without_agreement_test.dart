@@ -211,8 +211,15 @@ void main() {
         today: const LocalDate(2026, 10, 7),
       )).length;
     });
-    // 6 July – 31 August: 14 work days in July, 16 in August.
-    final row = find.byKey(const ValueKey('confirm-row-2026-08-11'));
+    // The days to confirm come first: 4 September, the first paid Day,
+    // tops the list.
+    expect(
+      find.byKey(const ValueKey('confirm-row-2026-09-04')),
+      findsOneWidget,
+    );
+    // 6 July – 31 August, 14 work days in July and 16 in August, follow
+    // under a group of their own.
+    final row = find.byKey(const ValueKey('confirm-row-2026-07-06'));
     await tester.scrollUntilVisible(
       row,
       200,
@@ -233,6 +240,10 @@ void main() {
     );
     expect(box.value, isFalse);
     expect(box.onChanged, isNull);
+    expect(
+      tester.getTopLeft(find.text('Without a pay agreement')).dy,
+      lessThan(tester.getTopLeft(row).dy),
+    );
     // Only the paid days are ticked and counted.
     expect(find.textContaining('$paid days ·'), findsOneWidget);
     expect(find.textContaining('30 days without a pay agreement'), findsOne);
@@ -248,8 +259,29 @@ void main() {
       findsOneWidget,
     );
     await tester.tap(find.widgetWithText(KeyButton, 'Extend'));
+    // Frame by frame while the widened plan arrives: a day is listed once,
+    // never as both to confirm and unavailable.
+    for (var frame = 0; frame < 30; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(tester.takeException(), isNull);
+      final keys = [
+        for (final element
+            in find
+                .byWidgetPredicate(
+                  (widget) =>
+                      widget.key is ValueKey<String> &&
+                      (widget.key! as ValueKey<String>).value.startsWith(
+                        'confirm-row-',
+                      ),
+                )
+                .evaluate())
+          (element.widget.key! as ValueKey<String>).value,
+      ];
+      expect(keys.toSet(), hasLength(keys.length));
+    }
     await tester.pumpAndSettle();
     expect(find.text('No pay agreement covers this day.'), findsNothing);
+    expect(find.text('Without a pay agreement'), findsNothing);
     expect(find.textContaining('${paid + 30} days ·'), findsOneWidget);
   });
 
@@ -275,5 +307,22 @@ void main() {
       find.text('Unavailable: no pay agreement covers this day.'),
       findsNothing,
     );
+  });
+
+  testWidgets('the month close checklist is not done while days lack an '
+      'agreement', (tester) async {
+    await pumpScheduledApp(
+      tester,
+      location: '/today',
+      now: DateTime.utc(2026, 8, 20, 9),
+      scheduleFrom: const LocalDate(2026, 7, 6),
+      size: const Size(1280, 900),
+    );
+    await tester.tap(find.text('Month close'));
+    await tester.pumpAndSettle();
+    expect(find.text('Every past planned day is confirmed'), findsOneWidget);
+    // Before the 20th: 1 August, 5–7, 11–13 and 17–19.
+    expect(find.text('10 days without a pay agreement'), findsOneWidget);
+    expect(find.text('All confirmed'), findsNothing);
   });
 }

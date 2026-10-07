@@ -154,11 +154,15 @@ void main() {
     );
     // 1 September Night; 2 September Off.
     expect(pending.map((day) => day.date), [const LocalDate(2026, 9, 1)]);
-    final unpaid = await plans.daysWithoutAgreement(
+    // Both lists come from one plan, so a day is in exactly one of them.
+    final past = await plans.pastDays(
       employment,
       today: const LocalDate(2026, 9, 3),
     );
-    expect(unpaid.map((day) => day.date), [
+    expect(past.toConfirm.map((day) => day.date), [
+      const LocalDate(2026, 9, 1),
+    ]);
+    expect(past.withoutAgreement.map((day) => day.date), [
       const LocalDate(2026, 8, 24),
       const LocalDate(2026, 8, 25),
       const LocalDate(2026, 8, 26),

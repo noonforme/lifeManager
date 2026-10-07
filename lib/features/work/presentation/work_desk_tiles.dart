@@ -221,11 +221,13 @@ final class ChecklistItem {
 }
 
 /// Month close checks over [month]'s dates. Each item is true only when the
-/// data says so.
+/// data says so: a past planned day [withoutAgreement] lists is neither
+/// confirmed nor confirmable, so it keeps the first item open.
 List<ChecklistItem> monthChecklist(
   List<WorkRegisterProjection> registers,
   ({LocalDate start, LocalDate end}) month, {
   List<LocalDate> unconfirmed = const [],
+  List<LocalDate> withoutAgreement = const [],
 }) {
   bool inMonth(LocalDate date) =>
       date.compareTo(month.start) >= 0 && date.compareTo(month.end) <= 0;
@@ -240,6 +242,7 @@ List<ChecklistItem> monthChecklist(
           row,
   ];
   final waiting = unconfirmed.where(inMonth).length;
+  final unpaid = withoutAgreement.where(inMonth).length;
   final periods = [
     for (final register in registers)
       for (final row in register.periodSheet)
@@ -258,9 +261,14 @@ List<ChecklistItem> monthChecklist(
   return [
     ChecklistItem(
       label: 'Every past planned day is confirmed',
-      done: open.isEmpty && waiting == 0,
-      detail: waiting > 0
+      done: open.isEmpty && waiting == 0 && unpaid == 0,
+      detail: waiting > 0 && unpaid > 0
+          ? '${count(waiting, 'day', 'days')} to confirm · '
+                '$unpaid without a pay agreement'
+          : waiting > 0
           ? '${count(waiting, 'day', 'days')} to confirm'
+          : unpaid > 0
+          ? '${count(unpaid, 'day', 'days')} without a pay agreement'
           : open.isNotEmpty
           ? '${count(open.length, 'shift', 'shifts')} still drafts'
           : 'All confirmed',
