@@ -69,6 +69,7 @@ final class WorkScreen extends StatefulWidget {
     this.onUpdateAgreement,
     this.today,
     this.lastShiftTemplate,
+    this.plannedShifts = const [],
     this.onSaveView,
     this.schedules = const [],
     this.onOpenProperties,
@@ -136,6 +137,10 @@ final class WorkScreen extends StatefulWidget {
 
   /// The selected employment's last finalized shift, for "from last time".
   final ShiftTemplate? lastShiftTemplate;
+
+  /// The Shifts sheet's planned days; empty on every other sheet, which
+  /// never plans (schedules spec 6.6).
+  final List<PlannedShiftRow> plannedShifts;
 
   /// Saves the sheet on the desk, with its filters, as a named view.
   final ValueChanged<WorkRouteState>? onSaveView;
@@ -312,8 +317,6 @@ final class _WorkScreenState extends State<WorkScreen> {
       WorkTaskContext(
         selected: selected,
         plannedDay: plannedDay,
-        dayConfirmable:
-            plannedDay != null && plannedDay.day.date.compareTo(_today) <= 0,
         onOpenDay: () =>
             _go(route.copyWith(mode: WorkInspectorMode.properties)),
         onConfirmDays: widget.schedules.isEmpty
@@ -378,10 +381,7 @@ final class _WorkScreenState extends State<WorkScreen> {
         : register.hasAgreement
         ? WorkDetails(
             projection: register,
-            listsPlanned:
-                (state.route.sheet ??
-                    defaultSheetFor(widget.schedules, _today)) ==
-                WorkSheet.shifts,
+            plannedShifts: widget.plannedShifts.length,
           )
         : const TaskDetails(lines: [Text('No pay agreement yet.')]);
     // The selected record leads; the scope's totals stay under it, so a
@@ -465,6 +465,7 @@ final class _WorkScreenState extends State<WorkScreen> {
         ),
         route: route,
         onRoute: _go,
+        plannedShifts: widget.plannedShifts,
         onProperties: widget.onOpenProperties,
         timezones: widget.timezones,
       ),
@@ -708,14 +709,17 @@ extension on _WorkScreenState {
   }
 
   /// The planned day selected on the Shifts sheet: the route's day while
-  /// no record is open, when the scope still plans it.
+  /// no record is open, when the scope still plans it. A day left in the
+  /// route on another sheet selects nothing.
   PlannedShiftRow? _plannedDay(WorkReady state) {
     final route = state.route;
     final day = route.day;
     if (day == null || route.record != null) return null;
-    return state.register.plannedShiftSheet
-        .where((row) => row.day.date == day)
-        .firstOrNull;
+    if ((route.sheet ?? defaultSheetFor(widget.schedules, _today)) !=
+        WorkSheet.shifts) {
+      return null;
+    }
+    return widget.plannedShifts.where((row) => row.day.date == day).firstOrNull;
   }
 
   WorkRecordProjection? _selected(WorkReady state) => switch (state.inspector) {

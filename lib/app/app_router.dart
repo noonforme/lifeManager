@@ -7,6 +7,7 @@ import '../features/journal/journal_sheet.dart';
 import '../features/work/data/projections/work_register_projection.dart';
 import '../features/work/domain/ids.dart';
 import '../features/work/presentation/work_controller.dart';
+import '../features/work/presentation/work_plan_view.dart';
 import '../features/work/presentation/work_route_state.dart';
 import '../features/work/presentation/work_screen.dart';
 import '../features/work/presentation/work_toolbar_controls.dart';
@@ -105,9 +106,38 @@ final class _WorkRouteHost extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final route = switch (ref.watch(workRouteProvider)) {
+      ValidWorkRoute(:final state) => state,
+      InvalidWorkRoute() => null,
+    };
+    final employmentId = route?.employmentId;
+    final today = ref.watch(currentDateProvider);
+    final schedules = employmentId == null
+        ? null
+        : switch (ref.watch(employmentSchedulesProvider(employmentId))) {
+            AsyncData(:final value) => value,
+            _ => null,
+          };
+    // Only the Shifts sheet plans its days; while the schedules load, the
+    // default sheet is not known yet, so nothing is planned.
+    final shown =
+        route?.sheet ??
+        (schedules == null ? null : defaultSheetFor(schedules, today));
+    final plannedShifts = employmentId != null && shown == WorkSheet.shifts
+        ? switch (ref.watch(
+            plannedShiftsProvider((
+              employment: employmentId,
+              scope: route?.scope,
+            )),
+          )) {
+            AsyncData(:final value) => value,
+            _ => const <PlannedShiftRow>[],
+          }
+        : const <PlannedShiftRow>[];
     return Scaffold(
       body: WorkScreen(
         state: ref.watch(workControllerProvider),
+        plannedShifts: plannedShifts,
         onSelect: (record) {
           final parsed = ref.read(workRouteProvider);
           if (parsed case ValidWorkRoute(:final state)) {
@@ -220,15 +250,8 @@ final class _WorkRouteHost extends ConsumerWidget {
         onUpdateAgreement: ref
             .read(workControllerProvider.notifier)
             .updateAgreement,
-        today: ref.watch(currentDateProvider),
-        schedules: switch (ref.watch(workRouteProvider)) {
-          ValidWorkRoute(state: WorkRouteState(:final employmentId?)) =>
-            switch (ref.watch(employmentSchedulesProvider(employmentId))) {
-              AsyncData(:final value) => value,
-              _ => const [],
-            },
-          _ => const [],
-        },
+        today: today,
+        schedules: schedules ?? const [],
         onSaveView: switch (ref.watch(savedViewRepositoryProvider)) {
           null => null,
           final views => (route) async {

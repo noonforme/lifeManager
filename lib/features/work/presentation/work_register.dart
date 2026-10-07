@@ -37,6 +37,7 @@ final class WorkRegister extends StatelessWidget {
     this.onRoute,
     this.timezones,
     this.defaultSheet = WorkSheet.shifts,
+    this.plannedShifts = const [],
     super.key,
   });
 
@@ -69,6 +70,9 @@ final class WorkRegister extends StatelessWidget {
 
   /// The sheet shown when the route names none (schedules spec 5).
   final WorkSheet defaultSheet;
+
+  /// The planned days the Shifts sheet lists among its shifts.
+  final List<PlannedShiftRow> plannedShifts;
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +152,7 @@ final class WorkRegister extends StatelessWidget {
         onOpen: onSelect,
         onProperties: onProperties,
         showVoid: route.showVoid,
-        planned: value.plannedShiftSheet,
+        planned: plannedShifts,
         onOpenDay: (day) => change(
           route.copyWith(
             record: () => null,
@@ -283,15 +287,15 @@ final class WorkRegister extends StatelessWidget {
 final class WorkDetails extends StatelessWidget {
   const WorkDetails({
     required this.projection,
-    this.listsPlanned = false,
+    this.plannedShifts = 0,
     super.key,
   });
 
   final WorkRegisterProjection projection;
 
-  /// Whether the desk lists the scope's planned shifts (the Shifts sheet),
-  /// so their count is given beside the recorded one.
-  final bool listsPlanned;
+  /// The planned shifts the Shifts sheet lists, counted beside the
+  /// recorded ones; zero on every other sheet.
+  final int plannedShifts;
 
   @override
   Widget build(BuildContext context) {
@@ -320,9 +324,12 @@ final class WorkDetails extends StatelessWidget {
         ],
         Text(shifts == 1 ? '1 shift' : '$shifts shifts'),
         // Planned days are counted apart: they are not records yet.
-        if (projection.plannedShiftSheet.length case final n
-            when listsPlanned && n > 0)
-          Text(n == 1 ? '1 planned shift' : '$n planned shifts'),
+        if (plannedShifts > 0)
+          Text(
+            plannedShifts == 1
+                ? '1 planned shift'
+                : '$plannedShifts planned shifts',
+          ),
         if (projection.plannedNotConfirmed case final n when n > 0)
           Text(
             n == 1

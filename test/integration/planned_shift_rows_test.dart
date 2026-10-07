@@ -86,6 +86,14 @@ void main() {
         ),
         findsOneWidget,
       );
+      // Today's day is confirmable already, as its Properties say.
+      expect(
+        find.descendant(
+          of: _row('day:2026-10-07'),
+          matching: find.text('To confirm'),
+        ),
+        findsOneWidget,
+      );
       // Rows run by date: the confirmed 5th first, then the 6th.
       final fifth = tester.getTopLeft(_shiftRows()).dy;
       final sixth = tester.getTopLeft(_row('day:2026-10-06')).dy;
@@ -112,6 +120,12 @@ void main() {
         findsOneWidget,
       );
       expect(find.widgetWithText(TaskLink, 'Remove this shift…'), findsNothing);
+      // The Work tasks stay under the day's own.
+      expect(find.widgetWithText(TaskLink, 'Add a shift'), findsOneWidget);
+      expect(
+        find.widgetWithText(TaskLink, 'Confirm worked days…'),
+        findsOneWidget,
+      );
 
       // Enter opens that day's Properties, not a shift's.
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -156,6 +170,19 @@ void main() {
     expect(_row('day:2026-10-05'), findsOneWidget);
     expect(_row('day:2026-11-30'), findsOneWidget);
     expect(_row('day:2026-12-01'), findsNothing);
+    // Every planned row sits below the one before it: the planner's start
+    // order, which the sheet's merge relies on.
+    final tops = [
+      for (final element in _plannedRows().evaluate())
+        tester.getTopLeft(find.byWidget(element.widget)).dy,
+    ];
+    final dates = [
+      for (final element in _plannedRows().evaluate())
+        (element.widget.key! as ValueKey<String>).value,
+    ];
+    expect(tops.length, greaterThan(20));
+    expect(tops, [...tops]..sort());
+    expect(dates, [...dates]..sort());
     // No recorded shifts yet, so the recorded figures stay at nothing.
     expect(find.text('0 shifts'), findsOneWidget);
   });
@@ -212,5 +239,32 @@ void main() {
     expect(_row('day:2026-10-05'), findsOneWidget);
     expect(_plannedRows(), findsNWidgets(15));
     expect(find.text('0 shifts'), findsOneWidget);
+  });
+
+  testWidgets('only the Shifts sheet plans its days', (tester) async {
+    final app = await pumpScheduledApp(tester);
+    final repository = app.work.workRepository;
+    // The default sheet is the Calendar; Details there counts no plan.
+    expect(locationOf(app), isNot(contains('sheet=')));
+    expect(find.textContaining('planned shift'), findsNothing);
+    for (final sheet in ['periods', 'payslips', 'leave', 'calendar']) {
+      app.router.go('/work?employment=${app.employment}&sheet=$sheet');
+      await tester.pumpAndSettle();
+    }
+    // A day left in the route on another sheet selects nothing.
+    app.router.go(
+      '/work?employment=${app.employment}&sheet=calendar'
+      '&day=2026-10-06&mode=inspect',
+    );
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(TaskLink, 'Confirm this day…'), findsNothing);
+    app.router.go('/');
+    await tester.pumpAndSettle();
+    expect(repository.plannedLoads, 0);
+
+    app.router.go('/work?employment=${app.employment}&sheet=shifts');
+    await tester.pumpAndSettle();
+    expect(repository.plannedLoads, greaterThan(0));
+    expect(_plannedRows(), findsWidgets);
   });
 }

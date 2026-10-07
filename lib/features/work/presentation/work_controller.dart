@@ -260,6 +260,23 @@ final workRegisterProjectionProvider =
           );
     }, dependencies: [workRouteProvider]);
 
+/// Where the Shifts sheet reads its planned days; none when not provided.
+final plannedShiftSourceProvider = Provider<PlannedShiftSource?>((ref) => null);
+
+/// The planned work days of one Shifts scope, live. Only the Shifts sheet
+/// watches it, so no other sheet or desk tile plans (schedules spec 6.6).
+final plannedShiftsProvider = StreamProvider.autoDispose
+    .family<
+      List<PlannedShiftRow>,
+      ({EmploymentId employment, WorkTemporalScope? scope})
+    >((ref, args) {
+      final source = ref.watch(plannedShiftSourceProvider);
+      if (source == null) return Stream.value(const []);
+      return source.watchPlannedShifts(
+        WorkScope(employmentId: args.employment, temporal: args.scope),
+      );
+    });
+
 final workRecordProjectionProvider = StreamProvider.autoDispose
     .family<WorkRecordProjection?, WorkRecordId>(
       (ref, id) => ref.watch(workQueryRepositoryProvider).watchRecord(id),

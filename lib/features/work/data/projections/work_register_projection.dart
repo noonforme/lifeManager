@@ -100,7 +100,8 @@ final class PlannedShiftRow {
 
   final PlannedShift day;
 
-  /// The day is past on its schedule's clock and waits to be confirmed.
+  /// The day is today or past on its schedule's clock, so it can be
+  /// confirmed.
   final bool toConfirm;
 
   /// The pay period whose dates contain the day, if any.
@@ -173,7 +174,6 @@ final class WorkRegisterProjection {
     this.agreementSheet = const [],
     this.leaveSheet = const [],
     this.plannedNotConfirmed = 0,
-    this.plannedShiftSheet = const [],
   });
 
   final WorkScope scope;
@@ -221,11 +221,6 @@ final class WorkRegisterProjection {
   /// Planned days in the temporal scope that are past and not confirmed
   /// (spec 4.4).
   final int plannedNotConfirmed;
-
-  /// Planned work days in the Shifts sheet's scope, by date; never mixed
-  /// into [shiftSheet] or its totals. An open-ended scope plans from the
-  /// first schedule date through the end of next month.
-  final List<PlannedShiftRow> plannedShiftSheet;
 
   factory WorkRegisterProjection.empty(
     WorkScope scope, {

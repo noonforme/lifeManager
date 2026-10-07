@@ -46,7 +46,8 @@ final class DriftWorkRepository
         WorkCommandRepository,
         PayPeriodRepository,
         PayslipRepository,
-        WorkQueryRepository {
+        WorkQueryRepository,
+        PlannedShiftSource {
   /// Expected pay reads each shift on its own wall clock through
   /// [timezones]; history entries are stamped by [clock].
   DriftWorkRepository(
@@ -386,7 +387,12 @@ final class DriftWorkRepository
     final payslips = await _payslips.forEmployment(employmentId);
     final agreementsById = {for (final a in agreements) a.id: a};
     final leave = await _leave.forEmployment(employmentId);
-    final schedules = await _schedules.forEmployment(employmentId);
+    // Read only when a shift names its schedule or the scope counts the
+    // days to confirm; one read serves both.
+    final schedules =
+        temporal != null || shifts.any((shift) => shift.schedule != null)
+        ? await _schedules.forEmployment(employmentId)
+        : const <WorkSchedule>[];
 
     PayPeriod? periodOf(WorkShift shift) => periods
         .where((period) => period.contains(shift.localStartDate))
@@ -492,30 +498,6 @@ final class DriftWorkRepository
                     value.periodId == selectedPeriod.id && value.isEffective,
               )
               .toList();
-    final plannedShiftSheet = await _plannedShiftSheet(
-      employmentId,
-      schedules: schedules,
-      agreements: agreements,
-      periods: periods,
-      range: switch (temporal) {
-        null when schedules.isNotEmpty => (
-          start: schedules
-              .map((value) => value.inUseFrom)
-              .reduce((a, b) => a.compareTo(b) <= 0 ? a : b),
-          end: _timezones
-              .localDateAt(_clock.nowUtc(), schedules.first.timezoneId)
-              .addMonthsClamped(1)
-              .lastOfMonth,
-        ),
-        null => null,
-        DateRangeScope(:final start, :final end) => (start: start, end: end),
-        PayPeriodScope() when selectedPeriod != null => (
-          start: selectedPeriod.start,
-          end: selectedPeriod.end,
-        ),
-        PayPeriodScope() => null,
-      },
-    );
     final scopedFinalized = [
       for (final row in shiftSheet)
         if (row.shift.state == ShiftState.finalized) row.shift,
@@ -592,6 +574,7 @@ final class DriftWorkRepository
       ],
       plannedNotConfirmed: await _plannedNotConfirmed(
         employmentId,
+        schedules,
         switch (temporal) {
           null => null,
           DateRangeScope(:final start, :final end) => (start: start, end: end),
@@ -602,23 +585,71 @@ final class DriftWorkRepository
           PayPeriodScope() => null,
         },
       ),
-      plannedShiftSheet: plannedShiftSheet,
     );
   }
 
-  /// The planned, changed and extra work days in [range] that no confirmed
-  /// day covers yet, priced as planned (schedules spec 4.1). Off days,
-  /// cancelled days and leave are not shifts. An open-ended scope passes
-  /// the first schedule date through the end of next month, so every day
-  /// still to confirm is listed with the weeks ahead.
-  Future<List<PlannedShiftRow>> _plannedShiftSheet(
-    EmploymentId employmentId, {
-    required List<WorkSchedule> schedules,
-    required List<PayAgreement> agreements,
-    required List<PayPeriod> periods,
-    required ({LocalDate start, LocalDate end})? range,
-  }) async {
-    if (range == null || schedules.isEmpty) return const [];
+  /// How many times the Shifts sheet's planned days were worked out; only
+  /// the Shifts sheet asks, so other sheets and desk tiles never plan.
+  /// Read by tests.
+  int plannedLoads = 0;
+
+  @override
+  Stream<List<PlannedShiftRow>> watchPlannedShifts(WorkScope scope) async* {
+    final employmentId = scope.employmentId;
+    if (employmentId == null) {
+      yield const [];
+      return;
+    }
+    // Confirming, changing or pricing a day can touch any of these.
+    yield await _plannedShifts(employmentId, scope.temporal);
+    await for (final _ in _database.tableUpdates(
+      TableUpdateQuery.onAllTables([
+        _database.payAgreements,
+        _database.payPeriods,
+        _database.workShifts,
+        _database.workLeaveRecords,
+        _database.workDayExceptions,
+        _database.workSchedules,
+      ]),
+    )) {
+      yield await _plannedShifts(employmentId, scope.temporal);
+    }
+  }
+
+  /// The planned, changed and extra work days in [temporal] that no
+  /// confirmed day covers yet, by start, priced as planned (schedules spec
+  /// 4.1). Off days, cancelled days and leave are not shifts. An open-ended
+  /// scope runs from the first schedule date through the end of next month,
+  /// so every day still to confirm is listed with the weeks ahead.
+  Future<List<PlannedShiftRow>> _plannedShifts(
+    EmploymentId employmentId,
+    WorkTemporalScope? temporal,
+  ) async {
+    plannedLoads++;
+    final schedules = await _schedules.forEmployment(employmentId);
+    if (schedules.isEmpty) return const [];
+    final periods = await _periods.forEmployment(employmentId);
+    final now = _clock.nowUtc();
+    final range = switch (temporal) {
+      null => (
+        start: schedules
+            .map((value) => value.inUseFrom)
+            .reduce((a, b) => a.compareTo(b) <= 0 ? a : b),
+        end: _timezones
+            .localDateAt(now, schedules.first.timezoneId)
+            .addMonthsClamped(1)
+            .lastOfMonth,
+      ),
+      DateRangeScope(:final start, :final end) => (start: start, end: end),
+      PayPeriodScope(:final periodId) => switch (periods
+          .where((period) => period.id == periodId)
+          .firstOrNull) {
+        final period? => (start: period.start, end: period.end),
+        null => null,
+      },
+    };
+    if (range == null) return const [];
+    final agreements = await _agreements.forEmployment(employmentId);
     final days = planDays(
       from: range.start,
       to: range.end,
@@ -627,16 +658,18 @@ final class DriftWorkRepository
       confirmedDates: await _schedules.confirmedDates(employmentId),
       zoneClocks: _zoneClocks,
     );
-    final now = _clock.nowUtc();
+    // planDays walks the dates in order, so the rows run by start: the
+    // Shifts sheet merges them with the recorded shifts on that order.
     return [
       for (final day in days)
         if (day is PlannedShift)
           PlannedShiftRow(
             day: day,
+            // As the day's Properties offer Confirm: today or earlier.
             toConfirm:
                 day.date.compareTo(
                   _timezones.localDateAt(now, day.timezoneId),
-                ) <
+                ) <=
                 0,
             period: periods
                 .where((period) => period.contains(day.date))
@@ -690,11 +723,10 @@ final class DriftWorkRepository
   /// that no confirmed day covers yet.
   Future<int> _plannedNotConfirmed(
     EmploymentId employmentId,
+    List<WorkSchedule> schedules,
     ({LocalDate start, LocalDate end})? range,
   ) async {
-    if (range == null) return 0;
-    final schedules = await _schedules.forEmployment(employmentId);
-    if (schedules.isEmpty) return 0;
+    if (range == null || schedules.isEmpty) return 0;
     final days = planDays(
       from: range.start,
       to: range.end,

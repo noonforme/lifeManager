@@ -173,6 +173,7 @@ final class ProductionWorkProviders {
 
   List<Override> get _overrides => [
     workQueryRepositoryProvider.overrideWithValue(workRepository),
+    plannedShiftSourceProvider.overrideWithValue(workRepository),
     createEmploymentProvider.overrideWithValue(employment.createEmployment),
     createAgreementProvider.overrideWithValue(agreement.createAgreement),
     updateEmploymentProvider.overrideWithValue(employment.updateEmployment),

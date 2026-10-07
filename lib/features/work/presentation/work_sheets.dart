@@ -52,7 +52,8 @@ String periodName(PayPeriod period) =>
 /// The register id of the planned day on [date], such as "day:2026-10-06".
 String plannedRowId(LocalDate date) => 'day:$date';
 
-/// "To confirm" once the day is past, otherwise the Calendar's words:
+/// "To confirm" from the day itself on, as its Properties offer Confirm,
+/// otherwise the Calendar's words:
 /// "Planned", "Planned (changed)" or "Extra, planned".
 String plannedStateLabel(PlannedShiftRow row) => row.toConfirm
     ? 'To confirm'
@@ -103,8 +104,8 @@ final class ShiftsSheet extends StatelessWidget {
   final ValueChanged<WorkRecordRef>? onProperties;
   final bool showVoid;
 
-  /// Planned days in scope, by date, listed greyed among the shifts. They
-  /// are not records: no Status filter hides them and no total counts
+  /// Planned days in scope in start order, listed greyed among the shifts.
+  /// They are not records: no Status filter hides them and no total counts
   /// them.
   final List<PlannedShiftRow> planned;
 
@@ -120,8 +121,17 @@ final class ShiftsSheet extends StatelessWidget {
       for (final row in rows)
         if (showVoid || row.shift.state != ShiftState.voided) row,
     ];
-    // Both lists run by start; merged so a planned day sits among the
-    // shifts by date, a recorded shift first on a tie.
+    // The merge relies on both lists running by start: the register reads
+    // shifts by start and the planner walks the dates in order. A planned
+    // day then sits among the shifts by date, a recorded shift first on a
+    // tie.
+    assert(
+      [
+        for (var i = 1; i < planned.length; i++)
+          !planned[i].day.startUtc.isBefore(planned[i - 1].day.startUtc),
+      ].every((ordered) => ordered),
+      'Planned rows must be in start order',
+    );
     final visible = <_ShiftEntry>[];
     var next = 0;
     for (final row in recorded) {

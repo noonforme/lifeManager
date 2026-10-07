@@ -34,7 +34,6 @@ final class WorkTaskContext {
     this.onReopen,
     this.onRecordPayslipForPeriod,
     this.plannedDay,
-    this.dayConfirmable = false,
     this.onOpenDay,
   });
 
@@ -42,9 +41,6 @@ final class WorkTaskContext {
 
   /// The planned day selected on the Shifts sheet, when no record is.
   final PlannedShiftRow? plannedDay;
-
-  /// Whether [plannedDay] is today or past, so its Properties confirm it.
-  final bool dayConfirmable;
 
   /// Opens [plannedDay]'s Properties.
   final VoidCallback? onOpenDay;
@@ -92,15 +88,26 @@ List<Widget> workTaskGroups(WorkTaskContext c) {
     ),
   );
 
-  if (c.plannedDay != null && c.selected == null) {
+  final workTasks = group('Work tasks', [
+    ('Confirm worked days…', EraIconKind.reviewed, c.onConfirmDays),
+    ('New schedule…', EraIconKind.add, c.onNewSchedule),
+    ('Add a shift', EraIconKind.add, c.onAddShift),
+    ('New pay period', EraIconKind.add, c.onNewPeriod),
+    ('Record payslip', EraIconKind.recordPayslip, c.onRecordPayslip),
+    ('Set up pay agreement…', EraIconKind.agreement, c.onSetUpAgreement),
+    ('Employment properties', EraIconKind.properties, c.onEmploymentProperties),
+    ('Save this view…', EraIconKind.saveView, c.onSaveView),
+  ]);
+  if (c.plannedDay case final day? when c.selected == null) {
     // A planned day is not a record: it is confirmed, or changed, on the
-    // day's own Properties.
+    // day's own Properties. The Work tasks stay under it.
     return [
       group('Day tasks', [
-        c.dayConfirmable
+        day.toConfirm
             ? ('Confirm this day…', EraIconKind.reviewed, c.onOpenDay)
             : ('Open day…', EraIconKind.properties, c.onOpenDay),
       ]),
+      workTasks,
     ];
   }
   return switch (c.selected) {
@@ -153,22 +160,7 @@ List<Widget> workTaskGroups(WorkTaskContext c) {
         ('Properties', EraIconKind.properties, c.onProperties),
       ]),
     ],
-    null => [
-      group('Work tasks', [
-        ('Confirm worked days…', EraIconKind.reviewed, c.onConfirmDays),
-        ('New schedule…', EraIconKind.add, c.onNewSchedule),
-        ('Add a shift', EraIconKind.add, c.onAddShift),
-        ('New pay period', EraIconKind.add, c.onNewPeriod),
-        ('Record payslip', EraIconKind.recordPayslip, c.onRecordPayslip),
-        ('Set up pay agreement…', EraIconKind.agreement, c.onSetUpAgreement),
-        (
-          'Employment properties',
-          EraIconKind.properties,
-          c.onEmploymentProperties,
-        ),
-        ('Save this view…', EraIconKind.saveView, c.onSaveView),
-      ]),
-    ],
+    null => [workTasks],
   };
 }
 
