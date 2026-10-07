@@ -99,6 +99,7 @@ void main() {
   ) async {
     await _open(tester);
     await tester.tap(find.byKey(const ValueKey('shift-type-row-0')));
+    await tester.pump();
     await tester.tap(_key('Edit…'));
     await tester.pumpAndSettle();
     await setTime(tester, 'type-break-0-start', const LocalTime(20, 0));
