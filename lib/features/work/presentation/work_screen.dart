@@ -30,6 +30,7 @@ import 'employment_agreement_forms.dart';
 import 'leave_sheet.dart';
 import 'period_payslip_forms.dart';
 import 'record_history_panel.dart';
+import 'schedule_sheet_host.dart';
 import 'shift_forms.dart';
 import 'work_controller.dart' hide SetPayPeriodState;
 import 'work_inspector.dart';
@@ -311,6 +312,9 @@ final class _WorkScreenState extends State<WorkScreen> {
                   id: employment.id,
                 ),
               ),
+        onNewSchedule: register.hasAgreement
+            ? () => _go(route.copyWith(adding: () => WorkAddKind.schedule))
+            : null,
         onSetUpAgreement: employment == null || register.hasAgreement
             ? null
             : () => _go(route.copyWith(adding: () => WorkAddKind.agreement)),
@@ -449,6 +453,24 @@ final class _WorkScreenState extends State<WorkScreen> {
     }
     if (route.confirming && employmentId != null) {
       return ConfirmDaysHost(employmentId: employmentId);
+    }
+    if (route.record
+        case WorkRecordRef(
+          kind: WorkRecordKind.schedule,
+          id: final ScheduleId id,
+        )
+        when employmentId != null &&
+            route.mode == WorkInspectorMode.properties) {
+      return ScheduleSheetHost(
+        key: ValueKey(('schedule-sheet', id)),
+        employmentId: employmentId,
+        employmentName: state.register.employment?.name ?? 'Employment',
+        scheduleId: id,
+        today: _today,
+        defaultTimezoneId: widget.systemTimezoneId ?? '',
+        onCreated: () {},
+        onDeleted: _closeDialog,
+      );
     }
     if (route.record == null && employmentId != null) {
       final added = _added(route.adding, state.register, employmentId);
@@ -597,10 +619,28 @@ extension on _WorkScreenState {
           onSubmit: (value) =>
               _saved(widget.onCreateAgreement(value), 'Pay agreement saved.'),
         );
-      // The schedule, extra shift and leave forms arrive with later tasks.
+      case WorkAddKind.schedule:
+        return ScheduleSheetHost(
+          key: ValueKey(('add-schedule', employmentId)),
+          employmentId: employmentId,
+          employmentName: register.employment?.name ?? 'Employment',
+          scheduleId: null,
+          today: _today,
+          defaultTimezoneId: widget.systemTimezoneId ?? '',
+          onCreated: () => _go(
+            WorkRouteState(
+              employmentId: employmentId,
+              scope: null,
+              record: null,
+              mode: WorkInspectorMode.inspect,
+              sheet: WorkSheet.calendar,
+            ),
+          ),
+          onDeleted: () {},
+        );
+      // The extra shift and leave forms arrive with a later task.
       case WorkAddKind.payPeriod ||
           WorkAddKind.payslip ||
-          WorkAddKind.schedule ||
           WorkAddKind.extraShift ||
           WorkAddKind.leave ||
           null:
@@ -658,6 +698,10 @@ extension on _WorkScreenState {
   Size _dialogSize(WorkReady state) {
     if (_failed()) return const Size(380, 260);
     if (state.route.confirming) return const Size(600, 480);
+    if (state.route.adding == WorkAddKind.schedule ||
+        state.route.record?.kind == WorkRecordKind.schedule) {
+      return const Size(560, 620);
+    }
     // As tall as a form: a sheet's General page holds the record's fields.
     if (state.route.mode == WorkInspectorMode.properties) {
       return const Size(440, 560);
@@ -684,6 +728,17 @@ extension on _WorkScreenState {
     }
     if (route.adding == WorkAddKind.agreement || _settingUpAgreement(state)) {
       return 'Pay agreement';
+    }
+    if (route.adding == WorkAddKind.schedule) return 'New schedule';
+    if (route.record case WorkRecordRef(
+      kind: WorkRecordKind.schedule,
+      :final id,
+    )) {
+      final name = widget.schedules
+          .where((value) => value.id == id)
+          .map((value) => value.name)
+          .firstOrNull;
+      return '${name ?? 'Schedule'} Properties';
     }
     final record = _selected(state);
     return switch (route.mode) {
