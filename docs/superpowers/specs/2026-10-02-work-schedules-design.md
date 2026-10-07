@@ -313,16 +313,17 @@ the Shifts list). The Shifts view lists the planned, changed and extra work
 days of its scope that no confirmed day covers yet, by date among the
 recorded shifts, in muted ink: Date, Type, Start, End, Break, Paid, Night,
 Holiday and planned pay in Est. pay (never overtime), with State "Planned",
-"Planned (changed)" or "Extra, planned", and "To confirm" once the day is
-past. Off, cancelled and leave days are not listed; a confirmed day shows
-only its real shift. A pay period or date range lists its own days; the
-open-ended view lists from the first schedule date through the end of next
-month. These rows are derived, never stored (section 2), and no Status
-filter hides them. Selecting one offers **Confirm this day…** (today or
-past) or **Open day…** in the task pane; Enter, a double-click or
-Properties opens the day's property sheet (6.2), not a shift's. Shift
-counts and pay totals stay recorded only; Details adds "N planned shifts"
-on its own line.
+"Planned (changed)" or "Extra, planned", and "To confirm" from the day
+itself on, when its Properties offer **Confirm**. Off, cancelled and leave
+days are not listed; a confirmed day shows only its real shift. A pay period
+or date range lists its own days; the open-ended view lists from the first
+schedule date through the end of next month. These rows are derived, never
+stored (section 2), and no Status filter hides them. Only the Shifts view
+plans them; the register, the other views and desk tiles never do. Selecting
+one offers **Confirm this day…** (To confirm) or **Open day…** in the task
+pane, above the Work tasks; Enter, a double-click or Properties opens the
+day's property sheet (6.2), not a shift's. Shift counts and pay totals stay
+recorded only; Details adds "N planned shifts" on its own line.
 
 ## 7. Outcomes and Errors
 
