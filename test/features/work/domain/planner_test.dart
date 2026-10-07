@@ -327,6 +327,142 @@ void main() {
     // 22:00–06:00 minus the 00:00 break: 7:30 of night time.
     expect(pay.nightPaidSeconds, (7 * 60 + 30) * 60);
   });
+
+  group('days no pay agreement covers', () {
+    final now = DateTime.utc(2026, 10);
+    PayAgreement terms(
+      LocalDate start,
+      LocalDate? end, {
+      String id = '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c21',
+      int version = 1,
+    }) => PayAgreement(
+      id: AgreementId(id),
+      employmentId: employment,
+      version: version,
+      effectiveStart: start,
+      effectiveEnd: end,
+      hourlyRateMicroEur: 18400000,
+      basis: const GrossBasis(),
+      overtimeThresholdMinutes: 480,
+      overtimeMultiplier: const RationalMultiplier(
+        numerator: 3,
+        denominator: 2,
+      ),
+      label: null,
+      note: null,
+      createdAtUtc: now,
+      revision: const Revision(0),
+      usedByFinalizedShift: false,
+    );
+    bool lacks(PlannedDay day, List<PayAgreement> agreements) =>
+        lacksAgreement(day, employmentId: employment, agreements: agreements);
+
+    test('an overnight shift is paid by the agreement of its start date', () {
+      // Night 11 October 19:00 – 12 October 07:00.
+      final night = plan(
+        const LocalDate(2026, 10, 11),
+        const LocalDate(2026, 10, 11),
+      ).single;
+      expect(night, isA<PlannedShift>());
+      expect(
+        lacks(night, [
+          terms(const LocalDate(2026, 9, 1), const LocalDate(2026, 10, 11)),
+        ]),
+        isFalse,
+      );
+      expect(
+        lacks(night, [terms(const LocalDate(2026, 10, 12), null)]),
+        isTrue,
+      );
+    });
+
+    test('planned leave needs an agreement; an Off day never does', () {
+      final days = plan(
+        const LocalDate(2026, 10, 7),
+        const LocalDate(2026, 10, 8),
+        exceptions: [
+          LeaveDay(
+            id: const DayExceptionId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4e09'),
+            employmentId: employment,
+            date: const LocalDate(2026, 10, 7),
+            leaveType: LeaveType.vacation,
+            illnessStartedOn: null,
+            createdAtUtc: now,
+            updatedAtUtc: now,
+            revision: const Revision(0),
+          ),
+        ],
+      );
+      final (leave, off) = (days.first, days.last);
+      expect(leave, isA<PlannedLeave>());
+      expect(off, isA<OffDay>());
+      expect(lacks(leave, const []), isTrue);
+      expect(lacks(leave, [terms(const LocalDate(2026, 9, 1), null)]), isFalse);
+      expect(lacks(off, const []), isFalse);
+    });
+
+    test('two agreements on one date (ambiguous) pay it no more than none', () {
+      final day = plan(
+        const LocalDate(2026, 10, 5),
+        const LocalDate(2026, 10, 5),
+      ).single;
+      expect(
+        lacks(day, [
+          terms(const LocalDate(2026, 9, 1), null),
+          terms(
+            const LocalDate(2026, 10, 1),
+            null,
+            id: '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c22',
+            version: 2,
+          ),
+        ]),
+        isTrue,
+      );
+    });
+
+    test('the nearest agreement is the one that widens least', () {
+      final september = terms(
+        const LocalDate(2026, 9, 1),
+        const LocalDate(2026, 9, 30),
+      );
+      final november = terms(
+        const LocalDate(2026, 11, 1),
+        null,
+        id: '018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c22',
+        version: 2,
+      );
+      expect(nearestAgreement(const [], const LocalDate(2026, 8, 1)), isNull);
+      // Before every start: the earliest, its start moving back.
+      expect(
+        nearestAgreement([september, november], const LocalDate(2026, 7, 6)),
+        same(september),
+      );
+      // After its end, with nothing later.
+      expect(
+        nearestAgreement([september], const LocalDate(2026, 10, 20)),
+        same(september),
+      );
+      // Between two: 5 days after September's end, 27 before November.
+      expect(
+        nearestAgreement([september, november], const LocalDate(2026, 10, 5)),
+        same(september),
+      );
+      // 27 after September's end, 5 before November.
+      expect(
+        nearestAgreement([september, november], const LocalDate(2026, 10, 27)),
+        same(november),
+      );
+      // 16 October: 16 days either way, so the later one.
+      expect(
+        nearestAgreement([september, november], const LocalDate(2026, 10, 16)),
+        same(november),
+      );
+      expect(
+        nearestAgreement([november, september], const LocalDate(2026, 10, 16)),
+        same(november),
+      );
+    });
+  });
 }
 
 WorkSchedule rotation({
