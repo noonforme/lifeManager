@@ -14,7 +14,11 @@ void main() {
   testWidgets('the current date moves on at local midnight', (tester) async {
     var today = const LocalDate(2026, 10, 7);
     final container = ProviderContainer(
-      overrides: [todayProvider.overrideWithValue(() => today)],
+      overrides: [
+        todayProvider.overrideWithValue(() => today),
+        // Fixed noon, so the first hour never crosses the real midnight.
+        localNowProvider.overrideWithValue(() => DateTime(2026, 10, 7, 12)),
+      ],
     );
     addTearDown(container.dispose);
     final seen = <LocalDate>[];

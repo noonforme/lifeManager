@@ -205,6 +205,20 @@ final class ProductionWorkProviders {
     todayProvider.overrideWithValue(
       () => timezones.localDateAt(clock.nowUtc(), currentTimezoneId() ?? 'UTC'),
     ),
+    localNowProvider.overrideWithValue(() {
+      final utc = clock.nowUtc();
+      final zone = currentTimezoneId() ?? 'UTC';
+      final date = timezones.localDateAt(utc, zone);
+      final time = timezones.localTimeAt(utc, zone);
+      return DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+        time.second,
+      );
+    }),
     currentTimezoneIdProvider.overrideWithValue(currentTimezoneId),
     nextReplacementShiftIdProvider.overrideWithValue(shiftIds.shiftId),
     nextReplacementPayslipIdProvider.overrideWithValue(evidenceIds.payslipId),

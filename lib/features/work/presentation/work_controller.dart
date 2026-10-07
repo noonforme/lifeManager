@@ -223,11 +223,15 @@ final todayProvider = Provider<LocalDate Function()>(
   },
 );
 
+/// The local wall-clock time now, injectable like [todayProvider] so the
+/// midnight timer below is armed from the same clock the date is read from.
+final localNowProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
 /// Today's local date as of now, recomputed at every local midnight so a
 /// screen left open overnight moves to the new day.
 final currentDateProvider = Provider.autoDispose<LocalDate>((ref) {
   final today = ref.watch(todayProvider);
-  final now = DateTime.now();
+  final now = ref.watch(localNowProvider)();
   final midnight = DateTime(now.year, now.month, now.day + 1);
   // A second past, so the clock has certainly crossed into the new day.
   final timer = Timer(
