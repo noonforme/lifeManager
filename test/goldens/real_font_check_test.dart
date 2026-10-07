@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/app/lifeos_app.dart';
 
+import '../support/scheduled_app.dart';
 import '../support/synthetic_shell.dart';
 
 /// The shell's screens rendered with the bundled EraSans, for a look by
@@ -46,6 +47,20 @@ void main() {
       );
     });
   }
+
+  // October's planned days greyed among the shifts (schedules spec 6.6).
+  testWidgets('real_font/planned_shifts', (tester) async {
+    await pumpScheduledApp(
+      tester,
+      location:
+          '/work?employment={employment}&sheet=shifts'
+          '&from=2026-10-01&to=2026-10-31&day=2026-10-06',
+    );
+    await expectLater(
+      find.byType(LifeOsApp),
+      matchesGoldenFile('real_font/planned_shifts.png'),
+    );
+  });
 
   // The open month calendar (era pickers spec 5).
   testWidgets('real_font/calendar', (tester) async {

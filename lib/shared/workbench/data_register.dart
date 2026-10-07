@@ -67,7 +67,10 @@ final class RegisterColumn<T> {
 enum RowState {
   normal(null),
   draft('Draft'),
-  voided('Void');
+  voided('Void'),
+
+  /// Derived from a plan and not yet recorded: greyed, never struck.
+  planned('Planned');
 
   const RowState(this.announcement);
 
@@ -828,6 +831,7 @@ final class _DataRow<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = skin.tokens;
     final voided = line.state == RowState.voided;
+    final muted = voided || line.state == RowState.planned;
     // Blue with white ink only while the list has focus.
     final lit = selected && focused;
     return Listener(
@@ -887,7 +891,7 @@ final class _DataRow<T> extends StatelessWidget {
                             // row reads white on selWash.
                             color: lit
                                 ? tokens.selInk
-                                : voided
+                                : muted
                                 ? tokens.muted
                                 : tokens.ink,
                             decoration: voided

@@ -117,6 +117,8 @@ final class _WorkRouteHost extends ConsumerWidget {
                     ? PayPeriodScope(record.id as PayPeriodId)
                     : state.scope,
                 record: () => record,
+                // A record replaces a selected planned day.
+                day: () => null,
                 mode: WorkInspectorMode.inspect,
               ),
             );
@@ -178,6 +180,7 @@ final class _WorkRouteHost extends ConsumerWidget {
                     ? PayPeriodScope(record.id as PayPeriodId)
                     : state.scope,
                 record: () => record,
+                day: () => null,
                 mode: WorkInspectorMode.properties,
               ),
             );

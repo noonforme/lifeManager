@@ -133,9 +133,12 @@ final class WorkRegister extends StatelessWidget {
           mode: WorkInspectorMode.inspect,
         );
     void change(WorkRouteState next) => onRoute?.call(next);
-    final selectedId = selectedRecord == null
-        ? null
-        : workRowId(selectedRecord!);
+    // A planned day is selected by date, as it has no record yet.
+    final selectedId = selectedRecord != null
+        ? workRowId(selectedRecord!)
+        : route.day != null
+        ? plannedRowId(route.day!)
+        : null;
     final shown = route.sheet ?? defaultSheet;
     final Widget sheet = switch (shown) {
       WorkSheet.shifts => ShiftsSheet(
@@ -145,6 +148,21 @@ final class WorkRegister extends StatelessWidget {
         onOpen: onSelect,
         onProperties: onProperties,
         showVoid: route.showVoid,
+        planned: value.plannedShiftSheet,
+        onOpenDay: (day) => change(
+          route.copyWith(
+            record: () => null,
+            day: () => day,
+            mode: WorkInspectorMode.inspect,
+          ),
+        ),
+        onDayProperties: (day) => change(
+          route.copyWith(
+            record: () => null,
+            day: () => day,
+            mode: WorkInspectorMode.properties,
+          ),
+        ),
       ),
       WorkSheet.periods => PeriodsSheet(
         rows: value.periodSheet,
@@ -263,9 +281,17 @@ final class WorkRegister extends StatelessWidget {
 /// The Details group for a Work scope (spec 5.2): employment, period,
 /// shift count and the reconciliation per basis, worded as the summary was.
 final class WorkDetails extends StatelessWidget {
-  const WorkDetails({required this.projection, super.key});
+  const WorkDetails({
+    required this.projection,
+    this.listsPlanned = false,
+    super.key,
+  });
 
   final WorkRegisterProjection projection;
+
+  /// Whether the desk lists the scope's planned shifts (the Shifts sheet),
+  /// so their count is given beside the recorded one.
+  final bool listsPlanned;
 
   @override
   Widget build(BuildContext context) {
@@ -293,6 +319,10 @@ final class WorkDetails extends StatelessWidget {
           Text(period.state == PayPeriodState.reviewed ? 'Reviewed' : 'Open'),
         ],
         Text(shifts == 1 ? '1 shift' : '$shifts shifts'),
+        // Planned days are counted apart: they are not records yet.
+        if (projection.plannedShiftSheet.length case final n
+            when listsPlanned && n > 0)
+          Text(n == 1 ? '1 planned shift' : '$n planned shifts'),
         if (projection.plannedNotConfirmed case final n when n > 0)
           Text(
             n == 1

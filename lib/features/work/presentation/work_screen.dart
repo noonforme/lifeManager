@@ -307,9 +307,15 @@ final class _WorkScreenState extends State<WorkScreen> {
     final period = selected is PayPeriodRecordProjection
         ? selected.period
         : null;
+    final plannedDay = _plannedDay(state);
     return workTaskGroups(
       WorkTaskContext(
         selected: selected,
+        plannedDay: plannedDay,
+        dayConfirmable:
+            plannedDay != null && plannedDay.day.date.compareTo(_today) <= 0,
+        onOpenDay: () =>
+            _go(route.copyWith(mode: WorkInspectorMode.properties)),
         onConfirmDays: widget.schedules.isEmpty
             ? null
             : () => _go(route.copyWith(confirming: true)),
@@ -370,19 +376,30 @@ final class _WorkScreenState extends State<WorkScreen> {
     final Widget scope = register.employment == null
         ? const SizedBox.shrink()
         : register.hasAgreement
-        ? WorkDetails(projection: register)
+        ? WorkDetails(
+            projection: register,
+            listsPlanned:
+                (state.route.sheet ??
+                    defaultSheetFor(widget.schedules, _today)) ==
+                WorkSheet.shifts,
+          )
         : const TaskDetails(lines: [Text('No pay agreement yet.')]);
     // The selected record leads; the scope's totals stay under it, so a
     // period's expected and paid figures never leave the pane.
-    final Widget fallback = selected == null
+    final plannedDay = _plannedDay(state);
+    final Widget? summary = selected != null
+        ? RecordSummary(record: selected, timezones: widget.timezones)
+        : plannedDay != null
+        ? PlannedDaySummary(
+            row: plannedDay,
+            timezones: widget.timezones ?? IanaTimezoneService(),
+          )
+        : null;
+    final Widget fallback = summary == null
         ? scope
         : Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              RecordSummary(record: selected, timezones: widget.timezones),
-              const SizedBox(height: 8),
-              scope,
-            ],
+            children: [summary, const SizedBox(height: 8), scope],
           );
     return WorkingDetails(
       onNavigate: (route) => chrome?.onNavigate(route.toString()),
@@ -688,6 +705,17 @@ extension on _WorkScreenState {
         _payslipPeriod != null ||
         _periodFailure != null ||
         _reviseFailure != null;
+  }
+
+  /// The planned day selected on the Shifts sheet: the route's day while
+  /// no record is open, when the scope still plans it.
+  PlannedShiftRow? _plannedDay(WorkReady state) {
+    final route = state.route;
+    final day = route.day;
+    if (day == null || route.record != null) return null;
+    return state.register.plannedShiftSheet
+        .where((row) => row.day.date == day)
+        .firstOrNull;
   }
 
   WorkRecordProjection? _selected(WorkReady state) => switch (state.inspector) {

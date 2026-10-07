@@ -45,6 +45,12 @@ void main() {
       '/work?employment={employment}&sheet=schedules'
           '&record=schedule:{schedule}&mode=properties',
     ),
+    // October's planned days greyed among the shifts.
+    (
+      'planned_shifts',
+      '/work?employment={employment}&sheet=shifts'
+          '&from=2026-10-01&to=2026-10-31&day=2026-10-06',
+    ),
   ]) {
     for (final size in sizes) {
       final file = '${name}_${size.width.round()}x${size.height.round()}';

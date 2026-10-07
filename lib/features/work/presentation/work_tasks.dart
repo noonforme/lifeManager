@@ -4,10 +4,13 @@ import '../../../core/time/timezone_service.dart';
 import '../../../shared/shell/task_pane.dart';
 import '../../../shared/workbench/era_icons.dart';
 import '../data/projections/work_record_projection.dart';
+import '../data/projections/work_register_projection.dart';
 import '../domain/pay_period.dart';
 import '../domain/shift.dart';
 import 'work_formats.dart';
+import 'work_plan_view.dart' show plannedShiftName, shiftTimes;
 import 'work_record_names.dart';
+import 'work_sheets.dart' show plannedStateLabel;
 
 /// What the task pane offers for the current selection (XP-authentic shell
 /// spec 4.1). A null callback means the action is not offered, and its
@@ -30,9 +33,21 @@ final class WorkTaskContext {
     this.onMarkReviewed,
     this.onReopen,
     this.onRecordPayslipForPeriod,
+    this.plannedDay,
+    this.dayConfirmable = false,
+    this.onOpenDay,
   });
 
   final WorkRecordProjection? selected;
+
+  /// The planned day selected on the Shifts sheet, when no record is.
+  final PlannedShiftRow? plannedDay;
+
+  /// Whether [plannedDay] is today or past, so its Properties confirm it.
+  final bool dayConfirmable;
+
+  /// Opens [plannedDay]'s Properties.
+  final VoidCallback? onOpenDay;
 
   /// Opens Confirm worked days; null without a schedule.
   final VoidCallback? onConfirmDays;
@@ -77,6 +92,17 @@ List<Widget> workTaskGroups(WorkTaskContext c) {
     ),
   );
 
+  if (c.plannedDay != null && c.selected == null) {
+    // A planned day is not a record: it is confirmed, or changed, on the
+    // day's own Properties.
+    return [
+      group('Day tasks', [
+        c.dayConfirmable
+            ? ('Confirm this day…', EraIconKind.reviewed, c.onOpenDay)
+            : ('Open day…', EraIconKind.properties, c.onOpenDay),
+      ]),
+    ];
+  }
   return switch (c.selected) {
     ShiftRecordProjection(:final shift) => [
       group('Shift tasks', [
@@ -222,6 +248,52 @@ final class RecordSummary extends StatelessWidget {
           ),
           Text(kind),
           for (final (label, value) in facts) Text('$label: $value'),
+        ],
+      ),
+    );
+  }
+}
+
+/// A selected planned day in the Details group: what the plan holds on it,
+/// said to be planned rather than recorded.
+final class PlannedDaySummary extends StatelessWidget {
+  const PlannedDaySummary({
+    required this.row,
+    required this.timezones,
+    super.key,
+  });
+
+  final PlannedShiftRow row;
+  final TimezoneService timezones;
+
+  @override
+  Widget build(BuildContext context) {
+    final day = row.day;
+    return Semantics(
+      liveRegion: true,
+      child: TaskDetails(
+        lines: [
+          Row(
+            children: [
+              const EraIcon(EraIconKind.shift),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  '${plannedShiftName(day)} ${day.date}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          const Text('Planned shift, not recorded'),
+          Text('State: ${plannedStateLabel(row)}'),
+          Text(
+            'Times: '
+            '${shiftTimes(day.startUtc, day.endUtc, day.timezoneId, timezones)}',
+          ),
+          Text('Paid time: ${formatDuration(day.paidSeconds)}'),
+          if (row.pay case final pay?)
+            Text('Planned pay: ${formatMoney(pay.amount)}'),
         ],
       ),
     );

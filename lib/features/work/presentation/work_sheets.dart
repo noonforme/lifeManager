@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../core/explain/explanation.dart';
+import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/workbench/data_register.dart';
 import '../data/projections/work_register_projection.dart';
@@ -14,6 +15,7 @@ import '../domain/shift.dart';
 import 'employment_agreement_forms.dart' show formatClock, formatHours;
 import 'work_explanations.dart';
 import 'work_formats.dart';
+import 'work_plan_view.dart' show plannedShiftName;
 import 'work_route_state.dart';
 
 /// The Work sheets on Register v2 (shell spec 7.2). Each derived cell
@@ -47,6 +49,37 @@ const _months = [
 String periodName(PayPeriod period) =>
     period.label ?? '${period.start} – ${period.end}';
 
+/// The register id of the planned day on [date], such as "day:2026-10-06".
+String plannedRowId(LocalDate date) => 'day:$date';
+
+/// "To confirm" once the day is past, otherwise the Calendar's words:
+/// "Planned", "Planned (changed)" or "Extra, planned".
+String plannedStateLabel(PlannedShiftRow row) => row.toConfirm
+    ? 'To confirm'
+    : row.day.isExtra
+    ? 'Extra, planned'
+    : row.day.changed
+    ? 'Planned (changed)'
+    : 'Planned';
+
+/// One line of the Shifts sheet: a recorded shift, or a planned day that
+/// is derived and not yet recorded.
+sealed class _ShiftEntry {
+  const _ShiftEntry();
+}
+
+final class _Recorded extends _ShiftEntry {
+  const _Recorded(this.row);
+
+  final ShiftSheetRow row;
+}
+
+final class _Planned extends _ShiftEntry {
+  const _Planned(this.row);
+
+  final PlannedShiftRow row;
+}
+
 final class ShiftsSheet extends StatelessWidget {
   const ShiftsSheet({
     required this.rows,
@@ -55,6 +88,9 @@ final class ShiftsSheet extends StatelessWidget {
     required this.onOpen,
     this.onProperties,
     required this.showVoid,
+    this.planned = const [],
+    this.onOpenDay,
+    this.onDayProperties,
     super.key,
   });
 
@@ -67,73 +103,145 @@ final class ShiftsSheet extends StatelessWidget {
   final ValueChanged<WorkRecordRef>? onProperties;
   final bool showVoid;
 
+  /// Planned days in scope, by date, listed greyed among the shifts. They
+  /// are not records: no Status filter hides them and no total counts
+  /// them.
+  final List<PlannedShiftRow> planned;
+
+  /// Selects a planned row's day.
+  final ValueChanged<LocalDate>? onOpenDay;
+
+  /// Opens a planned row's day Properties, where it is confirmed.
+  final ValueChanged<LocalDate>? onDayProperties;
+
   @override
   Widget build(BuildContext context) {
-    final visible = [
+    final recorded = [
       for (final row in rows)
         if (showVoid || row.shift.state != ShiftState.voided) row,
     ];
+    // Both lists run by start; merged so a planned day sits among the
+    // shifts by date, a recorded shift first on a tie.
+    final visible = <_ShiftEntry>[];
+    var next = 0;
+    for (final row in recorded) {
+      while (next < planned.length &&
+          planned[next].day.startUtc.isBefore(row.shift.startUtc)) {
+        visible.add(_Planned(planned[next++]));
+      }
+      visible.add(_Recorded(row));
+    }
+    visible.addAll([for (final row in planned.skip(next)) _Planned(row)]);
+
     String clock(DateTime? utc, String zone) => utc == null
         ? ''
         : timezones.localTimeAt(utc, zone).toString().substring(0, 5);
-    String group(ShiftSheetRow row) {
-      if (row.period case final period?) return periodName(period);
-      final date = row.shift.localStartDate;
+    String group(_ShiftEntry entry) {
+      final (period, date) = switch (entry) {
+        _Recorded(:final row) => (row.period, row.shift.localStartDate),
+        _Planned(:final row) => (row.period, row.day.date),
+      };
+      if (period != null) return periodName(period);
       return '${_months[date.month - 1]} ${date.year}';
     }
 
-    final lines = <RegisterLine<ShiftSheetRow>>[];
+    final lines = <RegisterLine<_ShiftEntry>>[];
     String? current;
-    for (final row in visible) {
-      final name = group(row);
+    for (final entry in visible) {
+      final name = group(entry);
       if (name != current) {
         current = name;
         lines.add(GroupLine(label: name));
       }
       lines.add(
         RowLine(
-          row,
-          state: switch (row.shift.state) {
-            ShiftState.draft => RowState.draft,
-            ShiftState.voided => RowState.voided,
-            ShiftState.finalized => RowState.normal,
+          entry,
+          state: switch (entry) {
+            _Planned() => RowState.planned,
+            _Recorded(:final row) => switch (row.shift.state) {
+              ShiftState.draft => RowState.draft,
+              ShiftState.voided => RowState.voided,
+              ShiftState.finalized => RowState.normal,
+            },
           },
         ),
       );
     }
 
-    String premium(ShiftSheetRow row, int Function(ExpectedPay pay) pick) {
-      final pay = row.pay;
+    String premium(_ShiftEntry entry, int Function(ExpectedPay pay) pick) {
+      final pay = switch (entry) {
+        _Recorded(:final row) => row.pay,
+        _Planned(:final row) => row.pay,
+      };
       return pay == null ? '' : formatDuration(pick(pay));
     }
 
-    Explanation? premiumExplain(ShiftSheetRow row, PremiumHours which) =>
-        switch ((row.facts, row.pay)) {
-          (final facts?, final pay?) => explainPremiumHours(facts, pay, which),
+    Explanation? premiumExplain(_ShiftEntry entry, PremiumHours which) =>
+        switch (entry) {
+          _Recorded(row: ShiftSheetRow(:final facts?, :final pay?)) =>
+            explainPremiumHours(facts, pay, which),
           _ => null,
         };
 
-    return DataRegister<ShiftSheetRow>(
+    String typeName(_ShiftEntry entry) => switch (entry) {
+      _Recorded(:final row) => row.typeName ?? '',
+      _Planned(:final row) => plannedShiftName(row.day),
+    };
+    String id(_ShiftEntry entry) => switch (entry) {
+      _Recorded(:final row) => workRowId(_shiftRef(row)),
+      _Planned(:final row) => plannedRowId(row.day.date),
+    };
+    // Only a schedule names shifts, so without one the sheet is unchanged.
+    final typed = visible.any((entry) => typeName(entry).isNotEmpty);
+    final dayProperties = onDayProperties;
+    final properties = onProperties;
+
+    return DataRegister<_ShiftEntry>(
       label: 'Shifts',
       lines: lines,
       sortedColumn: 'date',
-      rowId: (row) => workRowId(_shiftRef(row)),
-      rowLabel: (row) =>
+      rowId: id,
+      rowLabel: (entry) => switch (entry) {
+        _Recorded(:final row) =>
           'Shift on ${row.shift.localStartDate}, '
-          '${shiftStateLabel(row.shift.state)}',
+              '${shiftStateLabel(row.shift.state)}',
+        _Planned(:final row) =>
+          '${plannedShiftName(row.day)} shift on ${row.day.date}, '
+              '${plannedStateLabel(row)}',
+      },
       selectedId: selectedId,
-      onOpen: (row) => onOpen(_shiftRef(row)),
-      onActivate: onProperties == null
+      onOpen: (entry) => switch (entry) {
+        _Recorded(:final row) => onOpen(_shiftRef(row)),
+        _Planned(:final row) => onOpenDay?.call(row.day.date),
+      },
+      onActivate: properties == null && dayProperties == null
           ? null
-          : (row) => onProperties!(_shiftRef(row)),
-      actions: onProperties == null
-          ? null
-          : (row) => [
-              RowAction(
-                label: 'Properties',
-                isDefault: true,
-                onInvoke: () => onProperties!(_shiftRef(row)),
+          : (entry) => switch (entry) {
+              _Recorded(:final row) => (properties ?? onOpen)(_shiftRef(row)),
+              _Planned(:final row) => (dayProperties ?? onOpenDay)?.call(
+                row.day.date,
               ),
+            },
+      actions: properties == null && dayProperties == null
+          ? null
+          : (entry) => [
+              switch (entry) {
+                _Recorded(:final row) => RowAction(
+                  label: 'Properties',
+                  isDefault: true,
+                  onInvoke: properties == null
+                      ? null
+                      : () => properties(_shiftRef(row)),
+                ),
+                // A planned day's Properties are the day's own.
+                _Planned(:final row) => RowAction(
+                  label: 'Properties',
+                  isDefault: true,
+                  onInvoke: dayProperties == null
+                      ? null
+                      : () => dayProperties(row.day.date),
+                ),
+              },
             ],
       columns: [
         RegisterColumn(
@@ -141,21 +249,45 @@ final class ShiftsSheet extends StatelessWidget {
           label: 'Date',
           kind: ColumnKind.date,
           width: 104,
-          value: (row) => row.shift.localStartDate.toString(),
+          value: (entry) => switch (entry) {
+            _Recorded(:final row) => row.shift.localStartDate.toString(),
+            _Planned(:final row) => row.day.date.toString(),
+          },
         ),
+        if (typed)
+          RegisterColumn(
+            key: 'type',
+            label: 'Type',
+            kind: ColumnKind.text,
+            width: 72,
+            optional: true,
+            value: typeName,
+          ),
         RegisterColumn(
           key: 'start',
           label: 'Start',
           kind: ColumnKind.time,
           width: 64,
-          value: (row) => clock(row.shift.startUtc, row.shift.timezoneId),
+          value: (entry) => switch (entry) {
+            _Recorded(:final row) => clock(
+              row.shift.startUtc,
+              row.shift.timezoneId,
+            ),
+            _Planned(:final row) => clock(row.day.startUtc, row.day.timezoneId),
+          },
         ),
         RegisterColumn(
           key: 'end',
           label: 'End',
           kind: ColumnKind.time,
           width: 64,
-          value: (row) => clock(row.shift.endUtc, row.shift.timezoneId),
+          value: (entry) => switch (entry) {
+            _Recorded(:final row) => clock(
+              row.shift.endUtc,
+              row.shift.timezoneId,
+            ),
+            _Planned(:final row) => clock(row.day.endUtc, row.day.timezoneId),
+          },
         ),
         RegisterColumn(
           key: 'break',
@@ -163,18 +295,34 @@ final class ShiftsSheet extends StatelessWidget {
           kind: ColumnKind.duration,
           width: 64,
           optional: true,
-          value: (row) =>
-              row.breakSeconds == 0 ? '' : formatDuration(row.breakSeconds),
+          value: (entry) {
+            final seconds = switch (entry) {
+              _Recorded(:final row) => row.breakSeconds,
+              _Planned(:final row) => row.day.breaks.fold(
+                0,
+                (sum, item) => sum + item.end.difference(item.start).inSeconds,
+              ),
+            };
+            return seconds == 0 ? '' : formatDuration(seconds);
+          },
         ),
         RegisterColumn(
           key: 'paid',
           label: 'Paid',
           kind: ColumnKind.duration,
           width: 64,
-          value: (row) =>
+          value: (entry) => switch (entry) {
+            _Recorded(:final row) =>
               row.paidSeconds == null ? '' : formatDuration(row.paidSeconds!),
-          explain: (row) =>
-              row.facts == null ? null : explainPaidTime(row.facts!, timezones),
+            _Planned(:final row) => formatDuration(row.day.paidSeconds),
+          },
+          explain: (entry) => switch (entry) {
+            _Recorded(row: ShiftSheetRow(:final facts?)) => explainPaidTime(
+              facts,
+              timezones,
+            ),
+            _ => null,
+          },
         ),
         RegisterColumn(
           key: 'night',
@@ -182,8 +330,8 @@ final class ShiftsSheet extends StatelessWidget {
           kind: ColumnKind.derived,
           width: 64,
           optional: true,
-          value: (row) => premium(row, (pay) => pay.nightPaidSeconds),
-          explain: (row) => premiumExplain(row, PremiumHours.night),
+          value: (entry) => premium(entry, (pay) => pay.nightPaidSeconds),
+          explain: (entry) => premiumExplain(entry, PremiumHours.night),
         ),
         RegisterColumn(
           key: 'holiday',
@@ -191,8 +339,8 @@ final class ShiftsSheet extends StatelessWidget {
           kind: ColumnKind.derived,
           width: 72,
           optional: true,
-          value: (row) => premium(row, (pay) => pay.holidayPaidSeconds),
-          explain: (row) => premiumExplain(row, PremiumHours.holiday),
+          value: (entry) => premium(entry, (pay) => pay.holidayPaidSeconds),
+          explain: (entry) => premiumExplain(entry, PremiumHours.holiday),
         ),
         RegisterColumn(
           key: 'overtime',
@@ -200,8 +348,11 @@ final class ShiftsSheet extends StatelessWidget {
           description: 'Overtime hours',
           kind: ColumnKind.derived,
           width: 64,
-          value: (row) => premium(row, (pay) => pay.overtimePaidSeconds),
-          explain: (row) => premiumExplain(row, PremiumHours.overtime),
+          // Overtime is only known once a day is confirmed (spec 4.1).
+          value: (entry) => entry is _Planned
+              ? ''
+              : premium(entry, (pay) => pay.overtimePaidSeconds),
+          explain: (entry) => premiumExplain(entry, PremiumHours.overtime),
         ),
         RegisterColumn(
           key: 'pay',
@@ -209,9 +360,15 @@ final class ShiftsSheet extends StatelessWidget {
           description: 'Estimated pay, until a payslip confirms it',
           kind: ColumnKind.money,
           width: 112,
-          value: (row) => row.pay == null ? '' : formatMoney(row.pay!.amount),
-          explain: (row) => switch ((row.facts, row.pay)) {
-            (final facts?, final pay?) => explainExpectedPay(facts, pay),
+          value: (entry) => switch (entry) {
+            _Recorded(:final row) =>
+              row.pay == null ? '' : formatMoney(row.pay!.amount),
+            _Planned(:final row) =>
+              row.pay == null ? '' : formatMoney(row.pay!.amount),
+          },
+          explain: (entry) => switch (entry) {
+            _Recorded(row: ShiftSheetRow(:final facts?, :final pay?)) =>
+              explainExpectedPay(facts, pay),
             _ => null,
           },
         ),
@@ -219,8 +376,12 @@ final class ShiftsSheet extends StatelessWidget {
           key: 'state',
           label: 'State',
           kind: ColumnKind.state,
-          width: 96,
-          value: (row) => shiftStateLabel(row.shift.state),
+          // Room for "Planned (changed)" once the plan is listed.
+          width: planned.isEmpty ? 96 : 120,
+          value: (entry) => switch (entry) {
+            _Recorded(:final row) => shiftStateLabel(row.shift.state),
+            _Planned(:final row) => plannedStateLabel(row),
+          },
         ),
       ],
     );
