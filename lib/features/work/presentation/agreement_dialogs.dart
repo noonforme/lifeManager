@@ -8,10 +8,12 @@ import '../../../shared/workbench/era_form.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/lifeos_skin.dart' show KeyKind;
 import '../../../shared/workbench/office_controls.dart';
+import '../application/agreement_correction.dart';
 import '../data/projections/work_record_projection.dart' show AgreementUse;
 import '../domain/agreement.dart';
 import 'employment_agreement_forms.dart'
     show agreementOverlapMessage, agreementUsersPaid, staleMessage;
+import 'work_formats.dart' show formatMoney;
 
 /// The way to pay a planned day no agreement covers: "Set up pay
 /// agreement…" when the employment has none, otherwise "Extend pay
@@ -73,6 +75,90 @@ Future<bool> askRemoveAgreement(
           _RemoveAgreementDialog(agreement: agreement, onRemove: onRemove),
     ) ??
     false;
+
+/// Asks before correcting [agreement] in place, naming what [impact]
+/// reprices (premiums spec 7, added 2026-10-08). True on Correct; the
+/// Properties then save and report the outcome.
+Future<bool> askCorrectAgreement(
+  BuildContext context, {
+  required PayAgreement agreement,
+  required AgreementCorrectionImpact impact,
+}) async =>
+    await showDialog<bool>(
+      context: context,
+      builder: (context) => EraDialog(
+        title: 'Correct agreement',
+        body: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Correct pay agreement v${agreement.version}?',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 7),
+            const Text(
+              'It is corrected as if it had always said this. Its history '
+              'keeps the old terms.',
+            ),
+            const SizedBox(height: 7),
+            Text(correctionImpactText(impact)),
+            if (correctionReviewedText(impact) case final reviewed?) ...[
+              const SizedBox(height: 7),
+              InspectorNote(reviewed),
+            ],
+            const SizedBox(height: 7),
+            const Text(
+              'For new terms from a date, use Change terms from… instead.',
+            ),
+          ],
+        ),
+        actions: [
+          KeyButton(
+            label: 'Correct',
+            kind: KeyKind.primary,
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+          KeyButton(
+            label: 'Cancel',
+            onPressed: () => Navigator.of(context).pop(false),
+          ),
+        ],
+      ),
+    ) ??
+    false;
+
+/// "3 finished shifts and 1 leave day are repriced: EUR 600.00 → EUR
+/// 652.00 (difference EUR +52.00)."
+String correctionImpactText(AgreementCorrectionImpact impact) {
+  final shifts = impact.shifts;
+  final leave = impact.leaveDays;
+  if (shifts == 0 && leave == 0) {
+    return 'No finished shift or leave day is repriced.';
+  }
+  final records = [
+    if (shifts > 0) '$shifts finished ${shifts == 1 ? 'shift' : 'shifts'}',
+    if (leave > 0) '$leave leave ${leave == 1 ? 'day' : 'days'}',
+  ].join(' and ');
+  // "EUR +52.00" reads as a rise beside formatMoney's "EUR -3.00".
+  final difference = formatMoney(impact.difference);
+  final signed = impact.difference.minorUnits > 0
+      ? difference.replaceFirst(' ', ' +')
+      : difference;
+  return '$records ${shifts + leave == 1 ? 'is' : 'are'} repriced: '
+      '${formatMoney(impact.before)} → ${formatMoney(impact.after)} '
+      '(difference $signed).';
+}
+
+/// Which of them fall in reviewed pay periods; null when none does.
+String? correctionReviewedText(AgreementCorrectionImpact impact) =>
+    switch (impact.inReviewedPeriods) {
+      0 => null,
+      1 => '1 of them is in a reviewed pay period; its reconciliation changes.',
+      final count =>
+        '$count of them are in reviewed pay periods; their reconciliation '
+            'changes.',
+    };
 
 /// What a failed agreement command says, when it is not about one field.
 String agreementProblem(MutationOutcome<PayAgreement> outcome) =>

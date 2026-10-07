@@ -7,6 +7,7 @@ import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../core/time/wall_clock.dart';
+import '../application/agreement_correction.dart';
 import '../application/day_plan_service.dart';
 import '../application/schedule_service.dart';
 import '../application/work_commands.dart';
@@ -77,6 +78,18 @@ typedef RemoveAgreement = Future<MutationOutcome<PayAgreement>> Function(
   DeleteAgreementCommand command,
 );
 
+/// What correcting an agreement in use with the terms reprices; null when
+/// it reprices nothing.
+typedef PreviewAgreementCorrection =
+    Future<AgreementCorrectionImpact?> Function(
+      AgreementId id,
+      AgreementTerms terms,
+    );
+
+final previewAgreementCorrectionProvider = Provider<PreviewAgreementCorrection>(
+  (ref) =>
+      throw StateError('PreviewAgreementCorrection has not been provided.'),
+);
 final changeAgreementTermsProvider = Provider<ChangeAgreementTerms>(
   (ref) => throw StateError('ChangeAgreementTerms has not been provided.'),
 );
@@ -496,7 +509,7 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     return outcome;
   }
 
-  /// Rewrites an unused agreement and returns to the employment header.
+  /// Rewrites an agreement in place; one in use is corrected.
   Future<MutationOutcome<PayAgreement>> updateAgreement(
     PayAgreement current,
     AgreementDraft value,
@@ -513,6 +526,13 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
     // The sheet stays where it is: Apply keeps it open, OK closes it.
     return outcome;
   }
+
+  /// What saving [value] over [current] in place reprices, asked before a
+  /// correction is saved.
+  Future<AgreementCorrectionImpact?> previewAgreementCorrection(
+    PayAgreement current,
+    AgreementDraft value,
+  ) => ref.read(previewAgreementCorrectionProvider)(current.id, value.terms);
 
   /// "Change terms from…": [value]'s start is the From date; [current]
   /// ends the day before and the new version runs to its end.

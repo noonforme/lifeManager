@@ -179,6 +179,9 @@ final class ProductionWorkProviders {
     updateEmploymentProvider.overrideWithValue(employment.updateEmployment),
     deleteEmploymentProvider.overrideWithValue(employment.deleteEmployment),
     updateAgreementProvider.overrideWithValue(agreement.updateAgreement),
+    previewAgreementCorrectionProvider.overrideWithValue(
+      workRepository.previewAgreementCorrection,
+    ),
     changeAgreementTermsProvider.overrideWithValue(
       agreement.changeAgreementTerms,
     ),

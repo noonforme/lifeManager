@@ -15,12 +15,14 @@ import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/millennium_style.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/property_sheet.dart';
+import '../application/agreement_correction.dart';
 import '../application/work_commands.dart';
 import '../data/projections/work_record_projection.dart' show AgreementUse;
 import '../domain/agreement.dart';
 import '../domain/employment.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
+import 'agreement_dialogs.dart' show askCorrectAgreement;
 import 'record_history_panel.dart';
 import 'work_formats.dart';
 import 'work_route_state.dart';
@@ -33,10 +35,18 @@ final class EmploymentDraft {
 }
 
 final class AgreementDraft {
-  const AgreementDraft({required this.employmentId, required this.terms});
+  const AgreementDraft({
+    required this.employmentId,
+    required this.terms,
+    this.correction = false,
+  });
 
   final EmploymentId employmentId;
   final AgreementTerms terms;
+
+  /// The owner confirmed it corrects an agreement in use, repricing what
+  /// it pays.
+  final bool correction;
 }
 
 typedef SubmitEmployment = Future<MutationOutcome<Employment>> Function(
@@ -69,9 +79,6 @@ String agreementUsersPaid(AgreementUse? use) {
       '${use == AgreementUse.leave ? 'is' : 'are'} paid';
 }
 
-String agreementInUseMessage(AgreementUse? use) =>
-    "This agreement is used by ${agreementUsers(use)} and can't be edited. "
-    'Use Change terms from… for new terms from a date.';
 const agreementOverlapMessage = 'These dates overlap another agreement.';
 const employmentHistoryMessage =
     "This employment has work history and can't be deleted.";
@@ -236,9 +243,9 @@ final class _EmploymentFormState extends State<EmploymentForm> {
 }
 
 /// Creates an agreement with the Labour Code defaults filled in, or edits
-/// an unused [initial] agreement with the same fields. One in use edits
-/// only its dates ([datesOnly]); [changingTerms] sets [initial]'s next
-/// terms from a date instead.
+/// [initial] with the same fields. One in use is corrected in place, asking
+/// first when the change reprices what it pays ([onPreviewCorrection]);
+/// [changingTerms] sets [initial]'s next terms from a date instead.
 final class AgreementForm extends StatefulWidget {
   const AgreementForm({
     required this.employmentId,
@@ -246,8 +253,10 @@ final class AgreementForm extends StatefulWidget {
     this.initial,
     this.today,
     this.readOnly = false,
-    this.datesOnly = false,
     this.usedBy,
+    this.firstUse,
+    this.lastUse,
+    this.onPreviewCorrection,
     this.changingTerms = false,
     this.lockedReason,
     this.historyRecord,
@@ -261,14 +270,22 @@ final class AgreementForm extends StatefulWidget {
   final SubmitAgreement onSubmit;
   final PayAgreement? initial;
 
-  /// Shows the terms greyed: the agreement is evidence for finished shifts.
+  /// Shows the terms greyed: nothing can save them.
   final bool readOnly;
-
-  /// Greys every term but the dates, which an agreement in use may widen.
-  final bool datesOnly;
 
   /// Who [initial] pays while in use, for refusals; null when unknown.
   final AgreementUse? usedBy;
+
+  /// The first and last days [initial] paid, which its dates must keep
+  /// covering; named when a narrower range is refused.
+  final LocalDate? firstUse;
+  final LocalDate? lastUse;
+
+  /// For an agreement in use: what saving the draft in place reprices,
+  /// asked before a change to its pay is saved. Null when nothing is
+  /// repriced, and the draft saves directly.
+  final Future<AgreementCorrectionImpact?> Function(AgreementDraft draft)?
+  onPreviewCorrection;
 
   /// "Change terms from…": [initial]'s terms to start from, with a From
   /// date in place of its dates. The draft's start is that date and its end
@@ -281,7 +298,7 @@ final class AgreementForm extends StatefulWidget {
   final VoidCallback? onEnd;
   final VoidCallback? onRemove;
 
-  /// Why a read-only agreement cannot change, at the top of Rate.
+  /// What an agreement in use says about changing it, at the top of Rate.
   final String? lockedReason;
 
   /// Adds a History tab after Notes, as the agreement's property sheet has.
@@ -399,7 +416,7 @@ final class _AgreementFormState extends State<AgreementForm> {
   @override
   void didUpdateWidget(AgreementForm oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // An agreement that gains finished shifts while open stops saving.
+    // A sheet that loses its save while open stops saving.
     if (widget.readOnly && !oldWidget.readOnly) {
       _sheet?.detach(_applySheet);
       _sheet = null;
@@ -483,33 +500,66 @@ final class _AgreementFormState extends State<AgreementForm> {
       _errors = const {};
       _formError = null;
     });
-    final outcome = await widget.onSubmit(
-      AgreementDraft(
-        employmentId: widget.employmentId,
-        terms: AgreementTerms(
-          effectiveStart: start,
-          effectiveEnd: end,
-          hourlyRateMicroEur: rate!,
-          basis: _basis,
-          label: _optional(_label.text),
-          note: _optional(_note.text),
-          overtimeThresholdMinutes: threshold!,
-          overtimeMultiplier: overtime!,
-          nightEnabled: _nightEnabled,
-          nightStartMinute: nightStart,
-          nightEndMinute: nightEnd,
-          nightMultiplier: night!,
-          holidayCalendar: _holidays
-              ? HolidayCalendar.lithuania
-              : HolidayCalendar.none,
-          holidayMultiplier: holiday!,
-          premiumStacking: _stacking,
-          vacationPay: vacationPay!,
-          sickPay: sickPay!,
-          sickEmployerDays: sickDays!,
-        ),
+    var draft = AgreementDraft(
+      employmentId: widget.employmentId,
+      terms: AgreementTerms(
+        effectiveStart: start,
+        effectiveEnd: end,
+        hourlyRateMicroEur: rate!,
+        basis: _basis,
+        label: _optional(_label.text),
+        note: _optional(_note.text),
+        overtimeThresholdMinutes: threshold!,
+        overtimeMultiplier: overtime!,
+        nightEnabled: _nightEnabled,
+        nightStartMinute: nightStart,
+        nightEndMinute: nightEnd,
+        nightMultiplier: night!,
+        holidayCalendar: _holidays
+            ? HolidayCalendar.lithuania
+            : HolidayCalendar.none,
+        holidayMultiplier: holiday!,
+        premiumStacking: _stacking,
+        vacationPay: vacationPay!,
+        sickPay: sickPay!,
+        sickEmployerDays: sickDays!,
       ),
     );
+    // A change to what an agreement in use pays reprices it: ask first.
+    if (widget.onPreviewCorrection case final preview?) {
+      final AgreementCorrectionImpact? impact;
+      try {
+        impact = await preview(draft);
+      } on Exception {
+        // Never reprice without asking: an unreadable impact saves nothing.
+        if (mounted) {
+          setState(() {
+            _submitting = false;
+            _formError = 'Local storage is unavailable. Try again.';
+          });
+        }
+        return null;
+      }
+      if (!mounted) return null;
+      if (impact != null) {
+        final correct = await askCorrectAgreement(
+          context,
+          agreement: _initial!,
+          impact: impact,
+        );
+        if (!mounted) return null;
+        if (!correct) {
+          setState(() => _submitting = false);
+          return null;
+        }
+        draft = AgreementDraft(
+          employmentId: draft.employmentId,
+          terms: draft.terms,
+          correction: true,
+        );
+      }
+    }
+    final outcome = await widget.onSubmit(draft);
     if (!mounted) return outcome;
     setState(() {
       _submitting = false;
@@ -518,23 +568,31 @@ final class _AgreementFormState extends State<AgreementForm> {
           final from = fields['from']?.first.code;
           final start = fields['effectiveStart']?.first.code;
           final end = fields['effectiveEnd']?.first.code;
-          if (fields.containsKey('agreement.inUse')) {
-            _formError = agreementInUseMessage(widget.usedBy);
-          } else if (from != null) {
+          if (from != null) {
             _errors = {'from': _fromMessage(from)};
             _tab = 0;
           } else if (start == FieldIssueCode.conflict) {
             _errors = {
-              'effectiveStart':
-                  'Used by ${agreementUsers(widget.usedBy)}, so it can only '
-                  'start earlier.',
+              'effectiveStart': switch (widget.firstUse) {
+                final day? =>
+                  'Used by ${agreementUsers(widget.usedBy)} on $day, so it '
+                      'must start on or before that day.',
+                null =>
+                  'Used by ${agreementUsers(widget.usedBy)}, so it must '
+                      'start on or before the first day it paid.',
+              },
             };
             _tab = 0;
           } else if (end == FieldIssueCode.conflict) {
             _errors = {
-              'effectiveEnd':
-                  'Used by ${agreementUsers(widget.usedBy)}, so it can only '
-                  'end later. Use End agreement… to end it sooner.',
+              'effectiveEnd': switch (widget.lastUse) {
+                final day? =>
+                  'Used by ${agreementUsers(widget.usedBy)} on $day, so it '
+                      'must end on or after that day.',
+                null =>
+                  'Used by ${agreementUsers(widget.usedBy)}, so it must end '
+                      'on or after the last day it paid.',
+              },
             };
             _tab = 0;
           } else if (fields.containsKey('effectiveRange')) {
@@ -622,7 +680,6 @@ final class _AgreementFormState extends State<AgreementForm> {
               ),
             ],
           )
-        // An agreement in use still widens: its dates stay live.
         : EraFormScope(
             labelWidth: 120,
             enabled: !widget.readOnly,
@@ -646,10 +703,6 @@ final class _AgreementFormState extends State<AgreementForm> {
                   error: _errors['effectiveEnd'],
                   onChanged: (value) => _edit(() => _effectiveEnd = value),
                 ),
-                if (widget.datesOnly)
-                  const InspectorNote(
-                    'Only the dates widen here: start earlier or end later.',
-                  ),
               ],
             ),
           );
@@ -834,7 +887,11 @@ final class _AgreementFormState extends State<AgreementForm> {
       ],
       [
         _group(context, 'Notes', [
-          _Field(controller: _label, label: 'Label'),
+          _Field(
+            controller: _label,
+            label: 'Label',
+            fieldKey: const ValueKey('agreement-label'),
+          ),
           _Field(controller: _note, label: 'Note', maxLines: 3),
         ]),
       ],
@@ -852,7 +909,7 @@ final class _AgreementFormState extends State<AgreementForm> {
         child: Form(
           child: EraFormScope(
             labelWidth: 120,
-            enabled: !widget.readOnly && !widget.datesOnly,
+            enabled: !widget.readOnly,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

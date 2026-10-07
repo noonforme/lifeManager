@@ -10,9 +10,10 @@ import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/presentation/agreement_dialogs.dart';
 import 'package:lifeos/features/work/presentation/employment_agreement_forms.dart'
-    show agreementInUseMessage, agreementUsersPaid;
+    show agreementUsersPaid;
 import 'package:lifeos/shared/shell/task_pane.dart';
-import 'package:lifeos/shared/workbench/era_dialog.dart' show CaptionBar;
+import 'package:lifeos/shared/workbench/era_dialog.dart'
+    show CaptionBar, EraDialog;
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
 
@@ -23,6 +24,36 @@ import '../../../support/work_sheets.dart';
 
 Finder _link(String label) => find.widgetWithText(TaskLink, label);
 Finder _key(String label) => find.widgetWithText(KeyButton, label);
+
+TextField _rateField(WidgetTester tester) => tester.widget<TextField>(
+  find.byKey(const ValueKey('agreement-hourly-rate')),
+);
+
+/// Types into the field and lets the sheet notice the change.
+Future<void> _type(WidgetTester tester, String key, String text) async {
+  await tester.enterText(find.byKey(ValueKey(key)), text);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openTab(WidgetTester tester, String tab) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byType(PropertySheetTabs),
+      matching: find.text(tab),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// What correcting v1 to EUR 20.00 reprices: its three finished shifts,
+/// EUR 542.80 at 18.40 an hour, as the register estimates them.
+const _repriced =
+    '3 finished shifts are repriced: EUR 542.80 → EUR 590.00 (difference '
+    'EUR +47.20).';
+
+/// A key on the era dialog above the Properties, which has its own.
+Finder _inDialog(String label) =>
+    find.descendant(of: find.byType(EraDialog), matching: _key(label));
 
 /// The open dialog, by the title on its caption bar.
 Finder _caption(String title) => find.widgetWithText(CaptionBar, title);
@@ -223,9 +254,8 @@ void main() {
     expect(find.text('2026-09-30'), findsOneWidget);
   });
 
-  testWidgets('an agreement in use widens its dates on its Properties', (
-    tester,
-  ) async {
+  testWidgets('an agreement in use is corrected on its Properties: a typo '
+      'saves, a change to pay asks first', (tester) async {
     await _openAgreements(tester);
     await _selectAgreement(tester);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -233,48 +263,86 @@ void main() {
 
     expect(
       find.text(
-        'Used by 3 finished shifts. Change terms from a date to keep their '
-        'pay.',
+        'Used by 3 finished shifts. Corrections reprice them; for new terms '
+        'from a date use Change terms from…',
       ),
       findsOneWidget,
     );
-    expect(
-      tester
-          .widget<TextField>(
-            find.byKey(const ValueKey('agreement-hourly-rate')),
-          )
-          .enabled,
-      isFalse,
-    );
+    expect(_rateField(tester).enabled, isTrue);
     expect(_key('Change terms from…'), findsOneWidget);
     expect(_key('End agreement…'), findsOneWidget);
     expect(_key('Remove agreement…'), findsNothing);
 
-    await pickDate(
-      tester,
-      'agreement-effective-start',
-      const LocalDate(2026, 8, 1),
-    );
+    // The label pays nothing: it saves without asking.
+    await _openTab(tester, 'Notes');
+    await _type(tester, 'agreement-label', 'Standard depot');
     await tester.tap(_key('Apply'));
     await tester.pumpAndSettle();
+    expect(_caption('Correct agreement'), findsNothing);
     expect(find.text('Pay agreement saved.'), findsOneWidget);
-    expect(
-      dateIn(tester, 'agreement-effective-start'),
-      const LocalDate(2026, 8, 1),
-    );
 
-    // Starting later would drop days it paid; the field says so.
+    await _openTab(tester, 'Rate');
+    await _type(tester, 'agreement-hourly-rate', '20');
+    await tester.tap(_key('Apply'));
+    await tester.pumpAndSettle();
+    expect(_caption('Correct agreement'), findsOneWidget);
+    expect(find.text('Correct pay agreement v1?'), findsOneWidget);
+    expect(find.text(_repriced), findsOneWidget);
+    // Its September period is open and has no payslip.
+    expect(find.textContaining('reviewed pay period'), findsNothing);
+
+    await tester.tap(_inDialog('Cancel'));
+    await tester.pumpAndSettle();
+    expect(_caption('Correct agreement'), findsNothing);
+    expect(find.text('Agreement corrected.'), findsNothing);
+    await tester.tap(_key('Cancel'));
+    await tester.pumpAndSettle();
+    // Nothing was saved: the Properties open on the stored rate.
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(_rateField(tester).controller!.text, '18.40');
+
+    await _type(tester, 'agreement-hourly-rate', '20');
+    await tester.tap(_key('Apply'));
+    await tester.pumpAndSettle();
+    await tester.tap(_inDialog('Correct'));
+    await tester.pumpAndSettle();
+    expect(_caption('Correct agreement'), findsNothing);
+    expect(find.text('Agreement corrected.'), findsOneWidget);
+    expect(_rateField(tester).controller!.text, '20.00');
+
+    // Starting after a day it paid would drop it; the field says which.
     await pickDate(
       tester,
       'agreement-effective-start',
-      const LocalDate(2026, 9, 2),
+      const LocalDate(2026, 9, 8),
     );
     await tester.tap(_key('Apply'));
     await tester.pumpAndSettle();
     expect(
-      find.text('Used by finished shifts, so it can only start earlier.'),
+      find.text(
+        'Used by finished shifts on 2026-09-07, so it must start on or '
+        'before that day.',
+      ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('Change terms from… still sets new terms on a corrected '
+      'agreement', (tester) async {
+    await _openAgreements(tester);
+    await _selectAgreement(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    await _openTab(tester, 'Notes');
+    await _type(tester, 'agreement-label', 'Standard depot');
+    await tester.tap(_key('OK'));
+    await tester.pumpAndSettle();
+
+    await _changeTerms(tester, const LocalDate(2026, 10, 1));
+
+    expect(find.text('Agreement changed.'), findsOneWidget);
+    expect(find.text('v2'), findsOneWidget);
   });
 
   testWidgets('Change terms from… opens from the Properties, and Cancel goes '
@@ -356,11 +424,6 @@ void main() {
   });
 
   test('refusals name who the agreement pays', () {
-    expect(
-      agreementInUseMessage(AgreementUse.leave),
-      "This agreement is used by confirmed leave and can't be edited. Use "
-      'Change terms from… for new terms from a date.',
-    );
     expect(
       agreementUsersPaid(AgreementUse.both),
       'Finished shifts and confirmed leave are paid',

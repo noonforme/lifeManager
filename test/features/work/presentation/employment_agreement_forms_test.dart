@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/core/time/local_time.dart';
+import 'package:lifeos/features/work/application/agreement_correction.dart';
 import 'package:lifeos/features/work/application/work_commands.dart';
 import 'package:lifeos/features/work/application/work_query_service.dart';
 import 'package:lifeos/features/work/data/projections/work_record_projection.dart';
@@ -12,6 +13,7 @@ import 'package:lifeos/features/work/domain/agreement.dart';
 import 'package:lifeos/features/work/domain/employment.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
+import 'package:lifeos/features/work/domain/pay.dart';
 import 'package:lifeos/features/work/presentation/employment_agreement_forms.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
@@ -446,6 +448,10 @@ void main() {
       WidgetTester tester, {
       MutationOutcome<PayAgreement>? outcome,
       void Function(AgreementDraft draft)? onSubmit,
+      Future<AgreementCorrectionImpact?> Function(AgreementDraft draft)?
+      preview,
+      LocalDate? firstUse,
+      LocalDate? lastUse,
     }) async {
       final sheet = PropertySheetController();
       addTearDown(sheet.dispose);
@@ -457,6 +463,10 @@ void main() {
               employmentId: _employmentId,
               initial: _agreement,
               today: const LocalDate(2026, 10, 1),
+              usedBy: preview == null ? null : AgreementUse.shifts,
+              firstUse: firstUse,
+              lastUse: lastUse,
+              onPreviewCorrection: preview,
               onSubmit: (draft) async {
                 onSubmit?.call(draft);
                 return outcome ?? Committed(_agreement);
@@ -499,25 +509,140 @@ void main() {
       expect(sheet.dirty, isTrue);
     });
 
-    testWidgets('in-use and stale outcomes use the section 9 copy', (
+    testWidgets('a narrower range in use and stale outcomes say why', (
       tester,
     ) async {
       var sheet = await pumpSheet(
         tester,
+        firstUse: const LocalDate(2026, 10, 3),
+        lastUse: const LocalDate(2026, 10, 9),
         outcome: const Invalid<PayAgreement>({
-          'agreement.inUse': [FieldIssue(FieldIssueCode.conflict)],
+          'effectiveStart': [FieldIssue(FieldIssueCode.conflict)],
         }),
       );
       await enter(tester, 'agreement-hourly-rate', '26.00');
       expect(await sheet.apply(), isFalse);
       await tester.pumpAndSettle();
-      expect(find.text(agreementInUseMessage(null)), findsOneWidget);
+      expect(
+        find.text(
+          'Used by finished shifts or confirmed leave on 2026-10-03, so it '
+          'must start on or before that day.',
+        ),
+        findsOneWidget,
+      );
+
+      sheet = await pumpSheet(
+        tester,
+        lastUse: const LocalDate(2026, 10, 9),
+        outcome: const Invalid<PayAgreement>({
+          'effectiveEnd': [FieldIssue(FieldIssueCode.conflict)],
+        }),
+      );
+      await enter(tester, 'agreement-hourly-rate', '26.50');
+      expect(await sheet.apply(), isFalse);
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Used by finished shifts or confirmed leave on 2026-10-09, so it '
+          'must end on or after that day.',
+        ),
+        findsOneWidget,
+      );
 
       sheet = await pumpSheet(tester, outcome: const Stale<PayAgreement>());
       await enter(tester, 'agreement-hourly-rate', '27.00');
       expect(await sheet.apply(), isFalse);
       await tester.pumpAndSettle();
       expect(find.text(staleMessage), findsOneWidget);
+    });
+
+    testWidgets('in use, a change to pay asks first and names what it '
+        'reprices; a typo saves directly', (tester) async {
+      final submitted = <AgreementDraft>[];
+      final sheet = await pumpSheet(
+        tester,
+        onSubmit: submitted.add,
+        // The label pays nothing, so it reprices nothing.
+        preview: (draft) async =>
+            draft.terms.hourlyRateMicroEur == _agreement.hourlyRateMicroEur
+            ? null
+            : const AgreementCorrectionImpact(
+                shifts: 3,
+                leaveDays: 1,
+                before: Money(minorUnits: 60000),
+                after: Money(minorUnits: 65200),
+                inReviewedPeriods: 2,
+              ),
+      );
+
+      await openTab(tester, 'Notes');
+      await tester.enterText(
+        find.byKey(const ValueKey('agreement-label')),
+        'Depot',
+      );
+      expect(await sheet.apply(), isTrue);
+      expect(find.text('Correct agreement'), findsNothing);
+      expect(submitted.single.terms.label, 'Depot');
+      expect(submitted.single.correction, isFalse);
+
+      await openTab(tester, 'Rate');
+      await enter(tester, 'agreement-hourly-rate', '26.00');
+      var applying = sheet.apply();
+      await tester.pumpAndSettle();
+      expect(find.text('Correct pay agreement v1?'), findsOneWidget);
+      expect(
+        find.text(
+          '3 finished shifts and 1 leave day are repriced: EUR 600.00 → '
+          'EUR 652.00 (difference EUR +52.00).',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          '2 of them are in reviewed pay periods; their reconciliation '
+          'changes.',
+        ),
+        findsOneWidget,
+      );
+      // The affirmative key comes first, then Cancel.
+      expect(
+        tester.getTopLeft(find.widgetWithText(KeyButton, 'Correct')).dx,
+        lessThan(
+          tester.getTopLeft(find.widgetWithText(KeyButton, 'Cancel')).dx,
+        ),
+      );
+      await tester.tap(find.widgetWithText(KeyButton, 'Cancel'));
+      await tester.pumpAndSettle();
+      expect(await applying, isFalse);
+      expect(submitted, hasLength(1));
+      expect(sheet.dirty, isTrue);
+
+      applying = sheet.apply();
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(KeyButton, 'Correct'));
+      await tester.pumpAndSettle();
+      expect(await applying, isTrue);
+      expect(submitted.last.terms.hourlyRateMicroEur, 26000000);
+      expect(submitted.last.correction, isTrue);
+    });
+
+    testWidgets('an unreadable impact saves nothing', (tester) async {
+      final submitted = <AgreementDraft>[];
+      final sheet = await pumpSheet(
+        tester,
+        onSubmit: submitted.add,
+        preview: (_) async => throw Exception('storage'),
+      );
+
+      await enter(tester, 'agreement-hourly-rate', '26.00');
+      expect(await sheet.apply(), isFalse);
+      await tester.pumpAndSettle();
+
+      expect(submitted, isEmpty);
+      expect(
+        find.text('Local storage is unavailable. Try again.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('an invalid rate keeps field values and associates errors', (

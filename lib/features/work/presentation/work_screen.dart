@@ -13,6 +13,7 @@ import '../../../shared/workbench/era_dates.dart';
 import '../../../shared/workbench/inspector_parts.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/operational_state.dart';
+import '../application/agreement_correction.dart';
 import '../application/work_templates.dart';
 import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
@@ -69,6 +70,7 @@ final class WorkScreen extends StatefulWidget {
     this.onUpdateEmployment,
     this.onDeleteEmployment,
     this.onUpdateAgreement,
+    this.onPreviewAgreementCorrection,
     this.onChangeAgreementTerms,
     this.onEndAgreement,
     this.onRemoveAgreement,
@@ -133,6 +135,14 @@ final class WorkScreen extends StatefulWidget {
     AgreementDraft value,
   )?
   onUpdateAgreement;
+
+  /// What correcting an agreement in use with the draft reprices, asked
+  /// before the correction saves; null when it reprices nothing.
+  final Future<AgreementCorrectionImpact?> Function(
+    PayAgreement current,
+    AgreementDraft value,
+  )?
+  onPreviewAgreementCorrection;
 
   /// "Change terms from…": the draft's start is the From date.
   final Future<MutationOutcome<PayAgreement>> Function(
@@ -1038,19 +1048,25 @@ extension on _WorkScreenState {
   }
 
   /// The agreement's property sheet: Rate, Premiums, Leave, Notes and
-  /// History, edited in place while no finished shift uses it. One in use
-  /// only widens its dates; new terms start from a date instead.
+  /// History, edited in place. One in use is corrected: a change to its pay
+  /// asks first, naming what it reprices; new terms start from a date
+  /// instead.
   Widget _agreement(AgreementRecordProjection record) {
     final agreement = record.agreement;
     final update = widget.onUpdateAgreement;
+    final preview = widget.onPreviewAgreementCorrection;
     return AgreementForm(
       key: ValueKey(('agreement', agreement.id, agreement.revision)),
       employmentId: agreement.employmentId,
       initial: agreement,
       readOnly: update == null,
-      datesOnly: record.inUse,
       usedBy: record.use,
-      lockedReason: record.inUse ? _lockedReason(record) : null,
+      firstUse: record.firstUse,
+      lastUse: record.lastUse,
+      lockedReason: record.inUse ? _inUseNote(record) : null,
+      onPreviewCorrection: record.inUse && preview != null
+          ? (value) => preview(agreement, value)
+          : null,
       onChangeTerms: record.inUse
           ? _changeAgreementTerms(agreement, usedBy: record.use)
           : null,
@@ -1064,26 +1080,28 @@ extension on _WorkScreenState {
           ? (_) async => const Unavailable<PayAgreement>(
               SafeFailureCode.storageUnavailable,
             )
-          : (value) => _saved(update(agreement, value), 'Pay agreement saved.'),
+          : (value) => _saved(
+              update(agreement, value),
+              value.correction
+                  ? 'Agreement corrected.'
+                  : 'Pay agreement saved.',
+            ),
     );
   }
 
-  /// Why an agreement in use shows its terms greyed, naming who it pays.
-  String _lockedReason(AgreementRecordProjection record) {
+  /// What an agreement in use says above its terms: who it pays, that a
+  /// correction reprices them, and where new terms from a date start.
+  String _inUseNote(AgreementRecordProjection record) {
     final count = record.finishedShifts;
     final shifts = '$count finished ${count == 1 ? 'shift' : 'shifts'}';
-    return switch (record.use) {
-      AgreementUse.leave =>
-        'Used by confirmed leave. Change terms from a date to keep its pay.',
-      AgreementUse.both =>
-        'Used by $shifts and confirmed leave. Change terms from a date to '
-            'keep their pay.',
-      AgreementUse.shifts =>
-        'Used by $shifts. Change terms from a date to keep their pay.',
-      null =>
-        'Used by finished shifts or confirmed leave. Change terms from a '
-            'date to keep their pay.',
+    final (users, them) = switch (record.use) {
+      AgreementUse.leave => ('confirmed leave', 'it'),
+      AgreementUse.both => ('$shifts and confirmed leave', 'them'),
+      AgreementUse.shifts => (shifts, count == 1 ? 'it' : 'them'),
+      null => ('finished shifts or confirmed leave', 'them'),
     };
+    return 'Used by $users. Corrections reprice $them; for new terms from a '
+        'date use Change terms from…';
   }
 
   Widget _reviseOutcome(

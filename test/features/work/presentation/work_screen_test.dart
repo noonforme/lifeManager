@@ -190,7 +190,7 @@ void main() {
       expect(find.text('Warehouse'), findsWidgets);
     });
 
-    testWidgets('an unused agreement edits; one in use only widens', (
+    testWidgets('an unused agreement edits; one in use is corrected', (
       tester,
     ) async {
       WorkReady agreementState(int finished) => setupState(
@@ -213,8 +213,8 @@ void main() {
         findsOneWidget,
       );
 
-      // Gaining finished shifts while open greys the terms; the dates stay
-      // live, since an agreement in use may still widen.
+      // Gaining finished shifts while open keeps every term editable: a
+      // correction reprices them, and the note says so.
       await pumpScreen(tester, AsyncData(agreementState(2)));
       expect(
         tester
@@ -222,17 +222,13 @@ void main() {
               find.byKey(const ValueKey('agreement-hourly-rate')),
             )
             .enabled,
-        isFalse,
+        isTrue,
       );
       expect(
         find.text(
-          'Used by 2 finished shifts. Change terms from a date to keep '
-          'their pay.',
+          'Used by 2 finished shifts. Corrections reprice them; for new '
+          'terms from a date use Change terms from…',
         ),
-        findsOneWidget,
-      );
-      expect(
-        find.text('Only the dates widen here: start earlier or end later.'),
         findsOneWidget,
       );
 
@@ -258,7 +254,8 @@ void main() {
       );
       expect(
         find.text(
-          'Used by confirmed leave. Change terms from a date to keep its pay.',
+          'Used by confirmed leave. Corrections reprice it; for new terms '
+          'from a date use Change terms from…',
         ),
         findsOneWidget,
       );
@@ -283,8 +280,8 @@ void main() {
       );
       expect(
         find.text(
-          'Used by 1 finished shift and confirmed leave. Change terms from a '
-          'date to keep their pay.',
+          'Used by 1 finished shift and confirmed leave. Corrections reprice '
+          'them; for new terms from a date use Change terms from…',
         ),
         findsOneWidget,
       );

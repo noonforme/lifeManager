@@ -250,6 +250,9 @@ final class _WorkRouteHost extends ConsumerWidget {
         onUpdateAgreement: ref
             .read(workControllerProvider.notifier)
             .updateAgreement,
+        onPreviewAgreementCorrection: ref
+            .read(workControllerProvider.notifier)
+            .previewAgreementCorrection,
         onChangeAgreementTerms: ref
             .read(workControllerProvider.notifier)
             .changeAgreementTerms,
