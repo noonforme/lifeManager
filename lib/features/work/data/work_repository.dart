@@ -7,6 +7,8 @@ import '../../../core/time/app_clock.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
 import '../../../core/time/wall_clock.dart';
+import '../application/agreement_correction.dart';
+import '../application/agreement_service.dart';
 import '../application/pay_period_service.dart';
 import '../application/payslip_service.dart';
 import '../application/work_commands.dart';
@@ -47,7 +49,8 @@ final class DriftWorkRepository
         PayPeriodRepository,
         PayslipRepository,
         WorkQueryRepository,
-        PlannedShiftSource {
+        PlannedShiftSource,
+        AgreementCorrectionPreview {
   /// Expected pay reads each shift on its own wall clock through
   /// [timezones]; history entries are stamped by [clock].
   DriftWorkRepository(
@@ -209,6 +212,27 @@ final class DriftWorkRepository
   }
 
   @override
+  Future<int> correctAgreement(
+    PayAgreement value, {
+    required Revision expected,
+    String? reason,
+  }) => _database.transaction(() async {
+    final before = await _agreements.byId(value.id);
+    final changed = await _agreements.correct(value, expected);
+    if (changed == 0 || before == null) return changed;
+    await _history.record(
+      WorkRecordKinds.agreement,
+      value.id.value,
+      kind: RecordEventKind.changed,
+      before: agreementFacts(before),
+      after: agreementFacts(value),
+      revisionAfter: expected.next(),
+      reason: reason,
+    );
+    return changed;
+  });
+
+  @override
   Future<int> updateAgreementRange(
     PayAgreement value, {
     required Revision expected,
@@ -243,6 +267,101 @@ final class DriftWorkRepository
   @override
   Future<LocalDate?> lastAgreementUse(AgreementId id) =>
       _agreements.lastUse(id);
+
+  @override
+  Future<LocalDate?> firstAgreementUse(AgreementId id) =>
+      _agreements.firstUse(id);
+
+  /// Prices every finished shift and confirmed leave day of the agreement's
+  /// employment as it stands and again with [terms] in its place, the way
+  /// the register does, and compares them.
+  @override
+  Future<AgreementCorrectionImpact?> previewAgreementCorrection(
+    AgreementId id,
+    AgreementTerms terms,
+  ) async {
+    final current = await _agreements.byId(id);
+    if (current == null || !current.usedByFinalizedShift) return null;
+    final corrected = correctedAgreement(current, terms);
+    if (corrected == null || corrected.paysAs(current)) return null;
+    final employmentId = current.employmentId;
+    final agreements = await _agreements.forEmployment(employmentId);
+    final shifts = await _shifts.forEmployment(employmentId);
+    final breaks = await _shifts.breaksForShifts(shifts.map((s) => s.id));
+    final leave = await _leave.forEmployment(employmentId);
+    final periods = await _periods.forEmployment(employmentId);
+    final payslips = await _payslips.forEmployment(employmentId);
+    final breaksByShift = <ShiftId, List<ShiftBreak>>{};
+    for (final item in breaks) {
+      breaksByShift.putIfAbsent(item.shiftId, () => []).add(item);
+    }
+    final asIs = {for (final value in agreements) value.id: value};
+    final asCorrected = {...asIs, id: corrected};
+    List<ShiftSheetRow> rowsUnder(Map<AgreementId, PayAgreement> byId) => [
+      for (final shift in shifts)
+        shiftSheetRow(
+          shift,
+          breaksByShift[shift.id] ?? const [],
+          byId,
+          null,
+          _zoneClocks,
+        ),
+    ];
+    final rowsBefore = rowsUnder(asIs);
+    final rowsAfter = rowsUnder(asCorrected);
+    final leaveBefore = _priceLeave(leave, rowsBefore, asIs);
+    final leaveAfter = _priceLeave(leave, rowsAfter, asCorrected);
+
+    var before = 0;
+    var after = 0;
+    var shiftCount = 0;
+    var leaveCount = 0;
+    final dates = <LocalDate>[];
+    for (var index = 0; index < shifts.length; index++) {
+      final shift = shifts[index];
+      if (shift.state != ShiftState.finalized || shift.agreementId != id) {
+        continue;
+      }
+      final was = rowsBefore[index].pay;
+      final will = rowsAfter[index].pay;
+      // Dates that no longer cover the shift are refused on saving.
+      if (was == null || will == null) return null;
+      before += was.amount.minorUnits;
+      after += will.amount.minorUnits;
+      shiftCount++;
+      dates.add(shift.localStartDate);
+    }
+    // Leave under another agreement moves too when its average includes
+    // the shifts repriced here.
+    for (final record in leave) {
+      if (!record.isEffective) continue;
+      final was = leaveBefore[record.id]?.pay.amount.minorUnits ?? 0;
+      final will = leaveAfter[record.id]?.pay.amount.minorUnits ?? 0;
+      if (record.agreementId != id && was == will) continue;
+      before += was;
+      after += will;
+      leaveCount++;
+      dates.add(record.date);
+    }
+    bool settled(PayPeriod period) =>
+        period.state == PayPeriodState.reviewed ||
+        payslips.any(
+          (value) => value.periodId == period.id && value.isEffective,
+        );
+    return AgreementCorrectionImpact(
+      shifts: shiftCount,
+      leaveDays: leaveCount,
+      before: Money(minorUnits: before),
+      after: Money(minorUnits: after),
+      inReviewedPeriods: dates
+          .where(
+            (date) => periods.any(
+              (period) => period.contains(date) && settled(period),
+            ),
+          )
+          .length,
+    );
+  }
 
   Future<List<PayPeriod>> periodsFor(EmploymentId id) =>
       _periods.forEmployment(id);
@@ -859,6 +978,8 @@ final class DriftWorkRepository
               value,
               finishedShifts: await _agreements.finishedShiftCount(id),
               usedByLeave: await _agreements.usedByLeave(id),
+              firstUse: await _agreements.firstUse(id),
+              lastUse: await _agreements.lastUse(id),
             );
     }
     if (id is LeaveRecordId) {

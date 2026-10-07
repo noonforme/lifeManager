@@ -98,6 +98,37 @@ void main() {
     );
   });
 
+  test('the label and note pay nothing; every other term does', () {
+    final value = agreement();
+    final relabelled = PayAgreement(
+      id: value.id,
+      employmentId: value.employmentId,
+      version: value.version,
+      effectiveStart: value.effectiveStart,
+      effectiveEnd: value.effectiveEnd,
+      hourlyRateMicroEur: value.hourlyRateMicroEur,
+      basis: value.basis,
+      overtimeThresholdMinutes: value.overtimeThresholdMinutes,
+      overtimeMultiplier: value.overtimeMultiplier,
+      label: 'Depot',
+      note: 'Typo fixed',
+      createdAtUtc: value.createdAtUtc,
+      revision: value.revision,
+      usedByFinalizedShift: false,
+      nightEnabled: value.nightEnabled,
+      nightStartMinute: value.nightStartMinute,
+      nightEndMinute: value.nightEndMinute,
+      nightMultiplier: value.nightMultiplier,
+      holidayCalendar: value.holidayCalendar,
+      holidayMultiplier: value.holidayMultiplier,
+    );
+    expect(relabelled.paysAs(value), isTrue);
+    expect(relabelled.hasSameTermsAs(value), isFalse);
+    expect(agreement(rate: 1).paysAs(value), isFalse);
+    expect(agreement(nightEnd: 300).paysAs(value), isFalse);
+    expect(agreement(thresholdMinutes: 420).paysAs(value), isFalse);
+  });
+
   test('agreement rejects invalid factual values', () {
     expect(() => agreement(rate: 0), throwsArgumentError);
     expect(() => agreement(thresholdMinutes: 0), throwsArgumentError);

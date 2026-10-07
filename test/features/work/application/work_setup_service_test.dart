@@ -217,27 +217,25 @@ void main() {
       expect(stored.revision, const Revision(1));
     });
 
-    test('an agreement used by a finalized shift stays as it is', () async {
-      final agreement = await createAgreement();
-      await database
-          .into(database.workShifts)
-          .insert(shiftToCompanion(_finalizedShift(agreement.id)));
+    test(
+      'an agreement used by a finalized shift is corrected in place',
+      () async {
+        final agreement = await createAgreement();
+        await database
+            .into(database.workShifts)
+            .insert(shiftToCompanion(_finalizedShift(agreement.id)));
 
-      final outcome = await agreements.updateAgreement(
-        update(agreement, terms: _terms(rate: 25000000)),
-      );
+        final outcome = await agreements.updateAgreement(
+          update(agreement, terms: _terms(rate: 25000000)),
+        );
 
-      expect(
-        (outcome as Invalid<PayAgreement>).fields.keys,
-        contains('agreement.inUse'),
-      );
-      expect(
-        (await repository.agreementsFor(_employmentId))
-            .single
-            .hourlyRateMicroEur,
-        18400000,
-      );
-    });
+        expect(outcome, isA<Committed<PayAgreement>>());
+        final stored = (await repository.agreementsFor(_employmentId)).single;
+        expect(stored.id, agreement.id);
+        expect(stored.version, agreement.version);
+        expect(stored.hourlyRateMicroEur, 25000000);
+      },
+    );
 
     test('a new range must not overlap another agreement', () async {
       final first = await createAgreement(end: const LocalDate(2026, 9, 30));

@@ -27,6 +27,16 @@ abstract interface class WorkWriteStore {
     required Revision expected,
   });
 
+  /// Rewrites every term of an agreement, used or not, when its revision
+  /// matches, recording the change with [reason]; returns the number of
+  /// agreements changed. Whatever it pays is priced from it, so this
+  /// reprices them.
+  Future<int> correctAgreement(
+    PayAgreement value, {
+    required Revision expected,
+    String? reason,
+  });
+
   /// Moves only an agreement's dates, used or not, when its revision
   /// matches; returns the number of agreements changed.
   Future<int> updateAgreementRange(
@@ -44,4 +54,7 @@ abstract interface class WorkWriteStore {
   /// The last date a finalized shift or confirmed leave was paid under the
   /// agreement; null when none was.
   Future<LocalDate?> lastAgreementUse(AgreementId id);
+
+  /// The first such date; null when none was.
+  Future<LocalDate?> firstAgreementUse(AgreementId id);
 }

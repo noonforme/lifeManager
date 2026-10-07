@@ -220,15 +220,18 @@ final class PayAgreement {
         sickEmployerDays: sickEmployerDays,
       );
 
-  /// Whether [other] pays as this agreement does: every fact but its
+  /// Whether [other] says what this agreement does: every fact but its
   /// identity, version, dates and revision.
   bool hasSameTermsAs(PayAgreement other) =>
+      paysAs(other) && label == other.label && note == other.note;
+
+  /// Whether [other] pays as this agreement does: every term that prices a
+  /// shift or a leave day. The label and note pay nothing.
+  bool paysAs(PayAgreement other) =>
       hourlyRateMicroEur == other.hourlyRateMicroEur &&
       basis == other.basis &&
       overtimeThresholdMinutes == other.overtimeThresholdMinutes &&
       overtimeMultiplier == other.overtimeMultiplier &&
-      label == other.label &&
-      note == other.note &&
       nightEnabled == other.nightEnabled &&
       nightStartMinute == other.nightStartMinute &&
       nightEndMinute == other.nightEndMinute &&

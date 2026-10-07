@@ -15,7 +15,20 @@ final class AgreementDao {
   Future<int> insert(domain.PayAgreement value) =>
       database.into(database.payAgreements).insert(agreementToCompanion(value));
 
-  Future<int> updateUnused(domain.PayAgreement value, Revision expected) {
+  /// Rewrites every term while no finished shift or leave refers to it.
+  Future<int> updateUnused(domain.PayAgreement value, Revision expected) =>
+      _update(value, expected, unusedOnly: true);
+
+  /// Rewrites every term, used or not: a correction reprices whatever the
+  /// agreement already pays (premiums spec 7, added 2026-10-08).
+  Future<int> correct(domain.PayAgreement value, Revision expected) =>
+      _update(value, expected, unusedOnly: false);
+
+  Future<int> _update(
+    domain.PayAgreement value,
+    Revision expected, {
+    required bool unusedOnly,
+  }) {
     return database.customUpdate(
       '''
       UPDATE pay_agreements
@@ -33,16 +46,7 @@ final class AgreementDao {
           sick_employer_days = ?,
           label = ?, note = ?,
           revision = revision + 1
-      WHERE id = ? AND revision = ?
-        AND NOT EXISTS (
-          SELECT 1 FROM work_shifts
-          WHERE agreement_id = pay_agreements.id
-            AND state IN ('finalized', 'voided')
-        )
-        AND NOT EXISTS (
-          SELECT 1 FROM work_leave_records
-          WHERE agreement_id = pay_agreements.id
-        )
+      WHERE id = ? AND revision = ? ${unusedOnly ? _unused : ''}
       ''',
       variables: [
         Variable(value.version),
@@ -114,10 +118,15 @@ final class AgreementDao {
 
   /// The latest local date a finalized shift or confirmed leave was paid
   /// under the agreement. Dates are ISO text, so the greatest sorts last.
-  Future<LocalDate?> lastUse(AgreementId id) async {
+  Future<LocalDate?> lastUse(AgreementId id) => _use(id, 'MAX');
+
+  /// The earliest such date.
+  Future<LocalDate?> firstUse(AgreementId id) => _use(id, 'MIN');
+
+  Future<LocalDate?> _use(AgreementId id, String aggregate) async {
     final row = await database
         .customSelect(
-          'SELECT MAX(day) AS last FROM ('
+          'SELECT $aggregate(day) AS used FROM ('
           'SELECT local_start_date AS day FROM work_shifts '
           "WHERE agreement_id = ? AND state = 'finalized' "
           'UNION ALL '
@@ -127,8 +136,8 @@ final class AgreementDao {
           readsFrom: {database.workShifts, database.workLeaveRecords},
         )
         .getSingle();
-    final last = row.readNullable<String>('last');
-    return last == null ? null : LocalDate.parse(last);
+    final day = row.readNullable<String>('used');
+    return day == null ? null : LocalDate.parse(day);
   }
 
   Future<domain.PayAgreement?> byId(AgreementId id) async {
@@ -237,6 +246,18 @@ final class AgreementDao {
       )
       .toList(growable: false);
 }
+
+/// No finished or voided shift and no leave refers to the agreement.
+const _unused = '''
+        AND NOT EXISTS (
+          SELECT 1 FROM work_shifts
+          WHERE agreement_id = pay_agreements.id
+            AND state IN ('finalized', 'voided')
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM work_leave_records
+          WHERE agreement_id = pay_agreements.id
+        )''';
 
 String _basisText(RateBasis value) => switch (value) {
   GrossBasis() => 'gross',

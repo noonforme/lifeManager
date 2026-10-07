@@ -144,8 +144,8 @@ final class CreateAgreementCommand {
   final AgreementTerms terms;
 }
 
-/// Rewrites an agreement that no finalized shift uses. One in use takes
-/// only wider dates: an earlier start, a later end or no end.
+/// Rewrites an agreement in place. One in use is corrected, repricing
+/// what it pays; its dates must still cover every day it paid.
 final class UpdateAgreementCommand {
   const UpdateAgreementCommand({
     required this.agreementId,

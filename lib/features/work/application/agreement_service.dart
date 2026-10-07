@@ -1,7 +1,6 @@
 import '../../../core/database/database_identity.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/app_clock.dart';
-import '../../../core/time/local_date.dart';
 import '../domain/agreement.dart';
 import '../domain/facts.dart';
 import '../domain/ids.dart';
@@ -43,10 +42,11 @@ final class AgreementService {
     );
   }
 
-  /// Rewrites an agreement's terms. An agreement used by a finalized shift
-  /// is evidence: it only widens, to an earlier start, a later end or no
-  /// end, and every other change is refused ("Change terms from…" sets new
-  /// terms from a date).
+  /// Rewrites an agreement's terms in place. One in use is corrected, as if
+  /// it had always said this: whatever it pays is priced from it, so the
+  /// change reprices them, and its history says so. Its dates still cover
+  /// every day it paid. "Change terms from…" sets new terms from a date
+  /// instead (premiums spec 7, added 2026-10-08).
   Future<MutationOutcome<PayAgreement>> updateAgreement(
     UpdateAgreementCommand command,
   ) {
@@ -61,24 +61,19 @@ final class AgreementService {
         if (current.revision != command.expectedRevision) {
           return const Stale<PayAgreement>();
         }
-        final revised = _build(
-          id: current.id,
-          employmentId: current.employmentId,
-          version: current.version,
-          terms: command.terms,
-          createdAtUtc: current.createdAtUtc,
-          revision: current.revision.next(),
-        );
+        final revised = correctedAgreement(current, command.terms);
         // Terms that break the agreement's rules are invalid, in use or not.
         if (revised == null) return _invalidTerms;
         if (current.usedByFinalizedShift) {
-          if (!revised.hasSameTermsAs(current)) return _inUse;
-          if (revised.effectiveStart.compareTo(current.effectiveStart) > 0) {
+          final first = await store.firstAgreementUse(current.id);
+          if (first != null && revised.effectiveStart.compareTo(first) > 0) {
             return const Invalid<PayAgreement>({
               'effectiveStart': [FieldIssue(FieldIssueCode.conflict)],
             });
           }
-          if (_endsSooner(revised.effectiveEnd, current.effectiveEnd)) {
+          final last = await store.lastAgreementUse(current.id);
+          final end = revised.effectiveEnd;
+          if (last != null && end != null && end.compareTo(last) < 0) {
             return const Invalid<PayAgreement>({
               'effectiveEnd': [FieldIssue(FieldIssueCode.conflict)],
             });
@@ -89,9 +84,12 @@ final class AgreementService {
           return _overlap;
         }
         final changed = current.usedByFinalizedShift
-            ? await store.updateAgreementRange(
+            ? await store.correctAgreement(
                 revised,
                 expected: command.expectedRevision,
+                reason: revised.paysAs(current)
+                    ? null
+                    : agreementCorrectionReason,
               )
             : await store.updateUnusedAgreement(
                 revised,
@@ -262,9 +260,23 @@ final class AgreementService {
   }
 }
 
-/// Whether [revised] ends before [current] does; no end is the latest.
-bool _endsSooner(LocalDate? revised, LocalDate? current) =>
-    revised != null && (current == null || revised.compareTo(current) < 0);
+/// The history reason of a correction that reprices what an agreement
+/// pays.
+const agreementCorrectionReason =
+    'Corrected in place; the shifts and leave it pays were repriced.';
+
+/// [current] rewritten with [terms], keeping its identity, version and
+/// creation; null when the terms break its rules. Saving and the
+/// correction preview price the same agreement.
+PayAgreement? correctedAgreement(PayAgreement current, AgreementTerms terms) =>
+    _build(
+      id: current.id,
+      employmentId: current.employmentId,
+      version: current.version,
+      terms: terms,
+      createdAtUtc: current.createdAtUtc,
+      revision: current.revision.next(),
+    );
 
 int _max(int a, int b) => a > b ? a : b;
 

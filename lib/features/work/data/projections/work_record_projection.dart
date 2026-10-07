@@ -1,3 +1,4 @@
+import '../../../../core/time/local_date.dart';
 import '../../domain/agreement.dart';
 import '../../domain/employment.dart';
 import '../../domain/ids.dart';
@@ -27,6 +28,8 @@ final class AgreementRecordProjection extends WorkRecordProjection {
     this.agreement, {
     required this.finishedShifts,
     this.usedByLeave = false,
+    this.firstUse,
+    this.lastUse,
   }) : super(agreement.id);
 
   final PayAgreement agreement;
@@ -36,6 +39,11 @@ final class AgreementRecordProjection extends WorkRecordProjection {
 
   /// Whether leave was priced under it, which makes it evidence too.
   final bool usedByLeave;
+
+  /// The first and last days a finished shift or confirmed leave was paid
+  /// under it, which its dates must keep covering; null when none was.
+  final LocalDate? firstUse;
+  final LocalDate? lastUse;
 
   /// Evidence for finished shifts or for leave priced under it.
   bool get inUse => finishedShifts > 0 || agreement.usedByFinalizedShift;

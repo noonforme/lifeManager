@@ -1,19 +1,25 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/core/history/record_event_dao.dart';
+import 'package:lifeos/core/history/record_events.dart';
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/core/time/wall_clock.dart';
 import 'package:lifeos/features/work/application/agreement_service.dart';
 import 'package:lifeos/features/work/application/day_plan_service.dart';
+import 'package:lifeos/features/work/application/pay_period_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/features/work/application/work_commands.dart';
 import 'package:lifeos/features/work/data/projections/work_record_projection.dart';
+import 'package:lifeos/features/work/data/projections/work_register_projection.dart';
 import 'package:lifeos/features/work/data/work_converters.dart';
+import 'package:lifeos/features/work/data/work_history.dart';
 import 'package:lifeos/features/work/data/work_repository.dart';
 import 'package:lifeos/features/work/domain/agreement.dart';
 import 'package:lifeos/features/work/domain/day_exception.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
+import 'package:lifeos/features/work/domain/pay_period.dart';
 import 'package:lifeos/features/work/domain/planner.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 
@@ -249,7 +255,7 @@ void main() {
     });
   });
 
-  group('widen an agreement in use', () {
+  group('widen or narrow an agreement in use', () {
     UpdateAgreementCommand update(
       PayAgreement current, {
       required LocalDate start,
@@ -322,20 +328,6 @@ void main() {
       expect(stored.revision, current.revision.next().next().next());
     });
 
-    test('another change to terms in use is still refused', () async {
-      final current = await used();
-
-      final outcome = await service.updateAgreement(
-        update(current, start: const LocalDate(2026, 8, 1), rate: 25000000),
-      );
-
-      expect(
-        (outcome as Invalid<PayAgreement>).fields.keys,
-        contains('agreement.inUse'),
-      );
-      expect((await agreement()).effectiveStart, const LocalDate(2026, 9, 1));
-    });
-
     test('invalid dates are invalid terms, not a change in use', () async {
       final current = await used();
 
@@ -353,13 +345,15 @@ void main() {
       expect((await agreement()).effectiveStart, const LocalDate(2026, 9, 1));
     });
 
-    test('narrowing in place is refused on the date moved', () async {
+    test('narrowing keeps every day it paid inside; past one it is '
+        'refused on the date moved', () async {
+      // The only finished shift is on 2026-10-05.
       final current = await used(end: const LocalDate(2026, 12, 31));
 
       final later = await service.updateAgreement(
         update(
           current,
-          start: const LocalDate(2026, 9, 2),
+          start: const LocalDate(2026, 10, 6),
           end: const LocalDate(2026, 12, 31),
         ),
       );
@@ -370,10 +364,41 @@ void main() {
         update(
           current,
           start: const LocalDate(2026, 9, 1),
-          end: const LocalDate(2026, 12, 30),
+          end: const LocalDate(2026, 10, 4),
         ),
       );
       expect((earlier as Invalid<PayAgreement>).fields['effectiveEnd'], [
+        const FieldIssue(FieldIssueCode.conflict),
+      ]);
+      expect((await agreement()).effectiveStart, const LocalDate(2026, 9, 1));
+
+      final narrowed = await service.updateAgreement(
+        update(
+          current,
+          start: const LocalDate(2026, 10, 5),
+          end: const LocalDate(2026, 10, 5),
+        ),
+      );
+      expect(narrowed, isA<Committed<PayAgreement>>());
+      final stored = await agreement();
+      expect(stored.effectiveStart, const LocalDate(2026, 10, 5));
+      expect(stored.effectiveEnd, const LocalDate(2026, 10, 5));
+    });
+
+    test('a day of confirmed leave holds the range too', () async {
+      await fixture.saveDepot();
+      await confirmLeave(const LocalDate(2026, 10, 6));
+      final current = await agreement();
+
+      final outcome = await service.updateAgreement(
+        update(
+          current,
+          start: const LocalDate(2026, 9, 1),
+          end: const LocalDate(2026, 10, 5),
+        ),
+      );
+
+      expect((outcome as Invalid<PayAgreement>).fields['effectiveEnd'], [
         const FieldIssue(FieldIssueCode.conflict),
       ]);
     });
@@ -431,6 +456,204 @@ void main() {
       expect(
         await fixture.plans.confirm(employment, const LocalDate(2026, 8, 24)),
         isA<Committed<ConfirmedDay>>(),
+      );
+    });
+  });
+
+  group('correct an agreement in use', () {
+    Future<PayAgreement> used() async {
+      await fixture.saveDepot();
+      await confirmShift(const LocalDate(2026, 10, 5));
+      final value = await agreement();
+      expect(value.usedByFinalizedShift, isTrue);
+      return value;
+    }
+
+    UpdateAgreementCommand correct(
+      PayAgreement current, {
+      int? rate,
+      String? label,
+      Revision? expected,
+    }) => UpdateAgreementCommand(
+      agreementId: current.id,
+      employmentId: employment,
+      expectedRevision: expected ?? current.revision,
+      terms: _retyped(current, rate: rate, label: label),
+    );
+
+    Future<List<RecordEvent>> history() =>
+        RecordEventDao(fixture.database)
+            .forRecord(WorkRecordKinds.agreement, fixtureAgreement.value);
+
+    test(
+      'a typo in the label is corrected in place, nothing repriced',
+      () async {
+        final current = await used();
+        final shift = (await work.watchRegister(_everything).first)
+            .shiftSheet
+            .single
+            .shift;
+        final payBefore = await _payOf(work, shift.id);
+
+        final outcome = await service.updateAgreement(
+          correct(current, label: 'Depot'),
+        );
+
+        expect(outcome, isA<Committed<PayAgreement>>());
+        final stored = await agreement();
+        expect(stored.label, 'Depot');
+        expect(stored.revision, current.revision.next());
+        expect(await _payOf(work, shift.id), payBefore);
+        final last = (await history()).last;
+        expect(last.kind, RecordEventKind.changed);
+        expect(last.changes, [const FieldChange('Label', null, 'Depot')]);
+        expect(last.reason, isNull);
+      },
+    );
+
+    test('a corrected rate reprices its finished shifts and is recorded in '
+        'its history', () async {
+      final current = await used();
+      final shift =
+          (await work.watchRegister(_everything).first).shiftSheet.single.shift;
+      // 11.5 paid daytime hours at EUR 18.40.
+      expect(await _payOf(work, shift.id), 21160);
+
+      final outcome = await service.updateAgreement(
+        correct(current, rate: 25000000),
+      );
+
+      final corrected = (outcome as Committed<PayAgreement>).value;
+      expect(corrected.id, fixtureAgreement);
+      expect(corrected.version, 1);
+      expect((await agreement()).hourlyRateMicroEur, 25000000);
+      // Pay is worked out from the stored agreement, so it follows.
+      expect(await _payOf(work, shift.id), 28750);
+      final last = (await history()).last;
+      expect(last.changes, [
+        const FieldChange('Hourly rate', '18.40 EUR/h', '25.00 EUR/h'),
+      ]);
+      expect(last.reason, agreementCorrectionReason);
+      expect(last.revisionAfter, current.revision.next().value);
+    });
+
+    test('a stale correction writes nothing', () async {
+      final current = await used();
+
+      final outcome = await service.updateAgreement(
+        correct(current, rate: 25000000, expected: const Revision(9)),
+      );
+
+      expect(outcome, isA<Stale<PayAgreement>>());
+      expect((await agreement()).hourlyRateMicroEur, 18400000);
+      expect((await history()).length, 1);
+    });
+  });
+
+  group('correction preview', () {
+    late PayPeriodService periods;
+
+    setUp(() {
+      periods = PayPeriodService(
+        work,
+        idFactory: fixture.ids,
+        clock: fixture.clock,
+      );
+    });
+
+    Future<void> reviewOctober() async {
+      final period = (await periods.createPeriod(
+        const CreatePayPeriodCommand(
+          employmentId: employment,
+          start: LocalDate(2026, 10, 1),
+          end: LocalDate(2026, 10, 31),
+          label: null,
+        ),
+      ) as Committed<PayPeriod>).value;
+      expect(
+        await periods.setState(
+          SetPayPeriodStateCommand(
+            id: period.id,
+            state: PayPeriodState.reviewed,
+            expectedRevision: period.revision,
+          ),
+        ),
+        isA<Committed<PayPeriod>>(),
+      );
+    }
+
+    test('counts the shifts and leave repriced, before and after, and those '
+        'in reviewed pay periods', () async {
+      await fixture.saveDepot();
+      await confirmShift(const LocalDate(2026, 10, 5));
+      await confirmShift(const LocalDate(2026, 10, 7));
+      await confirmLeave(const LocalDate(2026, 10, 6));
+      // A September period, open and with no payslip, holds none of them.
+      await periods.createPeriod(
+        const CreatePayPeriodCommand(
+          employmentId: employment,
+          start: LocalDate(2026, 9, 1),
+          end: LocalDate(2026, 9, 30),
+          label: null,
+        ),
+      );
+      final current = await agreement();
+      final paidBefore = await _paidUnder(work);
+      final terms = _retyped(current, rate: 25000000);
+
+      final impact = (await work.previewAgreementCorrection(
+        current.id,
+        terms,
+      ))!;
+
+      expect(impact.shifts, 2);
+      expect(impact.leaveDays, 1);
+      expect(impact.inReviewedPeriods, 0);
+      expect(impact.before.minorUnits, paidBefore);
+      // The preview prices exactly what the correction then pays.
+      await service.updateAgreement(
+        UpdateAgreementCommand(
+          agreementId: current.id,
+          employmentId: employment,
+          expectedRevision: current.revision,
+          terms: terms,
+        ),
+      );
+      expect(impact.after.minorUnits, await _paidUnder(work));
+      expect(
+        impact.difference.minorUnits,
+        impact.after.minorUnits - impact.before.minorUnits,
+      );
+      expect(impact.difference.minorUnits, greaterThan(0));
+
+      await reviewOctober();
+      final reviewed = (await work.previewAgreementCorrection(
+        current.id,
+        _retyped(await agreement(), rate: 18400000),
+      ))!;
+      expect(reviewed.inReviewedPeriods, 3);
+      expect(reviewed.after.minorUnits, paidBefore);
+    });
+
+    test('is null when no pay changes or nothing uses the agreement', () async {
+      final unused = await agreement();
+      expect(
+        await work.previewAgreementCorrection(
+          unused.id,
+          _retyped(unused, rate: 25000000),
+        ),
+        isNull,
+      );
+
+      await fixture.saveDepot();
+      await confirmShift(const LocalDate(2026, 10, 5));
+      final current = await agreement();
+      expect(
+        await work.previewAgreementCorrection(
+          current.id,
+          _retyped(current, label: 'Depot'),
+        ),
+        isNull,
       );
     });
   });
@@ -638,6 +861,42 @@ Future<int?> _payOf(DriftWorkRepository work, ShiftId id) async =>
         .pay
         ?.amount
         .minorUnits;
+
+const _everything = WorkScope(employmentId: fixtureEmployment, temporal: null);
+
+/// What finished shifts and confirmed leave are paid in total, in cents.
+Future<int> _paidUnder(DriftWorkRepository work) async {
+  final register = await work.watchRegister(_everything).first;
+  return [
+    for (final row in register.shiftSheet)
+      if (row.shift.state == ShiftState.finalized) row.pay!.amount.minorUnits,
+    for (final row in register.leaveSheet)
+      if (row.record.isEffective) row.pay!.amount.minorUnits,
+  ].fold<int>(0, (total, value) => total + value);
+}
+
+/// [current]'s terms with [rate] or [label] retyped.
+AgreementTerms _retyped(PayAgreement current, {int? rate, String? label}) =>
+    AgreementTerms(
+      effectiveStart: current.effectiveStart,
+      effectiveEnd: current.effectiveEnd,
+      hourlyRateMicroEur: rate ?? current.hourlyRateMicroEur,
+      basis: current.basis,
+      label: label ?? current.label,
+      note: current.note,
+      overtimeThresholdMinutes: current.overtimeThresholdMinutes,
+      overtimeMultiplier: current.overtimeMultiplier,
+      nightEnabled: current.nightEnabled,
+      nightStartMinute: current.nightStartMinute,
+      nightEndMinute: current.nightEndMinute,
+      nightMultiplier: current.nightMultiplier,
+      holidayCalendar: current.holidayCalendar,
+      holidayMultiplier: current.holidayMultiplier,
+      premiumStacking: current.premiumStacking,
+      vacationPay: current.vacationPay,
+      sickPay: current.sickPay,
+      sickEmployerDays: current.sickEmployerDays,
+    );
 
 AgreementTerms _terms({
   required LocalDate start,

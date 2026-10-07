@@ -143,7 +143,17 @@ final class _FakeStore implements WorkWriteStore {
   }) async => 1;
 
   @override
+  Future<int> correctAgreement(
+    PayAgreement value, {
+    required Revision expected,
+    String? reason,
+  }) async => 1;
+
+  @override
   Future<LocalDate?> lastAgreementUse(AgreementId id) async => null;
+
+  @override
+  Future<LocalDate?> firstAgreementUse(AgreementId id) async => null;
 }
 
 final class _Ids implements WorkIdFactory {
