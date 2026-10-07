@@ -38,15 +38,18 @@ final class AgreementDraft {
   const AgreementDraft({
     required this.employmentId,
     required this.terms,
-    this.correction = false,
+    this.confirmedImpact,
   });
 
   final EmploymentId employmentId;
   final AgreementTerms terms;
 
-  /// The owner confirmed it corrects an agreement in use, repricing what
-  /// it pays.
-  final bool correction;
+  /// The repricing the owner confirmed for an agreement in use; null when
+  /// none was shown. The save checks it still holds.
+  final AgreementCorrectionImpact? confirmedImpact;
+
+  /// Whether it corrects an agreement in use, repricing what it pays.
+  bool get correction => confirmedImpact != null;
 }
 
 typedef SubmitEmployment = Future<MutationOutcome<Employment>> Function(
@@ -500,7 +503,7 @@ final class _AgreementFormState extends State<AgreementForm> {
       _errors = const {};
       _formError = null;
     });
-    var draft = AgreementDraft(
+    final draft = AgreementDraft(
       employmentId: widget.employmentId,
       terms: AgreementTerms(
         effectiveStart: start,
@@ -525,41 +528,11 @@ final class _AgreementFormState extends State<AgreementForm> {
         sickEmployerDays: sickDays!,
       ),
     );
-    // A change to what an agreement in use pays reprices it: ask first.
-    if (widget.onPreviewCorrection case final preview?) {
-      final AgreementCorrectionImpact? impact;
-      try {
-        impact = await preview(draft);
-      } on Exception {
-        // Never reprice without asking: an unreadable impact saves nothing.
-        if (mounted) {
-          setState(() {
-            _submitting = false;
-            _formError = 'Local storage is unavailable. Try again.';
-          });
-        }
-        return null;
-      }
-      if (!mounted) return null;
-      if (impact != null) {
-        final correct = await askCorrectAgreement(
-          context,
-          agreement: _initial!,
-          impact: impact,
-        );
-        if (!mounted) return null;
-        if (!correct) {
-          setState(() => _submitting = false);
-          return null;
-        }
-        draft = AgreementDraft(
-          employmentId: draft.employmentId,
-          terms: draft.terms,
-          correction: true,
-        );
-      }
+    final outcome = await _save(draft);
+    if (outcome == null) {
+      if (mounted) setState(() => _submitting = false);
+      return null;
     }
-    final outcome = await widget.onSubmit(draft);
     if (!mounted) return outcome;
     setState(() {
       _submitting = false;
@@ -613,6 +586,51 @@ final class _AgreementFormState extends State<AgreementForm> {
       }
     });
     return outcome;
+  }
+
+  /// Saves [draft]. A change to what an agreement in use pays reprices it,
+  /// so it asks first with what the preview reprices, and the save checks
+  /// that still holds: a Stale save whose impact moved meanwhile asks
+  /// again. Null when the owner cancels or the impact cannot be read.
+  Future<MutationOutcome<PayAgreement>?> _save(AgreementDraft draft) async {
+    final preview = widget.onPreviewCorrection;
+    if (preview == null) return widget.onSubmit(draft);
+    AgreementCorrectionImpact? shown;
+    for (var attempt = 0; ; attempt++) {
+      final AgreementCorrectionImpact? impact;
+      try {
+        impact = await preview(draft);
+      } catch (_) {
+        // Never reprice without asking: an unreadable impact saves nothing.
+        if (mounted) {
+          setState(
+            () => _formError = 'Local storage is unavailable. Try again.',
+          );
+        }
+        return null;
+      }
+      if (!mounted) return null;
+      // Unmoved, the impact is not why it was stale: the agreement was.
+      if (attempt > 0 && impact == shown) return const Stale<PayAgreement>();
+      if (impact != null) {
+        final correct = await askCorrectAgreement(
+          context,
+          agreement: _initial!,
+          impact: impact,
+        );
+        if (!mounted || !correct) return null;
+      }
+      shown = impact;
+      final outcome = await widget.onSubmit(
+        AgreementDraft(
+          employmentId: draft.employmentId,
+          terms: draft.terms,
+          confirmedImpact: impact,
+        ),
+      );
+      // Records keep changing: after three asks, report it as stale.
+      if (outcome is! Stale<PayAgreement> || attempt == 2) return outcome;
+    }
   }
 
   /// Why the service refused "Change terms from…" on its From date.

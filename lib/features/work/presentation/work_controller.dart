@@ -521,6 +521,7 @@ final class WorkController extends AsyncNotifier<WorkViewState> {
         employmentId: current.employmentId,
         expectedRevision: current.revision,
         terms: value.terms,
+        confirmedImpact: value.confirmedImpact,
       ),
     );
     // The sheet stays where it is: Apply keeps it open, OK closes it.

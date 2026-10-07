@@ -447,6 +447,8 @@ void main() {
     Future<PropertySheetController> pumpSheet(
       WidgetTester tester, {
       MutationOutcome<PayAgreement>? outcome,
+      // Answers the saves in turn, before [outcome].
+      List<MutationOutcome<PayAgreement>>? outcomes,
       void Function(AgreementDraft draft)? onSubmit,
       Future<AgreementCorrectionImpact?> Function(AgreementDraft draft)?
       preview,
@@ -469,6 +471,9 @@ void main() {
               onPreviewCorrection: preview,
               onSubmit: (draft) async {
                 onSubmit?.call(draft);
+                if (outcomes != null && outcomes.isNotEmpty) {
+                  return outcomes.removeAt(0);
+                }
                 return outcome ?? Committed(_agreement);
               },
             ),
@@ -569,6 +574,7 @@ void main() {
             : const AgreementCorrectionImpact(
                 shifts: 3,
                 leaveDays: 1,
+                otherLeaveDays: 2,
                 before: Money(minorUnits: 60000),
                 after: Money(minorUnits: 65200),
                 inReviewedPeriods: 2,
@@ -583,7 +589,7 @@ void main() {
       expect(await sheet.apply(), isTrue);
       expect(find.text('Correct agreement'), findsNothing);
       expect(submitted.single.terms.label, 'Depot');
-      expect(submitted.single.correction, isFalse);
+      expect(submitted.single.confirmedImpact, isNull);
 
       await openTab(tester, 'Rate');
       await enter(tester, 'agreement-hourly-rate', '26.00');
@@ -592,8 +598,10 @@ void main() {
       expect(find.text('Correct pay agreement v1?'), findsOneWidget);
       expect(
         find.text(
-          '3 finished shifts and 1 leave day are repriced: EUR 600.00 → '
-          'EUR 652.00 (difference EUR +52.00).',
+          '3 finished shifts and 1 leave day paid by this agreement are '
+          'repriced. 2 other leave days change too: their 3-month average '
+          'includes these shifts. In all: EUR 600.00 → EUR 652.00 '
+          '(difference EUR +52.00).',
         ),
         findsOneWidget,
       );
@@ -623,20 +631,88 @@ void main() {
       await tester.pumpAndSettle();
       expect(await applying, isTrue);
       expect(submitted.last.terms.hourlyRateMicroEur, 26000000);
-      expect(submitted.last.correction, isTrue);
+      expect(submitted.last.confirmedImpact?.shifts, 3);
+    });
+
+    testWidgets('a correction whose impact moved before it saved asks again; '
+        'one that did not is plain stale', (tester) async {
+      const shown = AgreementCorrectionImpact(
+        shifts: 1,
+        leaveDays: 0,
+        otherLeaveDays: 0,
+        before: Money(minorUnits: 21160),
+        after: Money(minorUnits: 28750),
+        inReviewedPeriods: 0,
+      );
+      const moved = AgreementCorrectionImpact(
+        shifts: 2,
+        leaveDays: 0,
+        otherLeaveDays: 0,
+        before: Money(minorUnits: 42320),
+        after: Money(minorUnits: 57500),
+        inReviewedPeriods: 0,
+      );
+      final impacts = [shown, moved];
+      final submitted = <AgreementDraft>[];
+      var sheet = await pumpSheet(
+        tester,
+        onSubmit: submitted.add,
+        preview: (_) async => impacts.removeAt(0),
+        outcomes: [const Stale<PayAgreement>()],
+      );
+
+      await enter(tester, 'agreement-hourly-rate', '25.00');
+      var applying = sheet.apply();
+      await tester.pumpAndSettle();
+      expect(find.textContaining('1 finished shift paid'), findsOneWidget);
+      await tester.tap(find.widgetWithText(KeyButton, 'Correct'));
+      await tester.pumpAndSettle();
+      // Another shift was finished meanwhile: it asks with the new impact.
+      expect(find.textContaining('2 finished shifts paid'), findsOneWidget);
+      await tester.tap(find.widgetWithText(KeyButton, 'Correct'));
+      await tester.pumpAndSettle();
+      expect(await applying, isTrue);
+      expect(submitted.map((draft) => draft.confirmedImpact), [shown, moved]);
+
+      // The impact held, so the agreement itself changed: say so.
+      submitted.clear();
+      sheet = await pumpSheet(
+        tester,
+        onSubmit: submitted.add,
+        preview: (_) async => shown,
+        outcome: const Stale<PayAgreement>(),
+      );
+      await enter(tester, 'agreement-hourly-rate', '25.50');
+      applying = sheet.apply();
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(KeyButton, 'Correct'));
+      await tester.pumpAndSettle();
+      expect(await applying, isFalse);
+      expect(find.text('Correct pay agreement v1?'), findsNothing);
+      expect(submitted, hasLength(1));
+      expect(find.text(staleMessage), findsOneWidget);
     });
 
     testWidgets('an unreadable impact saves nothing', (tester) async {
       final submitted = <AgreementDraft>[];
+      var previews = 0;
       final sheet = await pumpSheet(
         tester,
         onSubmit: submitted.add,
-        preview: (_) async => throw Exception('storage'),
+        // An error, not an Exception: still nothing saves.
+        preview: (_) async {
+          previews++;
+          throw StateError('storage');
+        },
       );
 
       await enter(tester, 'agreement-hourly-rate', '26.00');
       expect(await sheet.apply(), isFalse);
       await tester.pumpAndSettle();
+      // Not stuck saving: the next Apply asks again.
+      expect(await sheet.apply(), isFalse);
+      await tester.pumpAndSettle();
+      expect(previews, 2);
 
       expect(submitted, isEmpty);
       expect(

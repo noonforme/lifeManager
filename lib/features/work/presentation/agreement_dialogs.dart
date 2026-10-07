@@ -128,15 +128,14 @@ Future<bool> askCorrectAgreement(
     ) ??
     false;
 
-/// "3 finished shifts and 1 leave day are repriced: EUR 600.00 → EUR
-/// 652.00 (difference EUR +52.00)."
+/// "3 finished shifts and 1 leave day paid by this agreement are
+/// repriced. 2 other leave days change too: their 3-month average includes
+/// these shifts. In all: EUR 600.00 → EUR 652.00 (difference EUR +52.00)."
 String correctionImpactText(AgreementCorrectionImpact impact) {
   final shifts = impact.shifts;
   final leave = impact.leaveDays;
-  if (shifts == 0 && leave == 0) {
-    return 'No finished shift or leave day is repriced.';
-  }
-  final records = [
+  final other = impact.otherLeaveDays;
+  final own = [
     if (shifts > 0) '$shifts finished ${shifts == 1 ? 'shift' : 'shifts'}',
     if (leave > 0) '$leave leave ${leave == 1 ? 'day' : 'days'}',
   ].join(' and ');
@@ -145,9 +144,17 @@ String correctionImpactText(AgreementCorrectionImpact impact) {
   final signed = impact.difference.minorUnits > 0
       ? difference.replaceFirst(' ', ' +')
       : difference;
-  return '$records ${shifts + leave == 1 ? 'is' : 'are'} repriced: '
-      '${formatMoney(impact.before)} → ${formatMoney(impact.after)} '
-      '(difference $signed).';
+  return [
+    if (own.isNotEmpty)
+      '$own paid by this agreement ${shifts + leave == 1 ? 'is' : 'are'} '
+          'repriced.',
+    if (other > 0)
+      '$other other leave ${other == 1 ? 'day changes' : 'days change'} '
+          'too: ${other == 1 ? 'its' : 'their'} 3-month average includes '
+          '${shifts == 1 ? 'this shift' : 'these shifts'}.',
+    'In all: ${formatMoney(impact.before)} → ${formatMoney(impact.after)} '
+        '(difference $signed).',
+  ].join(' ');
 }
 
 /// Which of them fall in reviewed pay periods; null when none does.

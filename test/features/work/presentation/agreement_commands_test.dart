@@ -3,11 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/features/work/application/agreement_correction.dart';
 import 'package:lifeos/features/work/data/projections/work_record_projection.dart'
     show AgreementUse;
 import 'package:lifeos/features/work/domain/agreement.dart';
 import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
+import 'package:lifeos/features/work/domain/pay.dart';
 import 'package:lifeos/features/work/presentation/agreement_dialogs.dart';
 import 'package:lifeos/features/work/presentation/employment_agreement_forms.dart'
     show agreementUsersPaid;
@@ -48,8 +50,8 @@ Future<void> _openTab(WidgetTester tester, String tab) async {
 /// What correcting v1 to EUR 20.00 reprices: its three finished shifts,
 /// EUR 542.80 at 18.40 an hour, as the register estimates them.
 const _repriced =
-    '3 finished shifts are repriced: EUR 542.80 → EUR 590.00 (difference '
-    'EUR +47.20).';
+    '3 finished shifts paid by this agreement are repriced. In all: EUR '
+    '542.80 → EUR 590.00 (difference EUR +47.20).';
 
 /// A key on the era dialog above the Properties, which has its own.
 Finder _inDialog(String label) =>
@@ -433,6 +435,36 @@ void main() {
       agreementUsersPaid(null),
       'Finished shifts or confirmed leave are paid',
     );
+  });
+
+  test('the impact counts leave paid by the agreement apart from leave '
+      'whose average moves', () {
+    AgreementCorrectionImpact impact(int shifts, int leave, int other) =>
+        AgreementCorrectionImpact(
+          shifts: shifts,
+          leaveDays: leave,
+          otherLeaveDays: other,
+          before: const Money(minorUnits: 30000),
+          after: const Money(minorUnits: 29700),
+          inReviewedPeriods: 0,
+        );
+    expect(
+      correctionImpactText(impact(1, 0, 1)),
+      '1 finished shift paid by this agreement is repriced. 1 other leave '
+      'day changes too: its 3-month average includes this shift. In all: '
+      'EUR 300.00 → EUR 297.00 (difference EUR -3.00).',
+    );
+    expect(
+      correctionImpactText(impact(2, 2, 0)),
+      '2 finished shifts and 2 leave days paid by this agreement are '
+      'repriced. In all: EUR 300.00 → EUR 297.00 (difference EUR -3.00).',
+    );
+    expect(
+      correctionImpactText(impact(0, 1, 0)),
+      '1 leave day paid by this agreement is repriced. In all: EUR 300.00 '
+      '→ EUR 297.00 (difference EUR -3.00).',
+    );
+    expect(correctionReviewedText(impact(2, 0, 0)), isNull);
   });
 
   test('a committed outcome is never explained as a problem', () {

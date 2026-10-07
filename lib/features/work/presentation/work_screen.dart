@@ -1064,9 +1064,11 @@ extension on _WorkScreenState {
       firstUse: record.firstUse,
       lastUse: record.lastUse,
       lockedReason: record.inUse ? _inUseNote(record) : null,
-      onPreviewCorrection: record.inUse && preview != null
-          ? (value) => preview(agreement, value)
-          : null,
+      // Asked even while unused: it may come into use while the sheet is
+      // open, and the preview says nothing for an unused agreement.
+      onPreviewCorrection: preview == null
+          ? null
+          : (value) => preview(agreement, value),
       onChangeTerms: record.inUse
           ? _changeAgreementTerms(agreement, usedBy: record.use)
           : null,

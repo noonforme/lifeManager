@@ -11,6 +11,8 @@ import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/pay.dart';
 import 'package:lifeos/features/work/domain/payslip.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
+import 'package:lifeos/features/work/presentation/employment_agreement_forms.dart'
+    show AgreementForm;
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/features/work/presentation/work_screen.dart';
@@ -211,6 +213,14 @@ void main() {
       expect(
         find.byKey(const ValueKey('agreement-hourly-rate')),
         findsOneWidget,
+      );
+      // Unused when it opened, it still asks what a save reprices: a shift
+      // may finish while the sheet is open.
+      expect(
+        tester
+            .widget<AgreementForm>(find.byType(AgreementForm))
+            .onPreviewCorrection,
+        isNotNull,
       );
 
       // Gaining finished shifts while open keeps every term editable: a
@@ -478,6 +488,7 @@ final class _TestScreen extends StatelessWidget {
             onUpdateEmployment: (_, _) async => throw UnimplementedError(),
             onDeleteEmployment: (_) async => throw UnimplementedError(),
             onUpdateAgreement: (_, _) async => throw UnimplementedError(),
+            onPreviewAgreementCorrection: (_, _) async => null,
           ),
         ),
       ),
