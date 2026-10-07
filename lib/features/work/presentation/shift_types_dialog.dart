@@ -252,7 +252,6 @@ final class _EditTypeDialogState extends State<_EditTypeDialog> {
   late final _name = TextEditingController(text: widget.initial?.name);
   late LocalTime _start = widget.initial?.start ?? const LocalTime(7, 0);
   late LocalTime _end = widget.initial?.end ?? const LocalTime(19, 0);
-  late bool _nextDay = widget.initial?.endDayOffset == 1;
   late final _breaks = [
     for (final item in widget.initial?.breaks ?? const <FixedBreak>[])
       _TypeBreak(item.start, item.minutes),
@@ -277,7 +276,8 @@ final class _EditTypeDialogState extends State<_EditTypeDialog> {
       name: name,
       start: _start,
       end: _end,
-      endDayOffset: _nextDay ? 1 : 0,
+      // The end falls on the day a 24-hour limit leaves it.
+      endDayOffset: endDayOffsetOf(_start, _end),
       breaks: [
         for (final item in _breaks)
           FixedBreak(
@@ -337,12 +337,8 @@ final class _EditTypeDialogState extends State<_EditTypeDialog> {
             value: _end,
             onChanged: (value) => setState(() => _end = value),
           ),
-          EraCheckBox(
-            key: const ValueKey('type-next-day'),
-            label: '+1 day',
-            value: _nextDay,
-            onChanged: (value) => setState(() => _nextDay = value),
-          ),
+          if (endDayOffsetOf(_start, _end) == 1)
+            const InspectorNote('Ends the next day.'),
           const SizedBox(height: 7),
           const Text('Breaks:'),
           for (final (index, item) in _breaks.indexed)

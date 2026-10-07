@@ -17,6 +17,7 @@ import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/property_sheet.dart';
 import '../application/work_templates.dart';
 import '../domain/ids.dart';
+import '../domain/schedule.dart' show endDayOffsetOf;
 import '../domain/shift.dart';
 
 final class ManualBreakDraft {
@@ -265,7 +266,7 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
 
   /// Days from the start date to the end date. The end date keeps this
   /// distance as the start date moves, until the end date is picked itself.
-  late final int _endOffset;
+  late int _endOffset;
   bool _endDatePicked = false;
   late final _timezone = TextEditingController(
     text: widget.prefill?.timezoneId ?? widget.initialTimezoneId ?? '',
@@ -342,6 +343,18 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
       ),
     ),
   );
+
+  /// Sets a time and, while the end date is not picked, puts it on the day
+  /// the times leave it: the next day when the end time is at or before the
+  /// start time, as a shift lasts a day at most, else the start date.
+  void _setTimes({LocalTime? start, LocalTime? end}) => _edit(() {
+    _startTime = start ?? _startTime;
+    _endTime = end ?? _endTime;
+    final (from, to) = (_startTime, _endTime);
+    if (_endDatePicked || from == null || to == null) return;
+    _endOffset = endDayOffsetOf(from, to);
+    _endDate = _startDate.addDays(_endOffset);
+  });
 
   void _setStartDate(LocalDate value) => _edit(() {
     _startDate = value;
@@ -502,7 +515,7 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
               _startTime,
               emptyStart: _firstShiftStep,
               error: _errors['startTime'],
-              onChanged: (value) => _edit(() => _startTime = value),
+              onChanged: (value) => _setTimes(start: value),
             ),
             _date(
               'shift-end-date',
@@ -519,7 +532,7 @@ final class _ShiftEditInspectorState extends State<ShiftEditInspector> {
               _endTime,
               emptyStart: _startTime ?? _firstShiftStep,
               error: _errors['endTime'],
-              onChanged: (value) => _edit(() => _endTime = value),
+              onChanged: (value) => _setTimes(end: value),
             ),
             _field(
               key: const ValueKey('shift-timezone'),

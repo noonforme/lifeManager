@@ -25,17 +25,12 @@ Future<void> _addType(
   required LocalTime start,
   required LocalTime end,
   required LocalTime breakAt,
-  bool nextDay = false,
 }) async {
   await tester.tap(_inSubDialog('Add…'));
   await tester.pumpAndSettle();
   await tester.enterText(find.byKey(const ValueKey('type-name')), name);
   await setTime(tester, 'type-start', start);
   await setTime(tester, 'type-end', end);
-  if (nextDay) {
-    await tester.tap(find.byKey(const ValueKey('type-next-day')));
-    await tester.pumpAndSettle();
-  }
   await tester.tap(_inSubDialog('Add'));
   await tester.pumpAndSettle();
   await setTime(tester, 'type-break-0-start', breakAt);
@@ -123,7 +118,6 @@ void main() {
       start: const LocalTime(19, 0),
       end: const LocalTime(7, 0),
       breakAt: const LocalTime(0, 0),
-      nextDay: true,
     );
     await tester.tap(_inSubDialog('OK'));
     await tester.pumpAndSettle();

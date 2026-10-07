@@ -213,6 +213,15 @@ List<DomainIssue> validateSchedule(WorkSchedule value) {
   return List.unmodifiable(issues);
 }
 
+/// The day an end time falls on, given a shift lasts at most 24 h: later
+/// on the clock than [start] is the same day (0); at or before it is the
+/// next (1), where equal is a whole 24-hour shift.
+int endDayOffsetOf(LocalTime start, LocalTime end) =>
+    (end.hour * 3600 + end.minute * 60 + end.second) >
+        (start.hour * 3600 + start.minute * 60 + start.second)
+    ? 0
+    : 1;
+
 /// Whether a shift's times and breaks are valid (spec 3.2): it lasts more
 /// than a minute and at most 24 h, and its breaks are 1..240 min, lie
 /// inside it, do not overlap and leave paid time.

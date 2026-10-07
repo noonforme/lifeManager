@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_time.dart';
+import 'package:lifeos/features/work/domain/day_exception.dart';
+import 'package:lifeos/features/work/presentation/day_sheet.dart';
 import 'package:lifeos/shared/workbench/era_dialog.dart';
+import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 import 'package:lifeos/shared/workbench/office_controls.dart';
 
 import '../../../support/era_pickers.dart';
@@ -144,5 +149,42 @@ void main() {
     await revealInDialog(tester, find.text('Cancel shift…'));
     expect(find.text('Cancel shift…'), findsOneWidget);
     expect(find.text('Confirm'), findsNothing);
+  });
+
+  testWidgets('an extra shift from 19:30 to 07:30 ends the next day', (
+    tester,
+  ) async {
+    final sent = <DayTimes>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLifeOSTheme(),
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: SizedBox(
+              height: 600,
+              child: DayTimesForm(
+                types: const [],
+                initial: dayTimesOfType(null),
+                extra: true,
+                submitLabel: 'Add extra shift',
+                describe: (_) => null,
+                onSubmit: (times) async {
+                  sent.add(times);
+                  return const Invalid<DayException>({});
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.byKey(const ValueKey('day-next-day')), findsNothing);
+    await setTime(tester, 'day-start', const LocalTime(19, 30));
+    await setTime(tester, 'day-end', const LocalTime(7, 30));
+    expect(find.text('Ends the next day.'), findsOneWidget);
+    await tester.tap(find.text('Add extra shift'));
+    await tester.pumpAndSettle();
+    expect(sent.single.endDayOffset, 1);
+    expect(sent.single.end, const LocalTime(7, 30));
   });
 }

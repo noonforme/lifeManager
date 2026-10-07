@@ -94,6 +94,43 @@ void main() {
     expect(_result!.last.id, const ShiftTypeId('type-1'));
   });
 
+  testWidgets('a night shift needs no +1 day: the end is the next day', (
+    tester,
+  ) async {
+    await _open(tester);
+    await tester.tap(_key('Add…'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('type-name')), 'Late');
+    await setTime(tester, 'type-start', const LocalTime(19, 30));
+    await setTime(tester, 'type-end', const LocalTime(7, 30));
+    expect(find.text('Ends the next day.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('type-next-day')), findsNothing);
+    await tester.tap(_key('OK'));
+    await tester.pumpAndSettle();
+    expect(find.text('19:30–07:30 +1'), findsOneWidget);
+    await tester.tap(_key('OK'));
+    await tester.pumpAndSettle();
+    expect(_result!.last.endDayOffset, 1);
+  });
+
+  testWidgets('a day shift ends the same day and shows no note', (
+    tester,
+  ) async {
+    await _open(tester);
+    await tester.tap(_key('Add…'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('type-name')), 'Early');
+    await setTime(tester, 'type-start', const LocalTime(7, 0));
+    await setTime(tester, 'type-end', const LocalTime(19, 0));
+    expect(find.text('Ends the next day.'), findsNothing);
+    await tester.tap(_key('OK'));
+    await tester.pumpAndSettle();
+    expect(find.text('07:00–19:00'), findsNWidgets(2));
+    await tester.tap(_key('OK'));
+    await tester.pumpAndSettle();
+    expect(_result!.last.endDayOffset, 0);
+  });
+
   testWidgets('a break outside the shift keeps the type dialog open', (
     tester,
   ) async {

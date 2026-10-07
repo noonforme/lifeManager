@@ -290,8 +290,12 @@ never smaller than 11 px.
     field (default tomorrow) and creates the next version.
 - **Shift types dialog:** a list (Name, Start, End, Breaks, Paid) with
   **Add…**, **Edit…**, **Remove** (Remove is disabled for a type used by the
-  cycle). Edit type dialog: Name, Start, End with "+1 day" checkbox, and a
-  Breaks list (start, length) with Add / Remove.
+  cycle). Edit type dialog: Name, Start, End, and a
+  Breaks list (start, length) with Add / Remove. The day the end falls on is
+  derived from the times, as a shift lasts 24 hours at most: an end at or
+  before the start is the next day, and the dialog says "Ends the next day."
+  (amended 2026-10-07: owner could not enter a night shift). The day sheet's
+  times form and the manual shift form's end date follow the same rule.
 
 ### 6.5 Leave view
 

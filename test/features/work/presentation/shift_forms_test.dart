@@ -257,12 +257,38 @@ void main() {
     expect(pause.end, const LocalTime(2, 30));
   });
 
-  testWidgets('an end at or before the start is refused on the end time', (
+  testWidgets('an end time before the start time lands on the next day', (
     tester,
   ) async {
     final submitted = await _pumpShift(tester);
+    await setTime(tester, 'shift-start-time', const LocalTime(19, 30));
+    await setTime(tester, 'shift-end-time', const LocalTime(7, 30));
+    expect(dateIn(tester, 'shift-end-date'), _today.addDays(1));
+    await _save(tester);
+    expect(submitted.single.localEndDate, _today.addDays(1));
+    expect(submitted.single.localEndTime, const LocalTime(7, 30));
+  });
+
+  testWidgets('an end time after the start time goes back to the same day', (
+    tester,
+  ) async {
+    await _pumpShift(tester);
+    await setTime(tester, 'shift-start-time', const LocalTime(19, 30));
+    await setTime(tester, 'shift-end-time', const LocalTime(7, 30));
+    await setTime(tester, 'shift-end-time', const LocalTime(21, 0));
+    expect(dateIn(tester, 'shift-end-date'), _today);
+  });
+
+  testWidgets('an end at or before the start on a picked date is refused', (
+    tester,
+  ) async {
+    final submitted = await _pumpShift(tester);
+    // Picking the day the box shows changes nothing, so go via another.
+    await pickDate(tester, 'shift-end-date', const LocalDate(2026, 10, 2));
+    await pickDate(tester, 'shift-end-date', _today);
     await setTime(tester, 'shift-start-time', const LocalTime(22, 0));
     await setTime(tester, 'shift-end-time', const LocalTime(6, 0));
+    expect(dateIn(tester, 'shift-end-date'), _today);
     await _save(tester);
     expect(submitted, isEmpty);
     expect(find.text(shiftEndAfterStartMessage), findsOneWidget);

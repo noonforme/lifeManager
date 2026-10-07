@@ -528,7 +528,6 @@ final class _DayTimesFormState extends State<DayTimesForm> {
   late ShiftTypeId? _type = widget.initial.shiftTypeId;
   late LocalTime _start = widget.initial.start;
   late LocalTime _end = widget.initial.end;
-  late bool _nextDay = widget.initial.endDayOffset == 1;
   late bool _overtime = widget.initial.countsAsOvertime;
   late final List<_Break> _breaks = [
     for (final item in widget.initial.breaks)
@@ -565,7 +564,6 @@ final class _DayTimesFormState extends State<DayTimesForm> {
     _type,
     _start,
     _end,
-    _nextDay,
     _overtime,
     for (final item in _breaks) '${item.start} ${item.minutes.text}',
   ].join('|');
@@ -582,7 +580,6 @@ final class _DayTimesFormState extends State<DayTimesForm> {
     if (type == null) return;
     _start = type.start;
     _end = type.end;
-    _nextDay = type.endDayOffset == 1;
     for (final item in _breaks) {
       item.minutes.dispose();
     }
@@ -597,7 +594,7 @@ final class _DayTimesFormState extends State<DayTimesForm> {
   DayTimes _value() => DayTimes(
     start: _start,
     end: _end,
-    endDayOffset: _nextDay ? 1 : 0,
+    endDayOffset: endDayOffsetOf(_start, _end),
     breaks: [
       for (final item in _breaks)
         FixedBreak(
@@ -662,12 +659,8 @@ final class _DayTimesFormState extends State<DayTimesForm> {
         value: _end,
         onChanged: (value) => _changed(() => _end = value),
       ),
-      EraCheckBox(
-        key: const ValueKey('day-next-day'),
-        label: 'Ends the next day',
-        value: _nextDay,
-        onChanged: (value) => _changed(() => _nextDay = value),
-      ),
+      if (endDayOffsetOf(_start, _end) == 1)
+        const InspectorNote('Ends the next day.'),
       for (final (index, item) in _breaks.indexed)
         Wrap(
           spacing: 6,
