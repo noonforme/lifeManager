@@ -538,6 +538,20 @@ final class DriftWorkRepository
       for (final row in shiftSheet)
         if (row.shift.state == ShiftState.finalized) row.shift,
     ];
+    final planned = await _plannedNotConfirmed(
+      employmentId,
+      schedules,
+      agreements,
+      switch (temporal) {
+        null => null,
+        DateRangeScope(:final start, :final end) => (start: start, end: end),
+        PayPeriodScope() when selectedPeriod != null => (
+          start: selectedPeriod.start,
+          end: selectedPeriod.end,
+        ),
+        PayPeriodScope() => null,
+      },
+    );
 
     return WorkRegisterProjection(
       scope: scope,
@@ -608,19 +622,8 @@ final class DriftWorkRepository
           if (inScopeDate(record.date))
             LeaveSheetRow(record: record, pay: pricedLeave[record.id]?.pay),
       ],
-      plannedNotConfirmed: await _plannedNotConfirmed(
-        employmentId,
-        schedules,
-        switch (temporal) {
-          null => null,
-          DateRangeScope(:final start, :final end) => (start: start, end: end),
-          PayPeriodScope() when selectedPeriod != null => (
-            start: selectedPeriod.start,
-            end: selectedPeriod.end,
-          ),
-          PayPeriodScope() => null,
-        },
-      ),
+      plannedNotConfirmed: planned.notConfirmed,
+      plannedWithoutAgreement: planned.withoutAgreement,
     );
   }
 
@@ -701,12 +704,23 @@ final class DriftWorkRepository
         if (day is PlannedShift)
           PlannedShiftRow(
             day: day,
-            // As the day's Properties offer Confirm: today or earlier.
+            // As the day's Properties offer Confirm: today or earlier, and
+            // paid by an agreement.
             toConfirm:
+                !lacksAgreement(
+                  day,
+                  employmentId: employmentId,
+                  agreements: agreements,
+                ) &&
                 day.date.compareTo(
-                  _timezones.localDateAt(now, day.timezoneId),
-                ) <=
-                0,
+                      _timezones.localDateAt(now, day.timezoneId),
+                    ) <=
+                    0,
+            withoutAgreement: lacksAgreement(
+              day,
+              employmentId: employmentId,
+              agreements: agreements,
+            ),
             period: periods
                 .where((period) => period.contains(day.date))
                 .firstOrNull,
@@ -756,13 +770,17 @@ final class DriftWorkRepository
   }
 
   /// Planned days in [range] before today, on each schedule's own clock,
-  /// that no confirmed day covers yet.
-  Future<int> _plannedNotConfirmed(
+  /// that no confirmed day covers yet and an agreement does; and the
+  /// planned work days in [range] no agreement covers, past or not.
+  Future<({int notConfirmed, int withoutAgreement})> _plannedNotConfirmed(
     EmploymentId employmentId,
     List<WorkSchedule> schedules,
+    List<PayAgreement> agreements,
     ({LocalDate start, LocalDate end})? range,
   ) async {
-    if (range == null || schedules.isEmpty) return 0;
+    if (range == null || schedules.isEmpty) {
+      return (notConfirmed: 0, withoutAgreement: 0);
+    }
     final days = planDays(
       from: range.start,
       to: range.end,
@@ -773,6 +791,7 @@ final class DriftWorkRepository
     );
     final now = _clock.nowUtc();
     var count = 0;
+    var unpaid = 0;
     for (final day in days) {
       final zone = switch (day) {
         PlannedShift(:final timezoneId) => timezoneId,
@@ -780,9 +799,17 @@ final class DriftWorkRepository
         _ => null,
       };
       if (zone == null) continue;
-      if (day.date.compareTo(_timezones.localDateAt(now, zone)) < 0) count++;
+      if (lacksAgreement(
+        day,
+        employmentId: employmentId,
+        agreements: agreements,
+      )) {
+        unpaid++;
+      } else if (day.date.compareTo(_timezones.localDateAt(now, zone)) < 0) {
+        count++;
+      }
     }
-    return count;
+    return (notConfirmed: count, withoutAgreement: unpaid);
   }
 
   @override

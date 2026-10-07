@@ -16,12 +16,15 @@ import 'work_controller.dart';
 import 'work_formats.dart';
 import 'work_plan_view.dart';
 
-/// "15 shifts · 172:30 paid · planned EUR 3174.00 · confirmed EUR 0.00".
+/// "15 shifts · 172:30 paid · planned EUR 3174.00 · confirmed EUR 0.00",
+/// then " · 16 days without a pay agreement" when planned pay leaves some
+/// out.
 String monthTotalsLine(MonthTotals totals) =>
     '${totals.shifts == 1 ? '1 shift' : '${totals.shifts} shifts'} · '
     '${formatDuration(totals.paidSeconds)} paid · '
     'planned ${formatMoney(totals.planned)} · '
-    'confirmed ${formatMoney(totals.confirmed)}';
+    'confirmed ${formatMoney(totals.confirmed)}'
+    '${withoutAgreementSuffix(totals.withoutAgreement)}';
 
 /// What the grid last had in full: the plan of one month with the records
 /// read beside it.
@@ -123,6 +126,11 @@ final class _WorkCalendarSheetState extends ConsumerState<WorkCalendarSheet> {
       leave: last.register.leaveSheet,
       schedules: [...schedules],
       timezones: timezones,
+      withoutAgreement: (day) => lacksAgreement(
+        day,
+        employmentId: employmentId,
+        agreements: agreements,
+      ),
     );
     final totals = monthTotals(
       days.values,

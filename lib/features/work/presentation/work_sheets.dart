@@ -52,10 +52,12 @@ String periodName(PayPeriod period) =>
 /// The register id of the planned day on [date], such as "day:2026-10-06".
 String plannedRowId(LocalDate date) => 'day:$date';
 
-/// "To confirm" from the day itself on, as its Properties offer Confirm,
-/// otherwise the Calendar's words:
-/// "Planned", "Planned (changed)" or "Extra, planned".
-String plannedStateLabel(PlannedShiftRow row) => row.toConfirm
+/// "No pay agreement" while no agreement covers the day; "To confirm" from
+/// the day itself on, as its Properties offer Confirm; otherwise the
+/// Calendar's words: "Planned", "Planned (changed)" or "Extra, planned".
+String plannedStateLabel(PlannedShiftRow row) => row.withoutAgreement
+    ? 'No pay agreement'
+    : row.toConfirm
     ? 'To confirm'
     : row.day.isExtra
     ? 'Extra, planned'

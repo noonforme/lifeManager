@@ -94,15 +94,20 @@ final class PlannedShiftRow {
   const PlannedShiftRow({
     required this.day,
     required this.toConfirm,
+    required this.withoutAgreement,
     required this.period,
     required this.pay,
   });
 
   final PlannedShift day;
 
-  /// The day is today or past on its schedule's clock, so it can be
-  /// confirmed.
+  /// The day is today or past on its schedule's clock and an agreement
+  /// covers it, so it can be confirmed.
   final bool toConfirm;
+
+  /// No pay agreement covers the day: it is neither priced nor confirmed
+  /// until one does (schedules spec 6.6, added 2026-10-07).
+  final bool withoutAgreement;
 
   /// The pay period whose dates contain the day, if any.
   final PayPeriod? period;
@@ -174,6 +179,7 @@ final class WorkRegisterProjection {
     this.agreementSheet = const [],
     this.leaveSheet = const [],
     this.plannedNotConfirmed = 0,
+    this.plannedWithoutAgreement = 0,
   });
 
   final WorkScope scope;
@@ -219,8 +225,11 @@ final class WorkRegisterProjection {
   final List<LeaveSheetRow> leaveSheet;
 
   /// Planned days in the temporal scope that are past and not confirmed
-  /// (spec 4.4).
+  /// (spec 4.4); days no agreement covers are left out, as they can't be.
   final int plannedNotConfirmed;
+
+  /// Planned work days in the temporal scope that no pay agreement covers.
+  final int plannedWithoutAgreement;
 
   factory WorkRegisterProjection.empty(
     WorkScope scope, {

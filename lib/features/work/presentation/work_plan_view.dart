@@ -23,6 +23,9 @@ enum DayEntryKind {
 
   /// The tail of an earlier day's shift that ends on this date.
   continued,
+
+  /// "No pay agreement" under a planned day no agreement covers.
+  noAgreement,
 }
 
 /// One written entry in a calendar cell, such as "Day 07:00–19:00".
@@ -59,6 +62,7 @@ final class DayView {
     this.planned,
     this.shifts = const [],
     this.leave,
+    this.withoutAgreement = false,
   });
 
   final LocalDate date;
@@ -73,6 +77,10 @@ final class DayView {
 
   /// Effective leave on this date.
   final LeaveSheetRow? leave;
+
+  /// [planned] is work no pay agreement covers: it is neither priced nor
+  /// confirmable until one does.
+  final bool withoutAgreement;
 
   bool get confirmed => shifts.isNotEmpty || leave != null;
 }
@@ -110,7 +118,8 @@ WorkSheet defaultSheetFor(List<WorkSchedule> schedules, LocalDate today) =>
     : WorkSheet.shifts;
 
 /// Every date [from]..[to] with its entries: the plan's days, then the
-/// shifts and leave recorded on dates the plan no longer holds.
+/// shifts and leave recorded on dates the plan no longer holds. A planned
+/// day [withoutAgreement] picks also reads "No pay agreement".
 Map<LocalDate, DayView> dayViews({
   required LocalDate from,
   required LocalDate to,
@@ -119,6 +128,7 @@ Map<LocalDate, DayView> dayViews({
   required List<LeaveSheetRow> leave,
   required List<WorkSchedule> schedules,
   required TimezoneService timezones,
+  bool Function(PlannedDay day)? withoutAgreement,
 }) {
   bool inRange(LocalDate date) =>
       date.compareTo(from) >= 0 && date.compareTo(to) <= 0;
@@ -213,6 +223,8 @@ Map<LocalDate, DayView> dayViews({
     final day = planned[date];
     final recorded = shiftsOn[date] ?? const <ShiftSheetRow>[];
     final leaveRow = leaveOn[date];
+    final unpaid =
+        day != null && withoutAgreement != null && withoutAgreement(day);
     final entries = <DayEntry>[
       ...switch (day) {
         PlannedShift() => [plannedEntry(day)],
@@ -231,6 +243,8 @@ Map<LocalDate, DayView> dayViews({
         ],
         OffDay() || null => const <DayEntry>[],
       },
+      // Straight under the day's own words, before any continuation.
+      if (unpaid) const DayEntry(DayEntryKind.noAgreement, 'No pay agreement'),
       for (final row in recorded)
         DayEntry(
           row.shift.schedule?.isExtra ?? false
@@ -263,6 +277,7 @@ Map<LocalDate, DayView> dayViews({
       planned: day,
       shifts: recorded,
       leave: leaveRow,
+      withoutAgreement: unpaid,
     );
   }
   return views;
@@ -275,6 +290,7 @@ final class MonthTotals {
     required this.paidSeconds,
     required this.planned,
     required this.confirmed,
+    this.withoutAgreement = 0,
   });
 
   /// Planned and confirmed shifts together.
@@ -286,7 +302,18 @@ final class MonthTotals {
 
   /// Expected pay of finalized shifts and confirmed leave.
   final Money confirmed;
+
+  /// Planned days no pay agreement covers, so left out of [planned].
+  final int withoutAgreement;
 }
+
+/// " · 16 days without a pay agreement", or nothing when every day is
+/// paid.
+String withoutAgreementSuffix(int days) => switch (days) {
+  0 => '',
+  1 => ' · 1 day without a pay agreement',
+  _ => ' · $days days without a pay agreement',
+};
 
 MonthTotals monthTotals(
   Iterable<DayView> days, {
@@ -296,7 +323,9 @@ MonthTotals monthTotals(
   var paid = 0;
   var planned = 0;
   var confirmed = 0;
+  var unpaid = 0;
   for (final day in days) {
+    if (day.withoutAgreement) unpaid++;
     if (day.planned case final PlannedShift shift) {
       shifts++;
       paid += shift.paidSeconds;
@@ -315,6 +344,7 @@ MonthTotals monthTotals(
     paidSeconds: paid,
     planned: Money(minorUnits: planned),
     confirmed: Money(minorUnits: confirmed),
+    withoutAgreement: unpaid,
   );
 }
 

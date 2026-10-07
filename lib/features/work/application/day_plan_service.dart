@@ -124,30 +124,60 @@ final class DayPlanService {
       repository.watchPlanInputs(id);
 
   /// Past planned shifts and leave not yet confirmed, oldest first: from the
-  /// first date any schedule is in use up to the day before [today].
+  /// first date any schedule is in use up to the day before [today]. A day
+  /// no pay agreement covers can't be confirmed, so it is left out
+  /// ([daysWithoutAgreement] lists it).
   Future<List<PlannedDay>> daysToConfirm(
     EmploymentId id, {
     required LocalDate today,
-  }) async => _toConfirm(await repository.planInputs(id), today);
+  }) async => _past(await repository.planInputs(id), id, today).toConfirm;
 
   /// [daysToConfirm], live: a day leaves the list once it is confirmed.
   Stream<List<PlannedDay>> watchDaysToConfirm(
     EmploymentId id, {
     required LocalDate today,
-  }) =>
-      repository.watchPlanInputs(id).map((inputs) => _toConfirm(inputs, today));
+  }) => repository
+      .watchPlanInputs(id)
+      .map((inputs) => _past(inputs, id, today).toConfirm);
 
-  List<PlannedDay> _toConfirm(PlanInputs inputs, LocalDate today) {
-    if (inputs.schedules.isEmpty) return const [];
+  /// The past planned days [daysToConfirm] leaves out because no pay
+  /// agreement covers them, oldest first (spec 5, added 2026-10-07).
+  Future<List<PlannedDay>> daysWithoutAgreement(
+    EmploymentId id, {
+    required LocalDate today,
+  }) async =>
+      _past(await repository.planInputs(id), id, today).withoutAgreement;
+
+  /// [daysWithoutAgreement], live: a day joins the days to confirm once an
+  /// agreement covers it.
+  Stream<List<PlannedDay>> watchDaysWithoutAgreement(
+    EmploymentId id, {
+    required LocalDate today,
+  }) => repository
+      .watchPlanInputs(id)
+      .map((inputs) => _past(inputs, id, today).withoutAgreement);
+
+  ({List<PlannedDay> toConfirm, List<PlannedDay> withoutAgreement}) _past(
+    PlanInputs inputs,
+    EmploymentId id,
+    LocalDate today,
+  ) {
+    const none = (toConfirm: <PlannedDay>[], withoutAgreement: <PlannedDay>[]);
+    if (inputs.schedules.isEmpty) return none;
     final from = inputs.schedules
         .map((value) => value.inUseFrom)
         .reduce((a, b) => a.compareTo(b) <= 0 ? a : b);
     final to = today.addDays(-1);
-    if (from.compareTo(to) > 0) return const [];
-    return [
-      for (final day in _plan(inputs, from, to))
-        if (day is PlannedShift || day is PlannedLeave) day,
-    ];
+    if (from.compareTo(to) > 0) return none;
+    final toConfirm = <PlannedDay>[];
+    final withoutAgreement = <PlannedDay>[];
+    for (final day in _plan(inputs, from, to)) {
+      if (day is! PlannedShift && day is! PlannedLeave) continue;
+      lacksAgreement(day, employmentId: id, agreements: inputs.agreements)
+          ? withoutAgreement.add(day)
+          : toConfirm.add(day);
+    }
+    return (toConfirm: toConfirm, withoutAgreement: withoutAgreement);
   }
 
   Future<MutationOutcome<DayException>> changeDay(

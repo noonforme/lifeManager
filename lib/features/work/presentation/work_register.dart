@@ -336,6 +336,13 @@ final class WorkDetails extends StatelessWidget {
                 ? '1 planned day not yet confirmed'
                 : '$n planned days not yet confirmed',
           ),
+        // Not confirmable, so counted apart from the days above.
+        if (projection.plannedWithoutAgreement case final n when n > 0)
+          Text(
+            n == 1
+                ? '1 day without a pay agreement'
+                : '$n days without a pay agreement',
+          ),
         if (groups.isEmpty) ...[
           if (_estimatedTotal(projection) case final total?)
             pair('Estimated pay', _money(total)),

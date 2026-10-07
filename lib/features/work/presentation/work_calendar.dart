@@ -19,7 +19,8 @@ Color entrySwatch(DayEntryKind kind) => switch (kind) {
   DayEntryKind.continued => MillenniumColors.link,
   DayEntryKind.extra => MillenniumColors.orbOrange,
   DayEntryKind.leave => MillenniumColors.orbGreen,
-  DayEntryKind.cancelled => MillenniumColors.tabLine,
+  DayEntryKind.cancelled ||
+  DayEntryKind.noAgreement => MillenniumColors.tabLine,
   DayEntryKind.needsReview => MillenniumColors.sortAccent,
 };
 
@@ -207,7 +208,18 @@ final class _WorkCalendarState extends State<WorkCalendar> {
         ? tokens.paper
         : tokens.chrome;
     final ink = selected && _focused ? tokens.selInk : tokens.ink;
-    final shown = entries.length > 2 ? entries.take(2) : entries;
+    // Two entries at most; "No pay agreement" belongs to the entry above it
+    // and is not counted, so a night's continuation still shows.
+    final shown = <DayEntry>[];
+    var counted = 0;
+    for (final entry in entries) {
+      if (entry.kind != DayEntryKind.noAgreement) {
+        if (counted == 2) break;
+        counted++;
+      }
+      shown.add(entry);
+    }
+    final more = entries.length - shown.length;
     Widget cell = Container(
       padding: const EdgeInsets.fromLTRB(3, 2, 3, 2),
       decoration: BoxDecoration(
@@ -229,19 +241,21 @@ final class _WorkCalendarState extends State<WorkCalendar> {
               ),
             ),
             for (final entry in shown)
-              // A continuation reads quieter than the day's own entries; on
-              // the selection fill it keeps the selection's ink to stay legible.
+              // A continuation, or a day's missing agreement, reads quieter
+              // than the day's own entries; on the selection fill it keeps
+              // the selection's ink to stay legible.
               _EntryLine(
                 entry: entry,
                 ink:
-                    entry.kind == DayEntryKind.continued &&
+                    (entry.kind == DayEntryKind.continued ||
+                            entry.kind == DayEntryKind.noAgreement) &&
                         !(selected && _focused)
                     ? tokens.muted
                     : ink,
               ),
-            if (entries.length > 2)
+            if (more > 0)
               Text(
-                '+${entries.length - 2} more',
+                '+$more more',
                 style: skin.typography.body.copyWith(color: ink),
               ),
           ],

@@ -141,6 +141,41 @@ void main() {
     ]);
   });
 
+  test('a day no pay agreement covers is not a day to confirm', () async {
+    // The depot rotation from 24 August; the agreement pays from
+    // 1 September. 24–26 August Day, 27–29 Off, 30–31 Night.
+    await fixture.dispose();
+    fixture = await ScheduleFixture.create();
+    plans = fixture.plans;
+    await fixture.saveDepot(from: const LocalDate(2026, 8, 24));
+    final pending = await plans.daysToConfirm(
+      employment,
+      today: const LocalDate(2026, 9, 3),
+    );
+    // 1 September Night; 2 September Off.
+    expect(pending.map((day) => day.date), [const LocalDate(2026, 9, 1)]);
+    final unpaid = await plans.daysWithoutAgreement(
+      employment,
+      today: const LocalDate(2026, 9, 3),
+    );
+    expect(unpaid.map((day) => day.date), [
+      const LocalDate(2026, 8, 24),
+      const LocalDate(2026, 8, 25),
+      const LocalDate(2026, 8, 26),
+      const LocalDate(2026, 8, 30),
+      const LocalDate(2026, 8, 31),
+    ]);
+    // Confirm refuses them on the agreement, as before.
+    expect(
+      await plans.confirm(employment, const LocalDate(2026, 8, 24)),
+      isA<Invalid<ConfirmedDay>>().having(
+        (value) => value.fields.keys,
+        'fields',
+        ['agreement'],
+      ),
+    );
+  });
+
   test(
     'a new version flags a Changed day that is now Off as needing review',
     () async {

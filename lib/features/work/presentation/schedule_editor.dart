@@ -755,6 +755,11 @@ final class _ScheduleEditorState extends State<ScheduleEditor> {
           leave: const [],
           schedules: [schedule],
           timezones: widget.timezones,
+          withoutAgreement: (day) => lacksAgreement(
+            day,
+            employmentId: widget.employmentId,
+            agreements: widget.agreements,
+          ),
         );
         final totals = monthTotals(
           days.values,
@@ -782,7 +787,8 @@ final class _ScheduleEditorState extends State<ScheduleEditor> {
             Text(
               '${totals.shifts == 1 ? '1 shift' : '${totals.shifts} shifts'}'
               ' · ${formatDuration(totals.paidSeconds)} paid · '
-              '${formatMoney(totals.planned)} expected',
+              '${formatMoney(totals.planned)} expected'
+              '${withoutAgreementSuffix(totals.withoutAgreement)}',
             ),
           ],
         );

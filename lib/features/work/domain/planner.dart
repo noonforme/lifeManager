@@ -260,6 +260,49 @@ List<PlannedDay> planDays({
   return List.unmodifiable(days);
 }
 
+/// Whether [day] is planned work, a shift or leave, that no single pay
+/// agreement of [employmentId] covers. It can be neither priced nor
+/// confirmed until one does, so it reads "No pay agreement" and is not a
+/// day to confirm (schedules spec 5, added 2026-10-07).
+bool lacksAgreement(
+  PlannedDay day, {
+  required EmploymentId employmentId,
+  required Iterable<PayAgreement> agreements,
+}) =>
+    (day is PlannedShift || day is PlannedLeave) &&
+    resolveAgreement(
+      employmentId: employmentId,
+      localStartDate: day.date,
+      agreements: agreements,
+    ) is! ResolvedAgreement;
+
+/// The agreement of [agreements] that widens least to cover [date]: the
+/// one whose start or end lies nearest to it, the later one on a tie.
+/// Null when there is none.
+PayAgreement? nearestAgreement(
+  Iterable<PayAgreement> agreements,
+  LocalDate date,
+) {
+  int gap(PayAgreement agreement) {
+    if (date.compareTo(agreement.effectiveStart) < 0) {
+      return agreement.effectiveStart.daysSince(date);
+    }
+    final end = agreement.effectiveEnd;
+    return end == null || date.compareTo(end) <= 0 ? 0 : date.daysSince(end);
+  }
+
+  PayAgreement? best;
+  for (final agreement in agreements) {
+    if (best == null ||
+        gap(agreement) < gap(best) ||
+        (gap(agreement) == gap(best) &&
+            agreement.effectiveStart.compareTo(best.effectiveStart) > 0)) {
+      best = agreement;
+    }
+  }
+  return best;
+}
+
 /// A planned shift's pay: night and holiday premiums, never overtime
 /// (spec 4.1). Null when no single agreement is in effect on its date.
 ExpectedPay? plannedPay(

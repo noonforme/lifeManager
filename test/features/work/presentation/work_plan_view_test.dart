@@ -6,6 +6,8 @@ import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/pay.dart';
 import 'package:lifeos/features/work/domain/planner.dart';
+import 'package:lifeos/features/work/presentation/work_calendar_sheet.dart'
+    show monthTotalsLine;
 import 'package:lifeos/features/work/presentation/work_plan_view.dart';
 
 import '../../../support/schedule_fixture.dart';
@@ -185,6 +187,50 @@ void main() {
     final entry = day.entries.single;
     expect(entry.kind, DayEntryKind.planned);
     expect(entry.text, 'Day 07:00–19:00');
+  });
+
+  test('a planned day no pay agreement covers says so and is not priced', () {
+    final views = dayViews(
+      from: const LocalDate(2026, 10, 1),
+      to: const LocalDate(2026, 10, 31),
+      plan: octoberPlan(),
+      shifts: const [],
+      leave: const [],
+      schedules: [depotSchedule()],
+      timezones: testTimezones,
+      withoutAgreement: (day) => lacksAgreement(
+        day,
+        employmentId: fixtureEmployment,
+        agreements: const [],
+      ),
+    );
+    final day = views[const LocalDate(2026, 10, 6)]!;
+    expect(day.withoutAgreement, isTrue);
+    // The day keeps its words and gains the reason on a line of its own.
+    expect(day.entries.map((entry) => entry.text), [
+      'Day 07:00–19:00',
+      'No pay agreement',
+    ]);
+    expect(day.entries.last.kind, DayEntryKind.noAgreement);
+    // An Off day has nothing to pay.
+    final off = views[const LocalDate(2026, 10, 8)]!;
+    expect(off.withoutAgreement, isFalse);
+    expect(off.entries, isEmpty);
+
+    final totals = monthTotals(views.values, price: (_) => null);
+    expect(totals.shifts, 15);
+    expect(totals.withoutAgreement, 15);
+    expect(
+      monthTotalsLine(totals),
+      endsWith('· 15 days without a pay agreement'),
+    );
+    // A month every day of which is paid says nothing of agreements.
+    expect(
+      monthTotalsLine(
+        monthTotals(octoberViews(octoberPlan()).values, price: (_) => null),
+      ),
+      isNot(contains('agreement')),
+    );
   });
 
   test('month totals count planned and confirmed shifts apart', () {
