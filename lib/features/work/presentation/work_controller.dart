@@ -351,6 +351,15 @@ final daysToConfirmProvider = StreamProvider.autoDispose
           .watchDaysToConfirm(id, today: ref.watch(currentDateProvider)),
     );
 
+/// Past planned days of one employment that no pay agreement covers, so
+/// they can't be confirmed yet, live.
+final daysWithoutAgreementProvider = StreamProvider.autoDispose
+    .family<List<PlannedDay>, EmploymentId>(
+      (ref, id) => ref
+          .watch(dayPlanServiceProvider)
+          .watchDaysWithoutAgreement(id, today: ref.watch(currentDateProvider)),
+    );
+
 final workControllerProvider =
     AsyncNotifierProvider.autoDispose<WorkController, WorkViewState>(
       WorkController.new,

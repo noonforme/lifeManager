@@ -21,6 +21,7 @@ import '../domain/employment.dart';
 import '../domain/ids.dart';
 import '../domain/pay_period.dart';
 import '../domain/payslip.dart';
+import '../domain/planner.dart' show nearestAgreement;
 import '../domain/schedule.dart';
 import '../domain/shift.dart';
 import 'agreement_dialogs.dart';
@@ -71,6 +72,7 @@ final class WorkScreen extends StatefulWidget {
     this.onChangeAgreementTerms,
     this.onEndAgreement,
     this.onRemoveAgreement,
+    this.onExtendAgreement,
     this.today,
     this.lastShiftTemplate,
     this.plannedShifts = const [],
@@ -149,6 +151,13 @@ final class WorkScreen extends StatefulWidget {
   /// "Remove agreement…" for an agreement nothing uses.
   final Future<MutationOutcome<PayAgreement>> Function(PayAgreement current)?
   onRemoveAgreement;
+
+  /// "Extend pay agreement…": widens an agreement to pay a planned day.
+  final Future<MutationOutcome<PayAgreement>> Function(
+    PayAgreement current,
+    LocalDate date,
+  )?
+  onExtendAgreement;
 
   /// Today's local date for new agreements; the device date when null.
   final LocalDate? today;
@@ -295,6 +304,41 @@ final class _WorkScreenState extends State<WorkScreen> {
     );
   }
 
+  /// "Set up pay agreement…" when the employment has none, otherwise
+  /// "Extend pay agreement…" on the agreement nearest [date], for a planned
+  /// day there that no agreement covers; null when it is not wired.
+  AgreementLink? _dayAgreement(WorkReady state, LocalDate date) {
+    final register = state.register;
+    if (register.employment == null) return null;
+    final nearest = nearestAgreement([
+      for (final row in register.agreementSheet) row.agreement,
+    ], date);
+    if (nearest == null) {
+      return (
+        label: 'Set up pay agreement…',
+        onPressed: () => _go(
+          state.route.copyWith(
+            mode: WorkInspectorMode.inspect,
+            day: () => null,
+            confirming: false,
+            adding: () => WorkAddKind.agreement,
+          ),
+        ),
+      );
+    }
+    final extend = widget.onExtendAgreement;
+    if (extend == null) return null;
+    return (
+      label: 'Extend pay agreement…',
+      onPressed: () => askExtendAgreement(
+        context,
+        agreement: nearest,
+        date: date,
+        onExtend: () => _saved(extend(nearest, date), 'Agreement extended.'),
+      ),
+    );
+  }
+
   Future<MutationOutcome<PayAgreement>> _changeTerms(
     PayAgreement current,
     AgreementDraft value,
@@ -408,6 +452,9 @@ final class _WorkScreenState extends State<WorkScreen> {
       WorkTaskContext(
         selected: selected,
         plannedDay: plannedDay,
+        dayAgreement: plannedDay == null
+            ? null
+            : _dayAgreement(state, plannedDay.day.date),
         onOpenDay: () =>
             _go(route.copyWith(mode: WorkInspectorMode.properties)),
         onConfirmDays: widget.schedules.isEmpty
@@ -594,10 +641,14 @@ final class _WorkScreenState extends State<WorkScreen> {
         employmentId: employmentId,
         date: day,
         today: _today,
+        agreementFor: (date) => _dayAgreement(state, date),
       );
     }
     if (route.confirming && employmentId != null) {
-      return ConfirmDaysHost(employmentId: employmentId);
+      return ConfirmDaysHost(
+        employmentId: employmentId,
+        agreementFor: (date) => _dayAgreement(state, date),
+      );
     }
     if (route.record
         case WorkRecordRef(

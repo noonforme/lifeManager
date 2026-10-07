@@ -257,6 +257,9 @@ final class _WorkRouteHost extends ConsumerWidget {
         onRemoveAgreement: ref
             .read(workControllerProvider.notifier)
             .removeAgreement,
+        onExtendAgreement: ref
+            .read(workControllerProvider.notifier)
+            .widenAgreementToCover,
         today: today,
         schedules: schedules ?? const [],
         onSaveView: switch (ref.watch(savedViewRepositoryProvider)) {

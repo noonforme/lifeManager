@@ -14,6 +14,7 @@ import '../../../shared/workbench/operational_state.dart';
 import '../domain/day_exception.dart';
 import '../domain/ids.dart';
 import '../domain/planner.dart';
+import 'agreement_dialogs.dart' show AgreementLink;
 import 'day_sheet.dart';
 import 'work_controller.dart';
 import 'work_plan_view.dart';
@@ -24,12 +25,16 @@ final class DaySheetHost extends ConsumerWidget {
     required this.employmentId,
     required this.date,
     required this.today,
+    this.agreementFor,
     super.key,
   });
 
   final EmploymentId employmentId;
   final LocalDate date;
   final LocalDate today;
+
+  /// The way to pay a day no agreement covers; null offers none.
+  final AgreementLink? Function(LocalDate date)? agreementFor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -67,12 +72,21 @@ final class DaySheetHost extends ConsumerWidget {
             .where((value) => value.date == date)
             .firstOrNull;
         final expected = exception?.revision;
+        final withoutAgreement =
+            day != null &&
+            lacksAgreement(
+              day,
+              employmentId: employmentId,
+              agreements: inputs.agreements,
+            );
         return DaySheet(
           key: ValueKey(('day', date, exception?.updatedAtUtc)),
           date: date,
           today: today,
           day: day,
           confirmed: inputs.confirmedDates.contains(date),
+          withoutAgreement: withoutAgreement,
+          agreement: withoutAgreement ? agreementFor?.call(date) : null,
           schedule: inputs.schedules
               .where((value) => value.isInUseOn(date))
               .firstOrNull,

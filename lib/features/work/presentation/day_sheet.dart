@@ -24,6 +24,7 @@ import '../domain/leave.dart';
 import '../domain/pay.dart';
 import '../domain/planner.dart';
 import '../domain/schedule.dart';
+import 'agreement_dialogs.dart' show AgreementLink;
 import 'employment_agreement_forms.dart' show staleMessage;
 import 'work_formats.dart';
 import 'work_plan_view.dart';
@@ -138,6 +139,8 @@ final class DaySheet extends StatefulWidget {
     required this.onMarkLeave,
     required this.onAddExtra,
     required this.onRemoveException,
+    this.withoutAgreement = false,
+    this.agreement,
     super.key,
   });
 
@@ -148,6 +151,13 @@ final class DaySheet extends StatefulWidget {
   /// date is confirmed.
   final PlannedDay? day;
   final bool confirmed;
+
+  /// [day] is work no pay agreement covers, so it can't be confirmed until
+  /// one does (spec 7: Unavailable, with the reason).
+  final bool withoutAgreement;
+
+  /// "Set up pay agreement…" or "Extend pay agreement…" for such a day.
+  final AgreementLink? agreement;
 
   /// The schedule version in use on [date].
   final WorkSchedule? schedule;
@@ -303,6 +313,7 @@ final class _DaySheetState extends State<DaySheet> {
       ]),
       if (shift.changed)
         const InspectorNote('Changed from the schedule for this day.'),
+      ?_unpaidNote(),
       if (_editing)
         GroupBox(
           legend: shift.isExtra ? 'Extra shift' : 'Change this day',
@@ -325,13 +336,18 @@ final class _DaySheetState extends State<DaySheet> {
           if (_past && !_editing)
             KeyButton(
               label: 'Confirm',
-              onPressed: _busy
+              onPressed: _busy || widget.withoutAgreement
                   ? null
                   : () => _run(
                       widget.onConfirm,
                       confirmProblem,
                       closeOnCommit: true,
                     ),
+            ),
+          if (widget.agreement case final link? when !_editing)
+            KeyButton(
+              label: link.label,
+              onPressed: _busy ? null : link.onPressed,
             ),
           if (!_editing)
             KeyButton(
@@ -359,6 +375,11 @@ final class _DaySheetState extends State<DaySheet> {
       ),
     ];
   }
+
+  /// Why Confirm is unavailable on work no agreement pays; null otherwise.
+  Widget? _unpaidNote() => widget.withoutAgreement
+      ? const InspectorNote('Unavailable: no pay agreement covers this day.')
+      : null;
 
   List<Widget> _off(List<ShiftType> types) => [
     const InspectorText('No shift planned.'),
@@ -423,18 +444,24 @@ final class _DaySheetState extends State<DaySheet> {
           'No confirmed work in the 3 months before; using the agreement '
           'rate.',
         ),
+      ?_unpaidNote(),
       InspectorActions(
         children: [
           if (_past)
             KeyButton(
               label: 'Confirm',
-              onPressed: _busy
+              onPressed: _busy || widget.withoutAgreement
                   ? null
                   : () => _run(
                       widget.onConfirm,
                       confirmProblem,
                       closeOnCommit: true,
                     ),
+            ),
+          if (widget.agreement case final link? when !_editing)
+            KeyButton(
+              label: link.label,
+              onPressed: _busy ? null : link.onPressed,
             ),
           KeyButton(
             label: 'Change leave…',

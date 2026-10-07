@@ -13,6 +13,30 @@ import '../domain/agreement.dart';
 import 'employment_agreement_forms.dart'
     show agreementOverlapMessage, agreementUsersPaid, staleMessage;
 
+/// The way to pay a planned day no agreement covers: "Set up pay
+/// agreement…" when the employment has none, otherwise "Extend pay
+/// agreement…" (schedules spec 6.6, added 2026-10-07).
+typedef AgreementLink = ({String label, VoidCallback onPressed});
+
+/// "Extend pay agreement…": asks before widening [agreement] to cover
+/// [date] through [onExtend], its terms unchanged. The dialog stays open
+/// and says what went wrong until the change commits; true once it has.
+Future<bool> askExtendAgreement(
+  BuildContext context, {
+  required PayAgreement agreement,
+  required LocalDate date,
+  required Future<MutationOutcome<PayAgreement>> Function() onExtend,
+}) async =>
+    await showDialog<bool>(
+      context: context,
+      builder: (_) => _ExtendAgreementDialog(
+        agreement: agreement,
+        date: date,
+        onExtend: onExtend,
+      ),
+    ) ??
+    false;
+
 /// "End agreement…": asks for [agreement]'s last day and ends it there
 /// through [onEnd] (premiums spec 7, added 2026-10-07). [usedBy] names who
 /// it pays in a refusal; null when unknown. The dialog stays open and says
@@ -168,6 +192,86 @@ final class _EndAgreementDialogState extends State<_EndAgreementDialog> {
       ),
     ],
   );
+}
+
+final class _ExtendAgreementDialog extends StatefulWidget {
+  const _ExtendAgreementDialog({
+    required this.agreement,
+    required this.date,
+    required this.onExtend,
+  });
+
+  final PayAgreement agreement;
+  final LocalDate date;
+  final Future<MutationOutcome<PayAgreement>> Function() onExtend;
+
+  @override
+  State<_ExtendAgreementDialog> createState() => _ExtendAgreementDialogState();
+}
+
+final class _ExtendAgreementDialogState extends State<_ExtendAgreementDialog> {
+  String? _problem;
+  bool _extending = false;
+
+  Future<void> _extend() async {
+    setState(() {
+      _extending = true;
+      _problem = null;
+    });
+    final outcome = await widget.onExtend();
+    if (!mounted) return;
+    if (outcome is Committed<PayAgreement>) {
+      Navigator.of(context).pop(true);
+      return;
+    }
+    setState(() {
+      _extending = false;
+      _problem = switch (outcome) {
+        Invalid(:final fields) when fields.containsKey('effectiveRange') =>
+          agreementOverlapMessage,
+        _ => agreementProblem(outcome),
+      };
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Before its start the start moves; after its end the end does.
+    final earlier = widget.date.compareTo(widget.agreement.effectiveStart) < 0;
+    return EraDialog(
+      title: 'Extend agreement',
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Extend pay agreement v${widget.agreement.version} to '
+            '${earlier ? 'start' : 'end'} on ${widget.date}?',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 7),
+          const Text(
+            'Its terms stay as they are. The planned days it then covers are '
+            'priced by it and can be confirmed.',
+          ),
+          if (_problem case final problem?)
+            InspectorNote(problem, tone: FactTone.negative),
+        ],
+      ),
+      actions: [
+        KeyButton(
+          label: 'Extend',
+          kind: KeyKind.primary,
+          onPressed: _extending ? null : _extend,
+        ),
+        // Closing mid-command would hide its outcome.
+        KeyButton(
+          label: 'Cancel',
+          onPressed: _extending ? null : () => Navigator.of(context).pop(false),
+        ),
+      ],
+    );
+  }
 }
 
 final class _RemoveAgreementDialog extends StatefulWidget {

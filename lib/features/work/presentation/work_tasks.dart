@@ -7,6 +7,7 @@ import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/pay_period.dart';
 import '../domain/shift.dart';
+import 'agreement_dialogs.dart' show AgreementLink;
 import 'work_formats.dart';
 import 'work_plan_view.dart' show plannedShiftName, shiftTimes;
 import 'work_record_names.dart';
@@ -38,6 +39,7 @@ final class WorkTaskContext {
     this.onRecordPayslipForPeriod,
     this.plannedDay,
     this.onOpenDay,
+    this.dayAgreement,
   });
 
   final WorkRecordProjection? selected;
@@ -47,6 +49,10 @@ final class WorkTaskContext {
 
   /// Opens [plannedDay]'s Properties.
   final VoidCallback? onOpenDay;
+
+  /// "Set up pay agreement…" or "Extend pay agreement…" for a
+  /// [plannedDay] no agreement covers.
+  final AgreementLink? dayAgreement;
 
   /// Opens Confirm worked days; null without a schedule.
   final VoidCallback? onConfirmDays;
@@ -114,9 +120,13 @@ List<Widget> workTaskGroups(WorkTaskContext c) {
   ]);
   if (c.plannedDay case final day? when c.selected == null) {
     // A planned day is not a record: it is confirmed, or changed, on the
-    // day's own Properties. The Work tasks stay under it.
+    // day's own Properties. One no agreement pays offers the agreement
+    // first, as it can't be confirmed until then. The Work tasks stay under
+    // it.
     return [
       group('Day tasks', [
+        if (c.dayAgreement case final link? when day.withoutAgreement)
+          (link.label, EraIconKind.agreement, link.onPressed),
         day.toConfirm
             ? ('Confirm this day…', EraIconKind.reviewed, c.onOpenDay)
             : ('Open day…', EraIconKind.properties, c.onOpenDay),

@@ -29,7 +29,7 @@ typedef ScheduledApp = ({
 
 /// The app on an in-memory database with one employment paid EUR 18.40
 /// gross from 1 September and, unless [withSchedule] is false, the depot
-/// rotation from 5 October. "Now" is [now] (default 7 October 2026, 12:00
+/// rotation from [scheduleFrom] (default 5 October). "Now" is [now] (default 7 October 2026, 12:00
 /// in Vilnius). `{employment}` and `{schedule}` in [location] become the
 /// seeded ids.
 Future<ScheduledApp> pumpScheduledApp(
@@ -37,6 +37,7 @@ Future<ScheduledApp> pumpScheduledApp(
   String location = '/work?employment={employment}',
   DateTime? now,
   bool withSchedule = true,
+  LocalDate scheduleFrom = const LocalDate(2026, 10, 5),
   Size size = const Size(1280, 800),
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -78,7 +79,7 @@ Future<ScheduledApp> pumpScheduledApp(
       ),
     );
     if (withSchedule) {
-      final draft = depotDraft();
+      final draft = depotDraft(from: scheduleFrom);
       final saved = await work.schedules.create(
         ScheduleDraft(
           employmentId: created.id,
