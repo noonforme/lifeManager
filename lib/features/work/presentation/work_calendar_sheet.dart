@@ -23,14 +23,25 @@ String monthTotalsLine(MonthTotals totals) =>
     'planned ${formatMoney(totals.planned)} · '
     'confirmed ${formatMoney(totals.confirmed)}';
 
+/// What the grid last had in full: the plan of one month with the records
+/// read beside it.
+typedef _Loaded = ({
+  EmploymentId employment,
+  LocalDate month,
+  List<PlannedDay> plan,
+  WorkRegisterProjection register,
+});
+
 /// The Calendar sheet (schedules spec 6.1): a month header, the month grid
-/// and the month's figures, read live from the plan.
-final class WorkCalendarSheet extends ConsumerWidget {
+/// and the month's figures, read live from the plan. It reads the
+/// employment's whole register, so a pay-period or date-range scope on the
+/// route never hides a confirmed day. While another month loads, the last
+/// month stays on screen, so the cursor and focus are not lost.
+final class WorkCalendarSheet extends ConsumerStatefulWidget {
   const WorkCalendarSheet({
     required this.employmentId,
     required this.month,
     required this.today,
-    required this.register,
     required this.onMonth,
     required this.onOpenDay,
     super.key,
@@ -41,15 +52,21 @@ final class WorkCalendarSheet extends ConsumerWidget {
   /// The first of the month shown.
   final LocalDate month;
   final LocalDate today;
-
-  /// The month's recorded shifts and leave.
-  final WorkRegisterProjection register;
   final ValueChanged<LocalDate> onMonth;
   final ValueChanged<DayView> onOpenDay;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WorkCalendarSheet> createState() => _WorkCalendarSheetState();
+}
+
+final class _WorkCalendarSheetState extends ConsumerState<WorkCalendarSheet> {
+  _Loaded? _last;
+
+  @override
+  Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
+    final employmentId = widget.employmentId;
+    final month = widget.month;
     final grid = monthGridDays(month);
     final plan = ref.watch(
       workPlanProvider((
@@ -58,6 +75,7 @@ final class WorkCalendarSheet extends ConsumerWidget {
         to: grid.last,
       )),
     );
+    final registered = ref.watch(employmentRegisterProvider(employmentId));
     final schedules = switch (ref.watch(
       employmentSchedulesProvider(employmentId),
     )) {
@@ -66,77 +84,95 @@ final class WorkCalendarSheet extends ConsumerWidget {
     };
     final timezones = ref.watch(timezoneServiceProvider);
     final zones = ref.watch(zoneClocksProvider);
-    final agreements = [
-      for (final row in register.agreementSheet) row.agreement,
-    ];
-    return switch (plan) {
-      AsyncData(:final value) => () {
-        final days = dayViews(
-          from: month.firstOfMonth,
-          to: month.lastOfMonth,
+    if (plan case AsyncData(:final value)) {
+      if (registered case AsyncData(value: final register)) {
+        _last = (
+          employment: employmentId,
+          month: month,
           plan: value,
-          shifts: register.shiftSheet,
-          leave: register.leaveSheet,
-          schedules: [...schedules],
-          timezones: timezones,
+          register: register,
         );
-        final totals = monthTotals(
-          days.values,
-          price: (shift) => plannedPay(
-            shift,
-            agreements: agreements,
-            employmentId: employmentId,
-            zoneClocks: zones,
-          ),
+      }
+    }
+    final last = _last?.employment == employmentId ? _last : null;
+    if (last == null) {
+      if (plan is AsyncError || registered is AsyncError) {
+        return const OperationalState(
+          kind: OperationalStateKind.unavailable,
+          title: 'Calendar unavailable',
+          message: 'Reload Work to read the schedule again.',
         );
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _MonthHeader(month: month, today: today, onMonth: onMonth),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: WorkCalendar(
-                  key: ValueKey(('work-calendar', month)),
-                  month: month,
-                  today: today,
-                  days: days,
-                  autofocus: true,
-                  onMonth: onMonth,
-                  onOpen: (date) {
-                    // A greyed neighbouring day moves to its month.
-                    final day = days[date];
-                    if (day == null) {
-                      onMonth(date.firstOfMonth);
-                    } else {
-                      onOpenDay(day);
-                    }
-                  },
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
-              child: Text(
-                monthTotalsLine(totals),
-                key: const ValueKey('work-calendar-totals'),
-                style: skin.typography.body.copyWith(color: skin.tokens.ink),
-              ),
-            ),
-          ],
-        );
-      }(),
-      AsyncError() => const OperationalState(
-        kind: OperationalStateKind.unavailable,
-        title: 'Calendar unavailable',
-        message: 'Reload Work to read the schedule again.',
-      ),
-      _ => const OperationalState(
+      }
+      return const OperationalState(
         kind: OperationalStateKind.loading,
         title: 'Reading the schedule',
         message: 'Planning the month from its schedule.',
+      );
+    }
+    final shown = last.month;
+    final agreements = [
+      for (final row in last.register.agreementSheet) row.agreement,
+    ];
+    final days = dayViews(
+      from: shown.firstOfMonth,
+      to: shown.lastOfMonth,
+      plan: last.plan,
+      shifts: last.register.shiftSheet,
+      leave: last.register.leaveSheet,
+      schedules: [...schedules],
+      timezones: timezones,
+    );
+    final totals = monthTotals(
+      days.values,
+      price: (shift) => plannedPay(
+        shift,
+        agreements: agreements,
+        employmentId: employmentId,
+        zoneClocks: zones,
       ),
-    };
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _MonthHeader(
+          month: shown,
+          today: widget.today,
+          onMonth: widget.onMonth,
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: WorkCalendar(
+              // One calendar for every month, so its cursor and focus
+              // carry across a month edge.
+              key: const ValueKey('work-calendar'),
+              month: shown,
+              today: widget.today,
+              days: days,
+              autofocus: true,
+              onMonth: widget.onMonth,
+              onOpen: (date) {
+                // A greyed neighbouring day moves to its month.
+                final day = days[date];
+                if (day == null) {
+                  widget.onMonth(date.firstOfMonth);
+                } else {
+                  widget.onOpenDay(day);
+                }
+              },
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+          child: Text(
+            monthTotalsLine(totals),
+            key: const ValueKey('work-calendar-totals'),
+            style: skin.typography.body.copyWith(color: skin.tokens.ink),
+          ),
+        ),
+      ],
+    );
   }
 }
 

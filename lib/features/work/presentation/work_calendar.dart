@@ -73,8 +73,12 @@ final class _WorkCalendarState extends State<WorkCalendar> {
   @override
   void didUpdateWidget(covariant WorkCalendar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // The header's ‹ › or Today moved the month; the cursor follows.
-    if (_cursor.firstOfMonth != widget.month.firstOfMonth) _cursor = _start();
+    // The header's ‹ › or Today moved the month; the cursor follows. A
+    // cursor that walked into the new month on its own stays where it is.
+    if (oldWidget.month != widget.month &&
+        _cursor.firstOfMonth != widget.month.firstOfMonth) {
+      _cursor = _start();
+    }
   }
 
   @override

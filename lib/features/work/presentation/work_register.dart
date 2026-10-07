@@ -174,7 +174,6 @@ final class WorkRegister extends StatelessWidget {
           _ => (today ?? _deviceToday()).firstOfMonth,
         },
         today: today ?? _deviceToday(),
-        register: value,
         onMonth: (month) => change(
           route.copyWith(
             sheet: WorkSheet.calendar,
