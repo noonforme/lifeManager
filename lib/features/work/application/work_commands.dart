@@ -260,6 +260,18 @@ final class CorrectShiftCommand {
   final String voidReason;
 }
 
+final class VoidShiftCommand {
+  const VoidShiftCommand({
+    required this.id,
+    required this.expectedRevision,
+    required this.voidReason,
+  });
+
+  final ShiftId id;
+  final Revision expectedRevision;
+  final String voidReason;
+}
+
 final class ManualShiftBreak {
   const ManualShiftBreak({
     required this.localStartDate,

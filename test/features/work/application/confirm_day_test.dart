@@ -4,6 +4,7 @@ import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/application/day_plan_service.dart';
 import 'package:lifeos/features/work/domain/day_exception.dart';
 import 'package:lifeos/features/work/domain/leave.dart';
+import 'package:lifeos/features/work/domain/planner.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 
 import '../../../support/schedule_fixture.dart';
@@ -36,6 +37,52 @@ void main() {
       const LocalDate(2026, 10, 5),
     );
     expect(rest, isEmpty);
+  });
+
+  test('removing a confirmed shift returns its day to confirm', () async {
+    const date = LocalDate(2026, 10, 5);
+    const today = LocalDate(2026, 10, 12);
+    final shift =
+        ((await plans.confirm(
+                  employment,
+                  date,
+                ) as Committed<ConfirmedDay>).value
+                as ConfirmedShift)
+            .shift;
+    expect(
+      (await plans.daysToConfirm(employment, today: today)).map((d) => d.date),
+      isNot(contains(date)),
+    );
+
+    final removed = await fixture.shifts.commitVoid(
+      shift.id,
+      expected: shift.revision,
+      voidReason: 'Did not work it',
+      nowUtc: fixture.clock.value,
+    );
+
+    expect(removed, isA<Committed<WorkShift>>());
+    expect(
+      (await plans.daysToConfirm(employment, today: today)).map((d) => d.date),
+      contains(date),
+    );
+    final again = await plans.plan(employment, date, date);
+    expect(again.single, isA<PlannedShift>());
+    // The day can be confirmed afresh; the void shift stays in history.
+    expect(
+      await plans.confirm(employment, date),
+      isA<Committed<ConfirmedDay>>(),
+    );
+    final rows = await fixture.database
+        .customSelect(
+          'SELECT state FROM work_shifts '
+          "WHERE planned_date = '2026-10-05' ORDER BY state",
+        )
+        .get();
+    expect(rows.map((row) => row.read<String>('state')), [
+      'finalized',
+      'voided',
+    ]);
   });
 
   test('confirming the same day twice reports Stale and writes once', () async {

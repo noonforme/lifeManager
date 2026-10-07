@@ -63,6 +63,50 @@ void main() {
     );
   });
 
+  test('removal voids a finalized or draft shift without a replacement', () {
+    for (final shift in [finalizedShift(), draftShift()]) {
+      final removed = prepareShiftRemoval(
+        shift: shift,
+        voidReason: '  Entered twice  ',
+        nowUtc: DateTime.utc(2026, 10, 7),
+      );
+
+      expect(removed.state, ShiftState.voided);
+      expect(removed.voidReason, 'Entered twice');
+      expect(removed.replacementShiftId, isNull);
+      expect(removed.revision, shift.revision.next());
+      expect(removed.updatedAtUtc, DateTime.utc(2026, 10, 7));
+      expect(removed.agreementId, shift.agreementId);
+    }
+  });
+
+  test('removal refuses a void shift, a blank reason and local time', () {
+    expect(
+      () => prepareShiftRemoval(
+        shift: voidedShift(),
+        voidReason: 'Reason',
+        nowUtc: DateTime.utc(2026),
+      ),
+      throwsStateError,
+    );
+    expect(
+      () => prepareShiftRemoval(
+        shift: finalizedShift(),
+        voidReason: '  ',
+        nowUtc: DateTime.utc(2026),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => prepareShiftRemoval(
+        shift: finalizedShift(),
+        voidReason: 'Reason',
+        nowUtc: DateTime(2026),
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('voids effective payslip and creates reciprocal replacement', () {
     final correction = preparePayslipCorrection(
       original: effectivePayslip(),

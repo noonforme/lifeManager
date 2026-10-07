@@ -77,6 +77,43 @@ void main() {
     expect(repository.correctionAttempts, 1);
   });
 
+  test('removal passes the reason and the clock to the repository', () async {
+    repository.voidResult = Committed<WorkShift>(_finalizedShift());
+
+    final outcome = await service.voidShift(
+      const VoidShiftCommand(
+        id: _shiftId,
+        expectedRevision: Revision(5),
+        voidReason: 'Entered twice',
+      ),
+    );
+
+    expect(outcome, isA<Committed<WorkShift>>());
+    expect(repository.voided, (_shiftId, const Revision(5), 'Entered twice'));
+    expect(repository.voidedAt, _now);
+  });
+
+  test('removal maps storage failures to Unavailable and Uncertain', () async {
+    const command = VoidShiftCommand(
+      id: _shiftId,
+      expectedRevision: Revision(5),
+      voidReason: 'Entered twice',
+    );
+    repository.throwStorageUnavailable = true;
+    expect(
+      await service.voidShift(command),
+      isA<Unavailable<WorkShift>>().having(
+        (value) => value.code,
+        'code',
+        SafeFailureCode.storageUnavailable,
+      ),
+    );
+    repository
+      ..throwStorageUnavailable = false
+      ..throwCommitUnknown = true;
+    expect(await service.voidShift(command), isA<Uncertain<WorkShift>>());
+  });
+
   test('Drift adapter finalizes a finished draft with derived pay', () async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
@@ -203,6 +240,9 @@ final class _FakeShiftRepository implements ShiftLifecycleRepository {
   bool throwCommitUnknown = false;
   bool throwStorageUnavailable = false;
   int correctionAttempts = 0;
+  MutationOutcome<WorkShift> voidResult = const Missing<WorkShift>();
+  (ShiftId, Revision, String)? voided;
+  DateTime? voidedAt;
 
   @override
   Future<MutationOutcome<WorkShift>> commitFinalization(
@@ -225,6 +265,20 @@ final class _FakeShiftRepository implements ShiftLifecycleRepository {
     correctionAttempts++;
     if (throwCommitUnknown) throw const CommitOutcomeUnknown();
     return const Missing<WorkShift>();
+  }
+
+  @override
+  Future<MutationOutcome<WorkShift>> commitVoid(
+    ShiftId id, {
+    required Revision expected,
+    required String voidReason,
+    required DateTime nowUtc,
+  }) async {
+    if (throwStorageUnavailable) throw const DatabaseOpenFailure();
+    if (throwCommitUnknown) throw const CommitOutcomeUnknown();
+    voided = (id, expected, voidReason);
+    voidedAt = nowUtc;
+    return voidResult;
   }
 }
 

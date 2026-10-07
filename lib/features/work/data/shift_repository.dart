@@ -282,6 +282,51 @@ final class DriftShiftRepository
       return const Stale<WorkShift>();
     }
   }
+
+  @override
+  Future<MutationOutcome<WorkShift>> commitVoid(
+    ShiftId id, {
+    required Revision expected,
+    required String voidReason,
+    required DateTime nowUtc,
+  }) {
+    if (voidReason.trim().isEmpty) {
+      return Future.value(
+        const Invalid<WorkShift>({
+          'voidReason': [FieldIssue(FieldIssueCode.required)],
+        }),
+      );
+    }
+    return _database.transaction(() async {
+      final shift = await _shifts.byId(id);
+      if (shift == null) return const Missing<WorkShift>();
+      if (shift.revision != expected) return const Stale<WorkShift>();
+      if (shift.state == ShiftState.voided) {
+        return const Invalid<WorkShift>({
+          'state': [FieldIssue(FieldIssueCode.conflict)],
+        });
+      }
+      final before = await _factsOf(id);
+      final removed = prepareShiftRemoval(
+        shift: shift,
+        voidReason: voidReason,
+        nowUtc: nowUtc,
+      );
+      // Breaks and the agreement stay with the void shift for history.
+      if (await _shifts.voidWithoutReplacement(removed, expected: expected) ==
+          0) {
+        return const Stale<WorkShift>();
+      }
+      return Committed<WorkShift>(
+        await _recordShift(
+          id,
+          RecordEventKind.voided,
+          before: before,
+          reason: removed.voidReason,
+        ),
+      );
+    });
+  }
 }
 
 /// Rolls back a draft revision whose finalization did not commit.

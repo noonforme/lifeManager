@@ -166,6 +166,27 @@ void main() {
     expect(entry.confirmed, isTrue);
   });
 
+  test('a removed confirmed shift leaves its day planned again', () {
+    const date = LocalDate(2026, 10, 7);
+    final confirmed = confirmedDayRow(date);
+    final removed = ShiftSheetRow(
+      shift: confirmed.shift.removed(
+        voidReason: 'Did not work it',
+        nowUtc: DateTime.utc(2026, 10, 8),
+      ),
+      breakSeconds: confirmed.breakSeconds,
+      paidSeconds: confirmed.paidSeconds,
+      period: null,
+    );
+    // The void shift no longer confirms the date, so the plan holds it.
+    final day = octoberViews(octoberPlan(), shifts: [removed])[date]!;
+    expect(day.confirmed, isFalse);
+    expect(day.planned, isA<PlannedShift>());
+    final entry = day.entries.single;
+    expect(entry.kind, DayEntryKind.planned);
+    expect(entry.text, 'Day 07:00–19:00');
+  });
+
   test('month totals count planned and confirmed shifts apart', () {
     const date = LocalDate(2026, 10, 7);
     final views = octoberViews(

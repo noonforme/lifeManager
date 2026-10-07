@@ -149,4 +149,27 @@ final class ShiftDao {
       updates: {database.workShifts},
     );
   }
+
+  /// Voids a draft or finalized shift with no replacement; a void shift
+  /// never matches.
+  Future<int> voidWithoutReplacement(
+    domain.WorkShift value, {
+    required Revision expected,
+  }) {
+    return database.customUpdate(
+      '''
+      UPDATE work_shifts
+      SET state = 'voided', void_reason = ?, updated_at_utc_micros = ?,
+          revision = revision + 1
+      WHERE id = ? AND revision = ? AND state IN ('draft', 'finalized')
+      ''',
+      variables: [
+        Variable(value.voidReason),
+        Variable(value.updatedAtUtc.microsecondsSinceEpoch),
+        Variable(value.id.value),
+        Variable(expected.value),
+      ],
+      updates: {database.workShifts},
+    );
+  }
 }

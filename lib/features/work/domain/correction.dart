@@ -46,6 +46,25 @@ ShiftCorrection prepareShiftCorrection({
   );
 }
 
+/// Removes [shift] (a draft or finalized one): void with a reason and no
+/// replacement, so it stays in history and leaves the totals.
+WorkShift prepareShiftRemoval({
+  required WorkShift shift,
+  required String voidReason,
+  required DateTime nowUtc,
+}) {
+  if (shift.state == ShiftState.voided) {
+    throw StateError('A void shift cannot be removed again.');
+  }
+  if (voidReason.trim().isEmpty) {
+    throw ArgumentError.value(voidReason, 'voidReason');
+  }
+  if (!nowUtc.isUtc) {
+    throw ArgumentError.value(nowUtc, 'nowUtc');
+  }
+  return shift.removed(voidReason: voidReason.trim(), nowUtc: nowUtc);
+}
+
 PayslipCorrection preparePayslipCorrection({
   required Payslip original,
   required PayslipId replacementId,

@@ -96,9 +96,10 @@ final class WorkShift {
         if (endUtc == null || agreementId == null) {
           throw ArgumentError('Finalized shifts require end and agreement.');
         }
+      // A removed shift is void without a replacement (spec 10.7).
       case ShiftState.voided:
-        if (voidReason?.trim().isEmpty != false || replacementShiftId == null) {
-          throw ArgumentError('Voided shifts require reason and replacement.');
+        if (voidReason?.trim().isEmpty != false) {
+          throw ArgumentError('Voided shifts require a reason.');
         }
       case ShiftState.draft:
         break;
@@ -164,6 +165,28 @@ final class WorkShift {
       note: note,
       voidReason: voidReason,
       replacementShiftId: replacementId,
+      replacedShiftId: replacedShiftId,
+      createdAtUtc: createdAtUtc,
+      updatedAtUtc: nowUtc,
+      revision: revision.next(),
+      schedule: schedule,
+    );
+  }
+
+  /// Void with no replacement: kept in history, out of the totals.
+  WorkShift removed({required String voidReason, required DateTime nowUtc}) {
+    return WorkShift(
+      id: id,
+      employmentId: employmentId,
+      agreementId: agreementId,
+      state: ShiftState.voided,
+      startUtc: startUtc,
+      endUtc: endUtc,
+      timezoneId: timezoneId,
+      localStartDate: localStartDate,
+      note: note,
+      voidReason: voidReason,
+      replacementShiftId: null,
       replacedShiftId: replacedShiftId,
       createdAtUtc: createdAtUtc,
       updatedAtUtc: nowUtc,

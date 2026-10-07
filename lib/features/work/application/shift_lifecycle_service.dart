@@ -25,6 +25,16 @@ abstract interface class ShiftLifecycleRepository {
     required String voidReason,
     required DateTime nowUtc,
   });
+
+  /// Removes a draft or finalized shift: void with [voidReason] and no
+  /// replacement. A blank reason is Invalid on `voidReason`, a void shift
+  /// Invalid on `state`.
+  Future<MutationOutcome<WorkShift>> commitVoid(
+    ShiftId id, {
+    required Revision expected,
+    required String voidReason,
+    required DateTime nowUtc,
+  });
 }
 
 final class ShiftLifecycleService {
@@ -49,24 +59,40 @@ final class ShiftLifecycleService {
     );
   }
 
-  Future<MutationOutcome<WorkShift>> correctShift(
-    CorrectShiftCommand command,
-  ) async {
-    try {
-      return await _repository.commitCorrection(
+  Future<MutationOutcome<WorkShift>> correctShift(CorrectShiftCommand command) {
+    return _mapCommitFailure(
+      () => _repository.commitCorrection(
         command.originalId,
         expected: command.expectedRevision,
         replacementId: command.replacementId,
         voidReason: command.voidReason,
         nowUtc: clock.nowUtc(),
-      );
-    } on CommitOutcomeUnknown {
-      return const Uncertain<WorkShift>(SafeFailureCode.commitOutcomeUnknown);
-    } on DatabaseOpenFailure {
-      return const Unavailable<WorkShift>(SafeFailureCode.storageUnavailable);
-    } on DatabaseValidationFailure {
-      return const Unavailable<WorkShift>(SafeFailureCode.storageUnavailable);
-    }
+      ),
+    );
+  }
+
+  /// "Remove this shift": void without a replacement (spec 10.7).
+  Future<MutationOutcome<WorkShift>> voidShift(VoidShiftCommand command) {
+    return _mapCommitFailure(
+      () => _repository.commitVoid(
+        command.id,
+        expected: command.expectedRevision,
+        voidReason: command.voidReason,
+        nowUtc: clock.nowUtc(),
+      ),
+    );
+  }
+}
+
+/// As [_mapStorageFailure], and a commit whose result is unknown is
+/// Uncertain rather than retried.
+Future<MutationOutcome<WorkShift>> _mapCommitFailure(
+  Future<MutationOutcome<WorkShift>> Function() operation,
+) async {
+  try {
+    return await _mapStorageFailure(operation);
+  } on CommitOutcomeUnknown {
+    return const Uncertain<WorkShift>(SafeFailureCode.commitOutcomeUnknown);
   }
 }
 

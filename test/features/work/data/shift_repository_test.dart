@@ -161,6 +161,82 @@ void main() {
     expect((await repository.shiftById(draft.id))!.state, ShiftState.draft);
   });
 
+  test('removal voids a finalized shift with no replacement', () async {
+    await _insertEndedDraft(database, withBreak: true);
+    final original = (await repository.finalizeShift(
+      _shiftA,
+      expected: const Revision(0),
+    ) as Committed<WorkShift>).value;
+
+    final result = await repository.commitVoid(
+      _shiftA,
+      expected: original.revision,
+      voidReason: ' Entered twice ',
+      nowUtc: DateTime.utc(2026, 10, 7),
+    );
+
+    final removed = (result as Committed<WorkShift>).value;
+    expect(removed.state, ShiftState.voided);
+    expect(removed.voidReason, 'Entered twice');
+    expect(removed.replacementShiftId, isNull);
+    expect(removed.revision, original.revision.next());
+    final persisted = (await repository.shiftById(_shiftA))!;
+    expect(persisted.state, ShiftState.voided);
+    expect(persisted.agreementId, _agreementId);
+    // Kept for history: the breaks stay with the void shift.
+    expect(await repository.breaksFor(_shiftA), hasLength(1));
+    final events = await database
+        .customSelect(
+          "SELECT kind, reason FROM record_events WHERE record_kind = 'shift' "
+          'ORDER BY id',
+        )
+        .get();
+    expect(events.last.read<String>('kind'), 'voided');
+    expect(events.last.read<String>('reason'), 'Entered twice');
+  });
+
+  test('removal voids a draft the same way', () async {
+    await _insertEndedDraft(database);
+
+    final result = await repository.commitVoid(
+      _shiftA,
+      expected: const Revision(0),
+      voidReason: 'Not worked',
+      nowUtc: DateTime.utc(2026, 10, 7),
+    );
+
+    expect((result as Committed<WorkShift>).value.state, ShiftState.voided);
+  });
+
+  test('removal reports missing, stale, void and blank reason', () async {
+    await _insertEndedDraft(database);
+    Future<MutationOutcome<WorkShift>> remove(
+      ShiftId id, {
+      int expected = 0,
+      String reason = 'Entered twice',
+    }) => repository.commitVoid(
+      id,
+      expected: Revision(expected),
+      voidReason: reason,
+      nowUtc: DateTime.utc(2026, 10, 7),
+    );
+
+    expect(await remove(_shiftB), isA<Missing<WorkShift>>());
+    expect(await remove(_shiftA, expected: 3), isA<Stale<WorkShift>>());
+    expect(
+      (await remove(_shiftA, reason: '  ') as Invalid<WorkShift>).fields.keys,
+      ['voidReason'],
+    );
+    // Nothing was written by the refusals.
+    expect((await repository.shiftById(_shiftA))!.state, ShiftState.draft);
+
+    expect(await remove(_shiftA), isA<Committed<WorkShift>>());
+    expect(
+      (await remove(_shiftA, expected: 1) as Invalid<WorkShift>).fields.keys,
+      ['state'],
+    );
+  });
+
   test(
     'stale correction creates no replacement and leaves original finalized',
     () async {
