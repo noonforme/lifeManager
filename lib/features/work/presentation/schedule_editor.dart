@@ -129,11 +129,22 @@ final class _NewVersionDialogState extends State<_NewVersionDialog> {
 }
 
 final class _Block {
-  _Block(int count, this.type, VoidCallback onEdit)
+  _Block(this.serial, int count, this.type, VoidCallback onEdit)
     : count = TextEditingController(text: '$count') {
-    this.count.addListener(onEdit);
+    _seen = this.count.text;
+    this.count.addListener(() {
+      // Selection and focus changes notify too; only typing is an edit.
+      if (this.count.text == _seen) return;
+      _seen = this.count.text;
+      onEdit();
+    });
   }
 
+  late String _seen;
+
+  /// Never reused, so a row's fields keep their identity (and focus) when
+  /// blocks are moved or removed.
+  final int serial;
   final key = UniqueKey();
   final TextEditingController count;
   ShiftTypeId? type;
@@ -207,21 +218,25 @@ final class ScheduleEditor extends StatefulWidget {
 }
 
 final class _ScheduleEditorState extends State<ScheduleEditor> {
-  late final _name = TextEditingController(text: widget.initial?.name)
-    ..addListener(_edited);
-  late final _timezone = TextEditingController(
-    text: widget.initial?.timezoneId ?? widget.defaultTimezoneId,
-  )..addListener(_edited);
+  late final _name = _watched(
+    TextEditingController(text: widget.initial?.name),
+  );
+  late final _timezone = _watched(
+    TextEditingController(
+      text: widget.initial?.timezoneId ?? widget.defaultTimezoneId,
+    ),
+  );
   late final _employment = TextEditingController(text: widget.employmentName);
   late LocalDate _cycleStart = widget.initial?.cycleStart ?? widget.today;
   late LocalDate _from = widget.initial?.inUseFrom ?? widget.today;
   late LocalDate? _until = widget.initial?.inUseUntil;
   late List<ShiftType> _types = [...?widget.initial?.shiftTypes];
+  int _serials = 0;
   late final List<_Block> _blocks = [
     for (final block
         in widget.initial?.blocks ??
             const [CycleBlock(count: 1, shiftTypeId: null)])
-      _Block(block.count, block.shiftTypeId, _edited),
+      _Block(_serials++, block.count, block.shiftTypeId, _edited),
   ];
   late LocalDate _previewMonth = widget.today.firstOfMonth;
   int _tab = 0;
@@ -251,6 +266,18 @@ final class _ScheduleEditorState extends State<ScheduleEditor> {
       block.count.dispose();
     }
     super.dispose();
+  }
+
+  /// Marks the sheet dirty when [controller]'s text changes, not on the
+  /// selection and focus changes that notify too.
+  TextEditingController _watched(TextEditingController controller) {
+    var seen = controller.text;
+    controller.addListener(() {
+      if (controller.text == seen) return;
+      seen = controller.text;
+      _edited();
+    });
+    return controller;
   }
 
   void _edited() {
@@ -550,8 +577,9 @@ final class _ScheduleEditorState extends State<ScheduleEditor> {
                 children: [
                   KeyButton(
                     label: 'Add block',
-                    onPressed: () =>
-                        _set(() => _blocks.add(_Block(1, null, _edited))),
+                    onPressed: () => _set(
+                      () => _blocks.add(_Block(_serials++, 1, null, _edited)),
+                    ),
                   ),
                   KeyButton(label: 'Shift types…', onPressed: _shiftTypes),
                 ],
@@ -622,7 +650,7 @@ final class _ScheduleEditorState extends State<ScheduleEditor> {
                     label: 'Block ${index + 1} days',
                     textField: true,
                     child: TextField(
-                      key: ValueKey('block-$index-count'),
+                      key: ValueKey('block-${block.serial}-count'),
                       controller: block.count,
                       keyboardType: TextInputType.number,
                     ),
@@ -630,7 +658,7 @@ final class _ScheduleEditorState extends State<ScheduleEditor> {
                 ),
                 const Text(' × '),
                 EraCombo<ShiftTypeId?>(
-                  key: ValueKey('block-$index-type'),
+                  key: ValueKey('block-${block.serial}-type'),
                   semanticLabel: 'Block ${index + 1} shift type',
                   value: block.type,
                   minWidth: 100,

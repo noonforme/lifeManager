@@ -21,6 +21,13 @@ const _properties =
 Finder _inSubDialog(String text) =>
     find.descendant(of: find.byType(EraDialog).last, matching: find.text(text));
 
+Future<void> _altArrow(WidgetTester tester, LogicalKeyboardKey arrow) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+  await tester.sendKeyEvent(arrow);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+  await tester.pumpAndSettle();
+}
+
 Future<void> _tab(WidgetTester tester, String label) async {
   await tester.tap(
     find.descendant(
@@ -73,21 +80,52 @@ void main() {
     expect(find.text('Cycle — 9 days'), findsOneWidget);
   });
 
-  testWidgets('Alt+Down moves a block down the cycle', (tester) async {
+  testWidgets('Alt+Down twice moves Day below two rows and keeps focus', (
+    tester,
+  ) async {
     await pumpScheduledApp(tester, location: _properties);
     await _tab(tester, 'Cycle');
-    await tester.tap(find.byKey(const ValueKey('block-0-count')));
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
-    await tester.pumpAndSettle();
-    // Day's row moved below the first row, which is now an Off block.
-    expect(
-      tester.getTopLeft(find.text('07:00–19:00, break 30 min')).dy,
-      greaterThan(
-        tester.getTopLeft(find.byKey(const ValueKey('block-0-count'))).dy + 10,
-      ),
+    double top(Finder finder) => tester.getTopLeft(finder).dy;
+    Finder count(int serial) => find.byKey(ValueKey('block-$serial-count'));
+    await tester.tap(count(0));
+    await _altArrow(tester, LogicalKeyboardKey.arrowDown);
+    await _altArrow(tester, LogicalKeyboardKey.arrowDown);
+    // Off, Night, Day, Off: the Day row (block 0) is third.
+    final day = top(find.text('07:00–19:00, break 30 min'));
+    expect(day, greaterThan(top(count(1))));
+    expect(day, greaterThan(top(count(2))));
+    expect(day, lessThan(top(count(3))));
+    final field = tester.widget<EditableText>(
+      find.descendant(of: count(0), matching: find.byType(EditableText)),
     );
+    expect(field.focusNode.hasFocus, isTrue);
+  });
+
+  testWidgets('Alt+Up moves the Night block up one place', (tester) async {
+    await pumpScheduledApp(tester, location: _properties);
+    await _tab(tester, 'Cycle');
+    double top(Finder finder) => tester.getTopLeft(finder).dy;
+    Finder count(int serial) => find.byKey(ValueKey('block-$serial-count'));
+    await tester.tap(count(2));
+    await _altArrow(tester, LogicalKeyboardKey.arrowUp);
+    // Day, Night, Off, Off.
+    expect(top(count(2)), lessThan(top(count(1))));
+    expect(top(count(2)), greaterThan(top(count(0))));
+    expect(top(count(1)), lessThan(top(count(3))));
+  });
+
+  testWidgets('clicking into a field does not light Apply', (tester) async {
+    await pumpScheduledApp(tester, location: _properties);
+    final apply = find.widgetWithText(KeyButton, 'Apply');
+    await tester.tap(find.byKey(const ValueKey('schedule-name')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<KeyButton>(apply).onPressed, isNull);
+    await tester.enterText(
+      find.byKey(const ValueKey('schedule-name')),
+      'Depot rotation 2',
+    );
+    await tester.pumpAndSettle();
+    expect(tester.widget<KeyButton>(apply).onPressed, isNotNull);
   });
 
   testWidgets('a version a confirmed day uses asks where the new one starts; '
