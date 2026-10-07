@@ -157,6 +157,26 @@ void main() {
     expect(picked.single, const LocalDate(2026, 9, 17));
   });
 
+  testWidgets('a year of clicks on ▸ never moves the calendar or its key', (
+    tester,
+  ) async {
+    for (final scale in [1.0, 2.0]) {
+      await tester.pumpWidget(const SizedBox());
+      await _pump(tester, textScale: scale);
+      final next = find.byKey(const ValueKey('era-calendar-next'));
+      final size = tester.getSize(find.byType(EraMonthCalendar));
+      final key = tester.getCenter(next);
+      for (var month = 0; month < 12; month++) {
+        await tester.tapAt(key);
+        await tester.pump();
+        // The weeks decide the width, never the month's name.
+        expect(tester.getSize(find.byType(EraMonthCalendar)), size);
+        expect(tester.getCenter(next), key);
+      }
+      expect(_title(tester), 'October 2027');
+    }
+  });
+
   testWidgets('the Today link picks today', (tester) async {
     final picked = await _pump(tester, selected: const LocalDate(2026, 3, 1));
     expect(find.text('Today: 2026-10-05'), findsOneWidget);
