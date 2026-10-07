@@ -240,6 +240,10 @@ never smaller than 11 px.
   - Leave: "Vacation" or "Sick"
   - Extra: "Extra 08:00–20:00"
   - Needs review: "⚠ Needs review"
+  - Continuation (added 2026-10-07 at the owner's request): a shift that ends
+    on the following day also reads there, after the day's own entries, as
+    "Night until 07:30" in muted ink with an outlined swatch (spoken "Night
+    continues until 07:30"); display only, never counted or opened as a shift.
 - Today has the amber outline; the selected day has the dotted focus
   rectangle and selection fill.
 - Arrow keys move the selection; Enter opens the day; Page Up/Down change

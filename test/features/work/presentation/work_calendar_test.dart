@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_date.dart';
+import 'package:lifeos/features/work/domain/planner.dart';
 import 'package:lifeos/features/work/presentation/work_calendar.dart';
 import 'package:lifeos/features/work/presentation/work_plan_view.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
@@ -74,6 +75,36 @@ void main() {
         matching: find.byKey(const ValueKey('work-calendar-today')),
       ),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('a night shift reads on the next day with words', (tester) async {
+    final plan = [
+      ...octoberPlan(),
+      PlannedShift(
+        const LocalDate(2026, 10, 7),
+        scheduleId: depotScheduleId,
+        scheduleVersion: 1,
+        timezoneId: 'Europe/Vilnius',
+        type: depotSchedule().shiftTypes.last,
+        startUtc: DateTime.utc(2026, 10, 7, 16, 30),
+        endUtc: DateTime.utc(2026, 10, 8, 4, 30),
+        breaks: const [],
+        overtimeWindow: null,
+        isExtra: false,
+        countsAsOvertime: false,
+        changed: false,
+      ),
+    ];
+    await _pump(tester, days: octoberViews(plan));
+    final cell = find.byKey(const ValueKey('work-calendar-day-2026-10-08'));
+    expect(
+      find.descendant(of: cell, matching: find.text('Night until 07:30')),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSemantics(cell).label,
+      contains('Night continues until 07:30'),
     );
   });
 

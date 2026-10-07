@@ -11,7 +11,96 @@ import 'package:lifeos/features/work/presentation/work_plan_view.dart';
 import '../../../support/schedule_fixture.dart';
 import '../../../support/schedule_views.dart';
 
+/// A Night 19:30–07:30 planned on [date]; [hours] is the zone's UTC offset.
+PlannedShift _night(LocalDate date, {required int hours}) => PlannedShift(
+  date,
+  scheduleId: depotScheduleId,
+  scheduleVersion: 1,
+  timezoneId: 'Europe/Vilnius',
+  type: depotSchedule().shiftTypes.firstWhere((type) => type.name == 'Night'),
+  startUtc: DateTime.utc(
+    date.year,
+    date.month,
+    date.day,
+    19,
+    30,
+  ).subtract(Duration(hours: hours)),
+  endUtc: DateTime.utc(
+    date.year,
+    date.month,
+    date.day,
+    7,
+    30,
+  ).add(const Duration(days: 1)).subtract(Duration(hours: hours)),
+  breaks: const [],
+  overtimeWindow: null,
+  isExtra: false,
+  countsAsOvertime: false,
+  changed: false,
+);
+
 void main() {
+  test('a night shift continues on the next day, after its own entries', () {
+    final plan = [
+      ...octoberPlan(),
+      _night(const LocalDate(2026, 10, 7), hours: 3),
+    ];
+    final views = octoberViews(plan);
+    final next = views[const LocalDate(2026, 10, 8)]!;
+    final entry = next.entries.single;
+    expect(entry.kind, DayEntryKind.continued);
+    expect(entry.text, 'Night until 07:30');
+    expect(entry.spoken, 'Night continues until 07:30');
+    // Display only: nothing planned, recorded or confirmable on that day.
+    expect(next.planned, isA<OffDay>());
+    expect(next.shifts, isEmpty);
+    expect(next.confirmed, isFalse);
+    // The start day keeps its own entry and gains no continuation.
+    expect(views[const LocalDate(2026, 10, 7)]!.entries.map((e) => e.kind), [
+      DayEntryKind.planned,
+    ]);
+  });
+
+  test('a continuation changes no month total', () {
+    final base = monthTotals(
+      octoberViews(octoberPlan()).values,
+      price: (_) => null,
+    );
+    final plan = [...octoberPlan()]
+      ..removeWhere((day) => day.date == const LocalDate(2026, 10, 7))
+      ..add(_night(const LocalDate(2026, 10, 7), hours: 3));
+    final totals = monthTotals(octoberViews(plan).values, price: (_) => null);
+    expect(totals.shifts, base.shifts);
+  });
+
+  test('a night on 31 October continues on 1 November', () {
+    final plan = [_night(const LocalDate(2026, 10, 31), hours: 2)];
+    final views = dayViews(
+      from: const LocalDate(2026, 11, 1),
+      to: const LocalDate(2026, 11, 30),
+      plan: plan,
+      shifts: const [],
+      leave: const [],
+      schedules: [depotSchedule()],
+      timezones: testTimezones,
+    );
+    expect(
+      views[const LocalDate(2026, 11, 1)]!.entries.single.text,
+      'Night until 07:30',
+    );
+    expect(views[const LocalDate(2026, 11, 2)]!.entries, isEmpty);
+  });
+
+  test('a confirmed night continues on the next day too', () {
+    const date = LocalDate(2026, 10, 7);
+    // 07:00 to 07:30 the next morning, Vilnius time.
+    final night = confirmedDayRow(date, end: DateTime.utc(2026, 10, 8, 4, 30));
+    final views = octoberViews(octoberPlan(), shifts: [night]);
+    expect(
+      views[const LocalDate(2026, 10, 8)]!.entries.single.text,
+      'Day until 07:30',
+    );
+  });
   test('a planned day reads its type and wall-clock times', () {
     final views = octoberViews(octoberPlan());
     final entry = views[const LocalDate(2026, 10, 5)]!.entries.single;
@@ -30,7 +119,12 @@ void main() {
   test('the night daylight saving ends reads 19:00–07:00, 12:30 paid', () {
     final views = octoberViews(octoberPlan());
     final night = views[const LocalDate(2026, 10, 24)]!;
-    expect(night.entries.single.text, 'Night 19:00–07:00');
+    expect(night.entries.first.text, 'Night 19:00–07:00');
+    // Its tail reads on the 25th, the morning the clocks went back.
+    expect(
+      views[const LocalDate(2026, 10, 25)]!.entries.last.text,
+      'Night until 07:00',
+    );
     expect((night.planned! as PlannedShift).paidSeconds, 12 * 3600 + 1800);
   });
 

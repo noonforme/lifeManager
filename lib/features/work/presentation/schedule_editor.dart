@@ -732,7 +732,7 @@ final class _ScheduleEditorState extends State<ScheduleEditor> {
       List<PlannedDay>? plan;
       try {
         plan = planDays(
-          from: grid.first,
+          from: grid.first.addDays(-1),
           to: grid.last,
           schedules: [schedule],
           exceptions: const [],
@@ -770,7 +770,7 @@ final class _ScheduleEditorState extends State<ScheduleEditor> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              height: 300,
+              height: 320,
               child: WorkCalendar(
                 month: month,
                 today: widget.today,

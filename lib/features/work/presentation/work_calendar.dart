@@ -15,7 +15,8 @@ const _weekdayHeads = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 Color entrySwatch(DayEntryKind kind) => switch (kind) {
   DayEntryKind.planned ||
   DayEntryKind.confirmed ||
-  DayEntryKind.changed => MillenniumColors.link,
+  DayEntryKind.changed ||
+  DayEntryKind.continued => MillenniumColors.link,
   DayEntryKind.extra => MillenniumColors.orbOrange,
   DayEntryKind.leave => MillenniumColors.orbGreen,
   DayEntryKind.cancelled => MillenniumColors.tabLine,
@@ -23,7 +24,8 @@ Color entrySwatch(DayEntryKind kind) => switch (kind) {
 };
 
 /// The Work calendar (schedules spec 6.1): a Monday-first month in the
-/// details-list style, each day with up to two written entries.
+/// details-list style, each day with up to two written entries, a shift running past midnight
+/// continuing on the next day.
 final class WorkCalendar extends StatefulWidget {
   const WorkCalendar({
     required this.month,
@@ -226,7 +228,17 @@ final class _WorkCalendarState extends State<WorkCalendar> {
                 fontWeight: day == widget.today ? FontWeight.w700 : null,
               ),
             ),
-            for (final entry in shown) _EntryLine(entry: entry, ink: ink),
+            for (final entry in shown)
+              // A continuation reads quieter than the day's own entries; on
+              // the selection fill it keeps the selection's ink to stay legible.
+              _EntryLine(
+                entry: entry,
+                ink:
+                    entry.kind == DayEntryKind.continued &&
+                        !(selected && _focused)
+                    ? tokens.muted
+                    : ink,
+              ),
             if (entries.length > 2)
               Text(
                 '+${entries.length - 2} more',

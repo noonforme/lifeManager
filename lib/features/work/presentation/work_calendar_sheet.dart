@@ -71,7 +71,9 @@ final class _WorkCalendarSheetState extends ConsumerState<WorkCalendarSheet> {
     final plan = ref.watch(
       workPlanProvider((
         employment: employmentId,
-        from: grid.first,
+        // One day early: the night before the grid shows its tail on the
+        // first cell.
+        from: grid.first.addDays(-1),
         to: grid.last,
       )),
     );

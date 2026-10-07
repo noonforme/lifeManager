@@ -20,11 +20,20 @@ enum DayEntryKind {
   leave,
   extra,
   needsReview,
+
+  /// The tail of an earlier day's shift that ends on this date.
+  continued,
 }
 
 /// One written entry in a calendar cell, such as "Day 07:00–19:00".
 final class DayEntry {
-  const DayEntry(this.kind, this.text, {this.struck, this.confirmed = false});
+  const DayEntry(
+    this.kind,
+    this.text, {
+    this.struck,
+    this.confirmed = false,
+    this.spokenText,
+  });
 
   final DayEntryKind kind;
   final String text;
@@ -35,8 +44,11 @@ final class DayEntry {
   /// Confirmed entries have a filled swatch; planned ones an outline.
   final bool confirmed;
 
+  /// What screen readers say when it differs from [text].
+  final String? spokenText;
+
   /// The entry as one phrase, for screen readers and tests.
-  String get spoken => struck == null ? text : '$struck $text';
+  String get spoken => spokenText ?? (struck == null ? text : '$struck $text');
 }
 
 /// One date of the calendar: what the plan and the records hold on it.
@@ -156,6 +168,46 @@ Map<LocalDate, DayView> dayViews({
         : DayEntry(DayEntryKind.planned, '$name $times');
   }
 
+  // A shift that ends after midnight also shows on the date it ends on,
+  // read from every shift given so the day before the range counts too.
+  // Display only: the shift stays on its own date for counts and opening.
+  final continuedOn = <LocalDate, List<DayEntry>>{};
+  void continueOn(
+    LocalDate startDate,
+    DateTime endUtc,
+    String zone,
+    String name,
+  ) {
+    final endDate = timezones.localDateAt(endUtc, zone);
+    if (endDate.compareTo(startDate) <= 0 || !inRange(endDate)) return;
+    final until = _clock(endUtc, zone, timezones);
+    continuedOn
+        .putIfAbsent(endDate, () => [])
+        .add(
+          DayEntry(
+            DayEntryKind.continued,
+            '$name until $until',
+            spokenText: '$name continues until $until',
+          ),
+        );
+  }
+
+  for (final day in plan) {
+    if (day is PlannedShift) {
+      continueOn(day.date, day.endUtc, day.timezoneId, plannedShiftName(day));
+    }
+  }
+  for (final row in shifts) {
+    final end = row.shift.endUtc;
+    if (row.shift.state == ShiftState.voided || end == null) continue;
+    continueOn(
+      row.shift.localStartDate,
+      end,
+      row.shift.timezoneId,
+      shiftName(row.shift),
+    );
+  }
+
   final views = <LocalDate, DayView>{};
   for (var date = from; date.compareTo(to) <= 0; date = date.addDays(1)) {
     final day = planned[date];
@@ -203,6 +255,7 @@ Map<LocalDate, DayView> dayViews({
           leaveTypeLabel(leaveRow.record.leaveType),
           confirmed: true,
         ),
+      ...?continuedOn[date],
     ];
     views[date] = DayView(
       date: date,

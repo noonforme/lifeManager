@@ -63,10 +63,10 @@ Map<LocalDate, DayView> octoberViews(
 );
 
 /// A finalized Day shift on [date], confirmed from [depotSchedule].
-ShiftSheetRow confirmedDayRow(LocalDate date) {
+ShiftSheetRow confirmedDayRow(LocalDate date, {DateTime? end}) {
   // 07:00–19:00 Europe/Vilnius in summer time (UTC+3).
   final start = DateTime.utc(date.year, date.month, date.day, 4);
-  final end = DateTime.utc(date.year, date.month, date.day, 16);
+  end ??= DateTime.utc(date.year, date.month, date.day, 16);
   return ShiftSheetRow(
     shift: WorkShift(
       id: const ShiftId('018f0f9a-7d03-7e6a-8b0c-3d2e1f0a4c81'),
