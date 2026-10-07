@@ -204,6 +204,15 @@ its dates are past and unconfirmed.
 - **View dropdown** lists the same sheets.
 - **Status bar** first panel: "N days to confirm" (past planned days not
   confirmed) or nothing. It replaces the running-shift panel.
+- **Days without a pay agreement** (added 2026-10-07 at the owner's
+  request: days planned before the agreement stayed "to confirm" forever).
+  A planned shift or leave on a date no single agreement of the employment
+  covers can be neither priced nor confirmed, so it is not a day to
+  confirm: the status bar, the Books badge, Needs you, the desk tiles and
+  Details' "N planned days not yet confirmed" leave it out. Details counts
+  them on their own line, "N days without a pay agreement". Once an
+  agreement covers the date (set up, widened, a new version) the day
+  becomes a day to confirm at once.
 - **Books count badge** on the employment: days to confirm.
 - **Quick add (Add ▾):** Manual shift, Extra shift…, Leave…, Pay period,
   Payslip, Employment, Agreement, Schedule. Start shift is removed.
@@ -244,12 +253,19 @@ never smaller than 11 px.
     on the following day also reads there, after the day's own entries, as
     "Night until 07:30" in muted ink with an outlined swatch (spoken "Night
     continues until 07:30"); display only, never counted or opened as a shift.
+- No pay agreement (added 2026-10-07 at the owner's request): a planned
+  work day no agreement covers keeps its words and reads "No pay agreement"
+  on the next line, in muted ink with a grey outlined swatch; the cell is
+  spoken "Day 07:00–19:00, No pay agreement". The line belongs to the entry
+  above it and is not one of the two entries, so a continuation still
+  shows.
 - Today has the amber outline; the selected day has the dotted focus
   rectangle and selection fill.
 - Arrow keys move the selection; Enter opens the day; Page Up/Down change
   month.
 - Below the grid, a status line: shifts, paid hours, planned pay and
-  confirmed pay for the month.
+  confirmed pay for the month, then "· 16 days without a pay agreement"
+  when planned pay leaves such days out (added 2026-10-07).
 
 ### 6.2 Day in the property sheet
 
@@ -274,6 +290,12 @@ never smaller than 11 px.
   (default) and **Cancel**.
 - Confirm runs one transaction per day and reports each failure in the list
   (with its outcome wording); committed days leave the list.
+- Added 2026-10-07 at the owner's request: past days no agreement covers
+  are listed among the others, unticked and unavailable, with "No pay
+  agreement covers this day." under each; they are not counted in the
+  footer. Above it, "N days without a pay agreement" and **Set up pay
+  agreement…** (the employment has none) or **Extend pay agreement…**,
+  which widens the agreement nearest the earliest such day to cover it.
 
 ### 6.4 Schedules view and Schedule properties
 
@@ -323,7 +345,12 @@ plans them; the register, the other views and desk tiles never do. Selecting
 one offers **Confirm this day…** (To confirm) or **Open day…** in the task
 pane, above the Work tasks; Enter, a double-click or Properties opens the
 day's property sheet (6.2), not a shift's. Shift counts and pay totals stay
-recorded only; Details adds "N planned shifts" on its own line.
+recorded only; Details adds "N planned shifts" on its own line. A day no
+agreement covers (added 2026-10-07) has State "No pay agreement" and no
+Est. pay; its task pane offers **Set up pay agreement…** or **Extend pay
+agreement…** (asks "Extend pay agreement v1 to start on 2026-07-06?",
+**Extend** / **Cancel**, then widens the nearest agreement in place, terms
+unchanged) above **Open day…**.
 
 ## 7. Outcomes and Errors
 
@@ -332,6 +359,11 @@ missing, unavailable, uncertain). Field issues name the field
 (`blocks`, `inUseFrom`, `shiftTypes[1].breaks`, ...). Nothing is retried
 silently. Planner errors (no agreement on a date, ambiguous versions) show
 on the affected days as **Unavailable** with the reason in Working.
+Added 2026-10-07 at the owner's request: a day's Properties for planned
+work no agreement covers keep **Confirm** greyed, say "Unavailable: no pay
+agreement covers this day." and offer the same agreement push button as
+the Shifts list. Overlapping (ambiguous) agreements read the same way;
+agreement validation keeps them from being saved.
 
 ## 8. Testing
 
