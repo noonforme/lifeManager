@@ -120,13 +120,19 @@ final class _ConfirmDaysDialogState extends State<ConfirmDaysDialog> {
       _busy = true;
       _problems.clear();
     });
-    final results = await widget.onConfirm([
-      for (final row in _ticked) row.date,
-    ]);
+    final Map<LocalDate, MutationOutcome<ConfirmedDay>> results;
+    try {
+      results = await widget.onConfirm([for (final row in _ticked) row.date]);
+    } on Object {
+      if (mounted) setState(() => _busy = false);
+      rethrow;
+    }
     if (!mounted) return;
+    // A day confirmed elsewhere is as good as confirmed here, and has
+    // usually left the live list already, so it never holds the dialog open.
     final problems = {
       for (final MapEntry(key: date, value: outcome) in results.entries)
-        date: ?confirmProblem(outcome),
+        if (outcome is! Stale<ConfirmedDay>) date: ?confirmProblem(outcome),
     };
     if (problems.isEmpty) {
       ShellDialogScope.closeOf(context)?.call();
@@ -205,46 +211,59 @@ final class _ConfirmDaysDialogState extends State<ConfirmDaysDialog> {
                   child: ListView(
                     children: [
                       for (final row in widget.rows)
-                        SizedBox(
+                        Column(
                           key: ValueKey('confirm-row-${row.date}'),
-                          height: 24,
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 180,
-                                child: EraCheckBox(
-                                  label: eraBoxDate(row.date),
-                                  value: !_unticked.contains(row.date),
-                                  onChanged: _busy
-                                      ? null
-                                      : (ticked) => setState(
-                                          () => ticked
-                                              ? _unticked.remove(row.date)
-                                              : _unticked.add(row.date),
-                                        ),
-                                ),
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SizedBox(
+                              height: 24,
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 180,
+                                    child: EraCheckBox(
+                                      label: eraBoxDate(row.date),
+                                      value: !_unticked.contains(row.date),
+                                      onChanged: _busy
+                                          ? null
+                                          : (ticked) => setState(
+                                              () => ticked
+                                                  ? _unticked.remove(row.date)
+                                                  : _unticked.add(row.date),
+                                            ),
+                                    ),
+                                  ),
+                                  cell(row.what, 70),
+                                  cell(row.times, 90),
+                                  cell(
+                                    formatDuration(row.paidSeconds),
+                                    52,
+                                    end: true,
+                                  ),
+                                  cell(
+                                    row.pay == null
+                                        ? '—'
+                                        : formatMoney(row.pay!),
+                                    82,
+                                    end: true,
+                                  ),
+                                ],
                               ),
-                              cell(row.what, 70),
-                              cell(row.times, 90),
-                              cell(
-                                formatDuration(row.paidSeconds),
-                                52,
-                                end: true,
-                              ),
-                              cell(
-                                row.pay == null ? '—' : formatMoney(row.pay!),
-                                82,
-                                end: true,
-                              ),
-                              Expanded(
-                                child: cell(
-                                  _problems[row.date] ?? '',
+                            ),
+                            if (_problems[row.date] case final problem?)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  184,
                                   0,
-                                  ink: tokens.negative,
+                                  4,
+                                  4,
+                                ),
+                                child: Text(
+                                  problem,
+                                  style: style.copyWith(color: tokens.negative),
                                 ),
                               ),
-                            ],
-                          ),
+                          ],
                         ),
                     ],
                   ),

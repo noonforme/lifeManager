@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/application/day_plan_service.dart';
 import 'package:lifeos/features/work/domain/pay.dart';
 import 'package:lifeos/features/work/presentation/confirm_days_dialog.dart';
+import 'package:lifeos/shared/shell/shell_dialog.dart';
 import 'package:lifeos/shared/shell/task_pane.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
@@ -62,9 +64,11 @@ void main() {
     expect(locationOf(app), contains('confirm=1'));
   });
 
-  testWidgets('a day confirmed elsewhere says so; the others commit', (
-    tester,
+  Future<bool Function()> pumpDialog(
+    WidgetTester tester,
+    Map<LocalDate, MutationOutcome<ConfirmedDay>> results,
   ) async {
+    var closed = false;
     final rows = [
       for (final day in [5, 6])
         ConfirmRow(
@@ -83,16 +87,12 @@ void main() {
             body: SizedBox(
               width: 600,
               height: 480,
-              child: ConfirmDaysDialog(
-                rows: rows,
-                onConfirm: (dates) async => {
-                  const LocalDate(2026, 10, 5): const Stale<ConfirmedDay>(),
-                  const LocalDate(2026, 10, 6): Committed<ConfirmedDay>(
-                    ConfirmedShift(
-                      confirmedDayRow(const LocalDate(2026, 10, 6)).shift,
-                    ),
-                  ),
-                },
+              child: ShellDialogScope(
+                onClose: () => closed = true,
+                child: ConfirmDaysDialog(
+                  rows: rows,
+                  onConfirm: (dates) async => results,
+                ),
               ),
             ),
           ),
@@ -101,7 +101,58 @@ void main() {
     );
     await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
-    expect(find.text('Already confirmed'), findsOneWidget);
+    return () => closed;
+  }
+
+  final committed6 = Committed<ConfirmedDay>(
+    ConfirmedShift(confirmedDayRow(const LocalDate(2026, 10, 6)).shift),
+  );
+
+  testWidgets('a day confirmed elsewhere does not hold the dialog open', (
+    tester,
+  ) async {
+    final closed = await pumpDialog(tester, {
+      const LocalDate(2026, 10, 5): const Stale<ConfirmedDay>(),
+      const LocalDate(2026, 10, 6): committed6,
+    });
+    expect(closed(), isTrue);
+  });
+
+  testWidgets('a failure stays open with its words under its row', (
+    tester,
+  ) async {
+    final closed = await pumpDialog(tester, {
+      const LocalDate(2026, 10, 5): const Stale<ConfirmedDay>(),
+      const LocalDate(2026, 10, 6): const Invalid<ConfirmedDay>({
+        'agreement': [FieldIssue(FieldIssueCode.unavailable)],
+      }),
+    });
+    expect(closed(), isFalse);
+    final words = find.text('No pay agreement on this date');
+    expect(words, findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('confirm-row-2026-10-06')),
+        matching: words,
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Already confirmed'), findsNothing);
     expect(find.text('Confirm'), findsOneWidget);
+  });
+
+  testWidgets('long failure words wrap rather than clip', (tester) async {
+    await pumpDialog(tester, {
+      const LocalDate(2026, 10, 5): const Unavailable<ConfirmedDay>(
+        SafeFailureCode.storageUnavailable,
+      ),
+      const LocalDate(2026, 10, 6): committed6,
+    });
+    final words = find.text('Not saved: local storage is unavailable');
+    expect(words, findsOneWidget);
+    expect(
+      tester.renderObject<RenderParagraph>(words).didExceedMaxLines,
+      isFalse,
+    );
   });
 }
