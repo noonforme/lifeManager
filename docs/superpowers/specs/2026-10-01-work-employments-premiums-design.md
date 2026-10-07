@@ -182,6 +182,15 @@ New commands, each returning `MutationOutcome` and using optimistic revisions:
 
 The screen hides actions the services would reject, and the services still enforce the rules.
 
+**Agreement commands (added 2026-10-07 at the owner's request).** Agreements could not be updated or removed once used. Past pay never changes silently, so a used agreement stays evidence (foundation spec 10.2) and four commands work around it. "Used" means a finalized shift or confirmed leave was paid under it; its *last used day* is the latest such date.
+
+| Command | Rule |
+|---|---|
+| `ChangeAgreementTermsCommand(agreementId, expectedRevision, from, terms)` | One transaction: the agreement ends the day before `from`, and a new version (one past the employment's highest, same employment) starts on `from` with `terms` and the agreement's own end. `Invalid` on `from` with `outOfRange` when `from` is on or before its start or after its end, and with `conflict` when `from` is on or before its last used day; overlap as before. Confirmed shifts and leave keep their agreement and pay; planned pay resolves per date, so days from `from` on use the new terms |
+| `UpdateAgreementCommand` on an agreement in use | Accepted when it only widens: an earlier start, a later end or no end, every other fact unchanged and no overlap. Another change is `agreement.inUse`; a later start is `Invalid` on `effectiveStart` and an earlier end on `effectiveEnd`, both `conflict` |
+| `DeleteAgreementCommand(agreementId, expectedRevision)` | Deletes an agreement no shift and no leave refers to, with its history, in one revision-checked transaction; otherwise `agreement.inUse`. Draft shifts hold no agreement until they finalize, so they never block it and resolve again then. Void shifts and void leave keep their agreement for history and do block it |
+| `CloseAgreementCommand(agreementId, end, expectedRevision)` ("End agreement…") | Works on agreements in use too. `Invalid` on `effectiveEnd` with `outOfRange` before its start and with `conflict` before its last used day; overlap as before |
+
 ## 8. Presentation
 
 ### 8.1 First launch
@@ -212,6 +221,8 @@ The register's empty state with no employments shows:
 - Multipliers are typed as decimals (up to three decimal places) and stored as exact fractions; for example 1.5 is stored as 3/2.
 - Hours accept decimals and are stored as minutes.
 - The same form edits an unused agreement. For an agreement in use, the inspector shows the values read-only with "Used by N finished shifts. New versions arrive in a later update."
+
+*Added 2026-10-07 at the owner's request:* an agreement in use keeps its dates live and greys the rest, under "Used by N finished shifts. Change terms from a date to keep their pay." (or "Used by confirmed leave…"); Apply saves a wider range. The "Agreement tasks" group and the foot of Rate offer **Change terms from…** (in use only), **End agreement…** and **Remove agreement…** (unused only). Change terms opens this form in the dialog with the agreement's terms and a required **From** date in place of its dates; its keys are **Change terms** and **Cancel**, and Cancel goes back to where it was opened. End agreement asks for the **Last day** in an era date box (keys **End agreement**, **Cancel**). Remove agreement asks "Remove pay agreement vN?" (keys **Remove**, **Cancel**). The status bar says "Agreement changed.", "Agreement ended." or "Agreement removed."
 
 ### 8.4 Employment switcher
 
@@ -247,6 +258,18 @@ Shift forms drop the overtime minutes field.
 | Multiplier below 1 or unparseable | "Enter a multiplier of 1 or more, e.g. 1.5" |
 | Night start equals end | "Night pay start and end must differ" |
 | Overlapping agreement range | Existing overlap message |
+
+*Added 2026-10-07 at the owner's request:*
+
+| Situation | Message |
+|---|---|
+| `agreement.inUse` (any edit but widening) | "This agreement is used by finished shifts and can't be edited. Use Change terms from… for new terms from a date." |
+| Change terms, `from` on or before the last used day | On From: "Finished shifts or confirmed leave are paid under these terms on or after this day. Pick a later day." |
+| Change terms, `from` outside the range | On From: "Pick a day after the agreement starts, ‹start›[, and on or before it ends, ‹end›]." |
+| Widening that starts later / ends sooner | On Starts on: "Used by finished shifts, so it can only start earlier." On Ends on: "Used by finished shifts, so it can only end later. Use End agreement… to end it sooner." |
+| End agreement before the last used day | On Last day: "Finished shifts or confirmed leave are paid under this agreement after this day. Pick a later day." |
+| End agreement before the start | On Last day: "The last day must be on or after its start, ‹start›." |
+| Remove refused because it came into use | "Finished shifts or confirmed leave now use this agreement, so it can't be removed." |
 
 ## 10. Testing
 
