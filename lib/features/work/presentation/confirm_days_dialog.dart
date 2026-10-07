@@ -281,7 +281,7 @@ final class _ConfirmDaysDialogState extends State<ConfirmDaysDialog> {
               kind: KeyKind.primary,
               onPressed: _busy || _ticked.isEmpty ? null : _confirm,
             ),
-            const DialogCancelKey(),
+            DialogCancelKey(enabled: !_busy),
           ],
         ),
       ],
@@ -338,8 +338,13 @@ final class ConfirmDaysHost extends ConsumerWidget {
           for (final date in dates) {
             results[date] = await service.confirm(employmentId, date);
           }
+          // A day confirmed elsewhere is done, so nothing reads as failed.
           final done = results.values
-              .whereType<Committed<ConfirmedDay>>()
+              .where(
+                (outcome) =>
+                    outcome is Committed<ConfirmedDay> ||
+                    outcome is Stale<ConfirmedDay>,
+              )
               .length;
           String days(int n) => n == 1 ? '1 day' : '$n days';
           notice?.value = done == dates.length

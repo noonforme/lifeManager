@@ -1,14 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/application/day_plan_service.dart';
+import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/pay.dart';
 import 'package:lifeos/features/work/presentation/confirm_days_dialog.dart';
 import 'package:lifeos/shared/shell/shell_dialog.dart';
 import 'package:lifeos/shared/shell/task_pane.dart';
 import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 import 'package:lifeos/shared/workbench/lifeos_theme.dart';
 
 import '../../../support/schedule_views.dart';
@@ -55,6 +59,24 @@ void main() {
       find.byKey(const ValueKey('confirm-row-2026-10-06')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a day confirmed elsewhere counts as done in the notice', (
+    tester,
+  ) async {
+    final app = await pumpScheduledApp(tester, location: _confirm);
+    // The 5th is confirmed elsewhere before the owner presses Confirm.
+    final elsewhere = await tester.runAsync(
+      () => app.work.plans.confirm(
+        EmploymentId(app.employment),
+        const LocalDate(2026, 10, 5),
+      ),
+    );
+    expect(elsewhere, isA<Committed<ConfirmedDay>>());
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 days confirmed.'), findsOneWidget);
+    expect(find.textContaining(' of 2 days'), findsNothing);
   });
 
   testWidgets('the Work tasks open it', (tester) async {
@@ -116,6 +138,50 @@ void main() {
       const LocalDate(2026, 10, 6): committed6,
     });
     expect(closed(), isTrue);
+  });
+
+  testWidgets('Cancel is off while the days are being confirmed', (
+    tester,
+  ) async {
+    final pending = Completer<Map<LocalDate, MutationOutcome<ConfirmedDay>>>();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLifeOSTheme(),
+        home: LifeOSSkinScope(
+          child: Scaffold(
+            body: SizedBox(
+              width: 600,
+              height: 480,
+              child: ShellDialogScope(
+                onClose: () {},
+                child: ConfirmDaysDialog(
+                  rows: [
+                    ConfirmRow(
+                      date: const LocalDate(2026, 10, 5),
+                      what: 'Day',
+                      times: '07:00–19:00',
+                      paidSeconds: 41400,
+                      pay: const Money(minorUnits: 21160),
+                    ),
+                  ],
+                  onConfirm: (dates) => pending.future,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    KeyButton cancel() =>
+        tester.widget<KeyButton>(find.widgetWithText(KeyButton, 'Cancel'));
+    expect(cancel().onPressed, isNotNull);
+    await tester.tap(find.text('Confirm'));
+    await tester.pump();
+    expect(cancel().onPressed, isNull);
+    pending.complete({
+      const LocalDate(2026, 10, 5): const Stale<ConfirmedDay>(),
+    });
+    await tester.pumpAndSettle();
   });
 
   testWidgets('a failure stays open with its words under its row', (

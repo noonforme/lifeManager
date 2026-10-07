@@ -62,13 +62,16 @@ final class ShellDialogScope extends InheritedWidget {
 
 /// **Cancel** at the end of a form's footer. Outside a dialog it is absent.
 final class DialogCancelKey extends StatelessWidget {
-  const DialogCancelKey({super.key});
+  const DialogCancelKey({this.enabled = true, super.key});
+
+  /// False while the dialog's own command runs.
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final close = ShellDialogScope.closeOf(context);
     if (close == null) return const SizedBox.shrink();
-    return KeyButton(label: 'Cancel', onPressed: close);
+    return KeyButton(label: 'Cancel', onPressed: enabled ? close : null);
   }
 }
 
