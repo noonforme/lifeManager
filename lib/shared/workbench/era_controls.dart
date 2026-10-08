@@ -1,7 +1,29 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'lifeos_skin.dart';
 import 'millennium_style.dart';
+
+/// The digit a key types into a date or time box, from the main row or the
+/// numpad; null for any other key.
+int? eraTypedDigit(LogicalKeyboardKey key) {
+  const rows = [
+    [LogicalKeyboardKey.digit0, LogicalKeyboardKey.numpad0],
+    [LogicalKeyboardKey.digit1, LogicalKeyboardKey.numpad1],
+    [LogicalKeyboardKey.digit2, LogicalKeyboardKey.numpad2],
+    [LogicalKeyboardKey.digit3, LogicalKeyboardKey.numpad3],
+    [LogicalKeyboardKey.digit4, LogicalKeyboardKey.numpad4],
+    [LogicalKeyboardKey.digit5, LogicalKeyboardKey.numpad5],
+    [LogicalKeyboardKey.digit6, LogicalKeyboardKey.numpad6],
+    [LogicalKeyboardKey.digit7, LogicalKeyboardKey.numpad7],
+    [LogicalKeyboardKey.digit8, LogicalKeyboardKey.numpad8],
+    [LogicalKeyboardKey.digit9, LogicalKeyboardKey.numpad9],
+  ];
+  for (final (digit, keys) in rows.indexed) {
+    if (keys.contains(key)) return digit;
+  }
+  return null;
+}
 
 enum OrbGlyph { back, forward, add }
 

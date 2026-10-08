@@ -39,33 +39,13 @@ String eraTimeText(LocalTime time, {required bool withSeconds}) {
   return withSeconds ? text : text.substring(0, 5);
 }
 
-/// The digit a key types, from the main row or the numpad; null for others.
-int? _digitOf(LogicalKeyboardKey key) {
-  const rows = [
-    [LogicalKeyboardKey.digit0, LogicalKeyboardKey.numpad0],
-    [LogicalKeyboardKey.digit1, LogicalKeyboardKey.numpad1],
-    [LogicalKeyboardKey.digit2, LogicalKeyboardKey.numpad2],
-    [LogicalKeyboardKey.digit3, LogicalKeyboardKey.numpad3],
-    [LogicalKeyboardKey.digit4, LogicalKeyboardKey.numpad4],
-    [LogicalKeyboardKey.digit5, LogicalKeyboardKey.numpad5],
-    [LogicalKeyboardKey.digit6, LogicalKeyboardKey.numpad6],
-    [LogicalKeyboardKey.digit7, LogicalKeyboardKey.numpad7],
-    [LogicalKeyboardKey.digit8, LogicalKeyboardKey.numpad8],
-    [LogicalKeyboardKey.digit9, LogicalKeyboardKey.numpad9],
-  ];
-  for (final (digit, keys) in rows.indexed) {
-    if (keys.contains(key)) return digit;
-  }
-  return null;
-}
-
 String _two(int value) => value.toString().padLeft(2, '0');
 
 /// A time box in the era's Date/Time Picker shape (era pickers spec 3.3):
 /// hours and minutes, and seconds only for a value that has them, beside
 /// stacked spin arrows. Times are stepped with the arrows or typed into the
 /// selected part, as the era's Date/Time Picker took them (amended
-/// 2026-10-07 at the owner's request); dates stay pick-only.
+/// 2026-10-07 at the owner's request), as the date box takes dates.
 final class EraTimeField extends StatefulWidget {
   const EraTimeField({
     required this.value,
@@ -273,7 +253,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
         keyboard.isMetaPressed) {
       return KeyEventResult.ignored;
     }
-    final digit = _digitOf(key);
+    final digit = eraTypedDigit(key);
     if (digit != null && !keyboard.isShiftPressed) {
       _type(digit);
       return KeyEventResult.handled;

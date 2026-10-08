@@ -30,8 +30,11 @@ const _weekdayLong = [
   'Sunday',
 ];
 
+/// "Mon": the weekday a date box shows before the date.
+String eraWeekdayShort(LocalDate date) => _weekdayShort[date.weekday - 1];
+
 /// "Mon 2026-10-05": what a date box shows.
-String eraBoxDate(LocalDate date) => '${_weekdayShort[date.weekday - 1]} $date';
+String eraBoxDate(LocalDate date) => '${eraWeekdayShort(date)} $date';
 
 /// "Monday 5 October 2026": how a date is announced.
 String spokenDate(LocalDate date) =>

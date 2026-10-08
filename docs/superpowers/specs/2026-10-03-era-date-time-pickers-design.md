@@ -15,7 +15,7 @@ controls.
 | Question | Decision |
 |---|---|
 | Scope | Every date and time field in the app (section 4). |
-| Input | Dates are pick only: they come from the month calendar. Times: spin buttons, arrow keys, or digits typed into the selected part (amended 2026-10-07 at the owner's request; the era's picker took typed digits). |
+| Input | Dates: picked from the month calendar, or typed digit by digit into the selected part, year, month or day (amended 2026-10-08 at the owner's request). Times: spin buttons, arrow keys, or digits typed into the selected part (amended 2026-10-07 at the owner's request; the era's picker took typed digits). |
 | Approach | Own era controls painted from LifeOS tokens (not Material pickers, not a calendar dialog). |
 | Date format in the box | `Mon 2026-10-05`: weekday, then the app's ISO date. |
 | Week start | Monday. |
@@ -33,8 +33,24 @@ All three live in `lib/shared/workbench/`, take colours from
 - A label in Body type above a white box with the field-line border, like
   `EraField`. The box shows the date as `Mon 2026-10-05` in the figure face,
   with the blue drop-arrow button of `EraComboFace` on the right.
-- Clicking the box, or Space, Enter or Alt+↓ while it has focus, opens the
-  month calendar below the box; it opens above when there is no room below.
+- Clicking the box anywhere but its digits (the weekday, the space beside
+  the date or the drop arrow), or Space, Enter or Alt+↓ while it has focus,
+  opens the month calendar below the box; it opens above
+  when there is no room below.
+- **Typing** (amended 2026-10-08): the focused box selects a part, the year
+  on Tab, the part clicked on a click on its digits, filled with selection
+  blue. Digits fill it: the year waits for its fourth digit, then moves on;
+  a month takes a first 2–9 at once and moves on, a 0 or 1 waits for a
+  second; a day the same with 4–9 and 0–3. A two-digit value that is no
+  month or day starts again from its last digit. A day past the month's
+  end, typed or left by a new month or year, becomes the month's last day.
+  `-`, `/` and `.` move to the next part; ← → move between parts and stop
+  at the ends; ↑ ↓ step the part by one, wrapping without carrying (12 → 1
+  keeps the year; the day wraps within its month). Backspace, a step, a
+  part change or focus leaving drops waiting digits. Only key presses type,
+  never a held repeat; digits with Ctrl, Alt or Meta are left to shortcuts.
+  A clear optional box and a read-only form take no digits. Each finished
+  change is sent once.
 - Enter picks the highlighted day and closes; Esc or a click outside closes
   without a change. Focus returns to the box.
 - **Optional dates** (`optional: true`): an era check box sits inside the box
@@ -147,7 +163,6 @@ Tests are written first and watched failing.
 
 ## 6. Out of Scope
 
-- Typing into date or time boxes.
 - Time zones in the boxes (the shift form's timezone field stays typed).
 - Date ranges in one control; ranges stay two date boxes.
 - Localised month and weekday names (English, as the rest of the app).

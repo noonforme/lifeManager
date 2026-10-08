@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -11,9 +12,42 @@ import 'era_month_calendar.dart';
 import 'lifeos_skin.dart';
 import 'millennium_style.dart';
 
+/// The parts of a date box that take digits, left to right. The weekday
+/// before them follows the date and is not one.
+enum _DatePart { year, month, day }
+
+/// [date] with [part] set to [value]. A day past the month's end becomes
+/// its last day: 31 March with February typed is 28 or 29 February.
+LocalDate _withPart(LocalDate date, _DatePart part, int value) {
+  final year = part == _DatePart.year ? value : date.year;
+  final month = part == _DatePart.month ? value : date.month;
+  final day = part == _DatePart.day ? value : date.day;
+  final last = LocalDate(year, month, 1).daysInMonth;
+  return LocalDate(year, month, day < last ? day : last);
+}
+
+/// [date] with [part] moved by [delta], wrapping within the part without
+/// carrying: December plus one month is January of the same year, and the
+/// 31st plus one day is the 1st of the same month.
+LocalDate _stepDate(
+  LocalDate date,
+  _DatePart part,
+  int delta,
+) => switch (part) {
+  _DatePart.year => _withPart(date, part, (date.year + delta).clamp(1, 9999)),
+  _DatePart.month => _withPart(date, part, (date.month - 1 + delta) % 12 + 1),
+  _DatePart.day => _withPart(
+    date,
+    part,
+    (date.day - 1 + delta) % date.daysInMonth + 1,
+  ),
+};
+
 /// A date box in the era's Date/Time Picker shape (era pickers spec 3.1):
 /// the label above a white box showing "Mon 2026-10-05" beside a blue drop
-/// arrow that opens the month calendar. Dates are picked, never typed.
+/// arrow that opens the month calendar. Dates are picked from the calendar
+/// or typed into the selected part, year, month or day, as the era's
+/// picker took them (amended 2026-10-08 at the owner's request).
 final class EraDateField extends StatefulWidget {
   const EraDateField({
     required this.label,
@@ -53,6 +87,27 @@ final class _EraDateFieldState extends State<EraDateField> {
   LocalDate? _lastShown;
   ScrollPosition? _scroll;
   bool _focused = false;
+  _DatePart _part = _DatePart.year;
+
+  /// Set while a click on a part, or the calendar closing, focuses the box,
+  /// so the part stays selected instead of the year.
+  bool _keepPart = false;
+
+  /// The digits typed into the selected part while more may follow: up to
+  /// three of a year, or the first of a month or day.
+  String _typed = '';
+
+  /// The value last sent, until the parent rebuilds with it: two keys may
+  /// land in one frame.
+  LocalDate? _sent;
+
+  /// Select a part on a click on its digits. They win the click from the
+  /// box, which would open the calendar.
+  late final _choosers = {
+    for (final part in _DatePart.values)
+      part: TapGestureRecognizer(debugOwner: this)
+        ..onTapDown = (_) => _choose(part),
+  };
 
   /// Off for a clear optional box, or one in a read-only form.
   bool get _enabled => widget.value != null && EraFormScope.enabledOf(context);
@@ -84,10 +139,16 @@ final class _EraDateFieldState extends State<EraDateField> {
   void didUpdateWidget(EraDateField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.value case final value?) _lastShown = value;
+    // A value from outside discards half-typed digits.
+    if (widget.value != oldWidget.value && widget.value != _sent) _typed = '';
+    _sent = null;
   }
 
   @override
   void dispose() {
+    for (final chooser in _choosers.values) {
+      chooser.dispose();
+    }
     _scroll?.removeListener(_dismiss);
     _box.dispose();
     _calendarNode
@@ -112,15 +173,92 @@ final class _EraDateFieldState extends State<EraDateField> {
     if (_portal.isShowing) setState(_portal.hide);
   }
 
-  /// Closes the calendar and gives focus back to the box.
+  /// Closes the calendar and gives focus back to the box, on the part it
+  /// had selected.
   void _close() {
     _dismiss();
-    _box.requestFocus();
+    _focusKeepingPart();
   }
 
   void _pick(LocalDate day) {
     _close();
-    if (day != widget.value) widget.onChanged(day);
+    _send(day);
+  }
+
+  /// Sends [next] unless the box already holds it.
+  void _send(LocalDate next) {
+    if (next == (_sent ?? widget.value)) return;
+    _sent = next;
+    widget.onChanged(next);
+  }
+
+  void _focusKeepingPart() {
+    if (_box.hasFocus) return;
+    _keepPart = true;
+    _box.requestFocus();
+  }
+
+  void _onFocusChange(bool focused) => setState(() {
+    _focused = focused;
+    _typed = '';
+    if (focused && !_keepPart) _part = _DatePart.year;
+    _keepPart = false;
+  });
+
+  /// A click on a part selects it. Focus leaving an open calendar for the
+  /// box closes it.
+  void _choose(_DatePart part) {
+    _focusKeepingPart();
+    setState(() {
+      _part = part;
+      _typed = '';
+    });
+  }
+
+  void _step(int delta) {
+    _send(_stepDate(_sent ?? widget.value!, _part, delta));
+    setState(() => _typed = '');
+  }
+
+  void _movePart(int delta) => setState(() {
+    _typed = '';
+    _part = _DatePart.values[(_part.index + delta).clamp(0, 2)];
+  });
+
+  /// Types [digit] into the selected part. A year waits for its fourth
+  /// digit. A month or day takes a first digit at once and, when it could
+  /// begin a two-digit value (a month's 0 or 1, a day's 0 to 3), waits for
+  /// the second; a value that is no month or day starts again from the
+  /// last digit. A finished part passes the selection on.
+  void _type(int digit) {
+    final current = _sent ?? widget.value!;
+    final typed = '$_typed$digit';
+    if (_part == _DatePart.year) {
+      if (typed.length < 4) {
+        setState(() => _typed = typed);
+        return;
+      }
+      final year = int.parse(typed);
+      // Year 0000 is no year: the last 0 is a first digit again.
+      if (year == 0) {
+        setState(() => _typed = '$digit');
+        return;
+      }
+      _send(_withPart(current, _part, year));
+      _movePart(1);
+      return;
+    }
+    final month = _part == _DatePart.month;
+    final joined = _typed.isEmpty ? null : int.parse(typed);
+    final whole = joined != null && joined >= 1 && joined <= (month ? 12 : 31);
+    final value = whole ? joined : digit;
+    final done = whole || digit > (month ? 1 : 3);
+    if (value >= 1) _send(_withPart(current, _part, value));
+    if (done) {
+      _movePart(1);
+    } else {
+      setState(() => _typed = '$digit');
+    }
   }
 
   void _toggle() {
@@ -142,17 +280,66 @@ final class _EraDateFieldState extends State<EraDateField> {
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent || !_enabled) return KeyEventResult.ignored;
+    if (event is KeyUpEvent || !_enabled) return KeyEventResult.ignored;
     final key = event.logicalKey;
-    final opens =
-        key == LogicalKeyboardKey.space ||
-        key == LogicalKeyboardKey.enter ||
-        key == LogicalKeyboardKey.numpadEnter ||
-        (key == LogicalKeyboardKey.arrowDown &&
-            HardwareKeyboard.instance.isAltPressed);
-    if (!opens) return KeyEventResult.ignored;
-    _open();
-    return KeyEventResult.handled;
+    final keyboard = HardwareKeyboard.instance;
+    final press = event is KeyDownEvent;
+    // Alt+Down opens; held, it never steps the month as plain Down would.
+    if (key == LogicalKeyboardKey.arrowDown && keyboard.isAltPressed) {
+      if (press) _open();
+      return KeyEventResult.handled;
+    }
+    if (press &&
+        (key == LogicalKeyboardKey.space ||
+            key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.numpadEnter)) {
+      _open();
+      return KeyEventResult.handled;
+    }
+    // A shortcut is not typing.
+    if (keyboard.isControlPressed ||
+        keyboard.isAltPressed ||
+        keyboard.isMetaPressed) {
+      return KeyEventResult.ignored;
+    }
+    if (key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown) {
+      _step(key == LogicalKeyboardKey.arrowUp ? 1 : -1);
+      return KeyEventResult.handled;
+    }
+    // Left and Right stay in the box at its ends, as the time box's do.
+    if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight) {
+      _movePart(key == LogicalKeyboardKey.arrowLeft ? -1 : 1);
+      return KeyEventResult.handled;
+    }
+    // Typing acts once per press; a held key does not repeat, nor reach
+    // a shortcut above the box.
+    final digit = eraTypedDigit(key);
+    if (digit != null && !keyboard.isShiftPressed) {
+      if (press) _type(digit);
+      return KeyEventResult.handled;
+    }
+    final character = event.character;
+    if (key == LogicalKeyboardKey.minus ||
+        key == LogicalKeyboardKey.numpadSubtract ||
+        key == LogicalKeyboardKey.slash ||
+        key == LogicalKeyboardKey.numpadDivide ||
+        key == LogicalKeyboardKey.period ||
+        key == LogicalKeyboardKey.numpadDecimal ||
+        character == '-' ||
+        character == '/' ||
+        character == '.') {
+      if (press) _movePart(1);
+      return KeyEventResult.handled;
+    }
+    // Backspace drops the digits waiting for more; the part keeps its
+    // value, as a box never goes empty once set.
+    if (key == LogicalKeyboardKey.backspace) {
+      setState(() => _typed = '');
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   /// Built at layout time, so the calendar follows the box when the window
@@ -196,7 +383,29 @@ final class _EraDateFieldState extends State<EraDateField> {
     final shown = value ?? _lastShown ?? widget.today;
     final name =
         '${widget.label}, ${value == null ? 'none' : spokenDate(value)}';
-    final highlighted = _focused && _enabled;
+    final style = skin.typography.figure.copyWith(
+      color: _enabled ? t.ink : t.muted,
+    );
+
+    /// One part of the date, filled with selection blue while selected.
+    /// A click on it selects it rather than opening the calendar.
+    TextSpan part(_DatePart part) {
+      final selected = _focused && _enabled && _part == part;
+      return TextSpan(
+        text: selected && _typed.isNotEmpty
+            ? _typed
+            : switch (part) {
+                _DatePart.year => shown.year.toString().padLeft(4, '0'),
+                _DatePart.month => shown.month.toString().padLeft(2, '0'),
+                _DatePart.day => shown.day.toString().padLeft(2, '0'),
+              },
+        style: selected
+            ? TextStyle(color: t.selInk, backgroundColor: t.selWash)
+            : null,
+        recognizer: _enabled ? _choosers[part] : null,
+      );
+    }
+
     // "Label:" in the dialog's label column, the box after it (XP-authentic
     // shell spec 8.1). The optional check box widens the box a little.
     return EraLabelled(
@@ -254,8 +463,7 @@ final class _EraDateFieldState extends State<EraDateField> {
                               focusNode: _box,
                               canRequestFocus: _enabled,
                               onKeyEvent: _onKey,
-                              onFocusChange: (focused) =>
-                                  setState(() => _focused = focused),
+                              onFocusChange: _onFocusChange,
                               child: GestureDetector(
                                 behavior: HitTestBehavior.opaque,
                                 onTap: _enabled ? _tapBox : null,
@@ -268,26 +476,23 @@ final class _EraDateFieldState extends State<EraDateField> {
                                         alignment: Alignment.centerLeft,
                                         child: Padding(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 3,
+                                            horizontal: 5,
                                             vertical: 2,
                                           ),
-                                          child: Container(
-                                            color: highlighted
-                                                ? t.selWash
-                                                : null,
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 2,
-                                            ),
-                                            child: Text(
-                                              eraBoxDate(shown),
-                                              style: skin.typography.figure
-                                                  .copyWith(
-                                                    color: !_enabled
-                                                        ? t.muted
-                                                        : highlighted
-                                                        ? t.selInk
-                                                        : t.ink,
-                                                  ),
+                                          child: Text.rich(
+                                            TextSpan(
+                                              style: style,
+                                              children: [
+                                                TextSpan(
+                                                  text:
+                                                      '${eraWeekdayShort(shown)} ',
+                                                ),
+                                                part(_DatePart.year),
+                                                const TextSpan(text: '-'),
+                                                part(_DatePart.month),
+                                                const TextSpan(text: '-'),
+                                                part(_DatePart.day),
+                                              ],
                                             ),
                                           ),
                                         ),

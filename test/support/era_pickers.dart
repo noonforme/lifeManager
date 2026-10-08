@@ -8,8 +8,9 @@ import 'package:lifeos/shared/workbench/era_dates.dart';
 import 'package:lifeos/shared/workbench/era_time_field.dart';
 
 /// Drive the era date and time boxes the way the owner does. Dates are
-/// never typed; times are stepped here, though the box also takes typed
-/// digits (era pickers spec 5; amended 2026-10-07).
+/// picked from the calendar and times stepped here, though both boxes also
+/// take digits typed into the selected part (era pickers spec 2; times
+/// amended 2026-10-07, dates 2026-10-08).
 
 Finder _dateField(String key) => find.ancestor(
   of: find.byKey(ValueKey(key)),
@@ -29,8 +30,8 @@ LocalDate? dateIn(WidgetTester tester, String key) =>
 LocalTime? timeIn(WidgetTester tester, String key) =>
     tester.widget<EraTimeField>(_timeField(key)).value;
 
-/// Ticks an optional box when clear, opens its calendar, pages to [date]'s
-/// month with ◂ or ▸, and clicks the day.
+/// Ticks an optional box when clear, opens its calendar with the drop
+/// arrow, pages to [date]'s month with ◂ or ▸, and clicks the day.
 Future<void> pickDate(WidgetTester tester, String key, LocalDate date) async {
   final box = find.byKey(ValueKey(key));
   await tester.ensureVisible(box);
@@ -44,7 +45,13 @@ Future<void> pickDate(WidgetTester tester, String key, LocalDate date) async {
     );
     await tester.pumpAndSettle();
   }
-  await tester.tap(box);
+  // A click on the date's digits would select a part instead.
+  await tester.tap(
+    find.descendant(
+      of: _dateField(key),
+      matching: find.byKey(const ValueKey('era-date-drop')),
+    ),
+  );
   await tester.pumpAndSettle();
   final title = tester
       .widget<Text>(find.byKey(const ValueKey('era-calendar-title')))
