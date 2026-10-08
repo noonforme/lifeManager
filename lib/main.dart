@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import 'app/app_router.dart';
@@ -6,6 +8,7 @@ import 'app/font_licenses.dart';
 import 'app/lifeos_app.dart';
 import 'app/production_work_providers.dart';
 import 'app/startup_recovery.dart';
+import 'app/trailing_frame.dart';
 import 'bootstrap.dart';
 import 'core/database/app_database.dart';
 import 'core/database/database_config.dart';
@@ -24,6 +27,9 @@ Future<void> main() async {
   await bootstrap(
     BootstrapDependencies(
       initializeBindings: () async {
+        // The Linux window shows each frame only once the next is drawn
+        // (bead lifeManager-7qj); a trailing frame shows the last one.
+        if (Platform.isLinux) TrailingFrameBinding();
         WidgetsFlutterBinding.ensureInitialized();
         registerFontLicenses();
         await window.prepare();
