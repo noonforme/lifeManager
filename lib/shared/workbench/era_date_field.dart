@@ -2,9 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/time/local_date.dart';
+import 'date_trace.dart';
 import 'era_controls.dart';
 import 'era_dates.dart';
 import 'era_form.dart';
@@ -109,6 +112,12 @@ final class _EraDateFieldState extends State<EraDateField> {
         ..onTapDown = (_) => _choose(part),
   };
 
+  /// The date's text, found by the trace to name the part a pointer hit.
+  final _text = GlobalKey();
+
+  /// Frame timings go to the trace while the calendar is open.
+  TimingsCallback? _timings;
+
   /// Off for a clear optional box, or one in a read-only form.
   bool get _enabled => widget.value != null && EraFormScope.enabledOf(context);
 
@@ -117,21 +126,24 @@ final class _EraDateFieldState extends State<EraDateField> {
     super.initState();
     _lastShown = widget.value;
     _calendarNode.addListener(_onCalendarFocus);
+    dateTrace?.log(widget.label, 'box created value=${widget.value}');
   }
 
   /// Any way focus leaves the open calendar closes it, so it never stays
   /// open without the keyboard. Focus stays where it went.
   void _onCalendarFocus() {
-    if (mounted && !_calendarNode.hasFocus) _dismiss();
+    if (mounted && !_calendarNode.hasFocus) _dismiss('focus left');
   }
+
+  void _onScroll() => _dismiss('scroll');
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final scroll = Scrollable.maybeOf(context)?.position;
     if (scroll != _scroll) {
-      _scroll?.removeListener(_dismiss);
-      _scroll = scroll?..addListener(_dismiss);
+      _scroll?.removeListener(_onScroll);
+      _scroll = scroll?..addListener(_onScroll);
     }
   }
 
@@ -139,6 +151,12 @@ final class _EraDateFieldState extends State<EraDateField> {
   void didUpdateWidget(EraDateField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.value case final value?) _lastShown = value;
+    if (widget.value != oldWidget.value) {
+      dateTrace?.log(
+        widget.label,
+        'value ${oldWidget.value} → ${widget.value}',
+      );
+    }
     // Only a new value settles what was sent. A rebuild still on the old
     // value may come first, from a host that takes the change late; a
     // value other than the one sent came from outside and discards
@@ -154,7 +172,9 @@ final class _EraDateFieldState extends State<EraDateField> {
     for (final chooser in _choosers.values) {
       chooser.dispose();
     }
-    _scroll?.removeListener(_dismiss);
+    _scroll?.removeListener(_onScroll);
+    _stopTimings();
+    dateTrace?.log(widget.label, 'box disposed');
     _box.dispose();
     _calendarNode
       ..removeListener(_onCalendarFocus)
@@ -162,31 +182,51 @@ final class _EraDateFieldState extends State<EraDateField> {
     super.dispose();
   }
 
-  void _open() {
+  /// Opens the calendar; [why] is for the trace.
+  void _open(String why) {
     if (!_enabled || _portal.isShowing) return;
+    dateTrace?.log(widget.label, 'open ($why)');
+    if (dateTrace case final trace?) {
+      _stopTimings();
+      _timings = (timings) => trace.frames(widget.label, timings);
+      SchedulerBinding.instance.addTimingsCallback(_timings!);
+    }
     setState(_portal.show);
     // The box already holds focus, so the calendar's autofocus would be
     // ignored; hand focus over once it is built.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_portal.isShowing) return;
+      dateTrace?.log(widget.label, 'focus handed to the calendar');
       _calendarNode.requestFocus();
     });
   }
 
-  /// Closes the calendar without a change and without moving focus.
-  void _dismiss() {
-    if (_portal.isShowing) setState(_portal.hide);
+  void _stopTimings() {
+    if (_timings case final timings?) {
+      SchedulerBinding.instance.removeTimingsCallback(timings);
+      _timings = null;
+    }
+  }
+
+  /// Closes the calendar without a change and without moving focus;
+  /// [why] is for the trace.
+  void _dismiss(String why) {
+    if (!_portal.isShowing) return;
+    dateTrace?.log(widget.label, 'close ($why)');
+    _stopTimings();
+    setState(_portal.hide);
   }
 
   /// Closes the calendar and gives focus back to the box, on the part it
   /// had selected.
-  void _close() {
-    _dismiss();
+  void _close(String why) {
+    _dismiss(why);
     _focusKeepingPart();
   }
 
   void _pick(LocalDate day) {
-    _close();
+    dateTrace?.log(widget.label, 'pick $day');
+    _close('pick');
     _send(day);
   }
 
@@ -194,6 +234,7 @@ final class _EraDateFieldState extends State<EraDateField> {
   void _send(LocalDate next) {
     if (next == (_sent ?? widget.value)) return;
     _sent = next;
+    dateTrace?.log(widget.label, 'onChanged $next');
     widget.onChanged(next);
   }
 
@@ -204,6 +245,7 @@ final class _EraDateFieldState extends State<EraDateField> {
   }
 
   void _onFocusChange(bool focused) => setState(() {
+    dateTrace?.log(widget.label, 'box focus $focused');
     _focused = focused;
     _typed = '';
     if (focused && !_keepPart) _part = _DatePart.year;
@@ -213,6 +255,7 @@ final class _EraDateFieldState extends State<EraDateField> {
   /// A click on a part selects it. Focus leaving an open calendar for the
   /// box closes it.
   void _choose(_DatePart part) {
+    dateTrace?.log(widget.label, 'select ${part.name}');
     _focusKeepingPart();
     setState(() {
       _part = part;
@@ -267,20 +310,22 @@ final class _EraDateFieldState extends State<EraDateField> {
   }
 
   void _toggle() {
+    dateTrace?.log(widget.label, 'check box ${widget.value == null}');
     if (widget.value == null) {
       widget.onChanged(_lastShown ?? widget.today);
     } else {
-      _dismiss();
+      _dismiss('check box cleared');
       widget.onChanged(null);
     }
   }
 
   void _tapBox() {
+    dateTrace?.log(widget.label, 'box tap');
     if (_portal.isShowing) {
-      _close();
+      _close('click on the box');
     } else {
       _box.requestFocus();
-      _open();
+      _open('click');
     }
   }
 
@@ -289,16 +334,17 @@ final class _EraDateFieldState extends State<EraDateField> {
     final key = event.logicalKey;
     final keyboard = HardwareKeyboard.instance;
     final press = event is KeyDownEvent;
+    if (press) dateTrace?.log(widget.label, 'key ${key.keyLabel}');
     // Alt+Down opens; held, it never steps the month as plain Down would.
     if (key == LogicalKeyboardKey.arrowDown && keyboard.isAltPressed) {
-      if (press) _open();
+      if (press) _open('Alt+Down');
       return KeyEventResult.handled;
     }
     if (press &&
         (key == LogicalKeyboardKey.space ||
             key == LogicalKeyboardKey.enter ||
             key == LogicalKeyboardKey.numpadEnter)) {
-      _open();
+      _open(key.keyLabel);
       return KeyEventResult.handled;
     }
     // A shortcut is not typing.
@@ -347,6 +393,56 @@ final class _EraDateFieldState extends State<EraDateField> {
     return KeyEventResult.ignored;
   }
 
+  /// [box] with its pointer events and hovers logged, naming the part hit,
+  /// while the trace is on; [box] itself otherwise.
+  Widget _traced(Widget box) {
+    final trace = dateTrace;
+    if (trace == null) return box;
+    return Builder(
+      builder: (context) {
+        void log(PointerEvent event) => trace.log(
+          widget.label,
+          '${DateTrace.pointer(event, local: event.localPosition)}'
+          ' on ${_hit(context, event)}',
+        );
+        return MouseRegion(
+          // Hit exactly as its child is: an `opaque: false` region would let
+          // clicks fall through, and the trace must never change what they reach.
+          hitTestBehavior: HitTestBehavior.deferToChild,
+          onEnter: log,
+          child: Listener(
+            onPointerDown: log,
+            onPointerUp: log,
+            onPointerCancel: log,
+            child: box,
+          ),
+        );
+      },
+    );
+  }
+
+  /// The part of the box under [event]: the drop arrow, a part's digits,
+  /// the weekday, a dash, or blank.
+  String _hit(BuildContext context, PointerEvent event) {
+    final box = context.findRenderObject();
+    if (box is RenderBox && event.localPosition.dx >= box.size.width - 17) {
+      return 'arrow';
+    }
+    final text = _text.currentContext?.findRenderObject();
+    if (text is! RenderBox) return 'blank';
+    final result = BoxHitTestResult();
+    text.hitTest(result, position: text.globalToLocal(event.position));
+    for (final entry in result.path) {
+      if (entry.target case final TextSpan span) {
+        for (final MapEntry(key: part, value: chooser) in _choosers.entries) {
+          if (span.recognizer == chooser) return part.name;
+        }
+        return span.text == '-' ? 'dash' : 'weekday';
+      }
+    }
+    return 'blank';
+  }
+
   /// Built at layout time, so the calendar follows the box when the window
   /// resizes or the box moves for any other reason.
   Widget _calendar(BuildContext context, OverlayChildLayoutInfo info) {
@@ -354,6 +450,7 @@ final class _EraDateFieldState extends State<EraDateField> {
       info.childPaintTransform,
       Offset.zero & info.childSize,
     );
+    dateTrace?.log(widget.label, 'anchor $rect in ${info.overlaySize}');
     return Positioned.fill(
       child: CustomSingleChildLayout(
         delegate: EraDropLayout(rect),
@@ -365,15 +462,16 @@ final class _EraDateFieldState extends State<EraDateField> {
           // calendar's focus returns to the box as it goes.
           onTapOutside: (_) {
             FocusManager.instance.applyFocusChangesIfNeeded();
-            _dismiss();
+            _dismiss('click outside');
           },
           child: EraMonthCalendar(
             focusNode: _calendarNode,
             selected: widget.value,
             today: widget.today,
             onPicked: _pick,
-            onCancel: _close,
+            onCancel: () => _close('Esc'),
             autofocus: true,
+            traceName: widget.label,
           ),
         ),
       ),
@@ -436,7 +534,7 @@ final class _EraDateFieldState extends State<EraDateField> {
                 // non-null value also marks it focusable; a clear box is not.
                 focused: _enabled ? _focused : null,
                 label: widget.error == null ? name : '$name, ${widget.error}',
-                onTap: _enabled ? _open : null,
+                onTap: _enabled ? () => _open('semantics') : null,
                 child: Container(
                   key: widget.fieldKey,
                   constraints: const BoxConstraints(minHeight: 24),
@@ -469,45 +567,50 @@ final class _EraDateFieldState extends State<EraDateField> {
                               canRequestFocus: _enabled,
                               onKeyEvent: _onKey,
                               onFocusChange: _onFocusChange,
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: _enabled ? _tapBox : null,
-                                child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Expanded(
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 5,
-                                            vertical: 2,
-                                          ),
-                                          child: Text.rich(
-                                            TextSpan(
-                                              style: style,
-                                              children: [
-                                                TextSpan(
-                                                  text:
-                                                      '${eraWeekdayShort(shown)} ',
-                                                ),
-                                                part(_DatePart.year),
-                                                const TextSpan(text: '-'),
-                                                part(_DatePart.month),
-                                                const TextSpan(text: '-'),
-                                                part(_DatePart.day),
-                                              ],
+                              child: _traced(
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: _enabled ? _tapBox : null,
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Expanded(
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 5,
+                                              vertical: 2,
+                                            ),
+                                            child: Text.rich(
+                                              key: dateTrace == null
+                                                  ? null
+                                                  : _text,
+                                              TextSpan(
+                                                style: style,
+                                                children: [
+                                                  TextSpan(
+                                                    text:
+                                                        '${eraWeekdayShort(shown)} ',
+                                                  ),
+                                                  part(_DatePart.year),
+                                                  const TextSpan(text: '-'),
+                                                  part(_DatePart.month),
+                                                  const TextSpan(text: '-'),
+                                                  part(_DatePart.day),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    _DropButton(
-                                      key: const ValueKey('era-date-drop'),
-                                      enabled: _enabled,
-                                    ),
-                                  ],
+                                      _DropButton(
+                                        key: const ValueKey('era-date-drop'),
+                                        enabled: _enabled,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
