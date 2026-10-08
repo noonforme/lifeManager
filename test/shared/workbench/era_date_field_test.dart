@@ -858,6 +858,73 @@ void main() {
     expect(sent, const LocalDate(2026, 2, 9));
   });
 
+  testWidgets('a host that applies a change a rebuild late keeps the digit', (
+    tester,
+  ) async {
+    final host = GlobalKey<_LateHostState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLifeOSTheme(),
+        home: LifeOSSkinScope(
+          child: Scaffold(body: _LateHost(key: host)),
+        ),
+      ),
+    );
+    await _select(tester, 'month');
+    await _type(tester, '1');
+    // The host rebuilds still on 5 October, then takes January.
+    expect(_value(tester), _today);
+    host.currentState!.apply();
+    await tester.pump();
+    expect(_value(tester), const LocalDate(2026, 1, 5));
+    await _type(tester, '1');
+    expect(_value(tester), const LocalDate(2026, 1, 5));
+    host.currentState!.apply();
+    await tester.pump();
+    expect(_value(tester), const LocalDate(2026, 11, 5));
+  });
+
+  testWidgets('held arrows repeat; held digits, - and Backspace act once', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await _select(tester, 'day');
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowUp);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.arrowUp);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.arrowUp);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+    expect(_value(tester), const LocalDate(2026, 10, 8));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pump();
+    // Two moves left from the day: the year.
+    await _type(tester, '2031');
+    expect(_value(tester), const LocalDate(2031, 10, 8));
+
+    // A held - moves on once: from the month to the day, not past it.
+    await _select(tester, 'year');
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.minus);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.minus);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.minus);
+    await tester.pump();
+    await _type(tester, '7');
+    expect(_value(tester), const LocalDate(2031, 7, 8));
+
+    // A Backspace repeat after a new digit leaves that digit waiting.
+    await _select(tester, 'year');
+    await _type(tester, '20');
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.backspace);
+    await _type(tester, '1');
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.backspace);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.backspace);
+    await tester.pump();
+    await _type(tester, '999');
+    expect(_value(tester), const LocalDate(1999, 7, 8));
+  });
+
   test('the drop layout prefers below, then above, and stays inside', () {
     const window = Size(960, 760);
     const calendar = Size(220, 250);
@@ -867,4 +934,32 @@ void main() {
     expect(place(const Rect.fromLTWH(10, 700, 200, 24)), const Offset(10, 450));
     expect(place(const Rect.fromLTWH(900, 100, 50, 24)).dx, 960 - 220);
   });
+}
+
+/// Takes a change only when told to, after rebuilding on the old value
+/// first, as a form that saves through a stream would.
+final class _LateHost extends StatefulWidget {
+  const _LateHost({super.key});
+
+  @override
+  State<_LateHost> createState() => _LateHostState();
+}
+
+final class _LateHostState extends State<_LateHost> {
+  LocalDate value = _today;
+  LocalDate? waiting;
+
+  void apply() => setState(() => value = waiting ?? value);
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 240,
+    child: EraDateField(
+      label: 'Starts on',
+      value: value,
+      today: _today,
+      fieldKey: _box,
+      onChanged: (next) => setState(() => waiting = next),
+    ),
+  );
 }

@@ -509,6 +509,31 @@ void main() {
     expect(sent, const LocalTime(2, 0));
   });
 
+  testWidgets('a host that applies a change a rebuild late keeps the digit', (
+    tester,
+  ) async {
+    final host = GlobalKey<_LateHostState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLifeOSTheme(),
+        home: LifeOSSkinScope(
+          child: Scaffold(body: _LateHost(key: host)),
+        ),
+      ),
+    );
+    await _press(tester, LogicalKeyboardKey.tab);
+    await _press(tester, LogicalKeyboardKey.digit1);
+    // The host rebuilds still on 07:00, then takes 01:00.
+    expect(_value(tester), const LocalTime(7, 0));
+    host.currentState!.apply();
+    await tester.pump();
+    expect(_value(tester), const LocalTime(1, 0));
+    await _press(tester, LogicalKeyboardKey.digit9);
+    host.currentState!.apply();
+    await tester.pump();
+    expect(_value(tester), const LocalTime(19, 0));
+  });
+
   testWidgets('a disabled box ignores digits', (tester) async {
     await _pump(tester, enabled: false);
     await _press(tester, LogicalKeyboardKey.tab);
@@ -538,4 +563,31 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('07'), findsOneWidget);
   });
+}
+
+/// Takes a change only when told to, after rebuilding on the old value
+/// first, as a form that saves through a stream would.
+final class _LateHost extends StatefulWidget {
+  const _LateHost({super.key});
+
+  @override
+  State<_LateHost> createState() => _LateHostState();
+}
+
+final class _LateHostState extends State<_LateHost> {
+  LocalTime value = const LocalTime(7, 0);
+  LocalTime? waiting;
+
+  void apply() => setState(() => value = waiting ?? value);
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 160,
+    child: EraTimeField(
+      label: 'Start time',
+      value: value,
+      fieldKey: _box,
+      onChanged: (next) => setState(() => waiting = next),
+    ),
+  );
 }

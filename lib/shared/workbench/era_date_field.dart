@@ -139,9 +139,14 @@ final class _EraDateFieldState extends State<EraDateField> {
   void didUpdateWidget(EraDateField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.value case final value?) _lastShown = value;
-    // A value from outside discards half-typed digits.
-    if (widget.value != oldWidget.value && widget.value != _sent) _typed = '';
-    _sent = null;
+    // Only a new value settles what was sent. A rebuild still on the old
+    // value may come first, from a host that takes the change late; a
+    // value other than the one sent came from outside and discards
+    // half-typed digits.
+    if (widget.value != oldWidget.value) {
+      if (widget.value != _sent) _typed = '';
+      _sent = null;
+    }
   }
 
   @override
@@ -336,7 +341,7 @@ final class _EraDateFieldState extends State<EraDateField> {
     // Backspace drops the digits waiting for more; the part keeps its
     // value, as a box never goes empty once set.
     if (key == LogicalKeyboardKey.backspace) {
-      setState(() => _typed = '');
+      if (press) setState(() => _typed = '');
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;

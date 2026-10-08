@@ -112,11 +112,14 @@ final class _EraTimeFieldState extends State<EraTimeField> {
   @override
   void didUpdateWidget(EraTimeField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // A value from outside discards a half-typed digit.
-    if (widget.value != oldWidget.value && widget.value != _sent) {
-      _pending = null;
+    // Only a new value settles what was sent. A rebuild still on the old
+    // value may come first, from a host that takes the change late; a
+    // value other than the one sent came from outside and discards a
+    // half-typed digit.
+    if (widget.value != oldWidget.value) {
+      if (widget.value != _sent) _pending = null;
+      _sent = null;
     }
-    _sent = null;
     if ((widget.value?.second ?? 0) != 0) _withSeconds = true;
     if (!_enabled) _stopRepeat();
   }
