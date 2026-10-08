@@ -137,6 +137,7 @@ final class _WorkRouteHost extends ConsumerWidget {
     return Scaffold(
       body: WorkScreen(
         state: ref.watch(workControllerProvider),
+        route: route,
         plannedShifts: plannedShifts,
         onSelect: (record) {
           final parsed = ref.read(workRouteProvider);

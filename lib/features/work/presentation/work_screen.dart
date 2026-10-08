@@ -82,6 +82,7 @@ final class WorkScreen extends StatefulWidget {
     this.schedules = const [],
     this.onOpenProperties,
     this.onCloseDialog,
+    this.route,
     super.key,
   });
 
@@ -191,6 +192,12 @@ final class WorkScreen extends StatefulWidget {
 
   /// Closes whatever dialog the route opened (back to `mode=inspect`).
   final VoidCallback? onCloseDialog;
+
+  /// The route in the address now; the loaded state's route when null.
+  /// While a new scope's records load, the register keeps the last ones but
+  /// draws and steps from this, so a second click goes on from the first
+  /// instead of repeating it.
+  final WorkRouteState? route;
 
   @override
   State<WorkScreen> createState() => _WorkScreenState();
@@ -587,11 +594,11 @@ final class _WorkScreenState extends State<WorkScreen> {
         title: 'Invalid Work scope',
         message: 'Choose a valid period or explicit date range.',
       ),
-      WorkReady(:final register, :final route) => WorkRegister(
+      WorkReady(:final register, route: final loaded) => WorkRegister(
         today: _today,
         defaultSheet: defaultSheetFor(widget.schedules, _today),
         projection: register,
-        selectedRecord: route.record,
+        selectedRecord: (widget.route ?? loaded).record,
         onSelect: widget.onSelect,
         onPrimaryAction: widget.onPrimaryAction,
         onOpenEmployment: (id) => widget.onNavigate(
@@ -620,7 +627,7 @@ final class _WorkScreenState extends State<WorkScreen> {
             mode: WorkInspectorMode.create,
           ),
         ),
-        route: route,
+        route: widget.route ?? loaded,
         onRoute: _go,
         plannedShifts: widget.plannedShifts,
         onProperties: widget.onOpenProperties,
