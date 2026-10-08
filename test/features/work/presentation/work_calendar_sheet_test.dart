@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
+import 'package:lifeos/features/work/presentation/work_calendar.dart';
+import 'package:lifeos/shared/workbench/office_controls.dart';
 
 import '../../../support/scheduled_app.dart';
 
@@ -125,5 +127,132 @@ void main() {
     expect(find.textContaining('confirmed EUR 0.00'), findsNothing);
     expect(find.textContaining('confirmed EUR '), findsOneWidget);
     expect(find.text('Day 07:00–19:00'), findsNWidgets(9));
+  });
+
+  group('paging faster than the month loads', () {
+    // One short frame between clicks, as a quick hand gives: the month
+    // asked for must already be the one the header steps from.
+    const calendar = '/work?employment={employment}&sheet=calendar';
+
+    LocalDate shownMonth(WidgetTester tester) =>
+        tester.widget<WorkCalendar>(find.byType(WorkCalendar)).month;
+
+    Finder row(String label) => find.ancestor(
+      of: find.text(label),
+      matching: find.byType(MenuItemButton),
+    );
+
+    testWidgets('› twice moves two months', (tester) async {
+      final app = await pumpScheduledApp(tester, location: calendar);
+      await tester.tap(find.bySemanticsLabel('Next month'));
+      await tester.pump();
+      await tester.tap(find.bySemanticsLabel('Next month'));
+      await tester.pumpAndSettle();
+      expect(shownMonth(tester), const LocalDate(2026, 12, 1));
+      expect(find.text('December 2026'), findsWidgets);
+      expect(locationOf(app), contains('from=2026-12-01'));
+    });
+
+    testWidgets('‹ twice moves two months back', (tester) async {
+      final app = await pumpScheduledApp(tester, location: calendar);
+      await tester.tap(find.bySemanticsLabel('Previous month'));
+      await tester.pump();
+      await tester.tap(find.bySemanticsLabel('Previous month'));
+      await tester.pumpAndSettle();
+      expect(shownMonth(tester), const LocalDate(2026, 8, 1));
+      expect(locationOf(app), contains('from=2026-08-01'));
+    });
+
+    testWidgets('the next month is drawn on the frame after ›', (tester) async {
+      await pumpScheduledApp(tester, location: calendar);
+      final sheet = tester.state(find.byType(WorkCalendar));
+      await tester.tap(find.bySemanticsLabel('Next month'));
+      await tester.pump();
+      expect(shownMonth(tester), const LocalDate(2026, 11, 1));
+      expect(find.text('November 2026'), findsWidgets);
+      // The month's planned days come with it, not a frame later.
+      expect(find.text('Day 07:00–19:00'), findsWidgets);
+      // Nothing gives way while the rest of Work catches up.
+      expect(find.text('Reading the schedule'), findsNothing);
+      expect(find.text('Loading Work records'), findsNothing);
+      expect(tester.state(find.byType(WorkCalendar)), same(sheet));
+      await tester.pumpAndSettle();
+      expect(tester.state(find.byType(WorkCalendar)), same(sheet));
+    });
+
+    testWidgets('Down on the Month box twice steps two months', (tester) async {
+      final app = await pumpScheduledApp(tester, location: calendar);
+      await tester.tap(find.byKey(const ValueKey('work-calendar-month')));
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(shownMonth(tester), const LocalDate(2026, 12, 1));
+      expect(locationOf(app), contains('from=2026-12-01'));
+    });
+
+    testWidgets('› right after a month is picked steps from it', (
+      tester,
+    ) async {
+      final app = await pumpScheduledApp(tester, location: calendar);
+      await tester.tap(find.byKey(const ValueKey('work-calendar-month')));
+      await tester.pump();
+      await tester.tap(row('March'));
+      // A menu row acts after the menu's closing frame.
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.bySemanticsLabel('Next month'));
+      await tester.pumpAndSettle();
+      expect(shownMonth(tester), const LocalDate(2026, 4, 1));
+      expect(locationOf(app), contains('from=2026-04-01'));
+    });
+
+    testWidgets('› right after a year is picked steps from it', (tester) async {
+      final app = await pumpScheduledApp(tester, location: calendar);
+      await tester.tap(find.byKey(const ValueKey('work-calendar-year')));
+      await tester.pump();
+      await tester.tap(row('2027'));
+      // A menu row acts after the menu's closing frame.
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.bySemanticsLabel('Next month'));
+      await tester.pumpAndSettle();
+      expect(shownMonth(tester), const LocalDate(2027, 11, 1));
+      expect(locationOf(app), contains('from=2027-11-01'));
+    });
+
+    testWidgets('› right after Today steps from today', (tester) async {
+      final app = await pumpScheduledApp(tester, location: calendar);
+      await tester.tap(find.bySemanticsLabel('Next month'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Next month'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(KeyButton, 'Today'));
+      await tester.pump();
+      await tester.tap(find.bySemanticsLabel('Next month'));
+      await tester.pumpAndSettle();
+      expect(shownMonth(tester), const LocalDate(2026, 11, 1));
+      expect(locationOf(app), contains('from=2026-11-01'));
+    });
+
+    testWidgets('Enter right after walking into the next month opens there', (
+      tester,
+    ) async {
+      final app = await pumpScheduledApp(tester, location: calendar);
+      await select(tester, '2026-10-29');
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      expect(FocusManager.instance.primaryFocus?.debugLabel, 'WorkCalendar');
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      final location = locationOf(app);
+      expect(location, contains('day=2026-11-05'));
+      // The day opens in its own month; the calendar does not go back.
+      expect(location, contains('from=2026-11-01'));
+      expect(shownMonth(tester), const LocalDate(2026, 11, 1));
+    });
   });
 }

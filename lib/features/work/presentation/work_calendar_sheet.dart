@@ -7,8 +7,9 @@ import '../../../shared/workbench/era_dates.dart';
 import '../../../shared/workbench/lifeos_skin.dart';
 import '../../../shared/workbench/office_controls.dart';
 import '../../../shared/workbench/operational_state.dart';
-import '../data/projections/work_register_projection.dart';
+import '../application/day_plan_service.dart';
 import '../domain/ids.dart';
+import '../domain/pay_premiums.dart';
 import '../domain/planner.dart';
 import '../domain/schedule.dart';
 import 'work_calendar.dart';
@@ -26,20 +27,22 @@ String monthTotalsLine(MonthTotals totals) =>
     'confirmed ${formatMoney(totals.confirmed)}'
     '${withoutAgreementSuffix(totals.withoutAgreement)}';
 
-/// What the grid last had in full: the plan of one month with the records
-/// read beside it.
-typedef _Loaded = ({
-  EmploymentId employment,
-  LocalDate month,
-  List<PlannedDay> plan,
-  WorkRegisterProjection register,
+/// One grid's plan and what it was planned from.
+typedef _Planned = ({
+  PlanInputs inputs,
+  ZoneClocks zones,
+  LocalDate from,
+  LocalDate to,
+  List<PlannedDay> days,
 });
 
 /// The Calendar sheet (schedules spec 6.1): a month header, the month grid
 /// and the month's figures, read live from the plan. It reads the
 /// employment's whole register, so a pay-period or date-range scope on the
-/// route never hides a confirmed day. While another month loads, the last
-/// month stays on screen, so the cursor and focus are not lost.
+/// route never hides a confirmed day. A month is planned here from the
+/// employment's plan inputs, already read, so paging reads nothing: the
+/// month asked for is drawn on the next frame and the header steps on from
+/// it, however quickly it is clicked.
 final class WorkCalendarSheet extends ConsumerStatefulWidget {
   const WorkCalendarSheet({
     required this.employmentId,
@@ -63,23 +66,45 @@ final class WorkCalendarSheet extends ConsumerStatefulWidget {
 }
 
 final class _WorkCalendarSheetState extends ConsumerState<WorkCalendarSheet> {
-  _Loaded? _last;
+  _Planned? _planned;
+
+  /// The plan of [from]..[to]; planned again only when the inputs, the
+  /// clocks or the grid changed, not on every frame.
+  List<PlannedDay> _plan(
+    PlanInputs inputs,
+    ZoneClocks zones,
+    LocalDate from,
+    LocalDate to,
+  ) {
+    final last = _planned;
+    if (last != null &&
+        identical(last.inputs, inputs) &&
+        identical(last.zones, zones) &&
+        last.from == from &&
+        last.to == to) {
+      return last.days;
+    }
+    final days = planDays(
+      from: from,
+      to: to,
+      schedules: inputs.schedules,
+      exceptions: inputs.exceptions,
+      confirmedDates: inputs.confirmedDates,
+      zoneClocks: zones,
+    );
+    _planned = (inputs: inputs, zones: zones, from: from, to: to, days: days);
+    return days;
+  }
 
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final employmentId = widget.employmentId;
-    final month = widget.month;
-    final grid = monthGridDays(month);
-    final plan = ref.watch(
-      workPlanProvider((
-        employment: employmentId,
-        // One day early: the night before the grid shows its tail on the
-        // first cell.
-        from: grid.first.addDays(-1),
-        to: grid.last,
-      )),
-    );
+    final shown = widget.month.firstOfMonth;
+    final grid = monthGridDays(shown);
+    // Both are per employment and stay read while the month changes; a
+    // refresh keeps the value it had.
+    final inputs = ref.watch(planInputsProvider(employmentId));
     final registered = ref.watch(employmentRegisterProvider(employmentId));
     final schedules = switch (ref.watch(
       employmentSchedulesProvider(employmentId),
@@ -89,19 +114,10 @@ final class _WorkCalendarSheetState extends ConsumerState<WorkCalendarSheet> {
     };
     final timezones = ref.watch(timezoneServiceProvider);
     final zones = ref.watch(zoneClocksProvider);
-    if (plan case AsyncData(:final value)) {
-      if (registered case AsyncData(value: final register)) {
-        _last = (
-          employment: employmentId,
-          month: month,
-          plan: value,
-          register: register,
-        );
-      }
-    }
-    final last = _last?.employment == employmentId ? _last : null;
-    if (last == null) {
-      if (plan is AsyncError || registered is AsyncError) {
+    final planInputs = inputs.value;
+    final register = registered.value;
+    if (planInputs == null || register == null) {
+      if (inputs is AsyncError || registered is AsyncError) {
         return const OperationalState(
           kind: OperationalStateKind.unavailable,
           title: 'Calendar unavailable',
@@ -114,16 +130,23 @@ final class _WorkCalendarSheetState extends ConsumerState<WorkCalendarSheet> {
         message: 'Planning the month from its schedule.',
       );
     }
-    final shown = last.month;
+    final plan = _plan(
+      planInputs,
+      zones,
+      // One day early: the night before the grid shows its tail on the
+      // first cell.
+      grid.first.addDays(-1),
+      grid.last,
+    );
     final agreements = [
-      for (final row in last.register.agreementSheet) row.agreement,
+      for (final row in register.agreementSheet) row.agreement,
     ];
     final days = dayViews(
       from: shown.firstOfMonth,
       to: shown.lastOfMonth,
-      plan: last.plan,
-      shifts: last.register.shiftSheet,
-      leave: last.register.leaveSheet,
+      plan: plan,
+      shifts: register.shiftSheet,
+      leave: register.leaveSheet,
       schedules: [...schedules],
       timezones: timezones,
       withoutAgreement: (day) => lacksAgreement(
