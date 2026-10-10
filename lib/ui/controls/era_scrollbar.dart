@@ -4,8 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../foundation/millennium_style.dart';
 import 'era_controls.dart';
-import 'millennium_style.dart';
 
 /// Gives every scroll area the era scrollbar and no overscroll glow
 /// (XP-authentic shell spec 6.2). One-line text fields ask for no

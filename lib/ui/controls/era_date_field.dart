@@ -7,13 +7,13 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/time/local_date.dart';
-import 'date_trace.dart';
+import '../foundation/date_trace.dart';
+import '../foundation/era_dates.dart';
+import '../foundation/lifeos_skin.dart';
+import '../foundation/millennium_style.dart';
 import 'era_controls.dart';
-import 'era_dates.dart';
 import 'era_form.dart';
 import 'era_month_calendar.dart';
-import 'lifeos_skin.dart';
-import 'millennium_style.dart';
 
 /// The parts of a date box that take digits, left to right. The weekday
 /// before them follows the date and is not one.

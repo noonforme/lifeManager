@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/desks/desks.dart';
-import '../workbench/era_controls.dart';
-import '../workbench/era_dialog.dart';
-import '../workbench/era_menu.dart';
-import '../workbench/lifeos_skin.dart';
-import '../workbench/lifeos_tokens.dart';
-import '../workbench/millennium_style.dart';
-import '../workbench/office_controls.dart';
+import '../../ui/ui.dart';
 
 /// What a tile shows: its heading, area (none for a sheet spanning areas)
 /// and content, and where Open full size goes.

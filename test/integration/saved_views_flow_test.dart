@@ -15,7 +15,7 @@ import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
 import 'package:lifeos/features/work/application/work_commands.dart';
 import 'package:lifeos/features/work/domain/employment.dart';
 import 'package:lifeos/features/work/domain/pay_period.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 /// Save as view, the Views tree and view tiles on the production
 /// composition.

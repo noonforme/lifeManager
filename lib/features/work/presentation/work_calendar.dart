@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/time/local_date.dart';
-import '../../../shared/workbench/era_dates.dart';
-import '../../../shared/workbench/era_icons.dart';
-import '../../../shared/workbench/lifeos_skin.dart';
-import '../../../shared/workbench/millennium_style.dart';
+import '../../../ui/ui.dart';
 import 'work_plan_view.dart';
 
 const _weekdayHeads = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

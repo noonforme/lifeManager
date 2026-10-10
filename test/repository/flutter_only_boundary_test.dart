@@ -38,9 +38,13 @@ void main() {
   });
 
   test('only native specifications remain', () {
+    // Specs are the Markdown files; folders such as assets/ hold their
+    // reference images and mockups.
     final specs = Directory('docs/superpowers/specs')
         .listSync()
-        .map((entity) => entity.uri.pathSegments.last)
+        .whereType<File>()
+        .map((file) => file.uri.pathSegments.last)
+        .where((name) => name.endsWith('.md'))
         .toList();
     expect(
       specs,

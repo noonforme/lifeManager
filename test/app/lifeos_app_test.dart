@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lifeos/app/lifeos_app.dart';
 import 'package:lifeos/core/database/app_database.dart';
 import 'package:lifeos/shared/shell/status_line.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   Future<BuildContext> pumpApp(WidgetTester tester) async {

@@ -11,8 +11,7 @@ import 'package:lifeos/features/work/domain/payslip.dart';
 import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/presentation/period_payslip_forms.dart';
 import 'package:lifeos/features/work/presentation/work_inspector.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/era_pickers.dart';
 

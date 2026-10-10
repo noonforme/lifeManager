@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../foundation/era_icons.dart';
+import '../foundation/lifeos_skin.dart';
 import 'era_controls.dart';
-import 'era_icons.dart';
-import 'lifeos_skin.dart';
 
 /// One row of an era combo list.
 @immutable

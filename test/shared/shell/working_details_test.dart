@@ -5,9 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/explain/explanation.dart';
 import 'package:lifeos/shared/shell/menu_bar.dart';
 import 'package:lifeos/shared/shell/working_group_box.dart';
-import 'package:lifeos/shared/workbench/cell_selection.dart';
-import 'package:lifeos/shared/workbench/era_controls.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/ui/ui.dart';
 
 final _source = SourceRef(Uri.parse('/work?record=agreement:a&mode=inspect'));
 

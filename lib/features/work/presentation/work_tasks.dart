@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../core/time/timezone_service.dart';
 import '../../../shared/shell/task_pane.dart';
-import '../../../shared/workbench/era_icons.dart';
+import '../../../ui/ui.dart';
 import '../data/projections/work_record_projection.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/pay_period.dart';

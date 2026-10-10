@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/shell/address_bar.dart';
 import 'package:lifeos/shared/shell/book_tree.dart';
-import 'package:lifeos/shared/workbench/era_icons.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
+import 'package:lifeos/ui/ui.dart';
 
 Widget _host(Widget child) => MaterialApp(
   home: LifeOSSkinScope(

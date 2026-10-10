@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
-import '../../../shared/workbench/era_controls.dart';
-import '../../../shared/workbench/era_field.dart';
-import '../../../shared/workbench/inspector_parts.dart';
-import '../../../shared/workbench/lifeos_skin.dart';
-import '../../../shared/workbench/office_controls.dart';
+import '../../../ui/ui.dart';
 
 final class CorrectionConfirmationInspector<T> extends StatefulWidget {
   const CorrectionConfirmationInspector({

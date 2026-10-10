@@ -22,9 +22,7 @@ import '../shared/shell/desk_view.dart';
 import '../shared/shell/name_dialog.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/shell/task_pane.dart';
-import '../shared/workbench/era_icons.dart';
-import '../shared/workbench/lifeos_tokens.dart';
-import '../shared/workbench/operational_state.dart';
+import '../ui/ui.dart';
 import 'desk_providers.dart';
 import 'shell_host.dart';
 

@@ -1,9 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../workbench/era_controls.dart';
-import '../workbench/era_icons.dart';
-import '../workbench/lifeos_skin.dart';
-import '../workbench/millennium_style.dart';
+import '../../ui/ui.dart';
 
 /// Lets a task-pane choice close the pane when it is an overlay (spec 4.1:
 /// "closed by Escape or a choice").

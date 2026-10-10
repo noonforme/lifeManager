@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../foundation/lifeos_skin.dart';
+import '../foundation/millennium_style.dart';
 import 'era_controls.dart';
-import 'lifeos_skin.dart';
-import 'millennium_style.dart';
 
 /// Field widths by kind (XP-authentic shell spec 8.1).
 abstract final class EraFieldWidth {

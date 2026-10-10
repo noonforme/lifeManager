@@ -3,11 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_date.dart';
-import 'package:lifeos/shared/workbench/era_date_field.dart';
-import 'package:lifeos/shared/workbench/era_form.dart';
-import 'package:lifeos/shared/workbench/era_month_calendar.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/ui/ui.dart';
 
 const _today = LocalDate(2026, 10, 5);
 const _box = ValueKey('starts-on');

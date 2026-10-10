@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/app/trailing_frame.dart';
 import 'package:lifeos/core/time/local_date.dart';
-import 'package:lifeos/shared/workbench/era_date_field.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/ui/ui.dart';
 
 /// With a real mouse on the owner's desktop (KDE Plasma on Wayland, an
 /// NVIDIA card), the window showed each frame only once the next was drawn

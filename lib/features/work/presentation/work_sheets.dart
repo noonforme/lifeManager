@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../../../core/explain/explanation.dart';
 import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
-import '../../../shared/workbench/data_register.dart';
+import '../../../ui/ui.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/agreement.dart';
 import '../domain/facts.dart';

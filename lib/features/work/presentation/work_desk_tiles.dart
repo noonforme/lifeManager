@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/time/local_date.dart';
 import '../../../core/time/timezone_service.dart';
-import '../../../shared/workbench/era_controls.dart';
-import '../../../shared/workbench/era_dates.dart';
-import '../../../shared/workbench/lifeos_skin.dart';
-import '../../../shared/workbench/millennium_style.dart';
-import '../../../shared/workbench/office_controls.dart';
+import '../../../ui/ui.dart';
 import '../data/projections/work_register_projection.dart';
 import '../domain/agreement.dart';
 import '../domain/ids.dart';

@@ -5,8 +5,7 @@ import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/domain/planner.dart';
 import 'package:lifeos/features/work/presentation/work_calendar.dart';
 import 'package:lifeos/features/work/presentation/work_plan_view.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/schedule_views.dart';
 

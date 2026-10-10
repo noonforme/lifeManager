@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_time.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../support/era_pickers.dart';
 import '../support/synthetic_shell.dart';

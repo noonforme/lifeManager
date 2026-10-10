@@ -2,11 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/shared/workbench/era_icons.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
-import 'package:lifeos/shared/workbench/millennium_style.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 Widget _host(Widget child, {double textScale = 1}) {
   return MediaQuery(

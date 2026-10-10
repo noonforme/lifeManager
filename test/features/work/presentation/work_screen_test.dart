@@ -16,9 +16,7 @@ import 'package:lifeos/features/work/presentation/employment_agreement_forms.dar
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/features/work/presentation/work_screen.dart';
-import 'package:lifeos/shared/workbench/inspector_parts.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/work_dialogs.dart';
 import '../../../support/work_sheets.dart';

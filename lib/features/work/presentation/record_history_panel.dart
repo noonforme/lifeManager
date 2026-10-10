@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/history/record_events.dart';
-import '../../../shared/workbench/inspector_parts.dart';
-import '../../../shared/workbench/lifeos_skin.dart';
-import '../../../shared/workbench/millennium_style.dart';
-import '../../../shared/workbench/office_controls.dart';
+import '../../../ui/ui.dart';
 import 'work_controller.dart';
 import 'work_route_state.dart';
 

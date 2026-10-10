@@ -4,10 +4,7 @@ import 'package:lifeos/core/outcomes/mutation_outcome.dart';
 import 'package:lifeos/core/time/local_time.dart';
 import 'package:lifeos/features/work/domain/day_exception.dart';
 import 'package:lifeos/features/work/presentation/day_sheet.dart';
-import 'package:lifeos/shared/workbench/era_dialog.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/era_pickers.dart';
 import '../../../support/scheduled_app.dart';

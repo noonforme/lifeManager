@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/features/work/domain/day_exception.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
-import 'package:lifeos/shared/workbench/era_dialog.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/scheduled_app.dart';
 import '../../../support/work_dialogs.dart';

@@ -19,8 +19,7 @@ import '../shared/shell/name_dialog.dart';
 import '../shared/shell/quick_add.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/shell/status_line.dart';
-import '../shared/workbench/era_icons.dart';
-import '../shared/workbench/lifeos_tokens.dart';
+import '../ui/ui.dart';
 import 'desk_providers.dart';
 
 /// Closes and titles the application window; provided by the app root.

@@ -1,8 +1,9 @@
 import 'package:flutter/widgets.dart';
 
-import 'era_controls.dart';
-import 'era_icons.dart';
-import 'lifeos_skin.dart';
+import '../controls/era_controls.dart';
+import '../controls/etched_line.dart';
+import '../foundation/era_icons.dart';
+import '../foundation/lifeos_skin.dart';
 
 /// The property-sheet page's inset.
 const inspectorInset = EdgeInsets.all(8);
@@ -93,26 +94,6 @@ final class InspectorTitle extends StatelessWidget {
             ],
           ),
           const EtchedLine(),
-        ],
-      ),
-    );
-  }
-}
-
-/// A 2 px etched separator: a grey line over a white one.
-final class EtchedLine extends StatelessWidget {
-  const EtchedLine({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = LifeOSSkinScope.of(context).tokens;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(height: 1, color: tokens.chromeLine),
-          Container(height: 1, color: tokens.paper),
         ],
       ),
     );

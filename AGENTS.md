@@ -13,6 +13,8 @@ This project uses **bd** (beads) for issue tracking. Run `bd prime` for full wor
 > source of truth; don't `bd import` during normal operation; don't
 > reach for third-party Dolt hosting before trying the default).
 
+Before any UI work, read `lib/ui/CATALOG.md` (the UI library inventory) and follow the `lifeos-ui` skill (`.agents/skills/lifeos-ui/SKILL.md`). Feature, app and shell code import only `lib/ui/ui.dart`.
+
 ## Quick Reference
 
 ```bash

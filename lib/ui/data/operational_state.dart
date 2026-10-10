@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import 'lifeos_skin.dart';
-import 'millennium_style.dart';
+import '../foundation/lifeos_skin.dart';
+import '../foundation/millennium_style.dart';
 
 enum OperationalStateKind {
   loading,

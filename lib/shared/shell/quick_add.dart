@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../workbench/era_controls.dart';
-import '../workbench/era_icons.dart';
-import '../workbench/era_menu.dart';
-import '../workbench/lifeos_skin.dart';
-import '../workbench/lifeos_tokens.dart';
-import '../workbench/office_controls.dart';
+import '../../ui/ui.dart';
 
 /// One way to add a record from anywhere (shell spec 6.7).
 final class QuickAddEntry {

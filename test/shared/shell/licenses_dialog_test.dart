@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/shell/licenses_dialog.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   testWidgets('lists each package with its licence text', (tester) async {

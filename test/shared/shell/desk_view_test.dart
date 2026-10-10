@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/desks/desks.dart';
 import 'package:lifeos/shared/shell/desk_view.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   late List<String> calls;

@@ -1,8 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/shared/workbench/era_controls.dart';
-import 'package:lifeos/shared/workbench/inspector_parts.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   Widget host(Widget child, {double scale = 1}) => MediaQuery(

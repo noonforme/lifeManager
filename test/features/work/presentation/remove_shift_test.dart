@@ -12,8 +12,7 @@ import 'package:lifeos/features/work/presentation/employment_agreement_forms.dar
     show staleMessage;
 import 'package:lifeos/features/work/presentation/remove_shift_dialog.dart';
 import 'package:lifeos/shared/shell/task_pane.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/synthetic_shell.dart';
 import '../../../support/work_dialogs.dart';

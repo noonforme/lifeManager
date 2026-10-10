@@ -1,10 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../workbench/era_dialog.dart';
-import '../workbench/lifeos_skin.dart';
-import '../workbench/millennium_style.dart';
-import '../workbench/office_controls.dart';
+import '../../ui/ui.dart';
 
 /// Help › About › Licenses (XP-authentic shell spec 6.4): every package and
 /// font with its licence, in a read-only white box.

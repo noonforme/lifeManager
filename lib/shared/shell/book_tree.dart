@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../workbench/era_icons.dart';
-import '../workbench/era_menu.dart';
-import '../workbench/lifeos_skin.dart';
-import '../workbench/lifeos_tokens.dart';
-import '../workbench/millennium_style.dart';
-import '../workbench/office_controls.dart';
+import '../../ui/ui.dart';
 
 /// One row of the book tree.
 sealed class TreeNode {

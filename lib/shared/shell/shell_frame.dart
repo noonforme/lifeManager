@@ -3,12 +3,7 @@ import 'package:flutter/material.dart' show Material, MaterialType;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../workbench/era_combo.dart';
-import '../workbench/era_controls.dart';
-import '../workbench/era_icons.dart';
-import '../workbench/lifeos_skin.dart';
-import '../workbench/millennium_style.dart';
-import '../workbench/office_controls.dart';
+import '../../ui/ui.dart';
 import 'address_bar.dart';
 import 'navigation_history.dart';
 import 'quick_add.dart';

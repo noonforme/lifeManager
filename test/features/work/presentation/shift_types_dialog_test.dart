@@ -3,10 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_time.dart';
 import 'package:lifeos/features/work/domain/schedule.dart';
 import 'package:lifeos/features/work/presentation/shift_types_dialog.dart';
-import 'package:lifeos/shared/workbench/era_dialog.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/era_pickers.dart';
 import '../../../support/schedule_fixture.dart';

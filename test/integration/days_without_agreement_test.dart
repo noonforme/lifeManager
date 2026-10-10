@@ -7,8 +7,7 @@ import 'package:lifeos/features/work/application/work_commands.dart';
 import 'package:lifeos/features/work/domain/agreement.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/shared/shell/task_pane.dart';
-import 'package:lifeos/shared/workbench/era_form.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../support/scheduled_app.dart';
 

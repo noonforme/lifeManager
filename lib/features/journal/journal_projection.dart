@@ -1,6 +1,6 @@
 import '../../core/history/record_events.dart';
 import '../../core/time/local_date.dart';
-import '../../shared/workbench/lifeos_tokens.dart';
+import '../../ui/ui.dart';
 import '../work/data/projections/work_register_projection.dart';
 import '../work/domain/agreement.dart';
 import '../work/domain/employment.dart';

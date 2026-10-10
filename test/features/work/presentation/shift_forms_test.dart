@@ -7,10 +7,7 @@ import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/shift_forms.dart';
-import 'package:lifeos/shared/workbench/era_form.dart';
-import 'package:lifeos/shared/workbench/era_time_field.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/era_pickers.dart';
 

@@ -5,7 +5,7 @@ import 'package:lifeos/shared/shell/address_bar.dart';
 import 'package:lifeos/shared/shell/shell_dialog.dart';
 import 'package:lifeos/shared/shell/shell_frame.dart';
 import 'package:lifeos/shared/shell/task_pane.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/ui/ui.dart';
 
 const _landmarks = [
   'Menu bar',

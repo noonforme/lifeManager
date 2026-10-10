@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_date.dart';
-import 'package:lifeos/shared/workbench/era_dates.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   const monday = LocalDate(2026, 10, 5);

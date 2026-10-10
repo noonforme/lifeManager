@@ -10,8 +10,7 @@ import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/core/time/local_time.dart';
 import 'package:lifeos/core/time/timezone_service.dart';
 import 'package:lifeos/features/work/application/uuid_v7_work_id_factory.dart';
-import 'package:lifeos/shared/workbench/inspector_parts.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../support/era_pickers.dart';
 import '../support/work_dialogs.dart';

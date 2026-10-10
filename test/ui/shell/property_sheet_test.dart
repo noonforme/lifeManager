@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/shared/workbench/property_sheet.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   test('apply runs only when dirty and clears dirty after a save', () async {

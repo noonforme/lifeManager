@@ -5,10 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../core/time/local_time.dart';
+import '../foundation/lifeos_skin.dart';
+import '../foundation/millennium_style.dart';
 import 'era_controls.dart';
 import 'era_form.dart';
-import 'lifeos_skin.dart';
-import 'millennium_style.dart';
 
 /// The parts of a time box, left to right.
 enum TimePart { hour, minute, second }

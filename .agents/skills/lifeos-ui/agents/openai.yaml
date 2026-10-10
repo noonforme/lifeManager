@@ -1,0 +1,4 @@
+interface:
+  display_name: "LifeOS UI"
+  short_description: "Reuse and extend the lib/ui widget library"
+  default_prompt: "Use $lifeos-ui to find the right LifeOS widget in lib/ui/CATALOG.md before writing UI."

@@ -7,6 +7,7 @@ import 'app/desktop_window_service.dart';
 import 'app/font_licenses.dart';
 import 'app/lifeos_app.dart';
 import 'app/production_work_providers.dart';
+import 'app/startup_mode.dart';
 import 'app/startup_recovery.dart';
 import 'app/trailing_frame.dart';
 import 'bootstrap.dart';
@@ -17,8 +18,28 @@ import 'core/time/app_clock.dart';
 import 'core/time/system_timezone.dart';
 import 'core/time/timezone_service.dart';
 import 'features/work/application/uuid_v7_work_id_factory.dart';
+import 'ui/gallery/gallery_main.dart';
 
-Future<void> main() async {
+Future<void> main() => startSelectedMode(
+  startGallery: _startGallery,
+  startProduction: _startProduction,
+);
+
+Future<void> _startGallery() async {
+  if (Platform.isLinux) TrailingFrameBinding();
+  WidgetsFlutterBinding.ensureInitialized();
+  registerFontLicenses();
+  final window = WindowManagerDesktopWindowService();
+  await runGallery(
+    prepareWindow: () async {
+      await window.prepare();
+      await window.setTitle('LifeOS widget gallery');
+    },
+    showWindow: window.show,
+  );
+}
+
+Future<void> _startProduction() async {
   final window = WindowManagerDesktopWindowService();
   final clock = SystemAppClock();
   final timezones = IanaTimezoneService();

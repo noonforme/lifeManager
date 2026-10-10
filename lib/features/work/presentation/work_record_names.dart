@@ -1,4 +1,4 @@
-import '../../../shared/workbench/era_icons.dart';
+import '../../../ui/ui.dart';
 import '../data/projections/work_record_projection.dart';
 import 'work_plan_view.dart' show leaveTypeLabel;
 

@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
-import '../../../shared/workbench/era_date_field.dart';
-import '../../../shared/workbench/era_dialog.dart';
-import '../../../shared/workbench/era_form.dart';
-import '../../../shared/workbench/inspector_parts.dart';
-import '../../../shared/workbench/lifeos_skin.dart' show KeyKind;
-import '../../../shared/workbench/office_controls.dart';
+import '../../../ui/ui.dart';
 import '../application/agreement_correction.dart';
 import '../data/projections/work_record_projection.dart' show AgreementUse;
 import '../domain/agreement.dart';

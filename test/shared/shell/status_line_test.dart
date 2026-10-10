@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/shell/status_line.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
+import 'package:lifeos/ui/ui.dart';
 
 Future<void> _pump(WidgetTester tester, StatusSnapshot snapshot) =>
     tester.pumpWidget(

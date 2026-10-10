@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/time/local_date.dart';
-import '../../../shared/workbench/era_combo.dart';
-import '../../../shared/workbench/era_dates.dart';
-import '../../../shared/workbench/lifeos_skin.dart';
-import '../../../shared/workbench/office_controls.dart';
-import '../../../shared/workbench/operational_state.dart';
+import '../../../ui/ui.dart';
 import '../application/day_plan_service.dart';
 import '../domain/ids.dart';
 import '../domain/pay_premiums.dart';

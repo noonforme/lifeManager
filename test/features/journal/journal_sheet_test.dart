@@ -8,9 +8,7 @@ import 'package:lifeos/features/journal/journal_sheet.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/pay.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
-import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   const range = JournalRange(

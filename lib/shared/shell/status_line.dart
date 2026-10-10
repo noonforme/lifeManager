@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../workbench/lifeos_skin.dart';
-import '../workbench/millennium_style.dart';
+import '../../ui/ui.dart';
 
 /// What the status line reports (spec 5.4). Segments appear only for facts
 /// LifeOS actually has; nothing is shown as a placeholder.

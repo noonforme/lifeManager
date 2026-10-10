@@ -5,10 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../shared/shell/navigation_history.dart';
 import '../shared/shell/shell_frame.dart';
 import '../shared/shell/status_line.dart';
-import '../shared/workbench/cell_selection.dart';
-import '../shared/workbench/era_scrollbar.dart';
-import '../shared/workbench/lifeos_skin.dart';
-import '../shared/workbench/lifeos_theme.dart';
+import '../ui/ui.dart';
 import 'shell_host.dart';
 
 final class LifeOsApp extends StatefulWidget {

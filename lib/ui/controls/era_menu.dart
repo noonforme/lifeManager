@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../foundation/era_icons.dart';
+import '../foundation/lifeos_skin.dart';
+import '../foundation/millennium_style.dart';
 import 'era_controls.dart';
-import 'era_icons.dart';
-import 'lifeos_skin.dart';
-import 'millennium_style.dart';
-import 'office_controls.dart';
+import 'keys.dart';
 
 /// The era menu panel: white, a 1 px grey edge and a 2 px inset, sized to
 /// its items. Depth is bevels only, so it has no shadow.

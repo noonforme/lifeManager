@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/outcomes/mutation_outcome.dart';
 import '../../../core/time/local_date.dart';
 import '../../../shared/shell/status_line.dart';
-import '../../../shared/workbench/operational_state.dart';
+import '../../../ui/ui.dart';
 import '../domain/ids.dart';
 import '../domain/schedule.dart';
 import 'schedule_editor.dart';

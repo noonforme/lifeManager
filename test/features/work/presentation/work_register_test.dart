@@ -14,10 +14,7 @@ import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_register.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
 import 'package:lifeos/features/work/presentation/work_toolbar_controls.dart';
-import 'package:lifeos/shared/workbench/era_month_calendar.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/era_pickers.dart';
 import '../../../support/work_sheets.dart';

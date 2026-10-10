@@ -17,11 +17,7 @@ import 'package:lifeos/features/work/domain/pay.dart';
 import 'package:lifeos/features/work/presentation/employment_agreement_forms.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
-import 'package:lifeos/shared/workbench/era_time_field.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
-import 'package:lifeos/shared/workbench/property_sheet.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/era_pickers.dart';
 

@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../workbench/era_dialog.dart';
-import '../workbench/era_field.dart';
-import '../workbench/lifeos_skin.dart';
-import '../workbench/office_controls.dart';
+import '../../ui/ui.dart';
 
 /// Asks for a name, for example of a desk or a view; null when cancelled.
 Future<String?> askForName(

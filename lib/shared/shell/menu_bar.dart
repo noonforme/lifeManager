@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../workbench/cell_selection.dart';
-import '../workbench/era_dialog.dart';
-import '../workbench/era_icons.dart';
-import '../workbench/era_menu.dart';
-import '../workbench/lifeos_skin.dart';
-import '../workbench/office_controls.dart';
+import '../../ui/ui.dart';
 import 'licenses_dialog.dart';
 import 'navigation_history.dart';
 import 'shell_frame.dart';

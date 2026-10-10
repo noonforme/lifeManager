@@ -6,12 +6,12 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/explain/explanation.dart';
+import '../controls/era_controls.dart';
+import '../controls/era_menu.dart';
+import '../controls/era_scrollbar.dart';
+import '../foundation/lifeos_skin.dart';
+import '../foundation/millennium_style.dart';
 import 'cell_selection.dart';
-import 'era_controls.dart';
-import 'era_menu.dart';
-import 'era_scrollbar.dart';
-import 'lifeos_skin.dart';
-import 'millennium_style.dart';
 
 /// What a column holds. Numeric kinds are right-aligned in tabular figures.
 enum ColumnKind {

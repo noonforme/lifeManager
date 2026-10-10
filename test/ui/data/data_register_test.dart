@@ -5,12 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/explain/explanation.dart';
-import 'package:lifeos/shared/workbench/cell_selection.dart';
-import 'package:lifeos/shared/workbench/data_register.dart';
-import 'package:lifeos/shared/workbench/era_scrollbar.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
-import 'package:lifeos/shared/workbench/millennium_style.dart';
+import 'package:lifeos/ui/ui.dart';
 
 const _first = _Row(id: 'shift:1', label: 'First shift', amount: '123.45');
 const _second = _Row(id: 'shift:2', label: 'Second shift', amount: '67.89');

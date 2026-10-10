@@ -2,9 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../core/explain/explanation.dart';
-import '../workbench/cell_selection.dart';
-import '../workbench/lifeos_skin.dart';
-import '../workbench/millennium_style.dart';
+import '../../ui/ui.dart';
 
 /// **Working** in the task pane's Details group (XP-authentic shell spec
 /// 4.2): for a derived figure under the cursor, its reference and how it

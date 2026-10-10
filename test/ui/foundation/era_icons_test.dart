@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/shared/workbench/era_icons.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   testWidgets('every icon paints at 16 and 32 px without text', (tester) async {

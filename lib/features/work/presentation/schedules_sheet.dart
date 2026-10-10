@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/time/local_date.dart';
-import '../../../shared/workbench/data_register.dart';
-import '../../../shared/workbench/lifeos_skin.dart' show KeyKind;
-import '../../../shared/workbench/office_controls.dart';
-import '../../../shared/workbench/operational_state.dart';
+import '../../../ui/ui.dart';
 import '../domain/ids.dart';
 import '../domain/schedule.dart';
 import 'work_controller.dart';

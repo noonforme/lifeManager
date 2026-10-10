@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/time/local_time.dart';
-import '../../../shared/workbench/era_dialog.dart';
-import '../../../shared/workbench/era_field.dart';
-import '../../../shared/workbench/era_form.dart';
-import '../../../shared/workbench/era_time_field.dart';
-import '../../../shared/workbench/inspector_parts.dart';
-import '../../../shared/workbench/lifeos_skin.dart';
-import '../../../shared/workbench/millennium_style.dart';
-import '../../../shared/workbench/office_controls.dart';
+import '../../../ui/ui.dart';
 import '../domain/schedule.dart';
 import 'employment_agreement_forms.dart' show formatClock;
 import 'work_formats.dart';

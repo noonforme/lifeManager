@@ -8,8 +8,7 @@ import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/domain/pay_period.dart';
 import 'package:lifeos/shared/shell/task_pane.dart';
-import 'package:lifeos/shared/workbench/era_dialog.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../support/era_pickers.dart';
 import '../support/scheduled_app.dart';

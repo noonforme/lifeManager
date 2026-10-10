@@ -14,10 +14,7 @@ import 'package:lifeos/features/work/presentation/agreement_dialogs.dart';
 import 'package:lifeos/features/work/presentation/employment_agreement_forms.dart'
     show agreementUsersPaid;
 import 'package:lifeos/shared/shell/task_pane.dart';
-import 'package:lifeos/shared/workbench/era_dialog.dart'
-    show CaptionBar, EraDialog;
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/era_pickers.dart';
 import '../../../support/synthetic_shell.dart';

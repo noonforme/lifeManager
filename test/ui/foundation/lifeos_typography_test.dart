@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/shared/workbench/millennium_style.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   test('everything is EraSans at 11 px, falling back to Noto Sans', () {

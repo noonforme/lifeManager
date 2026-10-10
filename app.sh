@@ -38,6 +38,15 @@ start_debug() {
     "$flutter" run -d linux
 }
 
+# The widget gallery: every UI library widget on synthetic data. It never
+# opens the database.
+start_gallery() {
+    printf '\nPreparing LifeOS...\n'
+    "$flutter" pub get
+    printf '\nOpening the LifeOS widget gallery (debug build with hot reload)...\n'
+    "$flutter" run -d linux --dart-define=LIFEOS_GALLERY=1
+}
+
 run_tests() {
     printf '\nRunning tests...\n'
     "$flutter" test
@@ -57,7 +66,8 @@ while true; do
     printf '  2) Run tests\n'
     printf '  3) Run project checks\n'
     printf '  4) Start app in debug mode (hot reload)\n'
-    printf '  5) Exit\n'
+    printf '  5) Open widget gallery\n'
+    printf '  6) Exit\n'
     printf 'Choose an option: '
 
     if ! IFS= read -r choice; then
@@ -70,7 +80,8 @@ while true; do
         2) run_tests ;;
         3) run_checks ;;
         4) start_debug ;;
-        5) exit 0 ;;
-        *) printf 'Invalid choice. Enter 1, 2, 3, 4, or 5.\n' ;;
+        5) start_gallery ;;
+        6) exit 0 ;;
+        *) printf 'Invalid choice. Enter 1, 2, 3, 4, 5, or 6.\n' ;;
     esac
 done

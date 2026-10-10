@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/time/local_date.dart';
-import 'date_trace.dart';
+import '../foundation/date_trace.dart';
+import '../foundation/era_dates.dart';
+import '../foundation/lifeos_skin.dart';
+import '../foundation/millennium_style.dart';
 import 'era_controls.dart';
-import 'era_dates.dart';
-import 'lifeos_skin.dart';
-import 'millennium_style.dart';
 
 /// The era's month calendar (era pickers spec 3.2): the month on a blue
 /// band between ◂ and ▸, six Monday-first weeks with today circled, and a

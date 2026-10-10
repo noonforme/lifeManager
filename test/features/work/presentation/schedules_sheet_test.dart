@@ -6,8 +6,7 @@ import 'package:lifeos/features/work/domain/facts.dart';
 import 'package:lifeos/features/work/domain/schedule.dart';
 import 'package:lifeos/features/work/presentation/schedules_sheet.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/schedule_views.dart';
 import '../../../support/scheduled_app.dart';

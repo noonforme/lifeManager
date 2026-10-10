@@ -6,8 +6,7 @@ import 'package:lifeos/features/work/domain/ids.dart';
 import 'package:lifeos/features/work/presentation/record_history_panel.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   const shift = WorkRecordRef(

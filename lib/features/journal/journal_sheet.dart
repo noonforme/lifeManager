@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/time/timezone_service.dart';
-import '../../shared/workbench/data_register.dart';
-import '../../shared/workbench/lifeos_skin.dart';
-import '../../shared/workbench/millennium_style.dart';
-import '../../shared/workbench/office_controls.dart';
-import '../../shared/workbench/operational_state.dart';
+import '../../ui/ui.dart';
 import '../work/presentation/work_formats.dart';
 import '../work/presentation/work_sheets.dart' show workRowId;
 import 'journal_controller.dart';

@@ -137,7 +137,9 @@ The shipped shell, at 1280 × 800:
 
 There is no right-hand column. Below 1024 px the task pane folds into a **Tasks** toolbar key that opens it over the content. Every layout holds at 200 % text.
 
-This record is derived from the built Flutter shell (`lib/shared/shell`, `lib/shared/workbench`), its goldens in `test/goldens/`, and the specs `docs/superpowers/specs/2026-10-02-lifeos-millennium-shell-design.md` and `docs/superpowers/specs/2026-10-04-lifeos-xp-authentic-shell-design.md`.
+This record is derived from the built Flutter shell (`lib/shared/shell`, `lib/ui`), its goldens in `test/goldens/`, and the specs `docs/superpowers/specs/2026-10-02-lifeos-millennium-shell-design.md` and `docs/superpowers/specs/2026-10-04-lifeos-xp-authentic-shell-design.md`.
+
+The component inventory is `lib/ui/CATALOG.md`: one entry per widget, with its gallery demo and goldens. This file is the visual system; the catalog is the parts list.
 
 **Key characteristics:**
 - Face-coloured chrome, white lists and pages, blue heads and selection.
@@ -147,7 +149,7 @@ This record is derived from the built Flutter shell (`lib/shared/shell`, `lib/sh
 
 ## Colors
 
-Widgets take colours from `LifeOSTokens.millennium` and the named constants in `MillenniumColors` (`lib/shared/workbench/millennium_style.dart`), never from literals. The one exception is icon artwork: the painted icons in `era_icons.dart` keep their colours beside their shapes. Text pairs meet 4.5:1; indicators, key outlines and focus meet 3:1 (`test/shared/workbench/lifeos_tokens_test.dart`).
+Widgets take colours from `LifeOSTokens.millennium` and the named constants in `MillenniumColors` (`lib/ui/foundation/millennium_style.dart`), never from literals. The one exception is icon artwork: the painted icons in `era_icons.dart` keep their colours beside their shapes. Text pairs meet 4.5:1; indicators, key outlines and focus meet 3:1 (`test/ui/foundation/lifeos_tokens_test.dart`).
 
 - **Face** `#ece9d8`: menu bar, toolbars, dialogs, forms, the status bar, and a selected row while its list has no focus.
 - **Paper** `#ffffff` and **Page** `#fcfcfe`: lists, fields, tile bodies; the Properties page.

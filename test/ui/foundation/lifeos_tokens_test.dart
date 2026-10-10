@@ -1,7 +1,6 @@
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
-import 'package:lifeos/shared/workbench/millennium_style.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   const t = LifeOSTokens.millennium;

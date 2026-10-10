@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'lifeos_skin.dart';
-import 'millennium_style.dart';
+import '../foundation/lifeos_skin.dart';
+import '../foundation/millennium_style.dart';
 
 /// The digit a key types into a date or time box, from the main row or the
 /// numpad; null for any other key.

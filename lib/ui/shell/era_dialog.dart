@@ -3,9 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-import 'era_controls.dart';
-import 'lifeos_skin.dart';
-import 'millennium_style.dart';
+import '../controls/era_controls.dart';
+import '../foundation/lifeos_skin.dart';
+import '../foundation/millennium_style.dart';
 
 /// An in-app dialog in the era's shape (spec 5.9): a blue caption with the
 /// title and a red close key, a face-coloured body and keys bottom-right.

@@ -1,5 +1,7 @@
 After successfully completing an implementation plan, verify `./app.sh` still starts and tests the app; update it if commands or requirements changed.
 
+Before any UI work, read `lib/ui/CATALOG.md` (the UI library inventory) and follow the `lifeos-ui` skill (`.claude/skills/lifeos-ui/SKILL.md`). Feature, app and shell code import only `lib/ui/ui.dart`.
+
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:1105d646 -->
 ## Beads Issue Tracker

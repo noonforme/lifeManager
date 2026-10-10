@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../workbench/era_combo.dart';
-import '../workbench/era_controls.dart';
-import '../workbench/era_icons.dart';
-import '../workbench/lifeos_skin.dart';
-import '../workbench/millennium_style.dart';
-import '../workbench/office_controls.dart';
+import '../../ui/ui.dart';
 import 'book_tree.dart';
 
 @immutable

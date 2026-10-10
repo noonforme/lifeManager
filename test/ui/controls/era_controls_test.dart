@@ -2,10 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/shared/workbench/era_controls.dart';
-import 'package:lifeos/shared/workbench/era_dialog.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   testWidgets('orbs are decorative and sized as asked', (tester) async {

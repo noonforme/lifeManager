@@ -25,7 +25,7 @@ import 'package:lifeos/features/work/domain/reconciliation.dart';
 import 'package:lifeos/features/work/domain/shift.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../support/era_pickers.dart';
 import '../support/work_dialogs.dart';

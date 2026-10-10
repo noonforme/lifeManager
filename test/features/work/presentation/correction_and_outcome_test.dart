@@ -17,9 +17,7 @@ import 'package:lifeos/features/work/presentation/correction_confirmation.dart';
 import 'package:lifeos/features/work/presentation/period_payslip_forms.dart';
 import 'package:lifeos/features/work/presentation/work_controller.dart';
 import 'package:lifeos/features/work/presentation/work_route_state.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   testWidgets('stale save keeps register and draft visible and offers reload', (

@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_time.dart';
-import 'package:lifeos/shared/workbench/era_form.dart';
-import 'package:lifeos/shared/workbench/era_time_field.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
+import 'package:lifeos/ui/ui.dart';
 
 const _box = ValueKey('start-time');
 

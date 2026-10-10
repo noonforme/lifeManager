@@ -14,7 +14,7 @@ import '../features/work/presentation/work_toolbar_controls.dart';
 import '../features/work/presentation/work_views.dart';
 import '../shared/shell/name_dialog.dart';
 import '../shared/shell/shell_frame.dart';
-import '../shared/workbench/lifeos_skin.dart';
+import '../ui/ui.dart';
 import 'desk_host.dart';
 import 'desk_providers.dart';
 import 'shell_host.dart';

@@ -3,8 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/shared/shell/address_bar.dart';
 import 'package:lifeos/shared/shell/quick_add.dart';
 import 'package:lifeos/shared/shell/shell_frame.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_tokens.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   Future<List<String>> pump(

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
-import 'package:lifeos/shared/workbench/operational_state.dart';
+import 'package:lifeos/ui/ui.dart';
 
 void main() {
   for (final kind in OperationalStateKind.values) {

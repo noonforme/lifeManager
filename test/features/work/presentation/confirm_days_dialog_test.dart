@@ -11,9 +11,7 @@ import 'package:lifeos/features/work/domain/pay.dart';
 import 'package:lifeos/features/work/presentation/confirm_days_dialog.dart';
 import 'package:lifeos/shared/shell/shell_dialog.dart';
 import 'package:lifeos/shared/shell/task_pane.dart';
-import 'package:lifeos/shared/workbench/lifeos_skin.dart';
-import 'package:lifeos/shared/workbench/lifeos_theme.dart';
-import 'package:lifeos/shared/workbench/office_controls.dart';
+import 'package:lifeos/ui/ui.dart';
 
 import '../../../support/schedule_views.dart';
 import '../../../support/scheduled_app.dart';

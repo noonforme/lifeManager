@@ -3,9 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/core/time/local_date.dart';
 import 'package:lifeos/core/time/local_time.dart';
-import 'package:lifeos/shared/workbench/era_date_field.dart';
-import 'package:lifeos/shared/workbench/era_dates.dart';
-import 'package:lifeos/shared/workbench/era_time_field.dart';
+import 'package:lifeos/ui/ui.dart';
 
 /// Drive the era date and time boxes the way the owner does. Dates are
 /// picked from the calendar and times stepped here, though both boxes also
