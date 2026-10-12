@@ -180,11 +180,24 @@ final class _EraScrollbarState extends State<EraScrollbar> {
           );
   }
 
-  Widget _bar(ScrollMetrics metrics) {
+  /// The bar along a rail of [length]: the arrows keep their 17 px square
+  /// unless the rail is shorter than both, then share it, and the track
+  /// takes what is left (nothing, at the shortest).
+  Widget _bar(ScrollMetrics metrics) => LayoutBuilder(
+    builder: (context, constraints) => _barAlong(
+      metrics,
+      _vertical ? constraints.maxHeight : constraints.maxWidth,
+    ),
+  );
+
+  Widget _barAlong(ScrollMetrics metrics, double length) {
+    final arrow = math.min(EraScrollbar.thickness, math.max(0.0, length / 2));
     final children = [
       _ArrowKey(
         key: const ValueKey('era-scrollbar-back'),
         glyph: _vertical ? EraGlyphKind.sortUp : EraGlyphKind.stepBack,
+        vertical: _vertical,
+        extent: arrow,
         onDown: () => _startRepeat(-EraScrollbar.step),
         onUp: _stopRepeat,
       ),
@@ -268,6 +281,8 @@ final class _EraScrollbarState extends State<EraScrollbar> {
       _ArrowKey(
         key: const ValueKey('era-scrollbar-forward'),
         glyph: _vertical ? EraGlyphKind.sortDown : EraGlyphKind.stepForward,
+        vertical: _vertical,
+        extent: arrow,
         onDown: () => _startRepeat(EraScrollbar.step),
         onUp: _stopRepeat,
       ),
@@ -283,12 +298,20 @@ final class _EraScrollbarState extends State<EraScrollbar> {
 final class _ArrowKey extends StatelessWidget {
   const _ArrowKey({
     required this.glyph,
+    required this.vertical,
+    required this.extent,
     required this.onDown,
     required this.onUp,
     super.key,
   });
 
   final EraGlyphKind glyph;
+
+  /// Whether the bar runs top to bottom.
+  final bool vertical;
+
+  /// The key's length along the bar: 17 px, less on a short rail.
+  final double extent;
   final VoidCallback onDown;
   final VoidCallback onUp;
 
@@ -297,8 +320,9 @@ final class _ArrowKey extends StatelessWidget {
     onTapDown: (_) => onDown(),
     onTapUp: (_) => onUp(),
     onTapCancel: onUp,
-    child: SizedBox.square(
-      dimension: EraScrollbar.thickness,
+    child: SizedBox(
+      width: vertical ? EraScrollbar.thickness : extent,
+      height: vertical ? extent : EraScrollbar.thickness,
       child: _Face(
         grip: false,
         vertical: true,
