@@ -54,4 +54,21 @@ void main() {
       matchesGoldenFile('../goldens/real_font/controls_era_combo_open.png'),
     );
   });
+
+  testWidgets('real_font/gallery_shell', (tester) async {
+    await pumpGalleryApp(tester);
+    await expectLater(
+      find.byType(GalleryHost),
+      matchesGoldenFile('../goldens/real_font/gallery_shell.png'),
+    );
+  });
+
+  testWidgets('real_font/gallery_shell_docked', (tester) async {
+    await pumpGalleryApp(tester, size: const Size(800, 600));
+    await showDockedKnobs(tester);
+    await expectLater(
+      find.byType(GalleryHost),
+      matchesGoldenFile('../goldens/real_font/gallery_shell_docked.png'),
+    );
+  });
 }

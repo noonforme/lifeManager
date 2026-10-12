@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeos/ui/gallery/gallery_demos.dart';
 import 'package:lifeos/ui/gallery/gallery_host.dart';
@@ -27,6 +28,23 @@ void main() {
     await expectLater(
       find.byType(GalleryHost),
       matchesGoldenFile('../goldens/controls_era_combo_open.png'),
+    );
+  });
+
+  testWidgets('gallery_shell', (tester) async {
+    await pumpGalleryApp(tester);
+    await expectLater(
+      find.byType(GalleryHost),
+      matchesGoldenFile('../goldens/gallery_shell.png'),
+    );
+  });
+
+  testWidgets('gallery_shell_docked', (tester) async {
+    await pumpGalleryApp(tester, size: const Size(800, 600));
+    await showDockedKnobs(tester);
+    await expectLater(
+      find.byType(GalleryHost),
+      matchesGoldenFile('../goldens/gallery_shell_docked.png'),
     );
   });
 }

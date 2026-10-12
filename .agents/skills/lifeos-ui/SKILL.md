@@ -13,9 +13,8 @@ The visual rules are in `DESIGN.md`. The layout and interaction spec is
 
 1. Read `lib/ui/CATALOG.md`, starting with "Which widget for which job".
 2. Reuse a `stable` or `new` widget. Deprecated widgets remain valid in
-   existing screens and in the phase 1 gallery, demos and compatibility
-   tests until their replacements exist. Do not implement a phase 2 widget
-   early just to avoid this temporary host dependency.
+   existing screens, demos and compatibility tests until their
+   replacements exist; new screens use the replacement.
 3. Import only `lib/ui/ui.dart` (relative from `lib/`,
    `package:lifeos/ui/ui.dart` from tests). Importing any other `lib/ui/`
    file from feature, app or shell code fails `test/ui/library_boundary_test.dart`.

@@ -1,6 +1,6 @@
 # LifeOS UI Library Catalog
 
-The reusable era workbench lives in `lib/ui/` in phase 1. The retiring shell
+The reusable era workbench lives in `lib/ui/`. The retiring shell
 remains at `lib/shared/shell/` until cutover and cleanup; it is not a source
 for new components. This
 file is the inventory: read it before writing any UI, reuse what is here, and
@@ -14,9 +14,9 @@ add a widget here (with its gallery demo and goldens) before using it.
   `MillenniumColors`, EraSans 11 px, painted glyphs, era bevels, no shadows
   or motion). Layout and interaction: `docs/superpowers/specs/2026-10-08-database-shell-and-ui-library-design.md`.
 - **Status:** `stable` use freely; `new` just added; `deprecated (use X)`
-  retain for existing screens. Phase 1 gallery hosts, demos and compatibility
-  tests may use them until their replacements exist; new feature screens
-  should use the replacement once available.
+  retain for existing screens. Demos and compatibility tests may use them
+  until their replacements exist; new feature screens should use the
+  replacement once available.
 - **Folders:** `foundation/` tokens, type, theme, icons, dates;
   `controls/` keys, fields, pickers, menus; `data/` lists and states;
   `shell/` windows and page parts.
@@ -396,7 +396,7 @@ Gallery: shell/action_panel · Goldens: test/ui/goldens/shell_action_panel.png
 
 ### AppFrame · shell/app_frame.dart · new
 The database shell's window (spec 3): a mouse-only menu bar, the caller's banded toolbar, area tabs, the tree pane (caption, the tree capped at 60 %, Details under it), the middle column (the caller's grid over a 5 px splitter and the subform) and the property column, then the status bar. The 196/306/168 baseline sizes are the owner's per-area `AppFramePanes`, scaled by the text size exactly once and clamped to the room left after chrome, splitters, the page scrollbar and the panes' scaled minima (extreme, negative or missing values included); each splitter drag reports baseline pixels and the frame keeps no copy, so supplied (restored) sizes always win. By **client width**, before the page padding: below 1024 px, or whenever three columns' scaled minima do not fit, the tree folds into a **Tree** key handed to `toolbarBuilder` and the property column narrows to at most 260 px (scaled); the key opens the same tree and Details as an overlay hanging from it, bounded by the page and closed by its Close key or any click outside (the click only closes). Below 860 px, or whenever grid and property column do not fit side by side, `properties` becomes a tab (`AppFrame.propertiesTabId`) beside the subform tabs in the resizable lower region; an action panel in `properties` goes with it. Each pane (tree pane, middle, lower region, properties) is one element under a frame-owned global key: it moves between column, overlay, docked tab and an off-stage park without being rebuilt, so drafts, the focused editor, scroll positions and the property grid's host stay; parked or hidden panes are not painted, hit or focusable; moving never flushes or cancels. When the window narrows while the property column is the active region (last clicked or focused), the frame shows the docked tab at once and asks the owner through `onSubformSelect` (no flush); widening with that tab selected asks for the child tab shown before; the owner's later selection wins. After any resize the focused editor is scrolled back into view. The chrome scrolls in a bounded top region and the page scrolls below its minimum (which includes the subform's measured, wrapped tab strip), so at 800 x 600 and 200 % text every command, editor, error and footer is reachable without shrinking or clipping. Menu rows and area tabs flush `controller` first and drop the request when it is refused; subform tabs flush through `Subform`; toolbar callbacks are the owner's. Nothing in the chrome takes focus.
-Use for: the database shell's window and the gallery's whole-composition demo. Not for: a second property pane for narrow windows, dialogs, or keeping layout sizes (the owner persists `AppFramePanes` per area).
+Use for: the database shell's window, the widget gallery and the gallery's whole-composition demo. Not for: a second property pane for narrow windows, dialogs, or keeping layout sizes (the owner persists `AppFramePanes` per area).
 API: AppFrame(toolbarBuilder: (context, ToolbarItem? treeAction) => BandedToolbar(…), areas: [TabItem], areaId:, onAreaSelect:, tree: TreeView(…), details: DetailsBox(…), middle: DataGrid(…), properties: PropertyGrid(…) or ActionPanel(…), panes: AppFramePanes(left: 196, right: 306, dock: 168), onPanesChanged:, onPanesChangeEnd:, menus: [AppMenu(label, [EraMenuItem])], treeTitle: 'Objects', treeIcon: EraIconKind.work, subformTabs: [SubformTab], subformSelectedId:, onSubformSelect:, subformTrailing:, subformLabel:, propertiesLabel: 'Properties', status: StatusBar(…), controller:, enabled: true). Slots: put `treeAction` in a band (first key) when non-null; `middle` needs no size; `properties` and subform tab builders must not hold global keys of their own beyond the frame's (one instance each), and `subformTrailing` is also measured off-stage, so it holds none either; `status` caps its own height (`StatusBar`). `GlobalKey<AppFrameState>`: `openTree()`, `closeTree()`, `treeOpen`, `layout`.
 - `AppFramePanes` (`left`, `right`, `dock`; `baseline`; `copyWith`): baseline logical pixels at 100 % text.
 - `AppFrameLayout.resolve(width:, scale:, panes:)`: the pure fold/dock decision and clamped widths (`treeFolded`, `propertiesDocked`, `left`, `leftMax`, `right`, `rightMax`, `flyoutWidth`, `pageMinHeight(lower:, strip:)`, `lowerHeight(height, panes, strip:)`); constants `AppFrame.foldWidth` 1024, `dockWidth` 860, `narrowRight` 260 and the scaled minima `minLeft`, `minMiddle`, `minRight`, `minGrid`, `minLower`, `minDock`, `minPaneHeight`, `minPropertiesHeight`.
@@ -452,11 +452,11 @@ Gallery: shell/tab_strip · Goldens: test/ui/goldens/shell_tab_strip.png
 
 ## Next
 
-The phase 2a widgets above are available. Phase 2 is not finished: the
-gallery still runs on its temporary host until it moves onto `AppFrame`,
-`TreeView` and `PropertyGrid` (`lifeManager-9pk.2.1`), and the deferred
-phase 1 minors remain (`lifeManager-9pk.8`). Production keeps the old shell
-until phase 3.
+Phase 2 is complete: the widgets above are available and the gallery runs
+on `AppFrame`, `TreeView` and `PropertyGrid` (tree by folder, demo in the
+middle, knobs in the property grid). Next is phase 3 (`lifeManager-9pk.3`):
+the new shell and edit session in an integration harness. Production keeps
+the old shell until phase 4.
 
 ## Not in the library
 
