@@ -34,12 +34,14 @@ void main() {
             '${file.path} → $to',
   ];
 
-  test('features, app and the old shell reach the library only through '
-      'ui.dart', () {
+  test('features, app, core, bootstrap and the old shell reach the library '
+      'only through ui.dart', () {
     final files = [
       ...dartFiles('lib/features'),
       ...dartFiles('lib/app'),
       ...dartFiles('lib/shared'),
+      ...dartFiles('lib/core'),
+      File('lib/bootstrap.dart'),
       File('lib/main.dart'),
     ];
     expect(
@@ -52,6 +54,16 @@ void main() {
       ),
       isEmpty,
     );
+  });
+
+  test('ui.dart neither imports nor exports gallery code', () {
+    final barrel = File('lib/ui/ui.dart');
+    final targets = [
+      for (final match in directive.allMatches(barrel.readAsStringSync()))
+        ?target(barrel, match.group(1)!),
+    ];
+    expect(targets, isNotEmpty);
+    expect(targets.where((to) => to.startsWith('lib/ui/gallery/')), isEmpty);
   });
 
   test('tests reach the library through ui.dart or the gallery', () {

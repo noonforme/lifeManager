@@ -64,8 +64,8 @@ Non-widget foundations, all exported by `ui.dart`:
 - `MillenniumColors`, `lifeOSTypography`, `LifeOSPainters`, `InsetRings`, `DottedFocusRectangle` (`foundation/millennium_style.dart`): named era colours, type and decorations.
 - `LifeOSSkinData`, `LifeOSTypography`, `KeyKind`, `KeyState`, `KeySurface` (`foundation/lifeos_skin.dart`): the skin a widget reads with `LifeOSSkinScope.of(context)`.
 - `buildLifeOSTheme()`, `lifeOSThemeFor(skin)` (`foundation/lifeos_theme.dart`): Material theme that follows the skin.
-- `EraIconKind`, `areaIcon(area)` (`foundation/era_icons.dart`).
-- `eraBoxDate`, `eraWeekdayShort`, `spokenDate`, `eraMonthTitle`, `monthGridDays`, `eraMonthNames`, `eraWeekdayInitials` (`foundation/era_dates.dart`).
+- `EraIconKind`, `areaIcon(area)` (`foundation/era_icons.dart`): painted icon kinds and the area-to-icon mapping.
+- `eraBoxDate`, `eraWeekdayShort`, `spokenDate`, `eraMonthTitle`, `monthGridDays`, `eraMonthNames`, `eraWeekdayInitials` (`foundation/era_dates.dart`): fixed-format date labels and calendar helpers.
 - `DateTrace`, `traceTarget` (`foundation/date_trace.dart`): opt-in trace of the date boxes (`LIFEOS_TRACE_DATES=1`).
 
 ### LifeOSSkinScope · foundation/lifeos_skin.dart · stable
@@ -85,7 +85,7 @@ Gallery: foundation/era_icon · Goldens: test/ui/goldens/foundation_era_icon.png
 ### Orb · controls/era_controls.dart · stable
 A painted glossy orb with a white glyph, as on the era's toolbar keys. Decorative; the key beside it carries the words.
 Use for: Back, Forward and Add toolbar keys. Not for: standalone buttons.
-API: Orb(glyph: OrbGlyph.back, tone: OrbTone.green, size: 20)
+API: Orb(glyph:, tone:, size: 20) with OrbGlyph.back | .forward | .add and OrbTone.green | .orange | .grey
 Gallery: controls/orb · Goldens: test/ui/goldens/controls_orb.png
 
 ### EraComboFace · controls/era_controls.dart · stable
@@ -286,7 +286,7 @@ Gallery: data/cell_selection_scope · Goldens: test/ui/goldens/data_cell_selecti
 ### OperationalState · data/operational_state.dart · stable
 A sheet's loading, empty, unavailable, invalid-scope, conflict and uncertain states, with an optional key.
 Use for: whatever a sheet shows instead of its rows. Not for: field errors.
-API: OperationalState(kind: OperationalStateKind.empty, title:, message:, action:)
+API: OperationalState(kind:, title:, message:, action:) with OperationalStateKind.loading | .empty | .unavailable | .invalidScope | .conflict | .uncertain
 Gallery: data/operational_state · Goldens: test/ui/goldens/data_operational_state.png
 
 ### PropertyGrid · data/property_grid.dart · new
