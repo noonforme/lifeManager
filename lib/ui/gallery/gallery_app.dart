@@ -4,10 +4,12 @@ import '../ui.dart';
 import 'gallery_demo.dart';
 import 'gallery_demos.dart';
 import 'gallery_host.dart';
+import 'gallery_knob_properties.dart';
 
 /// The widget gallery (database shell spec 5.3): every library widget on
-/// synthetic data, picked from a list, with knobs. This phase 1 host is made
-/// of moved controls and the existing list; phase 2 rebuilds it on AppFrame.
+/// synthetic data in the library's own shell. The tree lists the widgets by
+/// folder, the middle shows the live demo over its summary, and the
+/// property grid edits the demo's knobs.
 final class GalleryApp extends StatelessWidget {
   const GalleryApp({
     this.demos,
@@ -46,123 +48,154 @@ final class _GalleryHomeState extends State<GalleryHome> {
     'data': 'Data',
     'shell': 'Shell',
   };
+  static const _area = 'widgets';
+  static const _summaryTab = 'summary';
+
+  final _controller = EditorSessionController();
+  final _frame = GlobalKey<AppFrameState>();
 
   late GalleryDemo _demo = widget.demos.first;
   late GalleryKnobs _knobs = widget.initialKnobs;
-
-  void _knob(GalleryKnobs knobs) => setState(() => _knobs = knobs);
+  AppFramePanes _panes = AppFramePanes.baseline;
+  String? _lowerTab = _summaryTab;
 
   @override
-  Widget build(BuildContext context) {
-    final skin = LifeOSSkinScope.of(context);
-    return ColoredBox(
-      color: skin.tokens.ground,
-      child: MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(textScaler: TextScaler.linear(_knobs.textScale)),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Opens the demo [id] names; a folder node names none. An open knob
+  /// draft is kept first, as any command that leaves the field does.
+  void _open(String id) {
+    final demo = widget.demos.where((demo) => demo.id == id).firstOrNull;
+    if (demo == null) return;
+    if (!_controller.flush().isAccepted) return;
+    _frame.currentState?.closeTree();
+    if (demo.id != _demo.id) setState(() => _demo = demo);
+  }
+
+  EditResult _commit(EditIdentity id, Object? draft) {
+    setState(() => _knobs = applyGalleryKnob(_knobs, id.field, draft));
+    return const EditResult.accepted();
+  }
+
+  void _reset() {
+    _controller.cancel();
+    setState(() => _knobs = widget.initialKnobs);
+  }
+
+  List<TreeNodeData> _nodes() => [
+    for (final MapEntry(key: folder, value: title) in _folders.entries)
+      if (widget.demos.where((demo) => demo.folder == folder).toList()
+          case final demos when demos.isNotEmpty)
+        TreeNodeData(
+          id: 'folder:$folder',
+          label: title,
+          count: demos.length,
+          bold: true,
+          expanded: true,
           children: [
-            SizedBox(
-              width: 280,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: DataRegister<GalleryDemo>(
-                  label: 'Widgets',
-                  lines: [
-                    for (final MapEntry(key: folder, value: title)
-                        in _folders.entries)
-                      if (widget.demos.where((d) => d.folder == folder)
-                          case final demos when demos.isNotEmpty) ...[
-                        GroupLine<GalleryDemo>(
-                          label: '$title (${demos.length})',
-                        ),
-                        for (final demo in demos) RowLine<GalleryDemo>(demo),
-                      ],
-                  ],
-                  columns: [
-                    RegisterColumn<GalleryDemo>(
-                      key: 'widget',
-                      label: 'Widget',
-                      kind: ColumnKind.text,
-                      width: 180,
-                      value: (demo) => demo.widget,
-                    ),
-                    RegisterColumn<GalleryDemo>(
-                      key: 'folder',
-                      label: 'Folder',
-                      kind: ColumnKind.text,
-                      width: 80,
-                      value: (demo) => demo.folder,
-                    ),
-                  ],
-                  rowId: (demo) => demo.id,
-                  rowLabel: (demo) => demo.widget,
-                  selectedId: _demo.id,
-                  onOpen: (demo) => setState(() => _demo = demo),
-                ),
+            for (final demo in demos)
+              TreeNodeData(id: demo.id, label: demo.widget),
+          ],
+        ),
+  ];
+
+  Widget _details() => DetailsBox(
+    caption: 'Details',
+    sections: [
+      DetailsSection(
+        facts: [
+          DetailsFact('Widget', _demo.widget, figure: false),
+          DetailsFact('Folder', _demo.folder, figure: false),
+          DetailsFact('Gallery id', _demo.id, figure: false),
+          DetailsFact(
+            'Golden',
+            'test/ui/goldens/${_demo.goldenName}.png',
+            figure: false,
+          ),
+          DetailsFact(
+            'Canvas',
+            '${_demo.size.width.round()} x ${_demo.size.height.round()} px',
+          ),
+        ],
+      ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: _controller,
+    builder: (context, _) {
+      final shown = previewGalleryKnobs(_knobs, _controller.session);
+      return MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(shown.textScale)),
+        child: AppFrame(
+          key: _frame,
+          controller: _controller,
+          toolbarBuilder: (context, tree) => BandedToolbar(
+            bands: [
+              if (tree != null) ToolbarBand(items: [tree]),
+              ToolbarBand(
+                items: [ToolbarItem(label: 'Reset knobs', onPressed: _reset)],
               ),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 2),
-                    child: Text(_demo.widget, style: skin.typography.caption),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                    child: Text(_demo.summary, style: skin.typography.body),
-                  ),
-                  Expanded(
-                    child: GalleryCanvas(
-                      key: ValueKey(_demo.id),
-                      demo: _demo,
-                      knobs: _knobs,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(
-              width: 220,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(8),
-                child: GroupBox(
-                  legend: 'Knobs',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      EraCheckBox(
-                        value: _knobs.enabled,
-                        onChanged: (on) => _knob(_knobs.copyWith(enabled: on)),
-                        label: 'Enabled',
-                      ),
-                      EraCheckBox(
-                        value: _knobs.error,
-                        onChanged: (on) => _knob(_knobs.copyWith(error: on)),
-                        label: 'Show an error',
-                      ),
-                      EraCheckBox(
-                        value: _knobs.longText,
-                        onChanged: (on) => _knob(_knobs.copyWith(longText: on)),
-                        label: 'Long text',
-                      ),
-                      EraCheckBox(
-                        value: _knobs.textScale == 2,
-                        onChanged: (on) =>
-                            _knob(_knobs.copyWith(textScale: on ? 2 : 1)),
-                        label: '200 % text',
-                      ),
-                    ],
-                  ),
-                ),
+            ],
+          ),
+          areas: const [
+            TabItem(id: _area, label: 'Widgets', icon: EraIconKind.app),
+          ],
+          areaId: _area,
+          onAreaSelect: (_) {},
+          treeTitle: 'Widgets',
+          treeIcon: EraIconKind.app,
+          tree: TreeView(
+            label: 'Widgets by folder',
+            nodes: _nodes(),
+            selectedId: _demo.id,
+            onSelect: _open,
+          ),
+          details: _details(),
+          middle: GalleryCanvas(
+            key: ValueKey(_demo.id),
+            demo: _demo,
+            knobs: shown,
+          ),
+          subformTabs: [
+            SubformTab(
+              id: _summaryTab,
+              label: 'Summary',
+              builder: (context) => SingleChildScrollView(
+                padding: const EdgeInsets.all(6),
+                child: Text(_demo.summary),
               ),
             ),
           ],
+          subformSelectedId: _lowerTab,
+          onSubformSelect: (id) => setState(() => _lowerTab = id),
+          subformLabel: _demo.widget,
+          properties: PropertyGrid(
+            record: galleryKnobRecord,
+            controller: _controller,
+            items: galleryKnobItems(_knobs),
+            onCommit: _commit,
+            today: galleryToday,
+            label: 'Knobs',
+          ),
+          propertiesLabel: 'Knobs',
+          status: StatusBar(
+            notice: 'Synthetic data only; no database is open.',
+            panels: [
+              StatusPanel('${widget.demos.length} widgets'),
+              StatusPanel(_demo.id),
+              StatusPanel('Text ${(shown.textScale * 100).round()} %'),
+            ],
+          ),
+          panes: _panes,
+          onPanesChanged: (panes) => setState(() => _panes = panes),
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
 }
