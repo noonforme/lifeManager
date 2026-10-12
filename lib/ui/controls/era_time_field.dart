@@ -8,6 +8,7 @@ import '../../core/time/local_time.dart';
 import '../foundation/lifeos_skin.dart';
 import '../foundation/millennium_style.dart';
 import 'era_controls.dart';
+import 'era_editor_host.dart';
 import 'era_form.dart';
 
 /// The parts of a time box, left to right.
@@ -56,6 +57,8 @@ final class EraTimeField extends StatefulWidget {
     this.enabled = true,
     this.error,
     this.fieldKey,
+    this.focusNode,
+    this.autofocus = false,
     super.key,
   }) : assert(label != null || semanticLabel != null);
 
@@ -77,12 +80,20 @@ final class EraTimeField extends StatefulWidget {
   /// The key of the white box, which tests and forms address.
   final Key? fieldKey;
 
+  /// The box's focus node, for a host that moves the keyboard to it; the
+  /// box owns one when null.
+  final FocusNode? focusNode;
+
+  /// Focuses the box when it is first built, on its hours.
+  final bool autofocus;
+
   @override
   State<EraTimeField> createState() => _EraTimeFieldState();
 }
 
 final class _EraTimeFieldState extends State<EraTimeField> {
-  final _focus = FocusNode(debugLabel: 'EraTimeField');
+  final _ownFocus = FocusNode(debugLabel: 'EraTimeField');
+  FocusNode get _focus => widget.focusNode ?? _ownFocus;
 
   /// Off for a disabled box or one in a read-only form.
   bool get _enabled => widget.enabled && EraFormScope.enabledOf(context);
@@ -127,7 +138,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
   @override
   void dispose() {
     _stopRepeat();
-    _focus.dispose();
+    _ownFocus.dispose();
     super.dispose();
   }
 
@@ -216,6 +227,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is KeyUpEvent) return KeyEventResult.ignored;
+    if (EraEditorHostScope.maybeOf(context) != null) return _onHostedKey(event);
     final key = event.logicalKey;
     final delta = key == LogicalKeyboardKey.arrowUp
         ? 1
@@ -256,17 +268,19 @@ final class _EraTimeFieldState extends State<EraTimeField> {
         keyboard.isMetaPressed) {
       return KeyEventResult.ignored;
     }
+    return _typeKey(event) ?? KeyEventResult.ignored;
+  }
+
+  /// Digits, a separator or Backspace typed into the selected part; null
+  /// for any other key.
+  KeyEventResult? _typeKey(KeyEvent event) {
+    final key = event.logicalKey;
     final digit = eraTypedDigit(key);
-    if (digit != null && !keyboard.isShiftPressed) {
+    if (digit != null && !HardwareKeyboard.instance.isShiftPressed) {
       _type(digit);
       return KeyEventResult.handled;
     }
-    final character = event.character;
-    if (key == LogicalKeyboardKey.colon ||
-        key == LogicalKeyboardKey.period ||
-        key == LogicalKeyboardKey.numpadDecimal ||
-        character == ':' ||
-        character == '.') {
+    if (_isSeparator(event)) {
       setState(() {
         _pending = null;
         _nextPart();
@@ -279,7 +293,55 @@ final class _EraTimeFieldState extends State<EraTimeField> {
       setState(() => _pending = null);
       return KeyEventResult.handled;
     }
-    return KeyEventResult.ignored;
+    return null;
+  }
+
+  static bool _isSeparator(KeyEvent event) {
+    final key = event.logicalKey;
+    final character = event.character;
+    return key == LogicalKeyboardKey.colon ||
+        key == LogicalKeyboardKey.period ||
+        key == LogicalKeyboardKey.numpadDecimal ||
+        character == ':' ||
+        character == '.';
+  }
+
+  /// The box's keys in an editor host (database shell spec 4.6): Up/Down
+  /// step the part, Left/Right choose one, and digits and separators are
+  /// typed; plain Enter, Tab and Esc go to the host. Modifiers are checked
+  /// first, so Alt+Up or Shift+Down never steps, and Page Up/Down and every
+  /// other key are held. Shift passes only for a separator such as ":".
+  KeyEventResult _onHostedKey(KeyEvent event) {
+    final keyboard = HardwareKeyboard.instance;
+    if (!_enabled ||
+        keyboard.isControlPressed ||
+        keyboard.isAltPressed ||
+        keyboard.isMetaPressed ||
+        (keyboard.isShiftPressed && !_isSeparator(event))) {
+      return EraEditorHostScope.handleKey(context, event);
+    }
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown) {
+      _step(key == LogicalKeyboardKey.arrowUp ? 1 : -1);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight) {
+      setState(() {
+        _pending = null;
+        if (key == LogicalKeyboardKey.arrowRight) {
+          _nextPart();
+        } else if (_parts.indexOf(_part) case final index when index > 0) {
+          _part = _parts[index - 1];
+        }
+      });
+      return KeyEventResult.handled;
+    }
+    if (event is KeyDownEvent) {
+      if (_typeKey(event) case final result?) return result;
+    }
+    return EraEditorHostScope.handleKey(context, event);
   }
 
   @override
@@ -330,6 +392,7 @@ final class _EraTimeFieldState extends State<EraTimeField> {
         MergeSemantics(
           child: Focus(
             focusNode: _focus,
+            autofocus: widget.autofocus,
             canRequestFocus: _enabled,
             onKeyEvent: _onKey,
             onFocusChange: _onFocusChange,

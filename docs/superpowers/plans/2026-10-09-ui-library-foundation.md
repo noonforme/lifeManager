@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Commands use `export FLUTTER=$HOME/.local/opt/flutter-3.47.5/bin/flutter DART=$HOME/.local/opt/flutter-3.47.5/bin/dart` (or `flutter` / `dart` when on `PATH`), run from the repository root `/home/aUser/lifeManager`.
-- **Production remains pixel-identical:** existing goldens pass unchanged. Never run `--update-goldens` on `test/goldens/`. `git status --porcelain -- test/goldens` must print nothing at the end of every task.
+- **Production remains pixel-identical:** existing goldens pass unchanged. Never run `--update-goldens` on `test/goldens/`. `git status --porcelain -- ':(glob)test/goldens/**/*.png'` must print nothing at the end of every task.
 - Moves use `git mv` so history stays. No behavior change to any moved widget.
 - `lib/ui/` may import only `lib/ui/**`, `lib/core/time/**`, `lib/core/explain/**`, `dart:*`, `package:flutter/*` and `package:path/*`.
 - `lib/features/`, `lib/app/` and `lib/shared/` import the library only through `lib/ui/ui.dart`. `lib/main.dart` may also import `lib/ui/gallery/gallery_main.dart`. Tests import `package:lifeos/ui/ui.dart` and, for gallery tests, files under `package:lifeos/ui/gallery/`.
@@ -28,7 +28,7 @@
 
 ## Review Focus
 
-1. **The owner opens the app after the move and sees exactly what they saw before.** A wrong import or a split that drops a private helper must not change one pixel → Tasks 2, 3 and 4 each run `test/goldens` without updating and check `git status --porcelain -- test/goldens` is empty.
+1. **The owner opens the app after the move and sees exactly what they saw before.** A wrong import or a split that drops a private helper must not change one pixel → Tasks 2, 3 and 4 each run `test/goldens` without updating and check `git status --porcelain -- ':(glob)test/goldens/**/*.png'` is empty.
 2. **Starting the gallery must never open or lock the production database, even if it is corrupt or another LifeOS is running.** → Task 5 executes the startup selector with `--dart-define=LIFEOS_GALLERY=1` and a production callback that must never run. Source wiring and the import boundary are additional guards, not substitutes for executing the selector.
 3. **The gallery at 200 % text with long labels stays usable:** the list, knobs and canvas must not throw overflow errors. → Task 5 test "the gallery holds at 200 % text with long labels".
 4. **A catalog entry that silently goes stale** (a file renamed, a demo id changed, a golden missing) misleads every later session. → Task 8's catalog test checks each entry's file path, gallery id and golden file.
@@ -246,7 +246,7 @@ Expected: `No issues found!` If `directives_ordering` is reported, run `$DART fi
 
 - **Step 5: Run the whole suite, goldens untouched**
 
-Run: `$FLUTTER test --reporter expanded && git status --porcelain -- test/goldens`
+Run: `$FLUTTER test --reporter expanded && git status --porcelain -- ':(glob)test/goldens/**/*.png'`
 Expected: `+1033 ~1: All tests passed!` and no output from `git status`.
 
 - **Step 6: Record checkpoint**
@@ -458,7 +458,7 @@ Expected: `No issues found!` If an `ambiguous_import` appears (a name declared b
 
 - **Step 6: Run the guards, then everything, goldens untouched**
 
-Run: `$FLUTTER test test/ui/library_boundary_test.dart && $FLUTTER test --reporter expanded && git status --porcelain -- test/goldens`
+Run: `$FLUTTER test test/ui/library_boundary_test.dart && $FLUTTER test --reporter expanded && git status --porcelain -- ':(glob)test/goldens/**/*.png'`
 Expected: 4 guard tests PASS; `All tests passed!`; no `git status` output.
 
 - **Step 7: Record checkpoint**
@@ -549,7 +549,7 @@ Expected: `No issues found!` If `unused_import` is reported in `keys.dart` or `d
 
 - **Step 4: Run guards, all tests, goldens untouched**
 
-Run: `$FLUTTER test test/ui/library_boundary_test.dart && $FLUTTER test --reporter expanded && git status --porcelain -- test/goldens`
+Run: `$FLUTTER test test/ui/library_boundary_test.dart && $FLUTTER test --reporter expanded && git status --porcelain -- ':(glob)test/goldens/**/*.png'`
 Expected: 5 guard tests PASS; `All tests passed!`; no `git status` output.
 
 - **Step 5: Record checkpoint**
@@ -561,7 +561,7 @@ Inspect `git diff --stat` and `git status --short`, then record this task's chan
 ### Task 5: The gallery host, its entry point and the `app.sh` item
 
 **Files:**
-- Create: `lib/ui/gallery/gallery_demo.dart`, `lib/ui/gallery/gallery_host.dart`, `lib/ui/gallery/gallery_app.dart`, `lib/ui/gallery/gallery_demos.dart`, `lib/ui/gallery/gallery_main.dart`, `lib/ui/gallery/demos/foundation_demos.dart`, `test/support/gallery.dart`, `test/ui/gallery/gallery_app_test.dart`, `test/ui/gallery/gallery_main_test.dart`, `test/repository/app_launcher_test.dart`
+- Create: `lib/app/startup_mode.dart`, `lib/ui/gallery/gallery_demo.dart`, `lib/ui/gallery/gallery_host.dart`, `lib/ui/gallery/gallery_app.dart`, `lib/ui/gallery/gallery_demos.dart`, `lib/ui/gallery/gallery_main.dart`, `lib/ui/gallery/demos/foundation_demos.dart`, `test/support/gallery.dart`, `test/ui/gallery/gallery_app_test.dart`, `test/ui/gallery/gallery_main_test.dart`, `test/repository/app_launcher_test.dart`
 - Modify: `lib/main.dart:21-22`, `app.sh`
 
 **Interfaces:**
@@ -928,23 +928,34 @@ final class GalleryCanvas extends StatelessWidget {
     child: ColoredBox(
       color: MillenniumColors.page,
       child: MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(knobs.textScale)),
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(knobs.textScale)),
         child: EraFormScope(
           enabled: knobs.enabled,
-          child: SingleChildScrollView(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+          child: LayoutBuilder(
+            builder: (context, viewport) => SingleChildScrollView(
+              // The horizontal era scrollbar stacks under its content and
+              // needs a bounded height: the demo's, plus the 17 px bar when
+              // the demo is wider than the canvas.
               child: SizedBox(
-                width: demo.size.width * knobs.textScale,
-                height: demo.size.height * knobs.textScale,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: Builder(
-                      builder: (context) => demo.build(context, knobs),
+                height:
+                    demo.size.height * knobs.textScale +
+                    (demo.size.width * knobs.textScale > viewport.maxWidth
+                        ? 17
+                        : 0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: demo.size.width * knobs.textScale,
+                    height: demo.size.height * knobs.textScale,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Builder(
+                          builder: (context) => demo.build(context, knobs),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -1346,7 +1357,7 @@ select only production. Never validate the mode switch only by matching source t
 
 - **Step 10: Analyze, full suite, goldens untouched**
 
-Run: `$FLUTTER analyze lib test tool && $FLUTTER test --reporter expanded && git status --porcelain -- test/goldens`
+Run: `$FLUTTER analyze lib test tool && $FLUTTER test --reporter expanded && git status --porcelain -- ':(glob)test/goldens/**/*.png'`
 Expected: `No issues found!`, `All tests passed!`, no `git status` output.
 
 - **Step 11: Record checkpoint**
@@ -2670,7 +2681,7 @@ Inspect every new synthetic and real-font golden, using a contact sheet if usefu
 
 - **Step 8: Verify and record checkpoint**
 
-Run: `$FLUTTER analyze lib test tool && $FLUTTER test --reporter expanded && git status --porcelain -- test/goldens`
+Run: `$FLUTTER analyze lib test tool && $FLUTTER test --reporter expanded && git status --porcelain -- ':(glob)test/goldens/**/*.png'`
 Expected: `No issues found!`, `All tests passed!`, no `git status` output.
 
 Inspect `git diff --stat` and `git status --short`, then record this task's changes and validation in `bd update lifeManager-9pk.1 --notes="..."`. Keep earlier checkpoint information when updating notes. Leave changes uncommitted unless explicitly authorized.
@@ -3331,8 +3342,8 @@ the automated regression evidence.
 
 - **Step 5: Goldens and tree clean**
 
-Run: `git status --porcelain -- test/goldens && git status --short`
-Expected: nothing under `test/goldens`; only the intended changes.
+Run: `git status --porcelain -- ':(glob)test/goldens/**/*.png' && git status --short`
+Expected: no production PNG changes; Dart import rewrites under `test/goldens/` are expected. Confirm baseline PNG hashes match and inspect the remaining intended changes.
 
 - **Step 6: Close the bead and hand off**
 

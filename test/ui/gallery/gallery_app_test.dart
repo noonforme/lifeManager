@@ -58,6 +58,47 @@ void main() {
     expect(find.byType(GalleryCanvas), findsOneWidget);
   });
 
+  testWidgets(
+    'all knobs remain reachable at 800 by 600 with 200 percent text',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(const GalleryApp());
+      await tester.pumpAndSettle();
+      for (final label in [
+        'Enabled',
+        'Show an error',
+        'Long text',
+        '200 % text',
+      ]) {
+        final knob = find.text(label);
+        await tester.ensureVisible(knob);
+        await tester.pumpAndSettle();
+        expect(knob.hitTestable(), findsOneWidget);
+        await tester.tap(knob);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      }
+      expect(canvas(tester).knobs.enabled, isFalse);
+      expect(canvas(tester).knobs.error, isTrue);
+      expect(canvas(tester).knobs.longText, isTrue);
+      expect(canvas(tester).knobs.textScale, 2);
+      for (final label in ['Enabled', 'Show an error', 'Long text']) {
+        final knob = find.text(label);
+        await tester.ensureVisible(knob);
+        await tester.pumpAndSettle();
+        expect(knob.hitTestable(), findsOneWidget);
+        await tester.tap(knob);
+        await tester.pumpAndSettle();
+      }
+      expect(canvas(tester).knobs.enabled, isTrue);
+      expect(canvas(tester).knobs.error, isFalse);
+      expect(canvas(tester).knobs.longText, isFalse);
+      expect(canvas(tester).knobs.textScale, 2);
+    },
+  );
+
   testWidgets('every demo builds alone without errors', (tester) async {
     for (final demo in galleryDemos) {
       await pumpGalleryDemo(tester, demo);

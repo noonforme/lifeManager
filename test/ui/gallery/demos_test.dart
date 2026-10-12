@@ -8,18 +8,25 @@ import '../../support/gallery.dart';
 import '../../support/ui_library.dart';
 
 void main() {
-  testWidgets('every control demo builds alone, plain and with every knob', (
+  testWidgets('every demo builds alone, plain and with every knob', (
     tester,
   ) async {
-    for (final demo in controlDemos) {
+    for (final demo in galleryDemos) {
       for (final knobs in const [
         GalleryKnobs(),
+        GalleryKnobs(error: true, longText: true),
         GalleryKnobs(enabled: false, error: true, longText: true),
+        GalleryKnobs(enabled: false, error: true, longText: true, textScale: 2),
       ]) {
         await pumpGalleryDemo(tester, demo, knobs: knobs);
         expect(tester.takeException(), isNull, reason: demo.id);
       }
     }
+  });
+
+  test('demo ids are sorted by folder and id', () {
+    final ids = galleryDemos.map((demo) => demo.id).toList();
+    expect(ids, orderedEquals([...ids]..sort()));
   });
 
   testWidgets("the Enabled knob disables the key demo's keys", (tester) async {

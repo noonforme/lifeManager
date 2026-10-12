@@ -135,75 +135,116 @@ final class EraComboFace extends StatelessWidget {
     required this.value,
     this.minWidth = 60,
     this.focused = false,
+    this.enabled = true,
+    this.fill = false,
     super.key,
   });
 
   final String value;
   final double minWidth;
 
+  /// Gives the text all the width the box is given, so the arrow sits at
+  /// the right edge of a box wider than its text, such as a grid cell.
+  /// Needs a bounded width. False keeps the box as wide as its text.
+  final bool fill;
+
   /// Lights the value in selection blue, as a focused era list box did.
   final bool focused;
+
+  /// False greys the box onto the face colour, as a read-only form shows
+  /// its fields.
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
+    Widget text = Container(
+      color: focused ? skin.tokens.selWash : null,
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: Text(
+        value,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: skin.typography.body.copyWith(
+          color: !enabled
+              ? skin.tokens.muted
+              : focused
+              ? skin.tokens.selInk
+              : skin.tokens.ink,
+        ),
+      ),
+    );
+    // A filled box lights only its text, as a box as wide as its text does.
+    if (fill) {
+      text = Align(
+        alignment: AlignmentDirectional.centerStart,
+        heightFactor: 1,
+        child: text,
+      );
+    }
     return Container(
       constraints: BoxConstraints(minHeight: 24, minWidth: minWidth),
       decoration: BoxDecoration(
-        color: skin.tokens.paper,
+        color: enabled ? skin.tokens.paper : skin.tokens.chrome,
         border: Border.all(color: MillenniumColors.fieldLine),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Flexible(
+            fit: fill ? FlexFit.tight : FlexFit.loose,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-              child: Container(
-                color: focused ? skin.tokens.selWash : null,
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: skin.typography.body.copyWith(
-                    color: focused ? skin.tokens.selInk : skin.tokens.ink,
-                  ),
-                ),
-              ),
+              child: text,
             ),
           ),
-          const ComboArrow(),
+          ComboArrow(enabled: enabled),
         ],
       ),
     );
   }
 }
 
-/// The blue drop-arrow button at the right of a combo box.
+/// The blue drop-arrow button at the right of a combo box; grey when
+/// [enabled] is false.
 final class ComboArrow extends StatelessWidget {
-  const ComboArrow({super.key});
+  const ComboArrow({this.enabled = true, super.key});
+
+  final bool enabled;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 17,
-    constraints: const BoxConstraints(minHeight: 22),
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          MillenniumColors.comboArrowTop,
-          MillenniumColors.comboArrowBottom,
-        ],
+  Widget build(BuildContext context) {
+    if (!enabled) {
+      final t = LifeOSSkinScope.of(context).tokens;
+      return Container(
+        width: 17,
+        constraints: const BoxConstraints(minHeight: 22),
+        color: t.chrome,
+        child: CustomPaint(painter: _DownArrow(t.muted)),
+      );
+    }
+    return Container(
+      width: 17,
+      constraints: const BoxConstraints(minHeight: 22),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            MillenniumColors.comboArrowTop,
+            MillenniumColors.comboArrowBottom,
+          ],
+        ),
       ),
-    ),
-    child: const CustomPaint(painter: _DownArrow()),
-  );
+      child: const CustomPaint(painter: _DownArrow()),
+    );
+  }
 }
 
 final class _DownArrow extends CustomPainter {
-  const _DownArrow();
+  const _DownArrow([this.color = MillenniumColors.comboArrowInk]);
+
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -214,12 +255,12 @@ final class _DownArrow extends CustomPainter {
         ..lineTo(c.dx + 4, c.dy - 2)
         ..lineTo(c.dx, c.dy + 2)
         ..close(),
-      Paint()..color = MillenniumColors.comboArrowInk,
+      Paint()..color = color,
     );
   }
 
   @override
-  bool shouldRepaint(_DownArrow oldDelegate) => false;
+  bool shouldRepaint(_DownArrow oldDelegate) => color != oldDelegate.color;
 }
 
 /// A titled frame around related content, its legend in Head blue

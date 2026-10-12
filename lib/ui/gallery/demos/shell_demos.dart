@@ -2,6 +2,10 @@ import 'package:flutter/widgets.dart';
 
 import '../../ui.dart';
 import '../gallery_demo.dart';
+import 'banded_toolbar_demo.dart';
+import 'pane_caption_demo.dart';
+import 'splitter_demo.dart';
+import 'tab_strip_demo.dart';
 
 final shellDemos = <GalleryDemo>[
   GalleryDemo(
@@ -221,6 +225,10 @@ final shellDemos = <GalleryDemo>[
         'state.',
     build: (context, knobs) => const _PropertySheetDemo(),
   ),
+  bandedToolbarDemo,
+  paneCaptionDemo,
+  splitterDemo,
+  tabStripDemo,
 ];
 
 final class _PropertySheetDemo extends StatefulWidget {

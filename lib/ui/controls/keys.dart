@@ -22,10 +22,15 @@ final class KeyButton extends StatefulWidget {
     this.trailing,
     this.semanticLabel,
     this.tooltip,
+    this.wrapLabel = false,
     super.key,
   });
 
   final String label;
+
+  /// Wraps a long label onto several lines instead of cutting it with an
+  /// ellipsis. Off by default: keys are one line.
+  final bool wrapLabel;
 
   /// The era's pale yellow note on hover, for a toolbar key.
   final String? tooltip;
@@ -101,8 +106,11 @@ final class _KeyButtonState extends State<KeyButton> {
             Flexible(
               child: Text(
                 widget.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                maxLines: widget.wrapLabel ? null : 1,
+                overflow: widget.wrapLabel
+                    ? TextOverflow.clip
+                    : TextOverflow.ellipsis,
+                textAlign: widget.wrapLabel ? TextAlign.center : null,
                 style:
                     (kind == KeyKind.small
                             ? skin.typography.small

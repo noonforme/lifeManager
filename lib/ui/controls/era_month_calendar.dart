@@ -7,6 +7,7 @@ import '../foundation/era_dates.dart';
 import '../foundation/lifeos_skin.dart';
 import '../foundation/millennium_style.dart';
 import 'era_controls.dart';
+import 'era_editor_host.dart';
 
 /// The era's month calendar (era pickers spec 3.2): the month on a blue
 /// band between ◂ and ▸, six Monday-first weeks with today circled, and a
@@ -78,6 +79,15 @@ final class _EraMonthCalendarState extends State<EraMonthCalendar> {
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is KeyUpEvent) return KeyEventResult.ignored;
+    // In an editor host the calendar moves and picks by mouse only
+    // (database shell spec 4.6). Enter, Tab and Esc close a drop-down
+    // without taking the cursor day, then reach the host.
+    if (EraEditorHostScope.maybeOf(context) != null) {
+      if (EraEditorHostScope.editorKeyOf(event) != null) {
+        widget.onCancel?.call();
+      }
+      return EraEditorHostScope.handleKey(context, event);
+    }
     final key = event.logicalKey;
     final years = HardwareKeyboard.instance.isShiftPressed;
     LocalDate? target() {

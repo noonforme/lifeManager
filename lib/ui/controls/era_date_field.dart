@@ -12,6 +12,7 @@ import '../foundation/era_dates.dart';
 import '../foundation/lifeos_skin.dart';
 import '../foundation/millennium_style.dart';
 import 'era_controls.dart';
+import 'era_editor_host.dart';
 import 'era_form.dart';
 import 'era_month_calendar.dart';
 
@@ -60,6 +61,8 @@ final class EraDateField extends StatefulWidget {
     this.optional = false,
     this.error,
     this.fieldKey,
+    this.focusNode,
+    this.autofocus = false,
     super.key,
   }) : assert(optional || value != null);
 
@@ -79,12 +82,20 @@ final class EraDateField extends StatefulWidget {
   /// The key of the white box, which tests and forms address.
   final Key? fieldKey;
 
+  /// The box's focus node, for a host that moves the keyboard to it; the
+  /// box owns one when null.
+  final FocusNode? focusNode;
+
+  /// Focuses the box when it is first built, on its year.
+  final bool autofocus;
+
   @override
   State<EraDateField> createState() => _EraDateFieldState();
 }
 
 final class _EraDateFieldState extends State<EraDateField> {
-  final _box = FocusNode(debugLabel: 'EraDateField');
+  final _ownBox = FocusNode(debugLabel: 'EraDateField');
+  FocusNode get _box => widget.focusNode ?? _ownBox;
   final _calendarNode = FocusNode(debugLabel: 'EraDateFieldCalendar');
   final _portal = OverlayPortalController();
   LocalDate? _lastShown;
@@ -120,6 +131,10 @@ final class _EraDateFieldState extends State<EraDateField> {
 
   /// Off for a clear optional box, or one in a read-only form.
   bool get _enabled => widget.value != null && EraFormScope.enabledOf(context);
+
+  /// Inside an editor host (database shell spec 4.6) the calendar is the
+  /// mouse's and focus stays on the box, which is the editor.
+  bool get _hosted => EraEditorHostScope.maybeOf(context) != null;
 
   @override
   void initState() {
@@ -175,7 +190,7 @@ final class _EraDateFieldState extends State<EraDateField> {
     _scroll?.removeListener(_onScroll);
     _stopTimings();
     dateTrace?.log(widget.label, 'box disposed');
-    _box.dispose();
+    _ownBox.dispose();
     _calendarNode
       ..removeListener(_onCalendarFocus)
       ..dispose();
@@ -192,6 +207,7 @@ final class _EraDateFieldState extends State<EraDateField> {
       SchedulerBinding.instance.addTimingsCallback(_timings!);
     }
     setState(_portal.show);
+    if (_hosted) return;
     // The box already holds focus, so the calendar's autofocus would be
     // ignored; hand focus over once it is built.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -244,18 +260,25 @@ final class _EraDateFieldState extends State<EraDateField> {
     _box.requestFocus();
   }
 
-  void _onFocusChange(bool focused) => setState(() {
-    dateTrace?.log(widget.label, 'box focus $focused');
-    _focused = focused;
-    _typed = '';
-    if (focused && !_keepPart) _part = _DatePart.year;
-    _keepPart = false;
-  });
+  void _onFocusChange(bool focused) {
+    // A hosted calendar never holds focus, so the box losing it closes the
+    // calendar, as the calendar losing it does outside a host.
+    if (!focused && _hosted) _dismiss('focus left');
+    setState(() {
+      dateTrace?.log(widget.label, 'box focus $focused');
+      _focused = focused;
+      _typed = '';
+      if (focused && !_keepPart) _part = _DatePart.year;
+      _keepPart = false;
+    });
+  }
 
   /// A click on a part selects it. Focus leaving an open calendar for the
-  /// box closes it.
+  /// box closes it; in an editor host the box already holds focus, so the
+  /// click closes the calendar itself and the part takes typing at once.
   void _choose(_DatePart part) {
     dateTrace?.log(widget.label, 'select ${part.name}');
+    if (_hosted) _dismiss('part chosen');
     _focusKeepingPart();
     setState(() {
       _part = part;
@@ -330,7 +353,9 @@ final class _EraDateFieldState extends State<EraDateField> {
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
-    if (event is KeyUpEvent || !_enabled) return KeyEventResult.ignored;
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    if (_hosted) return _onHostedKey(event);
+    if (!_enabled) return KeyEventResult.ignored;
     final key = event.logicalKey;
     final keyboard = HardwareKeyboard.instance;
     final press = event is KeyDownEvent;
@@ -353,6 +378,14 @@ final class _EraDateFieldState extends State<EraDateField> {
         keyboard.isMetaPressed) {
       return KeyEventResult.ignored;
     }
+    return _entryKey(event) ?? KeyEventResult.ignored;
+  }
+
+  /// A part step, a part move, a digit, a separator or Backspace; null for
+  /// any other key.
+  KeyEventResult? _entryKey(KeyEvent event) {
+    final key = event.logicalKey;
+    final press = event is KeyDownEvent;
     if (key == LogicalKeyboardKey.arrowUp ||
         key == LogicalKeyboardKey.arrowDown) {
       _step(key == LogicalKeyboardKey.arrowUp ? 1 : -1);
@@ -367,20 +400,11 @@ final class _EraDateFieldState extends State<EraDateField> {
     // Typing acts once per press; a held key does not repeat, nor reach
     // a shortcut above the box.
     final digit = eraTypedDigit(key);
-    if (digit != null && !keyboard.isShiftPressed) {
+    if (digit != null && !HardwareKeyboard.instance.isShiftPressed) {
       if (press) _type(digit);
       return KeyEventResult.handled;
     }
-    final character = event.character;
-    if (key == LogicalKeyboardKey.minus ||
-        key == LogicalKeyboardKey.numpadSubtract ||
-        key == LogicalKeyboardKey.slash ||
-        key == LogicalKeyboardKey.numpadDivide ||
-        key == LogicalKeyboardKey.period ||
-        key == LogicalKeyboardKey.numpadDecimal ||
-        character == '-' ||
-        character == '/' ||
-        character == '.') {
+    if (_isSeparator(event)) {
       if (press) _movePart(1);
       return KeyEventResult.handled;
     }
@@ -390,7 +414,47 @@ final class _EraDateFieldState extends State<EraDateField> {
       if (press) setState(() => _typed = '');
       return KeyEventResult.handled;
     }
-    return KeyEventResult.ignored;
+    return null;
+  }
+
+  static bool _isSeparator(KeyEvent event) {
+    final key = event.logicalKey;
+    final character = event.character;
+    return key == LogicalKeyboardKey.minus ||
+        key == LogicalKeyboardKey.numpadSubtract ||
+        key == LogicalKeyboardKey.slash ||
+        key == LogicalKeyboardKey.numpadDivide ||
+        key == LogicalKeyboardKey.period ||
+        key == LogicalKeyboardKey.numpadDecimal ||
+        character == '-' ||
+        character == '/' ||
+        character == '.';
+  }
+
+  /// The box's keys in an editor host (database shell spec 4.6): Up/Down
+  /// step the part, Left/Right choose one, and digits and separators are
+  /// typed; plain Enter, Tab and Esc go to the host. Enter, Space and
+  /// Alt+Down open nothing: the calendar opens and picks by mouse. While it
+  /// is open, Enter, Tab and Esc close it without taking its cursor day and
+  /// then reach the host; every other key is held. Modified keys are held,
+  /// except Shift on a separator.
+  KeyEventResult _onHostedKey(KeyEvent event) {
+    if (_portal.isShowing) {
+      if (EraEditorHostScope.editorKeyOf(event) != null) _close('host key');
+      return EraEditorHostScope.handleKey(context, event);
+    }
+    final keyboard = HardwareKeyboard.instance;
+    if (!_enabled ||
+        keyboard.isControlPressed ||
+        keyboard.isAltPressed ||
+        keyboard.isMetaPressed ||
+        (keyboard.isShiftPressed && !_isSeparator(event))) {
+      return EraEditorHostScope.handleKey(context, event);
+    }
+    if (event is KeyDownEvent) {
+      dateTrace?.log(widget.label, 'key ${event.logicalKey.keyLabel}');
+    }
+    return _entryKey(event) ?? EraEditorHostScope.handleKey(context, event);
   }
 
   /// [box] with its pointer events and hovers logged, naming the part hit,
@@ -446,6 +510,18 @@ final class _EraDateFieldState extends State<EraDateField> {
   /// Built at layout time, so the calendar follows the box when the window
   /// resizes or the box moves for any other reason.
   Widget _calendar(BuildContext context, OverlayChildLayoutInfo info) {
+    Widget calendar = EraMonthCalendar(
+      focusNode: _calendarNode,
+      selected: widget.value,
+      today: widget.today,
+      onPicked: _pick,
+      onCancel: () => _close('Esc'),
+      autofocus: !_hosted,
+      traceName: widget.label,
+    );
+    // A hosted calendar is a popup choice, never focused: the box keeps
+    // focus as the editor (database shell spec 4.6).
+    if (_hosted) calendar = ExcludeFocus(child: calendar);
     final rect = MatrixUtils.transformRect(
       info.childPaintTransform,
       Offset.zero & info.childSize,
@@ -464,15 +540,7 @@ final class _EraDateFieldState extends State<EraDateField> {
             FocusManager.instance.applyFocusChangesIfNeeded();
             _dismiss('click outside');
           },
-          child: EraMonthCalendar(
-            focusNode: _calendarNode,
-            selected: widget.value,
-            today: widget.today,
-            onPicked: _pick,
-            onCancel: () => _close('Esc'),
-            autofocus: true,
-            traceName: widget.label,
-          ),
+          child: calendar,
         ),
       ),
     );
@@ -564,6 +632,7 @@ final class _EraDateFieldState extends State<EraDateField> {
                           child: ExcludeSemantics(
                             child: Focus(
                               focusNode: _box,
+                              autofocus: widget.autofocus,
                               canRequestFocus: _enabled,
                               onKeyEvent: _onKey,
                               onFocusChange: _onFocusChange,
@@ -745,10 +814,15 @@ final class _EraCheckState extends State<_EraCheck> {
     widget.onToggle!();
   }
 
+  /// In an editor host the check box ticks by mouse only: Space and Enter
+  /// no longer activate it (database shell spec 4.6).
+  KeyEventResult _onHostedKey(FocusNode node, KeyEvent event) =>
+      EraEditorHostScope.handleKey(context, event);
+
   @override
   Widget build(BuildContext context) {
     final t = LifeOSSkinScope.of(context).tokens;
-    return MergeSemantics(
+    final check = MergeSemantics(
       child: Semantics(
         container: true,
         checked: widget.checked,
@@ -800,6 +874,14 @@ final class _EraCheckState extends State<_EraCheck> {
           ),
         ),
       ),
+    );
+    if (EraEditorHostScope.watch(context) == null) return check;
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      includeSemantics: false,
+      onKeyEvent: _onHostedKey,
+      child: check,
     );
   }
 }

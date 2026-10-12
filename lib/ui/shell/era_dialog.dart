@@ -166,6 +166,7 @@ final class CaptionBar extends StatelessWidget {
     this.trailing = const [],
     this.closeLabel,
     this.large = false,
+    this.closeEnabled = true,
     super.key,
   });
 
@@ -179,6 +180,9 @@ final class CaptionBar extends StatelessWidget {
 
   /// Announced for the close key; defaults to "Close [title]".
   final String? closeLabel;
+
+  /// False paints the close key greyed and inert instead of removing it.
+  final bool closeEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -229,12 +233,12 @@ final class CaptionBar extends StatelessWidget {
                 ? ExcludeFocusTraversal(
                     child: _CloseKey(
                       label: closeLabel ?? 'Close $title',
-                      onPressed: close,
+                      onPressed: closeEnabled ? close : null,
                     ),
                   )
                 : _CloseKey(
                     label: closeLabel ?? 'Close $title',
-                    onPressed: close,
+                    onPressed: closeEnabled ? close : null,
                   ),
         ],
       ),
@@ -256,31 +260,45 @@ final class _CloseKey extends StatelessWidget {
   const _CloseKey({required this.label, required this.onPressed});
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
-  Widget build(BuildContext context) => EraPressable(
-    label: label,
-    onPressed: onPressed,
+  Widget build(BuildContext context) {
+    final face = _face(context);
+    final press = onPressed;
+    if (press != null) {
+      return EraPressable(label: label, onPressed: press, child: face);
+    }
+    // Unavailable: greyed, announced as disabled, never focused or tapped.
+    return Semantics(
+      button: true,
+      enabled: false,
+      label: label,
+      excludeSemantics: true,
+      child: ExcludeFocus(
+        child: IgnorePointer(child: Opacity(opacity: 0.5, child: face)),
+      ),
+    );
+  }
+
+  Widget _face(BuildContext context) => Container(
+    width: 24,
+    height: 24,
+    alignment: Alignment.center,
     child: Container(
-      width: 24,
-      height: 24,
-      alignment: Alignment.center,
-      child: Container(
-        width: 18,
-        height: 18,
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(3)),
-          border: Border.all(color: LifeOSSkinScope.of(context).tokens.paper),
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [MillenniumColors.closeTop, MillenniumColors.closeBottom],
-          ),
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.all(Radius.circular(3)),
+        border: Border.all(color: LifeOSSkinScope.of(context).tokens.paper),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [MillenniumColors.closeTop, MillenniumColors.closeBottom],
         ),
-        child: CustomPaint(
-          painter: _Cross(LifeOSSkinScope.of(context).tokens.headInk),
-        ),
+      ),
+      child: CustomPaint(
+        painter: _Cross(LifeOSSkinScope.of(context).tokens.headInk),
       ),
     ),
   );

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../foundation/lifeos_skin.dart';
 import '../foundation/millennium_style.dart';
 import 'era_controls.dart';
+import 'era_editor_host.dart';
 
 /// Field widths by kind (XP-authentic shell spec 8.1).
 abstract final class EraFieldWidth {
@@ -65,8 +66,18 @@ final class EraLabelled extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final skin = LifeOSSkinScope.of(context);
     final width = fieldWidth;
+    // A bare editor (a grid or property cell) shows the field alone: its
+    // semantics already carry the name, and it fills the cell, never
+    // narrower than its kind width while the cell allows.
+    if (EraEditorHostScope.bareOf(context)) {
+      if (width == null) return field;
+      return ConstrainedBox(
+        constraints: BoxConstraints(minWidth: width),
+        child: grow ? IntrinsicWidth(child: field) : field,
+      );
+    }
+    final skin = LifeOSSkinScope.of(context);
     final labelWidth = EraFormScope.labelWidthOf(context);
     final text = ExcludeSemantics(
       child: Text(
@@ -137,11 +148,16 @@ final class EraLabelled extends StatelessWidget {
 }
 
 /// A 13 px era check box with its label; the whole row toggles it.
+///
+/// Inside an [EraEditorHostScope] a click also focuses it, so the host's
+/// Enter, Tab and Esc reach it; a bare scope shows the box alone, its
+/// label kept as its semantic name.
 final class EraCheckBox extends StatelessWidget {
   const EraCheckBox({
     required this.value,
     required this.onChanged,
     required this.label,
+    this.focusNode,
     super.key,
   });
 
@@ -149,9 +165,13 @@ final class EraCheckBox extends StatelessWidget {
   final ValueChanged<bool>? onChanged;
   final String label;
 
+  /// The check box's focus node, for a host that moves the keyboard to it.
+  final FocusNode? focusNode;
+
   @override
   Widget build(BuildContext context) => _Choice(
     label: label,
+    focusNode: focusNode,
     checked: value,
     radio: false,
     onPressed: onChanged == null || !EraFormScope.enabledOf(context)
@@ -174,6 +194,7 @@ final class EraRadio<T> extends StatelessWidget {
     this.detail,
     this.focusable = true,
     this.highlighted = false,
+    this.focusNode,
     super.key,
   });
 
@@ -191,9 +212,13 @@ final class EraRadio<T> extends StatelessWidget {
   /// Draws the focus rectangle for a group that has focus.
   final bool highlighted;
 
+  /// The radio's focus node, for a host that moves the keyboard to it.
+  final FocusNode? focusNode;
+
   @override
   Widget build(BuildContext context) => _Choice(
     label: label,
+    focusNode: focusNode,
     detail: detail,
     focusable: focusable,
     highlighted: highlighted,
@@ -248,6 +273,10 @@ final class _EraRadioGroupState<T> extends State<EraRadioGroup<T>> {
       EraFormScope.enabledOf(context) ? widget.onChanged : null;
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    // A hosted choice changes by mouse only (database shell spec 4.6).
+    if (EraEditorHostScope.maybeOf(context) != null) {
+      return EraEditorHostScope.handleKey(context, event);
+    }
     final change = _change;
     if (change == null || widget.options.isEmpty) {
       return KeyEventResult.ignored;
@@ -307,10 +336,12 @@ final class _Choice extends StatefulWidget {
     this.detail,
     this.focusable = true,
     this.highlighted = false,
+    this.focusNode,
   });
 
   final String label;
   final String? detail;
+  final FocusNode? focusNode;
   final bool focusable;
   final bool highlighted;
   final bool checked;
@@ -325,12 +356,36 @@ final class _Choice extends StatefulWidget {
 final class _ChoiceState extends State<_Choice> {
   bool _focused = false;
 
+  /// The node a hosted choice focuses on a click, when its owner gave none.
+  FocusNode? _ownNode;
+
+  @override
+  void dispose() {
+    _ownNode?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final skin = LifeOSSkinScope.of(context);
     final tokens = skin.tokens;
     final enabled = widget.onPressed != null;
-    return Semantics(
+    final host = EraEditorHostScope.watch(context);
+    final bare = host?.bare ?? false;
+    // A hosted choice takes focus on a click, so its host's keys reach it.
+    final node = host == null
+        ? widget.focusNode
+        : widget.focusNode ?? (_ownNode ??= FocusNode(debugLabel: 'EraChoice'));
+    final onTap = host == null || node == null || !widget.focusable
+        ? widget.onPressed
+        : widget.onPressed == null
+        ? null
+        : () {
+            node.requestFocus();
+            widget.onPressed!();
+          };
+    final lit = _focused || widget.highlighted;
+    final choice = Semantics(
       container: true,
       label: widget.label,
       checked: widget.checked,
@@ -339,6 +394,7 @@ final class _ChoiceState extends State<_Choice> {
       onTap: widget.onPressed,
       excludeSemantics: true,
       child: FocusableActionDetector(
+        focusNode: node,
         enabled: enabled && widget.focusable,
         onShowFocusHighlight: (value) => setState(() => _focused = value),
         actions: {
@@ -351,48 +407,83 @@ final class _ChoiceState extends State<_Choice> {
         },
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: widget.onPressed,
+          onTap: onTap,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 24),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                widget.mark,
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 1),
-                    foregroundDecoration: _focused || widget.highlighted
-                        ? DottedFocusRectangle(color: tokens.focus, inset: 0)
-                        : null,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          widget.label,
-                          style: skin.typography.body.copyWith(
-                            color: enabled ? tokens.ink : tokens.muted,
+            // A bare choice (a grid or property cell) is its mark alone,
+            // ringed while focused.
+            child: bare
+                ? Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    widthFactor: 1,
+                    heightFactor: 1,
+                    child: Container(
+                      width: 19,
+                      height: 19,
+                      alignment: Alignment.center,
+                      foregroundDecoration: lit
+                          ? DottedFocusRectangle(color: tokens.focus, inset: 0)
+                          : null,
+                      child: widget.mark,
+                    ),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      widget.mark,
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 1),
+                          foregroundDecoration: lit
+                              ? DottedFocusRectangle(
+                                  color: tokens.focus,
+                                  inset: 0,
+                                )
+                              : null,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                widget.label,
+                                style: skin.typography.body.copyWith(
+                                  color: enabled ? tokens.ink : tokens.muted,
+                                ),
+                              ),
+                              if (widget.detail case final detail?)
+                                Text(
+                                  detail,
+                                  style: skin.typography.small.copyWith(
+                                    color: tokens.muted,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        if (widget.detail case final detail?)
-                          Text(
-                            detail,
-                            style: skin.typography.small.copyWith(
-                              color: tokens.muted,
-                            ),
-                          ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
     );
+    return _hostedKeys(context, choice);
   }
+}
+
+/// [child] with its keys held inside an editor host, where Space and Enter
+/// no longer activate a choice (database shell spec 4.6); [child] alone
+/// outside one.
+Widget _hostedKeys(BuildContext context, Widget child) {
+  if (EraEditorHostScope.watch(context) == null) return child;
+  return Focus(
+    canRequestFocus: false,
+    skipTraversal: true,
+    includeSemantics: false,
+    onKeyEvent: (_, event) => EraEditorHostScope.handleKey(context, event),
+    child: child,
+  );
 }
 
 final class _Box extends StatelessWidget {

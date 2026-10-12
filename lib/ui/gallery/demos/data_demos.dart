@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../ui.dart';
 import '../gallery_demo.dart';
+import 'tree_view_demo.dart';
 
 final dataDemos = <GalleryDemo>[
   GalleryDemo(
@@ -113,6 +114,7 @@ final dataDemos = <GalleryDemo>[
       ),
     ),
   ),
+  treeViewDemo,
 ];
 
 final class _Day {

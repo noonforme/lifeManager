@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../foundation/era_icons.dart';
 import '../foundation/lifeos_skin.dart';
 import 'era_controls.dart';
+import 'era_editor_host.dart';
+import 'era_form.dart';
 
 /// One row of an era combo list.
 @immutable
@@ -38,6 +40,12 @@ final class EraComboItem<T> {
 /// keys. Up and Down on the closed box step the value, as in the era;
 /// Enter, Space, Alt+Down or F4 open the list, Esc or a click outside close
 /// it.
+///
+/// Inside an [EraEditorHostScope] (database shell spec 4.6) the list opens
+/// and picks by mouse only: its rows never take focus, which stays on the
+/// box; the box neither opens nor steps from the keyboard; Enter, Tab and
+/// Esc close an open list without taking its lit row and reach the host;
+/// and a read-only [EraFormScope] greys and locks the box.
 final class EraCombo<T> extends StatefulWidget {
   const EraCombo({
     required this.items,
@@ -47,6 +55,7 @@ final class EraCombo<T> extends StatefulWidget {
     this.semanticValue,
     this.face,
     this.minWidth = 60,
+    this.focusNode,
     super.key,
   });
 
@@ -58,10 +67,22 @@ final class EraCombo<T> extends StatefulWidget {
   /// Announced after [semanticLabel]; the current row's label by default.
   final String? semanticValue;
 
-  /// Draws the closed box; [focused] lights its text. Defaults to an
+  /// Draws the closed box; [focused] lights its text, and
+  /// [EraCombo.enabledOf] tells whether the box is locked. Defaults to an
   /// [EraComboFace] showing the current row's label.
   final Widget Function(BuildContext context, bool focused)? face;
   final double minWidth;
+
+  /// The closed box's focus node, for a host that moves the keyboard to
+  /// it; the combo owns one when null.
+  final FocusNode? focusNode;
+
+  /// Whether the combo whose [face] [context] builds takes input: false
+  /// for a hosted combo in a read-only [EraFormScope], so a custom face can
+  /// grey as the default one does. True outside a combo.
+  static bool enabledOf(BuildContext context) =>
+      context.findAncestorStateOfType<EraComboState<Object?>>()?._enabled ??
+      true;
 
   @override
   State<EraCombo<T>> createState() => EraComboState<T>();
@@ -70,11 +91,16 @@ final class EraCombo<T> extends StatefulWidget {
 /// Lets the shell open or focus a combo from the keyboard (F4, Alt+D).
 final class EraComboState<T> extends State<EraCombo<T>> {
   final _controller = MenuController();
-  final _faceNode = FocusNode(debugLabel: 'EraCombo');
+  final _ownFace = FocusNode(debugLabel: 'EraCombo');
+  FocusNode get _faceNode => widget.focusNode ?? _ownFace;
   final _faceKey = GlobalKey();
   List<FocusNode> _rows = const [];
   double _width = 0;
   bool _focused = false;
+
+  /// The row under the pointer in a hosted list, whose rows light by
+  /// hover alone; null lights the current row instead.
+  int? _hovered;
 
   @override
   void initState() {
@@ -98,7 +124,7 @@ final class EraComboState<T> extends State<EraCombo<T>> {
 
   @override
   void dispose() {
-    _faceNode.dispose();
+    _ownFace.dispose();
     for (final node in _rows) {
       node.dispose();
     }
@@ -112,6 +138,12 @@ final class EraComboState<T> extends State<EraCombo<T>> {
   int get _current =>
       widget.items.indexWhere((item) => item.value == widget.value);
 
+  bool get _hosted => EraEditorHostScope.maybeOf(context) != null;
+
+  /// False only for a hosted combo in a read-only form; a legacy combo
+  /// keeps working there, as it always has.
+  bool get _enabled => !_hosted || EraFormScope.enabledOf(context);
+
   /// Puts focus in the closed box.
   void focus() => _faceNode.requestFocus();
 
@@ -119,11 +151,15 @@ final class EraComboState<T> extends State<EraCombo<T>> {
   void open() => _open();
 
   void _open() {
-    if (_controller.isOpen || widget.items.isEmpty) return;
+    if (_controller.isOpen || widget.items.isEmpty || !_enabled) return;
     _faceNode.requestFocus();
     final box = _faceKey.currentContext?.findRenderObject() as RenderBox?;
     setState(() => _width = box?.size.width ?? 0);
     _controller.open();
+    if (_hosted) {
+      setState(() => _hovered = null);
+      return;
+    }
     // The current row starts lit, so the arrow keys move on from it.
     final index = _current < 0 ? 0 : _current;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -145,6 +181,12 @@ final class EraComboState<T> extends State<EraCombo<T>> {
   }
 
   KeyEventResult _onFaceKey(FocusNode node, KeyEvent event) {
+    if (_hosted) {
+      if (_controller.isOpen && EraEditorHostScope.editorKeyOf(event) != null) {
+        _controller.close();
+      }
+      return EraEditorHostScope.handleKey(context, event);
+    }
     if (event is KeyUpEvent || _controller.isOpen) {
       return KeyEventResult.ignored;
     }
@@ -175,6 +217,11 @@ final class EraComboState<T> extends State<EraCombo<T>> {
     final t = skin.tokens;
     final current = _current;
     final label = current < 0 ? '' : widget.items[current].label;
+    final hosted = EraEditorHostScope.watch(context) != null;
+    final enabled = !hosted || EraFormScope.enabledOf(context);
+    // A hosted list is a popup choice: its rows light under the pointer
+    // but never take focus from the box.
+    Widget row(Widget button) => hosted ? ExcludeFocus(child: button) : button;
     return MenuAnchor(
       controller: _controller,
       consumeOutsideTap: true,
@@ -194,37 +241,54 @@ final class EraComboState<T> extends State<EraCombo<T>> {
       ),
       menuChildren: [
         for (final (index, item) in widget.items.indexed)
-          MenuItemButton(
-            focusNode: _rows[index],
-            style: _rowStyle(skin, item),
-            onPressed: () => widget.onSelected(item.value),
-            child: Padding(
-              padding: EdgeInsets.only(left: item.depth * 16.0),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (item.icon case final icon?) ...[
-                    EraIcon(icon, disabled: item.muted),
-                    const SizedBox(width: 4),
+          row(
+            MenuItemButton(
+              focusNode: _rows[index],
+              style: _rowStyle(
+                skin,
+                item,
+                alwaysLit: hosted && (_hovered ?? current) == index,
+              ),
+              onHover: hosted
+                  ? (hovering) => setState(() {
+                      if (hovering) {
+                        _hovered = index;
+                      } else if (_hovered == index) {
+                        _hovered = null;
+                      }
+                    })
+                  : null,
+              onPressed: () => widget.onSelected(item.value),
+              child: Padding(
+                padding: EdgeInsets.only(left: item.depth * 16.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (item.icon case final icon?) ...[
+                      EraIcon(icon, disabled: item.muted),
+                      const SizedBox(width: 4),
+                    ],
+                    Text(item.label),
                   ],
-                  Text(item.label),
-                ],
+                ),
               ),
             ),
           ),
       ],
       builder: (context, controller, child) => Semantics(
         button: true,
+        enabled: enabled ? null : false,
         label: '${widget.semanticLabel}, ${widget.semanticValue ?? label}',
-        onTap: _toggle,
+        onTap: enabled ? _toggle : null,
         excludeSemantics: true,
         child: Focus(
           focusNode: _faceNode,
+          canRequestFocus: enabled ? null : false,
           onKeyEvent: _onFaceKey,
           onFocusChange: (focused) => setState(() => _focused = focused),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: _toggle,
+            onTap: enabled ? _toggle : null,
             child: KeyedSubtree(
               key: _faceKey,
               child:
@@ -233,6 +297,10 @@ final class EraComboState<T> extends State<EraCombo<T>> {
                     value: label,
                     minWidth: widget.minWidth,
                     focused: _focused,
+                    enabled: enabled,
+                    // A hosted box fills its cell or field with the arrow
+                    // at its right edge.
+                    fill: hosted,
                   ),
             ),
           ),
@@ -241,9 +309,16 @@ final class EraComboState<T> extends State<EraCombo<T>> {
     );
   }
 
-  ButtonStyle _rowStyle(LifeOSSkinData skin, EraComboItem<T> item) {
+  /// A row's look; [alwaysLit] lights it whatever its state, as a hosted
+  /// list lights the hovered or current row without focus.
+  ButtonStyle _rowStyle(
+    LifeOSSkinData skin,
+    EraComboItem<T> item, {
+    bool alwaysLit = false,
+  }) {
     final t = skin.tokens;
     bool lit(Set<WidgetState> states) =>
+        alwaysLit ||
         states.contains(WidgetState.hovered) ||
         states.contains(WidgetState.focused);
     return ButtonStyle(
