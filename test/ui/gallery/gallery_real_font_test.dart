@@ -41,4 +41,17 @@ void main() {
       );
     });
   }
+
+  testWidgets('real_font/controls_era_combo_open', (tester) async {
+    await pumpGalleryDemo(
+      tester,
+      galleryDemos.singleWhere((demo) => demo.id == 'controls/era_combo'),
+    );
+    await openComboDemoList(tester);
+    expect(find.text('All records'), findsOneWidget, reason: 'list open');
+    await expectLater(
+      find.byType(GalleryHost),
+      matchesGoldenFile('../goldens/real_font/controls_era_combo_open.png'),
+    );
+  });
 }

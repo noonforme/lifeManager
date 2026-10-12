@@ -16,4 +16,17 @@ void main() {
       );
     });
   }
+
+  testWidgets('controls_era_combo_open', (tester) async {
+    await pumpGalleryDemo(
+      tester,
+      galleryDemos.singleWhere((demo) => demo.id == 'controls/era_combo'),
+    );
+    await openComboDemoList(tester);
+    expect(find.text('All records'), findsOneWidget, reason: 'list open');
+    await expectLater(
+      find.byType(GalleryHost),
+      matchesGoldenFile('../goldens/controls_era_combo_open.png'),
+    );
+  });
 }
