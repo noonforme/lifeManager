@@ -1,0 +1,175 @@
+import 'package:drift/drift.dart';
+
+import '../../../../core/database/app_database.dart' as db;
+import '../../domain/facts.dart';
+import '../../domain/ids.dart';
+import '../../domain/shift.dart' as domain;
+import '../work_converters.dart';
+
+final class ShiftRegisterRow {
+  const ShiftRegisterRow({
+    required this.id,
+    required this.localStartDate,
+    required this.startUtc,
+    required this.endUtc,
+    required this.state,
+  });
+
+  final ShiftId id;
+  final String localStartDate;
+  final DateTime startUtc;
+  final DateTime? endUtc;
+  final domain.ShiftState state;
+  String? get note => null;
+}
+
+final class ShiftDao {
+  const ShiftDao(this.database);
+
+  final db.AppDatabase database;
+
+  Future<int> insert(domain.WorkShift value) =>
+      database.into(database.workShifts).insert(shiftToCompanion(value));
+
+  Future<int> insertBreak(domain.ShiftBreak value) =>
+      database.into(database.shiftBreaks).insert(shiftBreakToCompanion(value));
+
+  Future<domain.WorkShift?> byId(ShiftId id) async {
+    final row = await (database.select(
+      database.workShifts,
+    )..where((table) => table.id.equals(id.value))).getSingleOrNull();
+    return row == null ? null : shiftFromRow(row);
+  }
+
+  Future<List<domain.ShiftBreak>> breaksFor(ShiftId shiftId) async {
+    final rows =
+        await (database.select(database.shiftBreaks)
+              ..where((table) => table.shiftId.equals(shiftId.value))
+              ..orderBy([(table) => OrderingTerm.asc(table.startUtcMicros)]))
+            .get();
+    return rows.map(shiftBreakFromRow).toList(growable: false);
+  }
+
+  /// Every shift of the employment, in start order.
+  Future<List<domain.WorkShift>> forEmployment(EmploymentId id) async {
+    final rows =
+        await (database.select(database.workShifts)
+              ..where((table) => table.employmentId.equals(id.value))
+              ..orderBy([(table) => OrderingTerm.asc(table.startUtcMicros)]))
+            .get();
+    return rows.map(shiftFromRow).toList(growable: false);
+  }
+
+  Future<List<domain.ShiftBreak>> breaksForShifts(
+    Iterable<ShiftId> shiftIds,
+  ) async {
+    final ids = shiftIds.map((id) => id.value).toList(growable: false);
+    if (ids.isEmpty) return const [];
+    final rows =
+        await (database.select(database.shiftBreaks)
+              ..where((table) => table.shiftId.isIn(ids))
+              ..orderBy([(table) => OrderingTerm.asc(table.startUtcMicros)]))
+            .get();
+    return rows.map(shiftBreakFromRow).toList(growable: false);
+  }
+
+  /// Rewrites a draft's facts and bumps its revision; finalized and voided
+  /// shifts never match.
+  Future<int> reviseDraft(
+    domain.WorkShift value, {
+    required Revision expected,
+  }) {
+    return database.customUpdate(
+      '''
+      UPDATE work_shifts
+      SET start_utc_micros = ?, end_utc_micros = ?, timezone_id = ?,
+          local_start_date = ?, note = ?,
+          updated_at_utc_micros = ?, revision = revision + 1
+      WHERE id = ? AND revision = ? AND state = 'draft'
+      ''',
+      variables: [
+        Variable(value.startUtc.microsecondsSinceEpoch),
+        Variable(value.endUtc?.microsecondsSinceEpoch),
+        Variable(value.timezoneId),
+        Variable(value.localStartDate.toString()),
+        Variable(value.note),
+        Variable(value.updatedAtUtc.microsecondsSinceEpoch),
+        Variable(value.id.value),
+        Variable(expected.value),
+      ],
+      updates: {database.workShifts},
+    );
+  }
+
+  Future<int> deleteBreaksFor(ShiftId id) {
+    return database.customUpdate(
+      'DELETE FROM shift_breaks WHERE shift_id = ?',
+      variables: [Variable(id.value)],
+      updates: {database.shiftBreaks},
+      updateKind: UpdateKind.delete,
+    );
+  }
+
+  Future<int> finalize(domain.WorkShift value, {required Revision expected}) {
+    return database.customUpdate(
+      '''
+      UPDATE work_shifts
+      SET agreement_id = ?, state = 'finalized', updated_at_utc_micros = ?,
+          revision = revision + 1
+      WHERE id = ? AND revision = ? AND state = 'draft'
+      ''',
+      variables: [
+        Variable(value.agreementId!.value),
+        Variable(value.updatedAtUtc.microsecondsSinceEpoch),
+        Variable(value.id.value),
+        Variable(expected.value),
+      ],
+      updates: {database.workShifts},
+    );
+  }
+
+  Future<int> voidForCorrection(
+    domain.WorkShift value, {
+    required Revision expected,
+  }) {
+    return database.customUpdate(
+      '''
+      UPDATE work_shifts
+      SET state = 'voided', void_reason = ?, replacement_shift_id = ?,
+          updated_at_utc_micros = ?, revision = revision + 1
+      WHERE id = ? AND revision = ? AND state = 'finalized'
+      ''',
+      variables: [
+        Variable(value.voidReason),
+        Variable(value.replacementShiftId!.value),
+        Variable(value.updatedAtUtc.microsecondsSinceEpoch),
+        Variable(value.id.value),
+        Variable(expected.value),
+      ],
+      updates: {database.workShifts},
+    );
+  }
+
+  /// Voids a draft or finalized shift with no replacement; a void shift
+  /// never matches.
+  Future<int> voidWithoutReplacement(
+    domain.WorkShift value, {
+    required Revision expected,
+  }) {
+    return database.customUpdate(
+      '''
+      UPDATE work_shifts
+      SET state = 'voided', void_reason = ?, updated_at_utc_micros = ?,
+          revision = revision + 1
+      WHERE id = ? AND revision = ? AND state IN ('draft', 'finalized')
+      ''',
+      variables: [
+        Variable(value.voidReason),
+        Variable(value.updatedAtUtc.microsecondsSinceEpoch),
+        Variable(value.id.value),
+        Variable(expected.value),
+      ],
+      updates: {database.workShifts},
+    );
+  }
+}
